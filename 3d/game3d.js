@@ -1513,14 +1513,14 @@ function dialog(title, text, opts) {
 function closeDialog() { $('dialog').classList.add('hidden'); dialogOpen = false; }
 function talk(n) {
   P.face = Math.atan2(n.x - P.x, n.z - P.z);
-  const nm = `💬 ${n.name}`;
+  const nm = `💬 ${n.name}`, eu = P.name, bv = P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda', heroi = P.gender === 'm' ? 'herói' : 'heroína';
   switch (n.id) {
     case 'healer':
-      dialog(nm, 'Que a luz guie seus passos, viajante. Deixe-me cuidar de você.', [
+      dialog(nm, `Que a luz guie seus passos, <b>${eu}</b>. Deixe-me cuidar de você.`, [
         { label: '✚ Curar (grátis)', fn: () => { P.hp = stats.maxHp(); P.sp = stats.maxSp(); Audio8.sfx('heal'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xcfe8ff, 25, 3, 1); log(`${n.name} restaurou seu HP e SP.`, 'item'); } },
         { label: 'Até logo' }]); break;
     case 'shop': {
-      const shop = () => dialog(nm, `Bem-vinda! Poções fresquinhas.<br><small>Zeny: <b>${P.zeny}z</b> · 🧪 ${P.inv.red} · 💧 ${P.inv.blue}</small>`, [
+      const shop = () => dialog(nm, `${bv}, <b>${eu}</b>! Poções fresquinhas.<br><small>Zeny: <b>${P.zeny}z</b> · 🧪 ${P.inv.red} · 💧 ${P.inv.blue}</small>`, [
         { label: `🧪 Poção Vermelha — 25z`, fn: () => { buy('red', 1); shop(); return true; } },
         { label: `🧪×10 — 250z`, fn: () => { buy('red', 10); shop(); return true; } },
         { label: `💧 Poção Azul — 90z`, fn: () => { buy('blue', 1); shop(); return true; } },
@@ -1529,24 +1529,24 @@ function talk(n) {
     }
     case 'master': {
       const q = QUESTS[P.quest];
-      if (!q) { dialog(nm, `Você restaurou o ritmo do mundo, ${P.name}! Estou tão orgulhosa.<br>Seu melhor combo foi <b>${P.best}</b>. Consegue superar?`); break; }
+      if (!q) { dialog(nm, `Você completou todas as minhas lições, <b>${P.name}</b>! Estou tão orgulhosa.<br>Seu melhor combo foi <b>${P.best}</b>. Consegue superar?`); break; }
       if (P.qcount >= q.n) {
-        dialog(nm, `Maravilhoso! Você está ficando cada vez mais forte.<br><br>Recompensa: <b>${q.xp} XP</b>, <b>${q.zeny}z</b>${q.red ? `, ${q.red}× Poção Vermelha` : ''}${q.blue ? `, ${q.blue}× Poção Azul` : ''}.`, [
+        dialog(nm, `Maravilhoso, <b>${eu}</b>! Você está ficando cada vez mais forte.<br><br>Recompensa: <b>${q.xp} XP</b>, <b>${q.zeny}z</b>${q.red ? `, ${q.red}× Poção Vermelha` : ''}${q.blue ? `, ${q.blue}× Poção Azul` : ''}.`, [
           { label: '🎁 Receber recompensa', fn: () => {
             P.zeny += q.zeny; P.inv.red += q.red || 0; P.inv.blue += q.blue || 0; Audio8.sfx('coin'); gainXp(q.xp);
             P.quest++; P.qcount = 0; buildHotbar(); save();
             const nq = QUESTS[P.quest]; if (nq) log(`📜 Nova missão: <b>${nq.txt}</b>`, 'gold');
           } }]);
       } else if (P.quest === 0 && P.qcount === 0) {
-        dialog(nm, `${P.name}, algo terrível aconteceu: a <b>melodia do mundo saiu do compasso</b>, e os monstros ficaram agitados.<br><br>
-          Precisamos de heróis para proteger as vilas. Mostre do que sua classe é capaz!<br><br>
+        dialog(nm, `<b>${P.name}</b>, algo terrível aconteceu: a <b>melodia do mundo saiu do compasso</b>, e os monstros ficaram agitados.<br><br>
+          Precisamos de heróis para proteger as vilas, e você é ${P.gender === 'm' ? 'o' : 'a'} ${heroi} que eu esperava. Mostre do que um(a) ${className(P.cls, P.gender)} é capaz!<br><br>
           Primeira lição: <b>${q.txt}</b>.`, [{ label: 'Estou pronta!' }]);
       } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`);
       break;
     }
-    case 'watch': dialog(nm, 'Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas</b>, <b>Vermes de Dentes</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>'); break;
-    case 'guard': dialog(nm, 'Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Zunzuns</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.'); break;
-    case 'elder': dialog(nm, 'Dizem que o <b>Guardião das Areias</b> dança ao som das tempestades, nas ruínas ao sudeste daqui.<br>Ele só se curva diante de quem acerta o ritmo perfeito. Volte quando estiver acima do nível 15.'); break;
+    case 'watch': dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas</b>, <b>Vermes de Dentes</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
+    case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Zunzuns</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
+    case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Dizem que o <b>Guardião das Areias</b> dança ao som das tempestades, nas ruínas ao sudeste daqui.<br>Ele só se curva diante de quem acerta o ritmo perfeito. Volte quando estiver acima do nível 15.`); break;
   }
 }
 function buy(id, n) {
@@ -1664,7 +1664,7 @@ function start(fromSave) {
     if (inTower(P.z)) { P.x = CIT.x; P.z = CIT.z + 8; }
     if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; }
   } else {
-    Object.assign(P, CREATE, { name: ($('name-in').value.trim() || 'Lyra').slice(0, 16) });
+    Object.assign(P, CREATE, { name: $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16) });
     const r = RACES[P.race].bonus, c = CLASSES[P.cls].bonus;
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
     P.statPts = 3;
@@ -1682,7 +1682,7 @@ function start(fromSave) {
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
   running = true; Kvx.init(); Net.init(); buildHotbar();
   const who = `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
-  if (fromSave) log(`Bem-vindo(a) de volta, <b>${P.name}</b>!`, 'gold');
+  if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
   else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
 }
@@ -1718,7 +1718,13 @@ function armNew() {
   setTimeout(() => { newArmed = false; $('btn-new').textContent = '✨ Novo Jogo'; }, 4000);
   return false;
 }
-$('btn-new').onclick = () => { if (loadSave() && !armNew()) return; start(false); };
+function nameOk() {
+  const v = $('name-in').value.trim();
+  if (v.length < 2) { $('name-in').classList.add('err'); $('name-in').placeholder = 'Escolha um nome (mín. 2 letras)'; $('name-in').focus(); Audio8.sfx('miss'); return false; }
+  $('name-in').classList.remove('err'); return true;
+}
+$('btn-new').onclick = () => {
+  if (!nameOk()) return; if (loadSave() && !armNew()) return; start(false); };
 $('btn-cont').onclick = () => start(true);
 renderCreate();
 (function loadModels() {

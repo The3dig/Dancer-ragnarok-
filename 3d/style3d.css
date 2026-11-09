@@ -230,3 +230,4 @@ body.touch #skillwin { width: min(560px, 62vw); }
 #chatbox button { padding: 0 14px; border-radius: 12px; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; font-weight: 800; }
 #chat .chat { color: #fff; }
 body.touch #chatbox { bottom: auto; top: 60px; }
+.cname input.err { border-color: #ff6a6a; box-shadow: 0 0 0 2px rgba(255,90,90,.4); }
