@@ -73,7 +73,9 @@ na página **Releases** do repositório:
 Abra a página pelo celular, baixe o `Dancarina.apk` e toque para instalar.
 O app abre deitado, em tela cheia, e a tela não apaga enquanto você joga.
 
-**2. PWA (instalar pelo navegador).** Funciona offline e tem ícone próprio. Para publicar:
+**2. iPhone / PWA (link no Safari).** Link: https://the3dig.github.io/Dancer-ragnarok-/ — abra no Safari, toque em Compartilhar → "Adicionar à Tela de Início".
+
+**PWA (instalar pelo navegador).** Funciona offline e tem ícone próprio. Para publicar:
 1. Em Settings → Pages, escolha "Source: GitHub Actions".
 2. Faça merge no `main`. O workflow `pages.yml` publica o site.
 3. No celular, abra o site e escolha "Adicionar à tela inicial".
