@@ -441,17 +441,17 @@ function updateRibbon(dt) {
 
 // ---------------------------------------------------------------- monstros (os mesmos do jogo 2D)
 const MOBDEF = {
-  pompom:    { name: 'Pompom', lv: 1, hp: 40, atk: 5, def: 0, xp: 9, zeny: [2, 6], speed: 1.6, aggro: 0, respawn: 8, drops: [['red', 0.18]] },
-  zunzum:    { name: 'Zunzum', lv: 3, hp: 60, atk: 8, def: 1, xp: 16, zeny: [4, 10], speed: 2.8, aggro: 7, respawn: 10, drops: [['red', 0.2], ['blue', 0.05]] },
-  fungolino: { name: 'Fungolino', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
-  besouro:   { name: 'Caranguejo Rubi', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
-  serpe:     { name: 'Raptor das Dunas', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
+  pompom:    { name: 'Larva da Essência', lv: 1, hp: 40, atk: 5, def: 0, xp: 9, zeny: [2, 6], speed: 1.6, aggro: 0, respawn: 8, drops: [['red', 0.18]] },
+  zunzum:    { name: 'Eco Faminto', lv: 3, hp: 60, atk: 8, def: 1, xp: 16, zeny: [4, 10], speed: 2.8, aggro: 7, respawn: 10, drops: [['red', 0.2], ['blue', 0.05]] },
+  fungolino: { name: 'Raiz Rastejante', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
+  besouro:   { name: 'Larva Cristalina', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
+  serpe:     { name: 'Sombra Errante', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
   kravenox:  { name: 'Kravenox', lv: 40, hp: 50000, atk: 70, def: 22, xp: 6000, zeny: [2500, 3500], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
-  larva:     { name: 'Larva da Essência', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
-  verme:     { name: 'Verme de Dentes', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
-  esfera:    { name: 'Sentinela Esférica', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
+  larva:     { name: 'Larva Alongada', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
+  verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
+  esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
   sentinela: { name: 'Sentinela do Vazio', lv: 19, hp: 1000, atk: 52, def: 20, xp: 380, zeny: [40, 90], speed: 2.6, aggro: 16, respawn: 1e9, drops: [['red', 0.5], ['blue', 0.3]] },
-  guardiao:  { name: 'Guardião das Areias', lv: 18, hp: 2400, atk: 42, def: 15, xp: 900, zeny: [300, 500], speed: 2.0, aggro: 14, respawn: 90, boss: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
+  guardiao:  { name: 'Sentinela sem Rosto', lv: 18, hp: 2400, atk: 42, def: 15, xp: 900, zeny: [300, 500], speed: 2.0, aggro: 14, respawn: 90, boss: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
 
@@ -460,6 +460,7 @@ function mobModel(type) {
   const mt = c => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
   const ms = c => { const m = new THREE.MeshToonMaterial({ color: c }); mats.push(m); return m; };
   const r = { g, mats };
+  if (typeof SpriteKit !== 'undefined' && SpriteKit.ready && SPR_MOBS[type]) return spriteMob(type, r);
   if (['larva', 'verme', 'esfera', 'sentinela'].includes(type)) return towerMobModel(type, r, mt);
   if (ModelKit.ready && MOB_MODELS[type]) return mobFromModel(type, r);
   if (type === 'kravenox') return kravenoxModel(r, mt);
@@ -550,6 +551,30 @@ const MOB_MODELS = {
   guardiao:  { m: 'orc_brute', h: 3.6, idle: 'Idle', walk: 'Walk', atk: 'Weapon', die: 'Death', tint: { Orc_Main: 0xc79a5c, Orc_Secondary: 0x8a5a32 } },
   // Kravenox mantém o visual original (kravenoxModel em kravenox.js)
 };
+// arte dos inimigos do RPG Kravenox (inimigos do livro)
+const SPR_MOBS = {
+  pompom:    { img: 'e_larva', h: 1.25 },
+  zunzum:    { img: 'e_eco', h: 1.9, float: true },
+  fungolino: { img: 'e_raizRast', h: 1.9 },
+  besouro:   { img: 'e_larvaCristal', h: 1.5 },
+  serpe:     { img: 'e_sombra', h: 2.1, float: true },
+  guardiao:  { img: 'e_semRosto', h: 5.2 },
+  larva:     { img: 'e_larvaLonga', h: 1.7 },
+  verme:     { img: 'e_larvaArmor', h: 1.9 },
+  esfera:    { img: 'e_fragmento', h: 2.0, float: true },
+  sentinela: { img: 'e_sentinela', h: 2.8 },
+  kravenox:  { set: { kind: 'hero', base: 'k' }, px: 22 / 34 },        // o próprio Kravenox, gigante
+};
+function spriteMob(type, r) {
+  const d = SPR_MOBS[type];
+  const a = SpriteKit.actor(d.set || { kind: 'one', img: d.img }, { h: d.h, px: d.px, float: d.float });
+  r.g.add(a.root); r.spr = a; r.h = a.h + (d.float ? 0.5 : 0); r.mats = []; r.lt = 0;
+  r.anim = (m, t) => {
+    const dt = Math.min(0.1, r.lt ? t - r.lt : 0); r.lt = t;
+    a.update(dt, { face: m.face, moving: m.moving, atk: m.swing || 0, flash: m.flash > 0, fury: m.enraged, beam: m.beam, sleeping: m.sleeping });
+  };
+  return r;
+}
 function mobFromModel(type, r) {
   const d = MOB_MODELS[type], inst = ModelKit.instance(d.m, d.h);
   const holder = new THREE.Group(); holder.position.y = d.y || 0; holder.add(inst.root); r.g.add(holder);
@@ -584,6 +609,14 @@ const NPCS = [
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
 ];
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha' };
+function spriteNPCs() {
+  for (const n of NPCS) {
+    const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
+    for (const c of [...n.g.children]) if (c !== n.bang) n.g.remove(c);
+    n.g.add(a.root); n.spr = a; n.face0 = n.g.rotation.y; n.bangY = a.h + 0.45;
+  }
+}
 function upgradeNPCs() {
   for (const n of NPCS) {
     const [cloth, hair, hat] = n.look, fem = ['veil', 'flower'].includes(hat);
@@ -652,12 +685,12 @@ const stats = {
 const xpNeed = lv => Math.floor(30 + 22 * Math.pow(lv, 1.75));
 
 const QUESTS = [
-  { mob: 'pompom', n: 5, txt: 'Derrote 5 Pompons nos Campos Dourados', xp: 60, zeny: 80, red: 3 },
-  { mob: 'zunzum', n: 5, txt: 'Derrote 5 Zunzuns', xp: 120, zeny: 120, red: 4 },
-  { mob: 'fungolino', n: 5, txt: 'Derrote 5 Fungolinos', xp: 220, zeny: 160, blue: 2 },
-  { mob: 'besouro', n: 6, txt: 'Derrote 6 Caranguejos Rubi nas Areias Rubras', xp: 500, zeny: 300, red: 5 },
-  { mob: 'serpe', n: 5, txt: 'Derrote 5 Raptores das Dunas', xp: 900, zeny: 400, blue: 3 },
-  { mob: 'guardiao', n: 1, txt: 'Derrote o Guardião das Areias nas ruínas', xp: 2500, zeny: 1500, blue: 5 },
+  { mob: 'pompom', n: 5, txt: 'Derrote 5 Larvas da Essência nos Campos Dourados', xp: 60, zeny: 80, red: 3 },
+  { mob: 'zunzum', n: 5, txt: 'Derrote 5 Ecos Famintos', xp: 120, zeny: 120, red: 4 },
+  { mob: 'fungolino', n: 5, txt: 'Derrote 5 Raízes Rastejantes', xp: 220, zeny: 160, blue: 2 },
+  { mob: 'besouro', n: 6, txt: 'Derrote 6 Larvas Cristalinas nas Areias Rubras', xp: 500, zeny: 300, red: 5 },
+  { mob: 'serpe', n: 5, txt: 'Derrote 5 Sombras Errantes', xp: 900, zeny: 400, blue: 3 },
+  { mob: 'guardiao', n: 1, txt: 'Derrote a Sentinela sem Rosto nas ruínas', xp: 2500, zeny: 1500, blue: 5 },
 ];
 
 // ---------------------------------------------------------------- estado
@@ -787,6 +820,7 @@ function killMob(m) {
   Audio8.sfx(m.d.boss ? 'boom' : 'die');
   m.lab.remove();
   if (m.model.inst) { m.model.inst.play(m.model.def.die, { once: true, restart: true }); corpses.push({ g: m.model.g, inst: m.model.inst, t: 1.6 }); }
+  else if (m.model.spr) corpses.push({ g: m.model.g, spr: m.model.spr, face: m.face, t: 1.1 });
   else scene.remove(m.model.g);
   drops.push(makeDrop('zeny', irand(...m.d.zeny), m.x, m.z));
   const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1);
@@ -797,7 +831,7 @@ function killMob(m) {
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
-  if (m.type === 'guardiao') log('🏆 <b>O Guardião das Areias caiu!</b> O ritmo do deserto foi restaurado!', 'gold');
+  if (m.type === 'guardiao') log('🏆 <b>A Sentinela sem Rosto caiu!</b> As ruínas estão livres.', 'gold');
   if (m.type === 'kravenox') { Kvx.onKill(m); return; }
   if (m.noRespawn) return;
   respawnQ.push({ type: m.type, area: m.area, at: m.at, t: m.d.respawn });
@@ -861,8 +895,32 @@ function attack() {
   } else {
     slash(k > 1.3 ? 0xffcf40 : c.colors.accent);
     Audio8.sfx('whip');
-    if (m && Math.hypot(m.x - P.x, m.z - P.z) < c.range + (m.d.rad ?? (m.d.boss ? 1.6 : 0))) dmgMob(m, stats.atk() * k, Math.random() < stats.crit());
+    if (m && Math.hypot(m.x - P.x, m.z - P.z) < c.range + (m.d.rad ?? (m.d.boss ? 1.6 : 0))) {
+      dmgMob(m, stats.atk() * k, Math.random() < stats.crit());
+      if (c.hitFx === 'garra') clawFx(m);
+    }
   }
+}
+function clawFx(m) {
+  if (typeof SpriteKit === 'undefined' || !SpriteKit.ready) return;
+  const big = m.d.rad ? 4 : 1;
+  SpriteKit.fx(P.atkSeq % 2 ? 'fx_garra1' : 'fx_garra2', { x: m.x, y: groundY(m.x, m.z) + Math.min(m.model.h * 0.55, 4), z: m.z, h: 1.7 * big, life: 0.28, flip: Math.random() < 0.5 });
+}
+function skillFx(s, tgt) {
+  if (!s.fx || typeof SpriteKit === 'undefined' || !SpriteKit.ready) return false;
+  if (s.fx === 'espinhos') {
+    const gy = groundY(tgt.x, tgt.z);
+    SpriteKit.fx('fx_espinhos', { x: tgt.x, y: gy, z: tgt.z, h: 3.4, bottom: true, life: 0.65 });
+    for (let j = 0; j < 4; j++) { const a = rand(0, TAU), r = rand(1, s.r); SpriteKit.fx('fx_espinhos2', { x: tgt.x + Math.cos(a) * r, y: groundY(tgt.x + Math.cos(a) * r, tgt.z + Math.sin(a) * r), z: tgt.z + Math.sin(a) * r, h: 1.5, bottom: true, life: 0.5 }); }
+  } else if (s.fx === 'espinhos2') {
+    for (let j = 0; j < 14; j++) { const a = j / 14 * TAU + rand(0, 0.3), r = rand(1.5, s.r); const x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; SpriteKit.fx(j % 3 ? 'fx_espinhos2' : 'fx_espinhos', { x, y: groundY(x, z), z, h: j % 3 ? 1.7 : 2.6, bottom: true, life: 0.6 }); }
+  } else if (s.fx === 'raio') {
+    const to = new THREE.Vector3(tgt.x, groundY(tgt.x, tgt.z) + Math.min(tgt.model.h * 0.5, 4), tgt.z);
+    SpriteKit.fx('fx_raio', { from: handPos(), to, h: 1.1, life: 0.5 });
+    SpriteKit.fx('fx_explosao', { x: to.x, y: to.y, z: to.z, h: 2.2, life: 0.45, grow: 1.5 });
+    return true;                                                     // raio acerta na hora
+  }
+  return false;
 }
 function healP(h) { h = Math.round(h); if (h <= 0 || P.dead) return; P.hp = Math.min(stats.maxHp(), P.hp + h); floater(P.x, P.y + 2.4, P.z, '+' + h, 'heal'); }
 function addBuff(id, dur, mods, icon) { P.buffs[id] = { t: dur, mods, icon }; }
@@ -899,6 +957,8 @@ function useSkill(i) {
     if (s.poison) poison(m, stats.matk() * 0.35 * s.poison, 6);
   };
   const center = new THREE.Vector3(P.x, P.y + 1, P.z);
+  const instant = skillFx(s, tgt);
+  if (s.fury && typeof SpriteKit !== 'undefined' && SpriteKit.ready) SpriteKit.fx('fx_explosao', { x: P.x, y: P.y + 1, z: P.z, h: 3, life: 0.5, grow: 2 });
   switch (s.type) {
     case 'strike':
       slash(s.color); Audio8.sfx('whip'); hitOne(tgt, base);
@@ -923,6 +983,7 @@ function useSkill(i) {
     }
     case 'bolt': {
       Audio8.sfx('skill');
+      if (instant) { hitOne(tgt, base); break; }
       const list = s.spread ? nearestN(range, s.shots) : Array(s.shots || 1).fill(tgt);
       list.forEach((t, j) => setTimeout(() => { if (!P.dead && !t.dead) shoot(handPos(), t, s.color, s.big, m => hitOne(m, base)); }, j * 130));
       break;
@@ -1071,9 +1132,9 @@ function update(dt) {
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
   updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
-  for (const c of corpses) { c.t -= dt; c.inst.update(dt); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
+  for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
-  for (const n of NPCS) if (n.inst) n.inst.update(dt);
+  for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
   for (const c of clouds) { c.position.x += dt * 1.2; if (c.position.x > WX + 20) c.position.x = -WX - 20; }
   if (Math.random() < dt * 30) { // água do chafariz
     const m = new THREE.Mesh(fxGeo.dot, new THREE.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true }));
@@ -1088,7 +1149,7 @@ function update(dt) {
       fx.push({ m, v: new THREE.Vector3(rand(-0.2, 0.2), 0.8, rand(-0.2, 0.2)), life: 2.5, max: 2.5, kind: 'note', own: m.geometry });
     }
   }
-  for (const n of NPCS) n.bang.position.y = 2.3 + Math.sin(time * 3) * 0.1;
+  for (const n of NPCS) n.bang.position.y = (n.bangY || 2.3) + Math.sin(time * 3) * 0.1;
   const z = zoneOf(P.x, P.z);
   if (z !== zone) {
     zone = z; Audio8.play(ZONES[z].music); banner(ZONES[z].name); $('zonename').textContent = ZONES[z].name;
@@ -1100,6 +1161,7 @@ function update(dt) {
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
   if (dark > 0) { skyMat.uniforms.horizon.value.lerp(new THREE.Color(0x4a1830), dark); skyMat.uniforms.top.value.lerp(new THREE.Color(0x12081c), dark); }
   scene.fog.color.copy(skyMat.uniforms.horizon.value);
+  if (typeof SpriteKit !== 'undefined') SpriteKit.setLight(1 - 0.3 * dark);
 }
 
 function updatePlayer(dt) {
@@ -1211,7 +1273,7 @@ function updateMob(m, dt) {
   g.position.set(m.x, groundY(m.x, m.z), m.z);
   let df = ((m.face - g.rotation.y + Math.PI) % TAU + TAU) % TAU - Math.PI;
   g.rotation.y += df * Math.min(1, dt * 8);
-  if (m.stun <= 0) m.model.anim(m, time); else g.rotation.z = Math.sin(time * 8) * 0.1;
+  if (m.stun <= 0 || m.model.spr) m.model.anim(m, time); else g.rotation.z = Math.sin(time * 8) * 0.1;
   if (m.stun <= 0) g.rotation.z = 0;
   const em = m.flash > 0 ? 0xffffff : 0x000000;
   for (const mt of m.model.mats) mt.emissive.setHex(em);
@@ -1229,6 +1291,7 @@ function stepMob(m, tx, tz, sp, dt) {
 
 // ---------------------------------------------------------------- animação da Lyra
 function animateLyra(dt) {
+  if (L.sprite) return animateSprite(dt);
   if (L.model) return animateModel(dt);
   lyra.position.set(P.x, P.y, P.z);
   lyra.rotation.y = P.face + (P.dance > 0 ? (1 - P.dance) * TAU * 2 : 0);
@@ -1262,6 +1325,11 @@ function animateLyra(dt) {
   if (L.ribbon) updateRibbon(dt);
 }
 
+function animateSprite(dt) {
+  lyra.position.set(P.x, P.y, P.z); lyra.rotation.y = P.face;
+  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
+  lyra.visible = true;
+}
 function animateModel(dt) {
   lyra.position.set(P.x, P.y, P.z);
   lyra.rotation.y = P.face + (P.dance > 0 ? (1 - P.dance) * TAU * 2 : 0);
@@ -1338,7 +1406,7 @@ function updateLabels() {
 function updateHUD() {
   const mh = stats.maxHp(), ms = stats.maxSp(), need = xpNeed(P.lv);
   $('st-name').textContent = P.name;
-  $('st-lv').textContent = `${RACES[P.race].name} · ${className(P.cls, P.gender)} · Nv ${P.lv}`;
+  $('st-lv').textContent = `${className(P.cls, P.gender)} · Nv ${P.lv}`;
   $('hpbar').style.width = (P.hp / mh * 100) + '%'; $('spbar').style.width = (P.sp / ms * 100) + '%'; $('xpbar').style.width = (P.xp / need * 100) + '%';
   $('hptxt').textContent = `${Math.ceil(P.hp)} / ${mh}`; $('sptxt').textContent = `${Math.floor(P.sp)} / ${ms}`; $('xptxt').textContent = `${(P.xp / need * 100).toFixed(1)}%`;
   $('zeny').textContent = P.zeny.toLocaleString('pt-BR');
@@ -1429,7 +1497,7 @@ function buildHotbar() {
 function renderStats() {
   const w = $('statwin');
   const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts ? '' : 'disabled'}>+</button><span class="si">${STAT_INFO[k]}</span></div>`;
-  const html = `<div class="wt">${className(P.cls, P.gender)} ${RACES[P.race].name} <span class="x" data-close>×</span></div>
+  const html = `<div class="wt">${className(P.cls, P.gender)} <span class="x" data-close>×</span></div>
     ${STAT_KEYS.map(row).join('')}
     <div class="pts">Pontos disponíveis: <b>${P.statPts}</b></div>
     <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b><br>
@@ -1548,13 +1616,13 @@ function talk(n) {
       } else if (P.quest === 0 && P.qcount === 0) {
         dialog(nm, `<b>${P.name}</b>, algo terrível aconteceu: a <b>melodia do mundo saiu do compasso</b>, e os monstros ficaram agitados.<br><br>
           Precisamos de heróis para proteger as vilas, e você é ${P.gender === 'm' ? 'o' : 'a'} ${heroi} que eu esperava. Mostre do que um(a) ${className(P.cls, P.gender)} é capaz!<br><br>
-          Primeira lição: <b>${q.txt}</b>.`, [{ label: 'Estou pronta!' }]);
+          Primeira lição: <b>${q.txt}</b>.`, [{ label: P.gender === 'm' ? 'Estou pronto!' : 'Estou pronta!' }]);
       } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`);
       break;
     }
-    case 'watch': dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas</b>, <b>Vermes de Dentes</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
-    case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Zunzuns</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
-    case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Dizem que o <b>Guardião das Areias</b> dança ao som das tempestades, nas ruínas ao sudeste daqui.<br>Ele só se curva diante de quem acerta o ritmo perfeito. Volte quando estiver acima do nível 15.`); break;
+    case 'watch': dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
+    case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
+    case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor. Volte quando estiver acima do nível 15.`); break;
   }
 }
 function buy(id, n) {
@@ -1633,12 +1701,12 @@ function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textCon
 function showHelp() {
   if (TOUCH) return dialog('📜 Como jogar', `
   🕹️ <b>Joystick</b> (esquerda) para andar · <b>arraste a tela</b> para girar a câmera<br>
-  ⚔️ golpe de fita · ⤴ pular · 💨 esquivar · 💬 falar com NPC<br>
+  ⚔️ ataque · ⤴ pular · 💨 esquivar · 💬 falar com NPC<br>
   Toque nos ícones de baixo para as habilidades e poções.<br><br>
   🎵 <b>Combate rítmico:</b> golpeie quando as barrinhas encontram o centro do marcador. <b style="color:#c08000">PERFEITO</b> = +60% de dano e aumenta o combo!`);
   dialog('📜 Como jogar', `
   <b>WASD</b> andar · <b>Arrastar o mouse</b> gira a câmera · <b>Roda</b> zoom<br>
-  <b>Clique</b> ou <b>J</b> — golpe de fita · <b>Espaço</b> pular · <b>Shift</b> esquiva<br>
+  <b>Clique</b> ou <b>J</b> — ataque básico · <b>Espaço</b> pular · <b>Shift</b> esquiva<br>
   <b>1–4</b> habilidades da classe · <b>Q</b> Poção Vermelha · <b>E</b> Poção Azul<br>
   <b>F</b> falar com NPC · <b>C</b> atributos · <b>X</b> sentar · <b>M</b> música<br><br>
   🎵 <b>Combate rítmico:</b> golpeie quando as barrinhas encontram o centro do marcador.
@@ -1669,11 +1737,12 @@ function start(fromSave) {
   if (fromSave) {
     const s = loadSave();
     Object.assign(P, { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, dex: 3, luk: 3 }, s, { inv: { red: 0, blue: 0, ...s.inv } });
+    if (!CLASSES[P.cls] || !CLASSES[P.cls].hero) { P.cls = OLD_TO_HERO[P.cls] || 'kravenox'; P.gender = CLASSES[P.cls].gender; P.race = 'humano'; }
     if (inTower(P.z)) { P.x = CIT.x; P.z = CIT.z + 8; }
     if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; }
   } else {
     Object.assign(P, CREATE, { name: $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16) });
-    const r = RACES[P.race].bonus, c = CLASSES[P.cls].bonus;
+    const r = CLASSES[P.cls].hero ? {} : RACES[P.race].bonus, c = CLASSES[P.cls].bonus;
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
     P.statPts = 3;
   }
@@ -1689,34 +1758,27 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
   running = true; Kvx.init(); Net.init(); buildHotbar();
-  const who = `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
+  const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
   else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
 }
 
 // ---------------------------------------------------------------- criação de personagem
-const CREATE = { race: 'humano', gender: 'f', cls: 'dancarina', hair: 0, skin: 0 };
+const CREATE = { race: 'humano', gender: 'm', cls: 'kravenox', hair: 0, skin: 0 };
 function renderCreate() {
-  const chips = (id, items, cur, onPick) => {
-    const el = $(id); el.innerHTML = '';
-    items.forEach(([val, label, style]) => {
-      const b = document.createElement('button'); b.className = 'chip' + (val === cur ? ' on' : '');
-      b.innerHTML = label; if (style) b.style.cssText = style;
-      b.onclick = () => { Audio8.init(); Audio8.sfx('click'); onPick(val); renderCreate(); };
-      el.appendChild(b);
-    });
-  };
-  chips('c-race', Object.entries(RACES).map(([k, r]) => [k, r.name]), CREATE.race, v => { CREATE.race = v; CREATE.skin = 0; });
-  chips('c-gender', [['f', 'Feminino'], ['m', 'Masculino']], CREATE.gender, v => CREATE.gender = v);
-  const allowed = RACES[CREATE.race].classes || Object.keys(CLASSES);
-  if (!allowed.includes(CREATE.cls)) CREATE.cls = allowed[0];
-  chips('c-class', allowed.map(k => [k, `${CLASSES[k].skills[0].icon} ${className(k, CREATE.gender)}`]), CREATE.cls, v => CREATE.cls = v);
-  chips('c-hair', HAIR_COLORS.map((c, i) => [i, '', `background:#${c.toString(16).padStart(6, '0')}`]), CREATE.hair, v => CREATE.hair = v);
-  chips('c-skin', RACES[CREATE.race].skins.map((c, i) => [i, '', `background:#${c.toString(16).padStart(6, '0')}`]), CREATE.skin, v => CREATE.skin = v);
-  const r = RACES[CREATE.race], c = CLASSES[CREATE.cls];
-  const st = STAT_KEYS.map(k => `${STAT_NAMES[k]} <b>${Math.max(1, 3 + (r.bonus[k] || 0) + (c.bonus[k] || 0))}</b>`).join(' · ');
-  $('c-info').innerHTML = `<p><b>${r.name}:</b> ${r.desc}</p><p><b>${className(CREATE.cls, CREATE.gender)}:</b> ${c.role}</p>
+  const el = $('c-class'); el.innerHTML = '';
+  for (const k of HEROES) {
+    const C = CLASSES[k], b = document.createElement('button');
+    b.className = 'chip' + (k === CREATE.cls ? ' on' : '');
+    const src = window.SPR && SPR[C.portrait] ? 'data:image/png;base64,' + SPR[C.portrait] : '';
+    b.innerHTML = `<img src="${src}" alt=""><span>${C.name.f}</span>`;
+    b.onclick = () => { Audio8.init(); Audio8.sfx('click'); CREATE.cls = k; CREATE.gender = C.gender; renderCreate(); };
+    el.appendChild(b);
+  }
+  const c = CLASSES[CREATE.cls];
+  const st = STAT_KEYS.map(k => `${STAT_NAMES[k]} <b>${Math.max(1, 3 + (c.bonus[k] || 0))}</b>`).join(' · ');
+  $('c-info').innerHTML = `<p><b>${c.name.f}:</b> ${c.role}</p>
     <p class="cst">${st}</p><p class="csk">${c.skills.map(s => `${s.icon} ${s.name} <small>(Nv ${s.lv})</small>`).join('<br>')}</p>`;
   Object.assign(P, CREATE); refreshSkills(); rebuildAvatar();
 }
@@ -1740,9 +1802,10 @@ renderCreate();
 (function loadModels() {
   const btn = $('btn-new'), cont = $('btn-cont'), label = btn.textContent;
   btn.disabled = true; cont.disabled = true;
-  ModelKit.load(p => { btn.textContent = `⏳ Carregando personagens… ${Math.round(p * 100)}%`; }).then(ok => {
+  Promise.all([ModelKit.load(p => { btn.textContent = `⏳ Carregando personagens… ${Math.round(p * 100)}%`; }), SpriteKit.load()]).then(([ok]) => {
     btn.disabled = false; cont.disabled = false; btn.textContent = label;
-    if (ok) { upgradeNPCs(); renderCreate(); }
+    if (SpriteKit.ready) spriteNPCs(); else if (ok) upgradeNPCs();
+    renderCreate();
   });
 })();
 if (!loadSave()) $('btn-cont').style.display = 'none';
@@ -1754,7 +1817,7 @@ P.y = groundY(P.x, P.z);
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); animateLyra(dt); updateCamera(dt);
+    update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt);
     sky.position.copy(camera.position); renderer.render(scene, camera);
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {

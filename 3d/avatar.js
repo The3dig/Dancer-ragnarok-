@@ -124,6 +124,8 @@ function gear(ctx) {
 }
 
 function buildAvatar(root, look) {
+  const C0 = CLASSES[look.cls];
+  if (C0 && C0.sprite && typeof SpriteKit !== 'undefined' && SpriteKit.ready) return buildSpriteAvatar(root, look);
   if (ModelKit.ready) return buildModelAvatar(root, look);
   while (root.children.length) root.remove(root.children[0]);
   const race = RACES[look.race] || RACES.humano;
@@ -344,4 +346,15 @@ const _fv = new THREE.Vector3();
 function updateFollow(L) {
   if (!L || !L.follow) return;
   for (const [g, hand] of L.follow) { hand.getWorldPosition(_fv); g.parent.worldToLocal(_fv); g.position.copy(_fv); }
+}
+
+// herói do livro: sprite do RPG voltado para a câmera (estilo Ragnarok)
+function buildSpriteAvatar(root, look) {
+  while (root.children.length) root.remove(root.children[0]);
+  const C = CLASSES[look.cls];
+  const a = SpriteKit.actor(C.sprite);
+  root.add(a.root);
+  const handR = new THREE.Object3D(); handR.position.set(0.25, a.h * 0.6, 0.35); root.add(handR);
+  const head = new THREE.Object3D(); head.position.y = a.h * 0.85; root.add(head);
+  return { cls: look.cls, sprite: a, body: a.root, head, handR, handL: handR, ribbon: false };
 }

@@ -153,8 +153,8 @@ const Kvx = (() => {
     const races = Object.keys(RACES);
     const names = ALLY_NAMES.slice().sort(() => Math.random() - 0.5);
     for (let i = 0; i < 6; i++) {
-      const race = races[irand(0, races.length - 1)], clss = RACES[race].classes;
-      const look = { race, cls: clss[irand(0, clss.length - 1)], gender: Math.random() < 0.5 ? 'f' : 'm', hair: irand(0, 7), skin: irand(0, 2) };
+      const hero = HEROES[irand(0, HEROES.length - 1)];
+      const look = { race: 'humano', cls: hero, gender: CLASSES[hero].gender, hair: 0, skin: 0 };
       const g = new THREE.Group(); scene.add(g);
       const L2 = buildAvatar(g, look);
       if (L2.ribbon) L2.ribbon = false;
@@ -173,7 +173,7 @@ const Kvx = (() => {
       al.cd -= dt; al.atk = Math.max(0, al.atk - dt * 3);
       if (al.down > 0) {
         al.down -= dt;
-        if (al.L.model) { al.L.inst.play('Death', { once: true }); al.L.inst.update(dt); } else { al.g.rotation.z = Math.PI / 2; al.g.position.y = groundY(al.x, al.z) + 0.3; }
+        if (al.L.sprite) { al.g.position.set(al.x, groundY(al.x, al.z), al.z); al.L.sprite.update(dt, { dead: true, face: al.face }); } else if (al.L.model) { al.L.inst.play('Death', { once: true }); al.L.inst.update(dt); } else { al.g.rotation.z = Math.PI / 2; al.g.position.y = groundY(al.x, al.z) + 0.3; }
         if (al.down <= 0) { al.hp = al.maxHp * 0.6; al.g.rotation.z = 0; floater(al.x, groundY(al.x, al.z) + 2.2, al.z, 'De pé!', 'heal'); }
         continue;
       }
@@ -196,8 +196,13 @@ const Kvx = (() => {
             const from = new THREE.Vector3(); (al.L.orb || al.L.handR).getWorldPosition(from);
             shoot(from, boss, C.proj, false, m => dmgMob(m, dmg, crit, C.magic, C.proj));
           } else { dmgMob(boss, dmg, crit, false, C.colors.accent); }
-          if (al.look.cls === 'sacerdote' && Math.random() < 0.3) { healP(stats.maxHp() * 0.08); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xcfe8ff, 10, 2, 0.6); }
+          if (['sacerdote', 'lyra', 'thornox', 'erya'].includes(al.look.cls) && Math.random() < 0.3) { healP(stats.maxHp() * 0.08); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xcfe8ff, 10, 2, 0.6); }
         }
+      }
+      if (al.L.sprite) {
+        al.g.position.set(al.x, groundY(al.x, al.z), al.z); al.g.rotation.y = al.face;
+        al.L.sprite.update(dt, { face: al.face, moving: al.moving, atk: al.atk, dead: al.down > 0 });
+        continue;
       }
       if (al.L.model) {
         const st = al.atk > 0.9 ? (C.ranged ? 'Gun_Shoot' : 'Sword_Slash') : al.atk > 0 ? al.L.inst.curName : al.moving ? 'Run' : (C.ranged ? 'Idle' : 'Idle_Sword');
@@ -240,6 +245,13 @@ const Kvx = (() => {
   }
   function inLine(tl, x, z) { const dx = x - tl.x, dz = z - tl.z, lz = dx * Math.sin(tl.a) + dz * Math.cos(tl.a), lx = dx * Math.cos(tl.a) - dz * Math.sin(tl.a); return lz > 0 && lz < tl.len && Math.abs(lx) < tl.w / 2; }
   function beamFx(tl) {
+    if (typeof SpriteKit !== 'undefined' && SpriteKit.ready) {
+      const y = groundY(tl.x, tl.z), from = new THREE.Vector3(tl.x + Math.sin(tl.a) * 2, y + 12, tl.z + Math.cos(tl.a) * 2);
+      const to = new THREE.Vector3(tl.x + Math.sin(tl.a) * tl.len, y + 1, tl.z + Math.cos(tl.a) * tl.len);
+      SpriteKit.fx('fx_raio', { from, to, h: 5, life: 0.7 });
+      SpriteKit.fx('fx_explosao', { x: to.x, y: to.y + 1, z: to.z, h: 6, life: 0.6, grow: 1.5 });
+      return;
+    }
     const geo = new THREE.CylinderGeometry(1.2, 1.2, tl.len, 12, 1, true); geo.rotateX(Math.PI / 2); geo.translate(0, 0, tl.len / 2);
     const b = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
     b.position.set(tl.x, groundY(tl.x, tl.z) + 9, tl.z); b.rotation.y = tl.a; scene.add(b);
@@ -247,6 +259,12 @@ const Kvx = (() => {
     for (let k = 0; k < 10; k++) burst(new THREE.Vector3(tl.x + Math.sin(tl.a) * k * tl.len / 10, groundY(tl.x, tl.z) + 1, tl.z + Math.cos(tl.a) * k * tl.len / 10), 0xff3030, 4, 3, 0.6);
   }
   function spikeRing(x, z, r) {
+    if (typeof SpriteKit !== 'undefined' && SpriteKit.ready) {
+      const n = Math.max(6, Math.round(r * 1.4));
+      for (let k = 0; k < n; k++) { const a = k / n * TAU, rr = r * (0.25 + Math.random() * 0.75), px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr;
+        SpriteKit.fx(k % 2 ? 'fx_espinhos' : 'fx_espinhos2', { x: px, y: groundY(px, pz), z: pz, h: 3 + Math.random() * 3, bottom: true, life: 1.1 }); }
+      return;
+    }
     const n = Math.max(5, Math.round(r * 1.6)), y = groundY(x, z);
     for (let k = 0; k < n; k++) {
       const a = k / n * TAU, rr = r * (0.3 + Math.random() * 0.7);
@@ -257,6 +275,7 @@ const Kvx = (() => {
     burst(new THREE.Vector3(x, y + 1, z), 0xff2a2a, 30, r, 0.8);
   }
   function clawFx(m) {
+    if (typeof SpriteKit !== 'undefined' && SpriteKit.ready) { const fx_ = Math.sin(m.face), fz = Math.cos(m.face); SpriteKit.fx(Math.random() < 0.5 ? 'fx_garra1' : 'fx_garra2', { x: m.x + fx_ * 9, y: groundY(m.x, m.z) + 5, z: m.z + fz * 9, h: 12, life: 0.4, flip: Math.random() < 0.5 }); return; }
     const geo = new THREE.RingGeometry(5, 11, 32, 1, -Math.PI * 0.4, Math.PI * 0.8); geo.rotateX(-Math.PI / 2);
     const c = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
     c.position.set(m.x, groundY(m.x, m.z) + 3, m.z); c.rotation.y = m.face - Math.PI / 2; scene.add(c);

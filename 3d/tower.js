@@ -102,6 +102,11 @@ const Tower = (() => {
   let sleeperR = null;
   function buildSleeper() {
     const r = { g: sleeper, mats: [] };
+    if (typeof SpriteKit !== 'undefined' && SpriteKit.ready) {         // o sprite do próprio Kravenox, gigante e adormecido
+      const a = SpriteKit.actor({ kind: 'hero', base: 'k' }, { px: 18 / 34 }); sleeper.add(a.root);
+      r.anim = (m, t) => { const dt = Math.min(0.1, r.lt ? t - r.lt : 0); r.lt = t; a.update(dt, { face: Math.PI, sleeping: true }); };
+      sleeper.position.set(roof.x, roof.y, roof.z - 6); sleeperR = r; return;
+    }
     kravenoxModel(r, c => { const m = new THREE.MeshLambertMaterial({ color: c }); r.mats.push(m); return m; });
     sleeper.position.set(roof.x, roof.y, roof.z - 6); sleeper.rotation.y = 0;
     sleeperR = r;
@@ -151,7 +156,7 @@ const Tower = (() => {
   function update(dt) {
     beacon.rotation.y += dt; beacon.position.y = ty + 4 + Math.sin(time * 2) * 0.4;
     doorGlow.material.opacity = 0.55 + Math.sin(time * 3) * 0.2;
-    if (!sleeperR && typeof kravenoxModel === 'function') buildSleeper();
+    if (!sleeperR && typeof kravenoxModel === 'function' && (typeof SpriteKit === 'undefined' || SpriteKit.ready || running)) buildSleeper();
     sleeper.visible = !Kvx.active;
     if (sleeperR && sleeper.visible) {                                  // respiração lenta, olhos apagados
       sleeperR.anim({ moving: false, roar: 0, enraged: false, sleeping: true }, time);

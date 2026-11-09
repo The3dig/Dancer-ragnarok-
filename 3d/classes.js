@@ -224,3 +224,89 @@ Object.assign(CLASSES, {
 });
 
 function className(cls, gender) { return CLASSES[cls].name[gender] || CLASSES[cls].name.f; }
+
+// =====================================================================
+//  Heróis do livro (Reino Quebrado). O jogador escolhe um deles e um
+//  apelido; a arte é o sprite do RPG Kravenox. Técnicas com os nomes
+//  canônicos do RPG (data.js / l2data.js do kravenox-jogar).
+// =====================================================================
+const HEROES = ['kravenox', 'thornox', 'lyra', 'seraphyne', 'erya', 'mae'];
+Object.assign(CLASSES, {
+  kravenox: {
+    hero: true, sprite: { kind: 'hero', base: 'k' }, portrait: 'k_portrait', gender: 'm',
+    name: { f: 'Kravenox', m: 'Kravenox' }, role: 'Despertou no Abismo Carmesim. Espinhos negros, fome e perguntas. Combate corpo a corpo com garras e fúria.',
+    weapon: 'claws', hitFx: 'garra', colors: { cloth: 0x1a1218, trim: 0x3a2030, accent: 0xd01a2a },
+    range: 3.0, dmg: 'str', aspd: 0.7, hp: 1.3, sp: 0.9, crit: 0.07, bonus: { str: 3, vit: 2, agi: 1 },
+    skills: [
+      { id: 'espinhos', name: 'Espinhos', icon: '🖤', lv: 1, sp: 7, cd: 1.4, type: 'blast', r: 2.6, mult: 1.9, fx: 'espinhos', color: 0xd01a2a, desc: 'Espinhos negros explodem do chão sob o alvo (190%).' },
+      { id: 'vorazes', name: 'Espinhos Vorazes', icon: '🩸', lv: 4, sp: 16, cd: 6, type: 'nova', r: 5.5, mult: 1.6, fx: 'espinhos2', color: 0xd01a2a, desc: 'Centenas de espinhos atingem todos ao redor (160%).' },
+      { id: 'furia', name: 'Modo Fúria', icon: '😡', lv: 8, sp: 14, cd: 30, type: 'buff', dur: 20, mods: { atk: 1.5, aspd: 1.2, def: -8 }, fury: true, color: 0xff2030, desc: '20s: ataque +50% e golpes mais rápidos; a defesa cai.' },
+      { id: 'lamina', name: 'Raio da Essência', icon: '🔴', lv: 12, sp: 32, cd: 9, type: 'bolt', mult: 4.2, shots: 1, big: true, fx: 'raio', color: 0xff2030, desc: 'Um raio concentrado de Essência escura (420%).' },
+    ],
+  },
+  thornox: {
+    hero: true, sprite: { kind: 'hero', base: 't' }, portrait: 't_portrait', gender: 'm',
+    name: { f: 'Thornox', m: 'Thornox' }, role: 'O Guardião. Seus espinhos brilham com uma luz suave. Luz dourada à distância, cura e proteção.',
+    weapon: 'staff', colors: { cloth: 0x1a3a6a, trim: 0xe0c050, accent: 0xffd860 },
+    range: 10, dmg: 'int', ranged: true, magic: true, proj: 0xffd860, aspd: 1.0, hp: 1.25, sp: 1.25, crit: 0.03, bonus: { int: 3, vit: 2 },
+    skills: [
+      { id: 'rajada', name: 'Rajada Dourada', icon: '✨', lv: 1, sp: 8, cd: 1.3, type: 'bolt', mult: 2.0, magic: true, shots: 1, big: true, color: 0xffd860, desc: 'Luz contra as trevas (200%).' },
+      { id: 'luz', name: 'Luz Dourada', icon: '💛', lv: 4, sp: 14, cd: 4, type: 'heal', pct: 0.35, color: 0xfff2a0, desc: 'Cura 35% do HP.' },
+      { id: 'barreira', name: 'Barreira de Luz', icon: '🛡️', lv: 8, sp: 18, cd: 30, type: 'buff', dur: 25, mods: { def: 25 }, color: 0xffe9a0, desc: '25s: +25 de defesa.' },
+      { id: 'pedras', name: 'Pedras Flutuantes', icon: '🪨', lv: 12, sp: 36, cd: 11, type: 'blast', r: 5, mult: 3.0, magic: true, stun: 1, color: 0xffd860, desc: 'A luz ergue escombros contra todos em volta do alvo (300%).' },
+    ],
+  },
+  lyra: {
+    hero: true, sprite: { kind: 'dir', base: 's_lyra' }, portrait: 'p_lyra', gender: 'f',
+    name: { f: 'Lyra', m: 'Lyra' }, role: 'A irmã esquecida. Guardiã da última memória da Fonte. Cura, prende e protege.',
+    weapon: 'staff', colors: { cloth: 0xf0f0f8, trim: 0xc8d8f0, accent: 0xb8d8ff },
+    range: 10, dmg: 'int', ranged: true, magic: true, proj: 0xd8e8ff, aspd: 1.0, hp: 0.95, sp: 1.45, crit: 0.03, bonus: { int: 3, dex: 1, agi: 1 },
+    skills: [
+      { id: 'lembranca', name: 'Lembrança Dourada', icon: '🌟', lv: 1, sp: 8, cd: 1.3, type: 'bolt', mult: 2.2, magic: true, shots: 1, color: 0xffe9a0, desc: 'Uma memória da Fonte, afiada como luz (220%).' },
+      { id: 'memoria', name: 'Memória', icon: '💙', lv: 4, sp: 14, cd: 4, type: 'heal', pct: 0.4, color: 0xb8d8ff, desc: 'Lembranças boas curam 40% do HP.' },
+      { id: 'prisao', name: 'Barreira de Memórias', icon: '🌀', lv: 8, sp: 18, cd: 9, type: 'nova', r: 6, mult: 0.6, magic: true, stun: 3, color: 0xb8d8ff, desc: 'Prende os inimigos próximos em lembranças antigas (3s).' },
+      { id: 'milMemorias', name: 'Mil Memórias', icon: '💫', lv: 12, sp: 40, cd: 12, type: 'blast', r: 6, mult: 3.6, magic: true, color: 0xe8f0ff, desc: '"Você não pode tirar o que é nosso!" (360% em área).' },
+    ],
+  },
+  seraphyne: {
+    hero: true, sprite: { kind: 'dir', base: 's_seraphyne' }, portrait: 'p_seraphyne', gender: 'f',
+    name: { f: 'Seraphyne', m: 'Seraphyne' }, role: 'Filha da Essência. Armadura negra, cabelos prateados e o Vazio na palma da mão.',
+    weapon: 'staff', colors: { cloth: 0x14101c, trim: 0xd8d8e8, accent: 0xb26bff },
+    range: 9, dmg: 'int', ranged: true, magic: true, proj: 0xb26bff, aspd: 0.95, hp: 1.1, sp: 1.25, crit: 0.06, bonus: { int: 3, agi: 2 },
+    skills: [
+      { id: 'toque', name: 'Toque do Vazio', icon: '🟣', lv: 1, sp: 8, cd: 1.2, type: 'bolt', mult: 2.1, magic: true, shots: 1, big: true, color: 0xb26bff, desc: 'O Vazio não explode. Apenas apaga (210%).' },
+      { id: 'portal', name: 'Portal', icon: '🌑', lv: 4, sp: 16, cd: 7, type: 'blast', r: 4, mult: 1.2, magic: true, stun: 2.5, color: 0x6a2aa0, desc: 'Portais de Vazio prendem os inimigos em volta do alvo (2,5s).' },
+      { id: 'absorver', name: 'Absorver', icon: '🩸', lv: 8, sp: 16, cd: 4, type: 'drain', mult: 2.2, magic: true, steal: 0.5, color: 0x8a3ad0, desc: 'O Vazio consome o alvo (220%) e devolve metade como HP.' },
+      { id: 'silencioV', name: 'Silêncio', icon: '🌘', lv: 12, sp: 46, cd: 13, type: 'nova', r: 8, mult: 3.6, magic: true, color: 0x2a0a40, desc: 'Não uma explosão: um silêncio que engole tudo (360%).' },
+    ],
+  },
+  erya: {
+    hero: true, sprite: { kind: 'dir', base: 's_erya' }, portrait: 'p_erya', gender: 'f',
+    name: { f: 'Erya', m: 'Erya' }, role: 'A quinta marca. Olhos brancos de quem lembra de antes de tudo existir. Golpes de possibilidade e proteção.',
+    weapon: 'staff', colors: { cloth: 0x1a2a1a, trim: 0xe8e8e0, accent: 0xf0f0c0 },
+    range: 11, dmg: 'int', ranged: true, magic: true, proj: 0xf0f0c0, aspd: 1.0, hp: 0.95, sp: 1.4, crit: 0.05, bonus: { int: 3, agi: 1, luk: 1 },
+    skills: [
+      { id: 'marca', name: 'Marca da Escolha', icon: '✳️', lv: 1, sp: 9, cd: 1.4, type: 'bolt', mult: 1.1, magic: true, shots: 3, spread: true, color: 0xf0f0c0, desc: 'Três marcas que buscam alvos diferentes (110% cada).' },
+      { id: 'quintaMarca', name: 'Quinta Marca', icon: '🤍', lv: 4, sp: 14, cd: 5, type: 'heal', pct: 0.35, color: 0xffffff, desc: 'A marca da Escolha cura 35% do HP.' },
+      { id: 'escolhaLivre', name: 'Escolha Livre', icon: '🕊️', lv: 8, sp: 20, cd: 35, type: 'buff', dur: 30, mods: { def: 18, matk: 1.2 }, color: 0xf0f0c0, desc: 'Ninguém escolhe o seu destino. 30s: +18 de defesa e +20% de magia.' },
+      { id: 'possibilidades', name: 'Mil Possibilidades', icon: '🔆', lv: 12, sp: 42, cd: 12, type: 'blast', r: 5, mult: 1.4, hits: 3, magic: true, color: 0xf0f0c0, desc: 'Em cada possibilidade, o golpe acerta (3× 140% em área).' },
+    ],
+  },
+  mae: {
+    hero: true, sprite: { kind: 'dir', base: 's_mae' }, portrait: 'p_mae', gender: 'f',
+    name: { f: 'Mãe', m: 'Mãe' }, role: 'Passou milênios presa no Entre. Agora carrega de novo a sua lâmina antiga. Linha de frente.',
+    weapon: 'sword', colors: { cloth: 0xe8e4f0, trim: 0xb8a8d8, accent: 0xe8e8ff },
+    range: 3.2, dmg: 'str', aspd: 0.8, hp: 1.4, sp: 0.9, crit: 0.05, bonus: { str: 3, vit: 2, agi: 1 },
+    skills: [
+      { id: 'laminaAntiga', name: 'Lâmina Antiga', icon: '⚔️', lv: 1, sp: 6, cd: 1.5, type: 'strike', mult: 2.3, color: 0xffffff, desc: 'A lâmina que ela guardou por milênios (230%).' },
+      { id: 'correntesBrancas', name: 'Correntes Brancas', icon: '⛓️', lv: 4, sp: 15, cd: 8, type: 'nova', r: 5, mult: 0.9, stun: 2.5, color: 0xe8e8ff, desc: 'As correntes que a prendiam, agora a favor dela (atordoa 2,5s).' },
+      { id: 'abraco', name: 'Abraço de Mãe', icon: '🤍', lv: 8, sp: 18, cd: 20, type: 'heal', pct: 0.45, color: 0xffe0f0, desc: '"Você cresceu." Cura 45% do HP.' },
+      { id: 'voltem', name: 'Voltem, os Dois', icon: '🌙', lv: 12, sp: 34, cd: 11, type: 'nova', r: 6, mult: 3.0, heal: 0.15, color: 0xe8e8ff, desc: 'Uma promessa que corta e cura (300% ao redor, cura 15%).' },
+    ],
+  },
+});
+// saves antigos (classes de raça) viram o herói mais parecido
+const OLD_TO_HERO = {
+  guerreiro: 'kravenox', berserker: 'kravenox', arruaceiro: 'kravenox', saqueador: 'kravenox', assassino: 'kravenox', monge: 'kravenox', ferreira: 'kravenox',
+  paladino: 'mae', sacerdote: 'lyra', mago_luz: 'thornox', mago_negro: 'seraphyne', necromante: 'seraphyne', dancarina: 'erya', arqueira: 'erya', xama: 'thornox',
+};

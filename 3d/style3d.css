@@ -264,3 +264,9 @@ body.touch #chatbox { bottom: auto; top: 60px; }
   body.touch .create { width: min(360px, 58vw); }
   body.touch .tlogo h1 { font-size: 20px; }
 }
+/* escolha de herói (retratos do RPG) */
+.chips.heroes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; flex: 1; min-width: 0; }
+.chips.heroes .chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px; }
+.chips.heroes .chip img { width: 44px; height: 44px; image-rendering: pixelated; border-radius: 6px; background: rgba(0,0,0,.35); }
+.chips.heroes .chip span { font-size: 11px; }
+@media (max-height: 470px) { .chips.heroes { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; } .chips.heroes .chip { padding: 3px 1px; } .chips.heroes .chip img { width: 34px; height: 34px; } .chips.heroes .chip span { font-size: 9px; } }

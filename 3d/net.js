@@ -38,7 +38,7 @@ const Net = (() => {
       const g = new THREE.Group(); scene.add(g);
       const look = { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, ...(s.look || {}) };
       if (!RACES[look.race]) look.race = 'humano';
-      if (!CLASSES[look.cls]) look.cls = 'dancarina';
+      if (!CLASSES[look.cls]) look.cls = OLD_TO_HERO[look.cls] || 'kravenox';
       const L2 = buildAvatar(g, look);
       const lab = document.createElement('div'); lab.className = 'alabel plabel'; $('labels').appendChild(lab);
       const bub = document.createElement('div'); bub.className = 'bubble hidden'; $('labels').appendChild(bub);
@@ -85,7 +85,11 @@ const Net = (() => {
       r.x += (r.tx - r.x) * k; r.z += (r.tz - r.z) * k; r.y += (r.ty - r.y) * k;
       let df = ((r.tf - r.f + Math.PI) % TAU + TAU) % TAU - Math.PI; r.f += df * k;
       r.g.position.set(r.x, Math.max(r.y, groundY(r.x, r.z)), r.z); r.g.rotation.y = r.f;
-      if (r.L.model) {
+      if (r.L.sprite) {
+        if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.3; }
+        r.atkT = Math.max(0, (r.atkT || 0) - dt);
+        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's' });
+      } else if (r.L.model) {
         const C = CLASSES[r.look.cls] || CLASSES.dancarina;
         let anim = s.st === 'd' ? 'Death' : s.st === 'r' ? 'Roll' : (moving || s.st === 'm') ? 'Run' : s.st === 's' ? 'Interact' : (C.ranged || C.weapon === 'ribbon' ? 'Idle' : 'Idle_Sword');
         let once = anim === 'Death' || anim === 'Roll', restart = false;
