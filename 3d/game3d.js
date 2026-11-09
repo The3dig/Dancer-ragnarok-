@@ -21,7 +21,7 @@ const rr = (a, b) => a + R() * (b - a);
 THREE.ColorManagement.legacyMode = false;
 { const setHSL0 = THREE.Color.prototype.setHSL; THREE.Color.prototype.setHSL = function (h, s, l) { setHSL0.call(this, h, s, l); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.25 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -67,7 +67,9 @@ sun.castShadow = true; sun.shadow.mapSize.set(TOUCH ? 1024 : 2048, TOUCH ? 1024 
 Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 140 });
 sun.shadow.bias = -0.0008;
 scene.add(sun, sun.target);
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+function fitScreen() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', fitScreen);
+addEventListener('orientationchange', () => { fitScreen(); setTimeout(fitScreen, 300); setTimeout(fitScreen, 900); });
 
 const matCache = {};
 const M = (c, o) => { const k = c + JSON.stringify(o || {}); return matCache[k] || (matCache[k] = new THREE.MeshLambertMaterial({ color: c, flatShading: true, ...o })); };
@@ -1201,6 +1203,9 @@ function updateMob(m, dt) {
     }
   }
   const g = m.model.g;
+  const far = Math.hypot(m.x - P.x, m.z - P.z) > (m.d.boss ? 140 : 70);
+  g.visible = !far;
+  if (far) return;
   g.position.set(m.x, groundY(m.x, m.z), m.z);
   let df = ((m.face - g.rotation.y + Math.PI) % TAU + TAU) % TAU - Math.PI;
   g.rotation.y += df * Math.min(1, dt * 8);

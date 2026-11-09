@@ -231,3 +231,36 @@ body.touch #skillwin { width: min(560px, 62vw); }
 #chat .chat { color: #fff; }
 body.touch #chatbox { bottom: auto; top: 60px; }
 .cname input.err { border-color: #ff6a6a; box-shadow: 0 0 0 2px rgba(255,90,90,.4); }
+
+/* ---------- celular deitado com pouca altura (Safari com barras) ---------- */
+@media (max-height: 470px) {
+  body.touch #status { transform: scale(.62); }
+  body.touch #quest { display: none; }
+  body.touch #kvx { top: 112px; transform: scale(.62); transform-origin: top left; }
+  body.touch #chat { top: auto; bottom: 74px; left: calc(150px + env(safe-area-inset-left)); transform: none; width: 30vw; height: 44px; font-size: 9px; opacity: .8; }
+  body.touch #menu { top: max(6px, env(safe-area-inset-top)); right: auto; left: 50%; transform: translateX(-50%); gap: 4px; }
+  body.touch #menu button { width: 32px; height: 32px; font-size: 14px; border-radius: 10px; }
+  body.touch #mapbox { gap: 2px; }
+  body.touch #mapbox #minimap { width: 84px; height: 84px; }
+  body.touch #zonename, body.touch #online { font-size: 9px; padding: 1px 7px; }
+  body.touch #joy { width: 104px; height: 104px; left: calc(14px + env(safe-area-inset-left)); bottom: 12px; }
+  body.touch #knob { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
+  body.touch #tbtns { right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: 136px; height: 136px; }
+  body.touch #t-atk { width: 72px; height: 72px; font-size: 30px !important; }
+  body.touch #t-jump { right: 78px; bottom: 2px; width: 48px; height: 48px; font-size: 20px; }
+  body.touch #t-dash { right: 12px; bottom: 80px; width: 48px; height: 48px; font-size: 20px; }
+  body.touch #t-talk { right: 70px; bottom: 62px; width: 48px; height: 48px; }
+  body.touch #bottom { bottom: 6px; gap: 3px; }
+  body.touch .slot { width: 34px; height: 34px; border-radius: 9px; }
+  body.touch .slot .ic { font-size: 17px; }
+  body.touch #hotbar { padding: 4px; gap: 4px; border-radius: 12px; }
+  body.touch #beatcv { width: 170px; height: 22px; }
+  body.touch #judge { bottom: 74px; font-size: 17px; }
+  body.touch #combo { top: 24%; }
+  body.touch #combo b { font-size: 28px; }
+  body.touch #kvxbar { top: 44px; width: 46vw; }
+  body.touch #prompt { top: 56%; font-size: 11px; }
+  body.touch #banner { top: 22%; font-size: 22px; }
+  body.touch .create { width: min(360px, 58vw); }
+  body.touch .tlogo h1 { font-size: 20px; }
+}

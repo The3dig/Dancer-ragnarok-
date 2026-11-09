@@ -1,5 +1,5 @@
 // Service worker: guarda os arquivos do jogo para funcionar offline.
-const CACHE = 'dancarina-v9';
+const CACHE = 'dancarina-v10';
 const FILES = [
   './', './index.html', './2d.html', './manifest.webmanifest', './css/style.css',
   './js/compat.js', './js/audio.js', './js/maps.js', './js/sprites.js', './js/game.js',
