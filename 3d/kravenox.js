@@ -252,7 +252,7 @@ const Kvx = (() => {
       } else if (m.spec === 2) {
         const pts = [{ x: P.x, z: P.z }, ...allies.filter(a => a.down <= 0).map(a => ({ x: a.x, z: a.z }))].slice(0, 6);
         pts.forEach((p, i) => setTimeout(() => boss && telegraph(p.x + rand(-1, 1), p.z + rand(-1, 1), 3.2, 1.4, 1.3, 0xff6a00), i * 150));
-        log('☄️ Meteoros sombrios! <b>Use a esquiva (Shift / 💨).</b>', 'bad');
+        log(`☄️ Meteoros sombrios! <b>Use a esquiva (${TOUCH ? 'botão 💨' : 'Shift'}).</b>`, 'bad');
       } else {
         for (let i = 0; i < 3; i++) { const a = rand(0, TAU); telegraph(m.x + Math.cos(a) * rand(4, 9), m.z + Math.sin(a) * rand(4, 9), 3.5, 1.2, 1.2, 0xb020ff); }
         if (m.enraged) telegraph(m.x, m.z, 6, 1.2, 1.4);

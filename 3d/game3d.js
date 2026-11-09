@@ -17,21 +17,52 @@ if (TOUCH) document.body.classList.add('touch');
 const rr = (a, b) => a + R() * (b - a);
 
 // ---------------------------------------------------------------- renderer
+// cores em sRGB + tone mapping cinematográfico
+THREE.ColorManagement.legacyMode = false;
+{ const setHSL0 = THREE.Color.prototype.setHSL; THREE.Color.prototype.setHSL = function (h, s, l) { setHSL0.call(this, h, s, l); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 renderer.domElement.id = 'cv3';
 document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-const SKY_GREEN = new THREE.Color(0x9fd4ff), SKY_DESERT = new THREE.Color(0xf3d6a8);
-scene.background = SKY_GREEN.clone();
-scene.fog = new THREE.Fog(SKY_GREEN.clone(), 55, 160);
+const SKY_GREEN = new THREE.Color(0xbfe3ff), SKY_DESERT = new THREE.Color(0xf6dcb2);
+const SKY_TOP_G = new THREE.Color(0x3d8be0), SKY_TOP_D = new THREE.Color(0x6fa8d8);
+scene.fog = new THREE.Fog(SKY_GREEN.clone(), 60, 175);
+// céu em gradiente com sol
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: { top: { value: SKY_TOP_G.clone() }, horizon: { value: SKY_GREEN.clone() }, sunDir: { value: new THREE.Vector3(0.5, 0.75, 0.3).normalize() } },
+  vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = vec4(p.xy, p.w * 0.9999, p.w); }',
+  fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; varying vec3 vDir;
+    void main(){ vec3 d = normalize(vDir); float h = clamp(d.y, 0.0, 1.0);
+      vec3 c = mix(horizon, top, pow(h, 0.5));
+      float s = max(dot(d, sunDir), 0.0);
+      c += vec3(1.0, 0.92, 0.75) * (pow(s, 600.0) * 3.0 + pow(s, 12.0) * 0.18);
+      gl_FragColor = vec4(c, 1.0);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+    }`,
+  side: THREE.BackSide, depthWrite: false, fog: false,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), skyMat); sky.frustumCulled = false; sky.renderOrder = -1; scene.add(sky);
+// sombreado estilo anime (3 tons) e contornos
+const TOON_GRAD = (() => { const t = new THREE.DataTexture(new Uint8Array([70, 150, 255]), 3, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+const OUTLINE = new THREE.MeshBasicMaterial({ color: 0x1b1222, side: THREE.BackSide });
+OUTLINE.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.022;'); };
+function addOutline(root) {
+  const list = [];
+  root.traverse(o => { if (o.isMesh && !o.isOutline && !o.material.transparent && o.material.side !== THREE.DoubleSide && !o.material.isMeshBasicMaterial) list.push(o); });
+  for (const o of list) { const ol = new THREE.Mesh(o.geometry, OUTLINE); ol.isOutline = true; ol.castShadow = false; o.add(ol); }
+}
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
-const hemi = new THREE.HemisphereLight(0xdff0ff, 0x6a7a4a, 0.8); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff0d8, 0.85);
+const hemi = new THREE.HemisphereLight(0xe4f2ff, 0x5a6a3a, 0.75); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.25);
 sun.castShadow = true; sun.shadow.mapSize.set(TOUCH ? 1024 : 2048, TOUCH ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 140 });
 sun.shadow.bias = -0.0008;
@@ -128,7 +159,7 @@ function groundColor(x, z, y, c) {
 })();
 
 // água
-const waterMat = new THREE.MeshLambertMaterial({ color: 0x3f94e0, transparent: true, opacity: 0.82 });
+const waterMat = new THREE.MeshPhongMaterial({ color: 0x2f86d6, specular: 0xbfe6ff, shininess: 140, transparent: true, opacity: 0.86 });
 {
   const rg = new THREE.PlaneGeometry(18, WZ * 2, 1, 90); rg.rotateX(-Math.PI / 2);
   const p = rg.attributes.position;
@@ -203,8 +234,8 @@ for (let i = 0; i < 12; i++) { const x = rr(60, 140), z = rr(-80, 80); if (freeS
 palms.forEach(p => addOb(p.x, p.z, 0.5));
 
 instanced(new THREE.CylinderGeometry(0.18, 0.28, 2, 6), M(0x7a4f2a), trees, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + o.s, o.z); s.setScalar(o.s); c.set(0xffffff); });
-instanced(new THREE.IcosahedronGeometry(1.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), trees, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 2.6 * o.s, o.z); s.set(o.s, o.s * 1.15, o.s); q.setFromEuler(new THREE.Euler(0, o.x, 0)); c.setHSL(0.27 + Math.sin(o.x * 3) * 0.04, 0.55, 0.32 + Math.cos(o.z) * 0.05); });
-instanced(new THREE.IcosahedronGeometry(1.0, 0), new THREE.MeshLambertMaterial({ flatShading: true }), trees, (o, p, q, s, c) => { p.set(o.x + 0.3, height(o.x, o.z) + 3.8 * o.s, o.z - 0.2); s.setScalar(o.s); c.setHSL(0.26, 0.55, 0.42); });
+instanced(new THREE.IcosahedronGeometry(1.5, 2), new THREE.MeshLambertMaterial(), trees, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 2.6 * o.s, o.z); s.set(o.s, o.s * 1.15, o.s); q.setFromEuler(new THREE.Euler(0, o.x, 0)); c.setHSL(0.27 + Math.sin(o.x * 3) * 0.04, 0.55, 0.32 + Math.cos(o.z) * 0.05); });
+instanced(new THREE.IcosahedronGeometry(1.0, 2), new THREE.MeshLambertMaterial(), trees, (o, p, q, s, c) => { p.set(o.x + 0.3, height(o.x, o.z) + 3.8 * o.s, o.z - 0.2); s.setScalar(o.s); c.setHSL(0.26, 0.55, 0.42); });
 const treeIM = scene.children.filter(o => o.isInstancedMesh && o.count === trees.length);
 const treeOrig = treeIM.map(im => trees.map((t, i) => { const m4 = new THREE.Matrix4(); im.getMatrixAt(i, m4); return m4; }));
 const treeGrid = new Map();
@@ -242,6 +273,37 @@ instanced(new THREE.CylinderGeometry(0.2, 0.22, 1.1, 6), new THREE.MeshLambertMa
   for (const [wx, wz, ww, wd] of WHEAT) for (let x = wx; x < wx + ww; x += 0.7) for (let z = wz; z < wz + wd; z += 0.7) stalks.push({ x: x + rr(0, 0.5), z: z + rr(0, 0.5), h: rr(0.8, 1.2) });
   window.wheat = instanced(new THREE.ConeGeometry(0.12, 1.2, 4), new THREE.MeshLambertMaterial({ flatShading: true }), stalks, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 0.6 * o.h, o.z); s.set(1, o.h, 1); c.setHSL(0.12 + rr(-0.01, 0.02), 0.75, 0.55); });
 }
+// grama que balança e flores
+const windU = { value: 0 };
+{
+  const grassOk = (x, z) => x < 44 && dRoad(x, z) > 3.8 && Math.hypot(x - VIL.x, z - VIL.z) > 18 && Math.hypot(x - LAIR.x, z - LAIR.z) > 21 &&
+    !isWater(x, z) && Math.abs(x - riverX(z)) > 5.5 && !WHEAT.some(([wx, wz, ww, wd]) => x > wx && x < wx + ww && z > wz && z < wz + wd) && Math.abs(x) < WX - 6 && Math.abs(z) < WZ - 6;
+  const pos = [], col = [];
+  for (let b = 0; b < 3; b++) {           // tufo de 3 folhas cruzadas
+    const a = b * Math.PI / 3, cx = Math.cos(a) * 0.12, cz = Math.sin(a) * 0.12;
+    pos.push(-cx, 0, -cz, cx, 0, cz, 0, 0.55, 0); col.push(0.35, 0.55, 0.2, 0.35, 0.55, 0.2, 1, 1, 0.8);
+  }
+  const gg = new THREE.BufferGeometry();
+  gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  gg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  gg.computeVertexNormals();
+  const gm = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  gm.onBeforeCompile = sh => {
+    sh.uniforms.uTime = windU;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      'vec3 transformed = position; float ph = instanceMatrix[3].x * 0.35 + instanceMatrix[3].z * 0.27; transformed.x += sin(uTime * 2.2 + ph) * position.y * 0.25; transformed.z += cos(uTime * 1.7 + ph) * position.y * 0.15;');
+  };
+  const N = TOUCH ? 4500 : 11000, list = [];
+  for (let i = 0; i < N * 3 && list.length < N; i++) { const x = rr(-WX + 6, 44), z = rr(-WZ + 6, WZ - 6); if (grassOk(x, z)) list.push({ x, z, s: rr(0.45, 0.85), r: rr(0, TAU) }); }
+  const grass = instanced(gg, gm, list, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z), o.z); s.set(o.s, o.s * rr(0.8, 1.3), o.s); q.setFromEuler(new THREE.Euler(0, o.r, 0)); c.setHSL(0.24 + rr(0, 0.07), 0.55, 0.42 + rr(-0.05, 0.08)); });
+  grass.castShadow = false;
+  const fl = [];
+  for (let i = 0; i < 6000 && fl.length < (TOUCH ? 700 : 1600); i++) { const x = rr(-WX + 6, 44), z = rr(-WZ + 6, WZ - 6); if (grassOk(x, z)) fl.push({ x, z }); }
+  const FLC = [0xffffff, 0xffd84a, 0xff7eb6, 0xb48cff, 0xff6b5b];
+  const fm = instanced(new THREE.IcosahedronGeometry(0.09, 0), new THREE.MeshLambertMaterial(), fl, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 0.38, o.z); s.set(1, 0.6, 1); c.set(FLC[Math.floor(rr(0, FLC.length))]); });
+  fm.castShadow = false;
+}
+
 // palmeiras
 for (const p of palms) {
   const g = new THREE.Group(); g.position.set(p.x, height(p.x, p.z), p.z); g.scale.setScalar(p.s); scene.add(g);
@@ -312,7 +374,7 @@ for (let i = 0; i < 18; i++) {
 }
 
 // ---------------------------------------------------------------- materiais de personagem
-const toon = c => new THREE.MeshToonMaterial({ color: c });
+const toon = c => new THREE.MeshToonMaterial({ color: c, gradientMap: TOON_GRAD });
 const SKIN = toon(0xffd9be), HAIR = toon(0xff7b6b), HAIR_D = toon(0xd9534f), CLOTH = toon(0x1fb5a8), CLOTH_D = toon(0x13887e), GOLD = toon(0xffcf40), SILK = 0xff4fa3, EYE = toon(0x3a2a4a);
 
 // ---------------------------------------------------------------- personagem (gerado por avatar.js)
@@ -449,6 +511,7 @@ function mobModel(type) {
     }
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
+  if (!TOUCH) addOutline(g);
   return r;
 }
 
@@ -483,6 +546,7 @@ for (const n of NPCS) {
   if (hat === 'flower') for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.035, 6, 4), toon(0xff8ac0), 0.12 + Math.cos(k * TAU / 5) * 0.04, 1.72 + Math.sin(k * TAU / 5) * 0.04, 0.05, g, false);
   const bang = bangSprite(); bang.position.y = 2.3; g.add(bang); n.bang = bang; n.g = g;
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  addOutline(g);
   addOb(n.x, n.z, 0.45);
 }
 
@@ -679,7 +743,7 @@ function gainXp(n) {
     for (let i = 0; i < 4; i++) setTimeout(() => ring(P.x, P.z, 2 + i, 0xffcf40, 0.7), i * 120);
     burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffcf40, 40, 6, 1.1);
     floater(P.x, P.y + 2.6, P.z, 'LEVEL UP!', 'lvl');
-    log(`✨ <b>Nível ${P.lv}!</b> Você ganhou pontos de atributo (tecla C).`, 'gold');
+    log(`✨ <b>Nível ${P.lv}!</b> Você ganhou pontos de atributo (${TOUCH ? 'botão 📊' : 'tecla C'}).`, 'gold');
     const sk = SKILLS.find(s => s.lv === P.lv);
     if (sk) log(`Nova habilidade: <b>${sk.icon} ${sk.name}</b> [${sk.key}]`, 'gold');
     buildHotbar();
@@ -908,7 +972,7 @@ const ZONES = {
   kharum: { name: 'Oásis de Kharum', music: 'kharum', town: true },
 };
 function update(dt) {
-  time += dt;
+  time += dt; windU.value = time;
   updatePlayer(dt);
   for (const m of mobs) updateMob(m, dt);
   for (const r of respawnQ) r.t -= dt;
@@ -938,7 +1002,7 @@ function update(dt) {
   }
   if (P.combo && (P.comboT -= dt) <= 0) { if (P.combo >= 3) log(`Combo final: ${P.combo}`, 'sys'); P.combo = 0; }
   const des = smooth(40, 70, P.x);
-  scene.background.copy(SKY_GREEN).lerp(SKY_DESERT, des); scene.fog.color.copy(scene.background);
+  skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); scene.fog.color.copy(skyMat.uniforms.horizon.value);
 }
 
 function updatePlayer(dt) {
@@ -1291,7 +1355,7 @@ function talk(n) {
         dialog(nm, `${P.name}, algo terrível aconteceu: a <b>melodia do mundo saiu do compasso</b>, e os monstros ficaram agitados.<br><br>
           Precisamos de heróis para proteger as vilas. Mostre do que sua classe é capaz!<br><br>
           Primeira lição: <b>${q.txt}</b>.`, [{ label: 'Estou pronta!' }]);
-      } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: aperte <b>X</b> para sentar e recuperar HP/SP mais rápido.</small>`);
+      } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`);
       break;
     }
     case 'guard': dialog(nm, 'Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Zunzuns</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.'); break;
@@ -1466,7 +1530,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
     update(dt); animateLyra(dt); updateCamera(dt);
-    renderer.render(scene, camera);
+    sky.position.copy(camera.position); renderer.render(scene, camera);
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {
     // vitrine na tela de título
@@ -1478,7 +1542,7 @@ function loop(now) {
     camera.lookAt(P.x, P.y + 1.1, P.z);
     camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.2, 0, innerWidth, innerHeight);
     sun.position.set(P.x + 30, P.y + 50, P.z + 18); sun.target.position.set(P.x, P.y, P.z);
-    renderer.render(scene, camera);
+    sky.position.copy(camera.position); renderer.render(scene, camera);
   }
   requestAnimationFrame(loop);
 }

@@ -8,8 +8,8 @@ function buildAvatar(root, look) {
   const race = RACES[look.race] || RACES.humano;
   const C = CLASSES[look.cls] || CLASSES.dancarina;
   const fem = look.gender !== 'm';
-  const T = c => new THREE.MeshToonMaterial({ color: c });
-  const TD = c => new THREE.MeshToonMaterial({ color: c, side: THREE.DoubleSide });
+  const T = c => new THREE.MeshToonMaterial({ color: c, gradientMap: TOON_GRAD });
+  const TD = c => new THREE.MeshToonMaterial({ color: c, side: THREE.DoubleSide, gradientMap: TOON_GRAD });
   const GLOW = c => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.7 });
   const skin = T(race.skins[look.skin % race.skins.length]);
   const hairC = HAIR_COLORS[look.hair % HAIR_COLORS.length];
@@ -207,5 +207,6 @@ function buildAvatar(root, look) {
     }
   }
   root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  addOutline(root);
   return L;
 }
