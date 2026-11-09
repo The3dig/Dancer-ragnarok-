@@ -818,8 +818,16 @@ function start(fromSave) {
   }
   buildHotbar();
 }
+// confirmação dentro do jogo (confirm() não funciona em todo lugar, ex.: páginas do Claude)
+let newArmed = false;
+function armNew() {
+  if (newArmed) return true;
+  newArmed = true; $('btn-new').textContent = '⚠️ Toque de novo: apaga o progresso';
+  setTimeout(() => { newArmed = false; $('btn-new').textContent = '✨ Novo Jogo'; }, 4000);
+  return false;
+}
 $('btn-new').onclick = () => {
-  if (loadSave() && !confirm('Começar um novo jogo vai apagar o progresso salvo. Continuar?')) return;
+  if (loadSave() && !armNew()) return;
   start(false);
 };
 $('btn-cont').onclick = () => start(true);

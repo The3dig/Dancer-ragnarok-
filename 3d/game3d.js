@@ -1219,7 +1219,15 @@ function start(fromSave) {
   else if (TOUCH) { log(`Bem-vinda, <b>${P.name}</b>! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
   else { log(`Bem-vinda, <b>${P.name}</b>! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
 }
-$('btn-new').onclick = () => { if (loadSave() && !confirm('Começar um novo jogo vai apagar o progresso salvo. Continuar?')) return; start(false); };
+// confirmação dentro do jogo (confirm() não funciona em todo lugar, ex.: páginas do Claude)
+let newArmed = false;
+function armNew() {
+  if (newArmed) return true;
+  newArmed = true; $('btn-new').textContent = '⚠️ Toque de novo: apaga o progresso';
+  setTimeout(() => { newArmed = false; $('btn-new').textContent = '✨ Novo Jogo'; }, 4000);
+  return false;
+}
+$('btn-new').onclick = () => { if (loadSave() && !armNew()) return; start(false); };
 $('btn-cont').onclick = () => start(true);
 if (!loadSave()) $('btn-cont').style.display = 'none';
 $('name-in').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-new').click(); });
