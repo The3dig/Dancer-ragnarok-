@@ -55,11 +55,12 @@
       <button id="btn-cont">▶ Continuar</button>
     </div>
     <p class="hint">Clique para andar · Q W E R T para dançar · H para ajuda</p>
-    <p class="hint"><a href="3d/index.html" style="color:#ffcf40">🌟 Novo: jogar o spin-off 3D “Lyra: Ritmo Perdido” →</a></p>
+    <p class="hint"><a id="link3d" href="3d/index.html" style="color:#ffcf40">🌍 Jogar Crônicas de Solmira (3D) →</a></p>
   </div>
 </div>
 
 <script src="js/compat.js"></script>
+<script>addEventListener("DOMContentLoaded",()=>{const a=document.getElementById("link3d");if(a&&location.hash)a.href+=location.hash;});</script>
 <script src="js/audio.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/sprites.js"></script>

@@ -48,7 +48,7 @@ function mesh(geo, mat, x = 0, y = 0, z = 0, parent = null, shadow = true) {
 
 // ---------------------------------------------------------------- mundo
 const WX = 150, WZ = 90;
-const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 };
+const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 }, LAIR = { x: -20, z: -64 };
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
 function dRoad(x, z) {
@@ -58,6 +58,7 @@ function dRoad(x, z) {
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
+  if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
   if (x < -62) return 'solmira';
   if (Math.hypot(x - OAS.x, z - OAS.z) < 34) return 'kharum';
   if (x >= 48) return 'areias';
@@ -71,6 +72,7 @@ function height(x, z) {
   f *= smooth(36, 50, Math.hypot(x - VIL.x, z - VIL.z));
   f *= smooth(26, 36, Math.hypot(x - OAS.x, z - OAS.z));
   f *= smooth(14, 22, Math.hypot(x - RUIN.x, z - RUIN.z));
+  f *= smooth(19, 27, Math.hypot(x - LAIR.x, z - LAIR.z));
   h *= f;
   const rd = Math.abs(x - riverX(z));
   if (rd < 10) { h = lerp(Math.max(h, 0.3), h, smooth(6, 10, rd)); h -= 2.4 * (1 - smooth(2.6, 4.6, rd)); }
@@ -98,6 +100,12 @@ function groundColor(x, z, y, c) {
   if (od < 17 && od > 7) c.setHSL(0.11, 0.45, 0.72 + n);
   if (od >= 7 && od < 10.5) c.setHSL(0.28, 0.5, 0.4 + n);
   if (y < -0.3 && !onBridge(x, z) && nearWater(x, z)) c.setHSL(0.1, 0.35, 0.42);
+  const lair = Math.hypot(x - LAIR.x, z - LAIR.z);
+  if (lair < 20) {
+    c.setHSL(0.76, 0.22, 0.16 + n + smooth(14, 20, lair) * 0.1);
+    const crack = Math.abs(Math.sin(x * 0.9 + Math.sin(z * 0.4) * 2) + Math.cos(z * 0.8 + Math.sin(x * 0.3)));
+    if (crack < 0.12 && lair < 17) c.setHSL(0.02, 0.9, 0.45);
+  }
   const ruin = Math.hypot(x - RUIN.x, z - RUIN.z);
   if (ruin < 13) c.setHSL(0.06, 0.4, 0.55 + n);
   return c;
@@ -154,7 +162,7 @@ function blocked(x, z, r = 0.45) {
   return false;
 }
 function freeSpot(x, z, minRoad = 5) {
-  return !blocked(x, z, 1.2) && dRoad(x, z) > minRoad && Math.abs(x - riverX(z)) > 7;
+  return Math.hypot(x - LAIR.x, z - LAIR.z) > 27 && !blocked(x, z, 1.2) && dRoad(x, z) > minRoad && Math.abs(x - riverX(z)) > 7;
 }
 
 // ---------------------------------------------------------------- vegetação (instanced)
@@ -356,6 +364,7 @@ const MOBDEF = {
   fungolino: { name: 'Fungolino', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
   besouro:   { name: 'Besouro Rubi', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Serpe de Areia', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
+  kravenox:  { name: 'Kravenox', lv: 40, hp: 30000, atk: 70, def: 22, xp: 6000, zeny: [2500, 3500], speed: 3.0, aggro: 30, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
   guardiao:  { name: 'Guardião das Areias', lv: 18, hp: 2400, atk: 42, def: 15, xp: 900, zeny: [300, 500], speed: 2.0, aggro: 14, respawn: 90, boss: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
@@ -365,6 +374,7 @@ function mobModel(type) {
   const mt = c => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
   const ms = c => { const m = new THREE.MeshToonMaterial({ color: c }); mats.push(m); return m; };
   const r = { g, mats };
+  if (type === 'kravenox') return kravenoxModel(r, mt);
   switch (type) {
     case 'pompom': {
       const b = new THREE.Group(); g.add(b); r.b = b;
@@ -529,7 +539,7 @@ function spawnMob(type, area, at) {
   const d = MOBDEF[type]; let x, z, t = 0;
   if (at) { x = at.x; z = at.z; }
   else do { x = rand(area[0], area[1]); z = rand(area[2], area[3]); t++; }
-  while (t < 300 && (blocked(x, z, 1) || dRoad(x, z) < 4 || Math.hypot(x - P.x, z - P.z) < 18 || Math.hypot(x - OAS.x, z - OAS.z) < 34 || (type !== 'guardiao' && Math.hypot(x - RUIN.x, z - RUIN.z) < 16)));
+  while (t < 300 && (blocked(x, z, 1) || dRoad(x, z) < 4 || Math.hypot(x - P.x, z - P.z) < 18 || Math.hypot(x - OAS.x, z - OAS.z) < 34 || (type !== 'guardiao' && Math.hypot(x - RUIN.x, z - RUIN.z) < 16) || Math.hypot(x - LAIR.x, z - LAIR.z) < 26));
   const model = mobModel(type);
   model.g.position.set(x, groundY(x, z), z); scene.add(model.g);
   const lab = document.createElement('div'); lab.className = 'mlabel' + (d.boss ? ' boss' : '');
@@ -646,7 +656,9 @@ function killMob(m) {
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
-  if (m.d.boss) log('🏆 <b>O Guardião das Areias caiu!</b> O ritmo do deserto foi restaurado!', 'gold');
+  if (m.type === 'guardiao') log('🏆 <b>O Guardião das Areias caiu!</b> O ritmo do deserto foi restaurado!', 'gold');
+  if (m.type === 'kravenox') { Kvx.onKill(m); return; }
+  if (m.noRespawn) return;
   respawnQ.push({ type: m.type, area: m.area, at: m.at, t: m.d.respawn });
 }
 const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: new THREE.SphereGeometry(0.16, 10, 8), blue: new THREE.SphereGeometry(0.16, 10, 8) };
@@ -892,6 +904,7 @@ const ZONES = {
   solmira: { name: 'Vila de Solmira', music: 'solmira', town: true },
   campos: { name: 'Campos Dourados', music: 'campos' },
   areias: { name: 'Areias Rubras', music: 'areias' },
+  lair: { name: 'Fenda de Kravenox', music: 'kravenox' },
   kharum: { name: 'Oásis de Kharum', music: 'kharum', town: true },
 };
 function update(dt) {
@@ -901,7 +914,7 @@ function update(dt) {
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
-  updateFx(dt); updateProjs(dt); updateMinions(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Kvx.update(dt);
   for (const c of clouds) { c.position.x += dt * 1.2; if (c.position.x > WX + 20) c.position.x = -WX - 20; }
   if (Math.random() < dt * 30) { // água do chafariz
     const m = new THREE.Mesh(fxGeo.dot, new THREE.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true }));
@@ -1004,7 +1017,8 @@ function updateMob(m, dt) {
     if (m.dot && m.dot.t <= 0) m.dot = null;
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
-  if (m.stun > 0) m.stun -= dt;
+  if (m.type === 'kravenox') Kvx.ai(m, dt);
+  else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
     if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
@@ -1194,6 +1208,7 @@ function drawMinimap() {
   const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
   mg.drawImage(mmBase, 0, 0);
   for (const m of mobs) { mg.fillStyle = m.d.boss ? '#ff3030' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, m.d.boss ? 4 : 2, m.d.boss ? 4 : 2); }
+  Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { mg.fillStyle = '#ffcf40'; mg.fillRect((n.x + WX) * sx - 1.5, (n.z + WZ) * sz - 1.5, 3, 3); }
   const px = (P.x + WX) * sx, pz = (P.z + WZ) * sz;
   mg.save(); mg.translate(px, pz); mg.rotate(-P.face + Math.PI);
@@ -1376,7 +1391,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 const SAVE_KEY = 'lyra3d-save-v1';
 function save() {
   if (!running) return;
-  const keep = ['name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -1400,7 +1415,7 @@ function start(fromSave) {
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
-  running = true; buildHotbar();
+  running = true; Kvx.init(); buildHotbar();
   const who = `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`Bem-vindo(a) de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }

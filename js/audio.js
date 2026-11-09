@@ -28,7 +28,7 @@ const Audio8 = (() => {
   // ---------- helpers de composição ----------
   const CH = {
     G: 'G3+B3+D4', D: 'F#3+A3+D4', Em: 'E3+G3+B3', C: 'E3+G3+C4', Am: 'E3+A3+C4', A: 'E3+A3+C#4',
-    Bm: 'F#3+B3+D4', E: 'E3+G#3+B3', F: 'F3+A3+C4', Dm: 'F3+A3+D4', Gs: 'G3+B3+D4'
+    Bm: 'F#3+B3+D4', E: 'E3+G#3+B3', F: 'F3+A3+C4', Dm: 'F3+A3+D4', Gs: 'G3+B3+D4', Bb: 'F3+Bb3+D4', Gm: 'G3+Bb3+D4'
   };
   const rep = (s, n) => Array(n).fill(s).join(' ');
 
@@ -99,6 +99,23 @@ const Audio8 = (() => {
       pad: { wave: 'triangle', gain: 0.04, rel: 0.3, notes:
         ['Am', 'Am', 'Am', 'E', 'F', 'C', 'E', 'Am'].map(c => `${CH[c]} - - - - - - -`).join(' ') },
       drums: 'k . s . k k s . k . s . k k s s'
+    },
+    // Fenda de Kravenox — chefe semanal, ré menor sombrio
+    kravenox: {
+      bpm: 164, div: 2,
+      lead: { wave: 'sawtooth', gain: 0.07, vib: 4, rel: 0.05, filter: 2200, notes:
+        'D5 . D5 F5 E5 . D5 . A4 - C5 - Bb4 - A4 . ' +
+        'D5 . D5 F5 G5 . A5 . Bb5 - A5 - G5 - E5 . ' +
+        'F5 . E5 D5 C#5 . D5 . E5 - A4 - C#5 - E5 . ' +
+        'D5 - - - . . A4 . D5 - - - - . . .' },
+      bass: { wave: 'square', gain: 0.07, rel: 0.04, filter: 600, notes:
+        ['D2', 'D2', 'Bb1', 'Bb1', 'G1', 'A1', 'A1', 'D2'].map(r => {
+          const o = r.replace(/\d/, d => +d + 1);
+          return `${r} ${r} ${o} ${r} ${r} ${o} ${r} ${r}`;
+        }).join(' ') },
+      pad: { wave: 'triangle', gain: 0.045, rel: 0.4, notes:
+        ['Dm', 'Dm', 'Bb', 'Bb', 'Gm', 'A', 'A', 'Dm'].map(c => `${CH[c]} - - - - - - -`).join(' ') },
+      drums: 'k k s . k k s k k k s . k s s s'
     }
   };
   // pré-processa

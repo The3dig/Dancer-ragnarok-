@@ -48,6 +48,15 @@ Abra `3d/index.html`. É um MMORPG 3D de mundo aberto com criação de personage
 
 Os arquivos ficam em `3d/classes.js` (dados das raças e classes) e `3d/avatar.js` (montagem dos modelos 3D).
 
+## ☠ Kravenox — chefe mundial semanal
+
+- Todo **sábado, das 20h às 22h** (horário do aparelho), o Kravenox desperta na **Fenda de Kravenox**, ao sul dos Campos Dourados. A fenda aparece como uma caveira no minimapa.
+- Seis aventureiros (NPCs de raças e classes aleatórias) vão até lá lutar junto com você.
+- Ele faz ataques avisados por círculos no chão: rugido, meteoros e explosões. Escape com a esquiva.
+- Ele invoca crias e se enfurece abaixo de 50% de vida.
+- Quem derrotar ganha uma recompensa grande e o título « Matador de Kravenox ». Depois disso ele só volta no sábado seguinte.
+- Para testar a qualquer hora, abra `3d/index.html#kravenox`.
+
 ## Origem: spin-off Lyra — Ritmo Perdido
 
 Abra `3d/index.html`. É um jogo de ação em 3D, com câmera em terceira pessoa, e se passa no mesmo mundo:
