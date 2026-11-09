@@ -3,7 +3,107 @@
 // =====================================================================
 'use strict';
 
+function gear(ctx) {
+  const { look, C, head, body, L, T, GLOW, metal, wood, trim, accent, cloth, hair } = ctx;
+  const add = (geo, mat, x, y, z, parent) => mesh(geo, mat, x, y, z, parent);
+  // ---------------- chapéus
+  switch (C.hat) {
+    case 'flower':
+      for (let k = 0; k < 5; k++) add(new THREE.SphereGeometry(0.03, 6, 4), T(0xfff4a8), -0.12 + Math.cos(k * TAU / 5) * 0.035, 0.15 + Math.sin(k * TAU / 5) * 0.035, 0.05, head);
+      add(new THREE.SphereGeometry(0.022, 6, 4), accent, -0.12, 0.15, 0.06, head); break;
+    case 'feather': {
+      add(new THREE.TorusGeometry(0.185, 0.02, 4, 18), trim, 0, 0.06, 0, head).rotation.x = Math.PI / 2;
+      const f = add(new THREE.ConeGeometry(0.03, 0.3, 5), T(0xe84a3a), 0.15, 0.18, -0.05, head); f.rotation.z = -0.5; break;
+    }
+    case 'helm':
+      add(new THREE.SphereGeometry(0.2, 12, 8, 0, TAU, 0, Math.PI / 2), metal, 0, 0.02, 0, head);
+      add(new THREE.BoxGeometry(0.03, 0.12, 0.3), accent, 0, 0.21, -0.02, head);
+      add(new THREE.BoxGeometry(0.02, 0.07, 0.02), metal, 0, 0.03, 0.19, head); break;
+    case 'circlet':
+      add(new THREE.TorusGeometry(0.18, 0.018, 4, 18), trim, 0, 0.07, 0, head).rotation.x = Math.PI / 2;
+      add(new THREE.OctahedronGeometry(0.035), GLOW(C.colors.accent), 0, 0.08, 0.18, head); break;
+    case 'mitre': {
+      const m = add(new THREE.ConeGeometry(0.15, 0.36, 4), T(0xffffff), 0, 0.28, 0, head); m.rotation.y = Math.PI / 4;
+      add(new THREE.BoxGeometry(0.03, 0.18, 0.02), trim, 0, 0.27, 0.11, head); break;
+    }
+    case 'hood':
+      add(new THREE.SphereGeometry(0.215, 14, 10, 0, TAU, 0, Math.PI * 0.62), cloth, 0, 0.02, -0.03, head);
+      add(new THREE.ConeGeometry(0.1, 0.25, 8), cloth, 0, 0.0, -0.2, head).rotation.x = -1.9; break;
+    case 'bandana':
+      add(new THREE.TorusGeometry(0.18, 0.035, 5, 18), trim, 0, 0.08, 0, head).rotation.x = Math.PI / 2 - 0.2;
+      add(new THREE.ConeGeometry(0.04, 0.18, 4), trim, 0, 0.06, -0.22, head).rotation.x = -2.2; break;
+    case 'wizard': {
+      add(new THREE.CylinderGeometry(0.34, 0.34, 0.025, 20), cloth, 0, 0.1, 0, head);
+      const c = add(new THREE.ConeGeometry(0.18, 0.5, 12), cloth, 0, 0.36, -0.02, head); c.rotation.x = -0.25;
+      add(new THREE.TorusGeometry(0.17, 0.025, 4, 16), trim, 0, 0.14, 0, head).rotation.x = Math.PI / 2; break;
+    }
+    case 'goggles':
+      add(new THREE.TorusGeometry(0.18, 0.025, 4, 18), T(0x5a3a1a), 0, 0.09, 0, head).rotation.x = Math.PI / 2;
+      [-0.07, 0.07].forEach(x => add(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 10), GLOW(C.colors.accent), x, 0.12, 0.15, head).rotation.x = Math.PI / 2 - 0.4); break;
+  }
+
+  // ---------------- armas
+  L.ribbon = C.weapon === 'ribbon';
+  const inR = new THREE.Group(); L.handR.add(inR);
+  const inL = new THREE.Group(); L.handL.add(inL);
+  switch (C.weapon) {
+    case 'bow': {
+      const bow = add(new THREE.TorusGeometry(0.5, 0.025, 6, 20, Math.PI), wood, 0, 0, 0, inL);
+      bow.rotation.set(0, Math.PI / 2, Math.PI / 2);
+      add(new THREE.CylinderGeometry(0.004, 0.004, 1.0, 3), T(0xffffff), 0, 0, 0, inL);
+      const q = add(new THREE.CylinderGeometry(0.07, 0.06, 0.5, 8), T(0x6b4423), 0.12, 1.15, -0.2, body); q.rotation.z = 0.4;
+      break;
+    }
+    case 'sword': {
+      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
+      add(new THREE.BoxGeometry(0.06, 0.95, 0.02), metal, 0, 0.55, 0, g);
+      add(new THREE.BoxGeometry(0.24, 0.04, 0.05), T(C.colors.accent), 0, 0.07, 0, g);
+      add(new THREE.CylinderGeometry(0.025, 0.025, 0.16, 6), T(0x4a3020), 0, -0.03, 0, g);
+      break;
+    }
+    case 'mace': {
+      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
+      add(new THREE.CylinderGeometry(0.025, 0.025, 0.6, 6), wood, 0, 0.25, 0, g);
+      add(new THREE.DodecahedronGeometry(0.1), T(C.colors.trim), 0, 0.58, 0, g);
+      const sh = add(new THREE.CylinderGeometry(0.26, 0.26, 0.05, 16), T(C.colors.accent), 0.05, 0.1, 0, inL); sh.rotation.z = Math.PI / 2;
+      add(new THREE.TorusGeometry(0.26, 0.02, 4, 18), T(C.colors.trim), 0.08, 0.1, 0, inL).rotation.y = Math.PI / 2;
+      add(new THREE.BoxGeometry(0.02, 0.3, 0.06), T(C.colors.trim), 0.09, 0.1, 0, inL);
+      break;
+    }
+    case 'staff': {
+      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
+      add(new THREE.CylinderGeometry(0.025, 0.03, 1.6, 6), look.cls === 'necromante' ? T(0x3a3028) : wood, 0, 0.3, 0, g);
+      if (C.skull) {
+        add(new THREE.SphereGeometry(0.11, 10, 8), T(0xe8e4d0), 0, 1.15, 0, g);
+        [-0.04, 0.04].forEach(x => add(new THREE.SphereGeometry(0.025, 6, 4), GLOW(C.staffColor), x, 1.16, 0.09, g));
+      } else {
+        add(new THREE.TorusGeometry(0.1, 0.015, 4, 12), T(C.colors.trim), 0, 1.15, 0, g);
+        L.orb = add(new THREE.SphereGeometry(0.075, 12, 10), GLOW(C.staffColor), 0, 1.15, 0, g);
+      }
+      break;
+    }
+    case 'daggers':
+      [inR, inL].forEach(h => { const g = new THREE.Group(); g.rotation.x = Math.PI / 2; h.add(g); add(new THREE.BoxGeometry(0.04, 0.38, 0.015), metal, 0, 0.22, 0, g); add(new THREE.BoxGeometry(0.12, 0.03, 0.04), T(C.colors.trim), 0, 0.03, 0, g); });
+      break;
+    case 'club': {
+      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
+      add(new THREE.CylinderGeometry(0.07, 0.035, 0.7, 7), wood, 0, 0.32, 0, g);
+      for (let i = 0; i < 4; i++) { const s = add(new THREE.ConeGeometry(0.025, 0.08, 4), metal, Math.cos(i * 1.57) * 0.07, 0.55, Math.sin(i * 1.57) * 0.07, g); s.rotation.z = -Math.cos(i * 1.57) * 1.4; s.rotation.x = Math.sin(i * 1.57) * 1.4; }
+      add(new THREE.TorusGeometry(0.06, 0.02, 4, 8), metal, 0, 0, 0, inL);
+      break;
+    }
+    case 'hammer': {
+      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
+      add(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6), wood, 0, 0.3, 0, g);
+      add(new THREE.BoxGeometry(0.34, 0.18, 0.18), T(0x5a6470), 0, 0.68, 0, g);
+      L.orb = add(new THREE.BoxGeometry(0.36, 0.05, 0.19), GLOW(C.colors.accent), 0, 0.68, 0, g);
+      break;
+    }
+  }
+}
+
 function buildAvatar(root, look) {
+  if (ModelKit.ready) return buildModelAvatar(root, look);
   while (root.children.length) root.remove(root.children[0]);
   const race = RACES[look.race] || RACES.humano;
   const C = CLASSES[look.cls] || CLASSES.dancarina;
@@ -118,100 +218,7 @@ function buildAvatar(root, look) {
   }
   if (race.ears) [-1, 1].forEach(s => { const e = add(new THREE.ConeGeometry(0.035, 0.2, 5), skin, s * 0.18, 0.02, -0.02, head); e.rotation.z = -s * 1.2; e.rotation.x = -0.3; });
 
-  // ---------------- chapéus
-  switch (C.hat) {
-    case 'flower':
-      for (let k = 0; k < 5; k++) add(new THREE.SphereGeometry(0.03, 6, 4), T(0xfff4a8), -0.12 + Math.cos(k * TAU / 5) * 0.035, 0.15 + Math.sin(k * TAU / 5) * 0.035, 0.05, head);
-      add(new THREE.SphereGeometry(0.022, 6, 4), accent, -0.12, 0.15, 0.06, head); break;
-    case 'feather': {
-      add(new THREE.TorusGeometry(0.185, 0.02, 4, 18), trim, 0, 0.06, 0, head).rotation.x = Math.PI / 2;
-      const f = add(new THREE.ConeGeometry(0.03, 0.3, 5), T(0xe84a3a), 0.15, 0.18, -0.05, head); f.rotation.z = -0.5; break;
-    }
-    case 'helm':
-      add(new THREE.SphereGeometry(0.2, 12, 8, 0, TAU, 0, Math.PI / 2), metal, 0, 0.02, 0, head);
-      add(new THREE.BoxGeometry(0.03, 0.12, 0.3), accent, 0, 0.21, -0.02, head);
-      add(new THREE.BoxGeometry(0.02, 0.07, 0.02), metal, 0, 0.03, 0.19, head); break;
-    case 'circlet':
-      add(new THREE.TorusGeometry(0.18, 0.018, 4, 18), trim, 0, 0.07, 0, head).rotation.x = Math.PI / 2;
-      add(new THREE.OctahedronGeometry(0.035), GLOW(C.colors.accent), 0, 0.08, 0.18, head); break;
-    case 'mitre': {
-      const m = add(new THREE.ConeGeometry(0.15, 0.36, 4), T(0xffffff), 0, 0.28, 0, head); m.rotation.y = Math.PI / 4;
-      add(new THREE.BoxGeometry(0.03, 0.18, 0.02), trim, 0, 0.27, 0.11, head); break;
-    }
-    case 'hood':
-      add(new THREE.SphereGeometry(0.215, 14, 10, 0, TAU, 0, Math.PI * 0.62), cloth, 0, 0.02, -0.03, head);
-      add(new THREE.ConeGeometry(0.1, 0.25, 8), cloth, 0, 0.0, -0.2, head).rotation.x = -1.9; break;
-    case 'bandana':
-      add(new THREE.TorusGeometry(0.18, 0.035, 5, 18), trim, 0, 0.08, 0, head).rotation.x = Math.PI / 2 - 0.2;
-      add(new THREE.ConeGeometry(0.04, 0.18, 4), trim, 0, 0.06, -0.22, head).rotation.x = -2.2; break;
-    case 'wizard': {
-      add(new THREE.CylinderGeometry(0.34, 0.34, 0.025, 20), cloth, 0, 0.1, 0, head);
-      const c = add(new THREE.ConeGeometry(0.18, 0.5, 12), cloth, 0, 0.36, -0.02, head); c.rotation.x = -0.25;
-      add(new THREE.TorusGeometry(0.17, 0.025, 4, 16), trim, 0, 0.14, 0, head).rotation.x = Math.PI / 2; break;
-    }
-    case 'goggles':
-      add(new THREE.TorusGeometry(0.18, 0.025, 4, 18), T(0x5a3a1a), 0, 0.09, 0, head).rotation.x = Math.PI / 2;
-      [-0.07, 0.07].forEach(x => add(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 10), GLOW(C.colors.accent), x, 0.12, 0.15, head).rotation.x = Math.PI / 2 - 0.4); break;
-  }
-
-  // ---------------- armas
-  L.ribbon = C.weapon === 'ribbon';
-  const inR = new THREE.Group(); L.handR.add(inR);
-  const inL = new THREE.Group(); L.handL.add(inL);
-  switch (C.weapon) {
-    case 'bow': {
-      const bow = add(new THREE.TorusGeometry(0.5, 0.025, 6, 20, Math.PI), wood, 0, 0, 0, inL);
-      bow.rotation.set(0, Math.PI / 2, Math.PI / 2);
-      add(new THREE.CylinderGeometry(0.004, 0.004, 1.0, 3), T(0xffffff), 0, 0, 0, inL);
-      const q = add(new THREE.CylinderGeometry(0.07, 0.06, 0.5, 8), T(0x6b4423), 0.12, 1.15, -0.2, body); q.rotation.z = 0.4;
-      break;
-    }
-    case 'sword': {
-      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
-      add(new THREE.BoxGeometry(0.06, 0.95, 0.02), metal, 0, 0.55, 0, g);
-      add(new THREE.BoxGeometry(0.24, 0.04, 0.05), T(C.colors.accent), 0, 0.07, 0, g);
-      add(new THREE.CylinderGeometry(0.025, 0.025, 0.16, 6), T(0x4a3020), 0, -0.03, 0, g);
-      break;
-    }
-    case 'mace': {
-      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
-      add(new THREE.CylinderGeometry(0.025, 0.025, 0.6, 6), wood, 0, 0.25, 0, g);
-      add(new THREE.DodecahedronGeometry(0.1), T(C.colors.trim), 0, 0.58, 0, g);
-      const sh = add(new THREE.CylinderGeometry(0.26, 0.26, 0.05, 16), T(C.colors.accent), 0.05, 0.1, 0, inL); sh.rotation.z = Math.PI / 2;
-      add(new THREE.TorusGeometry(0.26, 0.02, 4, 18), T(C.colors.trim), 0.08, 0.1, 0, inL).rotation.y = Math.PI / 2;
-      add(new THREE.BoxGeometry(0.02, 0.3, 0.06), T(C.colors.trim), 0.09, 0.1, 0, inL);
-      break;
-    }
-    case 'staff': {
-      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
-      add(new THREE.CylinderGeometry(0.025, 0.03, 1.6, 6), look.cls === 'necromante' ? T(0x3a3028) : wood, 0, 0.3, 0, g);
-      if (C.skull) {
-        add(new THREE.SphereGeometry(0.11, 10, 8), T(0xe8e4d0), 0, 1.15, 0, g);
-        [-0.04, 0.04].forEach(x => add(new THREE.SphereGeometry(0.025, 6, 4), GLOW(C.staffColor), x, 1.16, 0.09, g));
-      } else {
-        add(new THREE.TorusGeometry(0.1, 0.015, 4, 12), T(C.colors.trim), 0, 1.15, 0, g);
-        L.orb = add(new THREE.SphereGeometry(0.075, 12, 10), GLOW(C.staffColor), 0, 1.15, 0, g);
-      }
-      break;
-    }
-    case 'daggers':
-      [inR, inL].forEach(h => { const g = new THREE.Group(); g.rotation.x = Math.PI / 2; h.add(g); add(new THREE.BoxGeometry(0.04, 0.38, 0.015), metal, 0, 0.22, 0, g); add(new THREE.BoxGeometry(0.12, 0.03, 0.04), T(C.colors.trim), 0, 0.03, 0, g); });
-      break;
-    case 'club': {
-      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
-      add(new THREE.CylinderGeometry(0.07, 0.035, 0.7, 7), wood, 0, 0.32, 0, g);
-      for (let i = 0; i < 4; i++) { const s = add(new THREE.ConeGeometry(0.025, 0.08, 4), metal, Math.cos(i * 1.57) * 0.07, 0.55, Math.sin(i * 1.57) * 0.07, g); s.rotation.z = -Math.cos(i * 1.57) * 1.4; s.rotation.x = Math.sin(i * 1.57) * 1.4; }
-      add(new THREE.TorusGeometry(0.06, 0.02, 4, 8), metal, 0, 0, 0, inL);
-      break;
-    }
-    case 'hammer': {
-      const g = new THREE.Group(); g.rotation.x = Math.PI / 2; inR.add(g);
-      add(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6), wood, 0, 0.3, 0, g);
-      add(new THREE.BoxGeometry(0.34, 0.18, 0.18), T(0x5a6470), 0, 0.68, 0, g);
-      L.orb = add(new THREE.BoxGeometry(0.36, 0.05, 0.19), GLOW(C.colors.accent), 0, 0.68, 0, g);
-      break;
-    }
-  }
+  gear({ look, C, head, body, L, T, GLOW, metal, wood, trim, accent, cloth, hair });
   root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   head.traverse(o => { if (o.isMesh) o.receiveShadow = false; });
   addOutline(root);
@@ -253,4 +260,52 @@ function faceTexture(look, fem) {
   g.restore();
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
   return (_faceCache[key] = t);
+}
+
+// ---------------------------------------------------------------- personagem com modelo 3D animado
+const MODEL_TINT = {
+  adventurer: { cloth: ['Green'], trim: ['LightGreen'], clothD: ['Brown2'], hair: ['Hair', 'Eyebrows'], hide: { Backpack: c => !['arqueira', 'ferreira', 'arruaceiro'].includes(c) } },
+  hooded_adventurer: { cloth: ['DarkBrown'], trim: ['LightBrown'], clothD: ['Brown'], hair: [], hide: { Sword: (c, C) => C.weapon !== 'sword' } },
+};
+function buildModelAvatar(root, look) {
+  while (root.children.length) root.remove(root.children[0]);
+  const race = RACES[look.race] || RACES.humano;
+  const C = CLASSES[look.cls] || CLASSES.dancarina;
+  const fem = look.gender !== 'm';
+  const model = fem ? 'hooded_adventurer' : 'adventurer';
+  const [sx, sy, sz] = race.scale;
+  const inst = ModelKit.instance(model, 1.72 * sy);
+  inst.obj.scale.x *= sx * (fem ? 1 : 1.05); inst.obj.scale.z *= sz * (fem ? 1 : 1.05);
+  root.add(inst.root);
+  const T = c => new THREE.MeshToonMaterial({ color: c, gradientMap: TOON_GRAD });
+  const GLOW = c => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.7 });
+  const tint = MODEL_TINT[model];
+  const skinC = race.skins[look.skin % race.skins.length], hairC = HAIR_COLORS[look.hair % HAIR_COLORS.length];
+  inst.tint('Skin', skinC);
+  tint.hair.forEach(n => inst.tint(n, hairC));
+  tint.cloth.forEach(n => inst.tint(n, C.colors.cloth));
+  tint.trim.forEach(n => inst.tint(n, C.colors.trim));
+  tint.clothD.forEach(n => inst.tint(n, new THREE.Color(C.colors.cloth).multiplyScalar(0.6)));
+  for (const [mn, fn] of Object.entries(tint.hide)) { const m = inst.obj.getObjectByName(mn) || inst.mesh(mn); if (m) m.visible = !fn(look.cls, C); }
+  // pontos de encaixe nos ossos
+  const headA = inst.attach('Head'), handA = inst.attach('WristR'), handLA = inst.attach('WristL'), chestA = inst.attach('Chest');
+  const head = new THREE.Group(); head.position.set(0, 0.12 * sy, 0.01); head.scale.setScalar(0.66); headA.add(head);
+  const handR = new THREE.Group(); handR.position.set(0, -0.06, 0.02); handR.rotation.x = -1.25; handA.add(handR);
+  const handL = new THREE.Group(); handL.position.set(0, -0.06, 0.02); handLA.add(handL);
+  const body = new THREE.Group(); body.position.set(0, -1.12, -0.03); chestA.add(body);     // mesmo referencial do boneco antigo (pés em y=0)
+  const L = { cls: look.cls, model: true, inst, body: inst.root, head, handR, handL, ribbon: false };
+  const metal = T(0xb8bcc8), wood = T(0x7a5230), trim = T(C.colors.trim), accent = T(C.colors.accent), cloth = T(C.colors.cloth), hair = T(hairC);
+  const skin = T(skinC);
+  // orelhas de elfo e barba de anão
+  if (race.ears) [-1, 1].forEach(s => { const e = mesh(new THREE.ConeGeometry(0.035, 0.22, 6), skin, s * 0.17, 0.0, -0.03, head); e.rotation.z = -s * 1.25; e.rotation.x = -0.3; });
+  if (race.beard && !fem) { const b = mesh(new THREE.ConeGeometry(0.14, 0.36, 10), hair, 0, -0.2, 0.1, head); b.rotation.x = Math.PI + 0.3; }
+  // capa
+  if (['paladino', 'necromante', 'assassino', 'mago_negro', 'mago_luz', 'sacerdote'].includes(look.cls)) {
+    const cape = mesh(new THREE.PlaneGeometry(0.46, 0.95, 1, 4), new THREE.MeshToonMaterial({ color: look.cls === 'paladino' ? C.colors.accent : C.colors.cloth, side: THREE.DoubleSide, gradientMap: TOON_GRAD }), 0, 0.9, -0.17, body);
+    cape.rotation.x = 0.1; L.cape = cape;
+  }
+  gear({ look, C, head, body, L, T, GLOW, metal, wood, trim, accent, cloth, hair });
+  inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  inst.play(C.weapon === 'ribbon' || C.ranged ? 'Idle' : 'Idle_Sword');
+  return L;
 }

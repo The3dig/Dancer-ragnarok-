@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="style3d.css">
 </head>
 <body>
-<div id="labels"><div id="pname" class="pname"></div></div>
+<div id="labels"><div id="pname" class="pname"></div><div id="mybubble" class="bubble hidden"></div></div>
 
 <div id="hud" class="hidden">
   <div id="status" class="win">
@@ -36,11 +36,12 @@
   <div id="menu">
     <button id="btn-stat" title="Atributos (C)">📊</button>
     <button id="btn-skill" title="Habilidades (K)">📜</button>
+    <button id="btn-chat" title="Conversar (Enter)">💬</button>
     <button id="btn-sit" title="Sentar (X)">🧘</button>
     <button id="btn-music" title="Música (M)">🎵</button>
     <button id="btn-help" title="Ajuda (H)">❓</button>
   </div>
-  <div id="mapbox"><canvas id="minimap" width="180" height="108"></canvas><div id="zonename"></div></div>
+  <div id="mapbox"><canvas id="minimap" width="180" height="108"></canvas><div id="zonename"></div><div id="online">👤 Solo</div></div>
   <div id="combo"></div>
   <div id="judge"></div>
   <div id="prompt" class="hidden"></div>
@@ -49,6 +50,7 @@
     <canvas id="beatcv" width="300" height="40"></canvas>
     <div id="hotbar"></div>
   </div>
+  <div id="chatbox" class="hidden"><input id="chat-in" maxlength="80" placeholder="Escreva uma mensagem para os amigos…" autocomplete="off"><button id="chat-send">Enviar</button></div>
   <div id="statwin" class="win hidden"></div>
   <div id="skillwin" class="win hidden"></div>
   <div id="dialog" class="win hidden"></div>
@@ -91,12 +93,15 @@
 </div>
 
 <script src="lib/three.min.js"></script>
+<script src="lib/gltf-loader.js"></script>
 <script src="../js/compat.js"></script>
 <script src="../js/audio.js"></script>
 <script src="classes.js"></script>
+<script src="modelkit.js"></script>
 <script src="avatar.js"></script>
 <script src="game3d.js"></script>
 <script src="kravenox.js"></script>
+<script src="net.js"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.Capacitor)
   navigator.serviceWorker.register('../sw.js').catch(() => {});

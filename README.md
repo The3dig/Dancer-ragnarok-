@@ -48,6 +48,21 @@ Abra `3d/index.html`. É um MMORPG 3D de mundo aberto com criação de personage
 
 Os arquivos ficam em `3d/classes.js` (dados das raças e classes) e `3d/avatar.js` (montagem dos modelos 3D).
 
+## 👥 Multiplayer
+
+Jogue pelo link do Claude e compartilhe a página com seus amigos pelo menu **Compartilhar**.
+Quem abrir o mesmo link ao mesmo tempo aparece no seu mundo, com nome, classe, vida e animações.
+
+- Chat pelo botão 💬 (ou Enter). As mensagens aparecem em balões sobre os personagens.
+- A vida do Kravenox é compartilhada: o dano de todos soma na mesma barra.
+- Cada jogador tem os próprios monstros comuns. Só o Kravenox é compartilhado.
+- Fora do Claude (GitHub Pages ou app), o jogo funciona no modo solo.
+
+## 🎨 Modelos 3D
+
+Personagens e monstros usam modelos animados CC0 da Quaternius e da Kenney (veja `3d/models/CREDITOS.txt`).
+Cada classe pinta a roupa com cores próprias e prende arma, chapéu e capa nos ossos do modelo.
+
 ## ☠ Kravenox — chefe mundial semanal
 
 - Todo **sábado, das 20h às 22h** (horário do aparelho), o Kravenox desperta na **Fenda de Kravenox**, ao sul dos Campos Dourados. A fenda aparece como uma caveira no minimapa.

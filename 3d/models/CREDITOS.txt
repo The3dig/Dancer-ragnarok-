@@ -1,0 +1,6 @@
+Modelos 3D (CC0 1.0 — domínio público, uso livre):
+- Quaternius (https://quaternius.com): aventureiros, slime, abelha, cogumelo, caranguejo,
+  raptor, brutamontes, dragão, filhote de dragão, esqueleto.
+- Kenney (https://www.kenney.nl): personagem "worker".
+Obtidos do pacote npm @netforge/asset-library-files (MIT; arte CC0).
+Animações extras removidas e arquivos convertidos para .js (base64) para funcionar offline.

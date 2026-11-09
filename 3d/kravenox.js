@@ -146,7 +146,8 @@ const Kvx = (() => {
       const C = CLASSES[al.look.cls];
       al.cd -= dt; al.atk = Math.max(0, al.atk - dt * 3);
       if (al.down > 0) {
-        al.down -= dt; al.g.rotation.z = Math.PI / 2; al.g.position.y = groundY(al.x, al.z) + 0.3;
+        al.down -= dt;
+        if (al.L.model) { al.L.inst.play('Death', { once: true }); al.L.inst.update(dt); } else { al.g.rotation.z = Math.PI / 2; al.g.position.y = groundY(al.x, al.z) + 0.3; }
         if (al.down <= 0) { al.hp = al.maxHp * 0.6; al.g.rotation.z = 0; floater(al.x, groundY(al.x, al.z) + 2.2, al.z, 'De pé!', 'heal'); }
         continue;
       }
@@ -171,6 +172,12 @@ const Kvx = (() => {
           } else { dmgMob(boss, dmg, crit, false, C.colors.accent); }
           if (al.look.cls === 'sacerdote' && Math.random() < 0.3) { healP(stats.maxHp() * 0.08); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xcfe8ff, 10, 2, 0.6); }
         }
+      }
+      if (al.L.model) {
+        const st = al.atk > 0.9 ? (C.ranged ? 'Gun_Shoot' : 'Sword_Slash') : al.atk > 0 ? al.L.inst.curName : al.moving ? 'Run' : (C.ranged ? 'Idle' : 'Idle_Sword');
+        al.L.inst.play(st, { once: al.atk > 0, restart: al.atk > 0.97, speed: 1.4 }); al.L.inst.update(dt);
+        al.g.position.set(al.x, groundY(al.x, al.z), al.z); al.g.rotation.y = al.face;
+        continue;
       }
       // animação simples
       const t = time, sw = al.moving ? Math.sin(t * 12) : 0;
@@ -226,7 +233,6 @@ const Kvx = (() => {
     allies.forEach(al => { if (al.down <= 0 && Math.hypot(al.x - LAIR.x, al.z - LAIR.z) < 30) cands.push({ x: al.x, z: al.z, al }); });
     if (!cands.length) {
       if (Math.hypot(m.x - LAIR.x, m.z - LAIR.z) > 1) stepMob(m, LAIR.x, LAIR.z, m.d.speed, dt);
-      m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.01 * dt);
       return;
     }
     cands.sort((a, b) => Math.hypot(a.x - m.x, a.z - m.z) - Math.hypot(b.x - m.x, b.z - m.z));
@@ -267,12 +273,19 @@ const Kvx = (() => {
     }
   }
 
+  function curWeek() { return forced ? 'teste' : weekId(); }
+  function addDmg(d) { const w = curWeek(); if (!P.kvxDmg || P.kvxDmg.w !== w) P.kvxDmg = { w, d: 0 }; P.kvxDmg.d += d; }
+  function sharedHp(m) {
+    const w = curWeek(), mine = P.kvxDmg && P.kvxDmg.w === w ? P.kvxDmg.d : 0;
+    return m.maxHp - mine - Net.kvxOthers(w);
+  }
   function onKill(m) {
     boss = null; active = false;
     P.kvxWeek = forced ? 'teste' : weekId(); P.kvxKills = (P.kvxKills || 0) + 1;
     P.title = 'Matador de Kravenox';
     $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
     banner('🏆 KRAVENOX FOI DERROTADO! 🏆');
+    if (Net.count > 1) log(`🤝 Vitória em grupo com ${Net.count - 1} amigo(s)!`, 'gold');
     log(`🏆 <b>KRAVENOX FOI DERROTADO!</b> Você recebeu o título <b>« Matador de Kravenox »</b>. Vitórias: ${P.kvxKills}.`, 'gold');
     log('Ele volta no próximo sábado, às 20h.', 'sys');
     P.inv.red += 15; P.inv.blue += 8; buildHotbar();
@@ -295,6 +308,7 @@ const Kvx = (() => {
       panel();
     }
     if (boss && boss.dead) boss = null;
+    if (boss) { boss.hp = Math.min(boss.maxHp, sharedHp(boss)); if (boss.hp <= 0 && !boss.dead) { boss.hp = 0; killMob(boss); } }
     updateAllies(dt); updateTeles(dt);
     // rótulos dos aliados
     for (const al of allies) {
@@ -333,5 +347,5 @@ const Kvx = (() => {
     g.beginPath(); g.arc(x, y, 5 + pulse, 0, TAU); g.fill();
     g.fillStyle = '#fff'; g.font = 'bold 8px sans-serif'; g.textAlign = 'center'; g.fillText('☠', x, y + 3); g.textAlign = 'left';
   }
-  return { init, update, ai, onKill, minimap, weekId, windowNow, nextStart, get active() { return !!boss; } };
+  return { init, update, ai, onKill, minimap, addDmg, weekId, windowNow, nextStart, get active() { return !!boss; } };
 })();

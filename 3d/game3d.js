@@ -424,8 +424,8 @@ const MOBDEF = {
   pompom:    { name: 'Pompom', lv: 1, hp: 40, atk: 5, def: 0, xp: 9, zeny: [2, 6], speed: 1.6, aggro: 0, respawn: 8, drops: [['red', 0.18]] },
   zunzum:    { name: 'Zunzum', lv: 3, hp: 60, atk: 8, def: 1, xp: 16, zeny: [4, 10], speed: 2.8, aggro: 7, respawn: 10, drops: [['red', 0.2], ['blue', 0.05]] },
   fungolino: { name: 'Fungolino', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
-  besouro:   { name: 'Besouro Rubi', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
-  serpe:     { name: 'Serpe de Areia', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
+  besouro:   { name: 'Caranguejo Rubi', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
+  serpe:     { name: 'Raptor das Dunas', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
   kravenox:  { name: 'Kravenox', lv: 40, hp: 30000, atk: 70, def: 22, xp: 6000, zeny: [2500, 3500], speed: 3.0, aggro: 30, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
   guardiao:  { name: 'Guardião das Areias', lv: 18, hp: 2400, atk: 42, def: 15, xp: 900, zeny: [300, 500], speed: 2.0, aggro: 14, respawn: 90, boss: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
 };
@@ -436,6 +436,7 @@ function mobModel(type) {
   const mt = c => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
   const ms = c => { const m = new THREE.MeshToonMaterial({ color: c }); mats.push(m); return m; };
   const r = { g, mats };
+  if (ModelKit.ready && MOB_MODELS[type]) return mobFromModel(type, r);
   if (type === 'kravenox') return kravenoxModel(r, mt);
   switch (type) {
     case 'pompom': {
@@ -515,6 +516,36 @@ function mobModel(type) {
   return r;
 }
 
+const MOB_MODELS = {
+  pompom:    { m: 'slime_pink', h: 0.85, idle: 'Idle', walk: 'Walk', atk: 'Bite_Front', die: 'Death' },
+  zunzum:    { m: 'bee', h: 0.75, y: 0.9, idle: 'Flying', walk: 'Flying', atk: 'Bite_Front', die: 'Death' },
+  fungolino: { m: 'mushroom_imp', h: 1.15, idle: 'Idle', walk: 'Walk', atk: 'Bite_Front', die: 'Death' },
+  besouro:   { m: 'crab', h: 0.95, idle: 'Idle', walk: 'Walk', atk: 'Bite_Front', die: 'Death' },
+  serpe:     { m: 'raptor', h: 1.35, idle: 'Velociraptor_Idle', walk: 'Velociraptor_Run', atk: 'Velociraptor_Attack', die: 'Velociraptor_Death', tint: { '*': 0xc8955a } },
+  guardiao:  { m: 'orc_brute', h: 3.6, idle: 'Idle', walk: 'Walk', atk: 'Weapon', die: 'Death', tint: { Orc_Main: 0xc79a5c, Orc_Secondary: 0x8a5a32 } },
+  kravenox:  { m: 'dragon', h: 7.5, y: 1.2, idle: 'Flying_Idle', walk: 'Fast_Flying', atk: 'Headbutt', atk2: 'Punch', die: 'Death', tint: { Dragon_Main: 0x2c1a3c, Dragon_Secondary: 0x8a1838, Dragon_Horn: 0xe8dcc8 } },
+};
+function mobFromModel(type, r) {
+  const d = MOB_MODELS[type], inst = ModelKit.instance(d.m, d.h);
+  const holder = new THREE.Group(); holder.position.y = d.y || 0; holder.add(inst.root); r.g.add(holder);
+  if (d.tint) for (const [mn, c] of Object.entries(d.tint)) { if (mn === '*') inst.mats.forEach(m => m.color.lerp(new THREE.Color(c), 0.5)); else inst.tint(mn, c); }
+  r.mats = inst.mats.filter(m => m.emissive);
+  r.inst = inst; r.h = d.h + (d.y || 0); r.def = d;
+  r.lt = 0; r.lastSwing = 0;
+  inst.play(d.idle);
+  r.anim = (m, t) => {
+    const dt = Math.min(0.1, r.lt ? t - r.lt : 0); r.lt = t;
+    const sw = Math.max(m.swing || 0, m.roar > 0.3 ? 1 : 0);
+    if (sw > 0.9 && r.lastSwing <= 0.9) inst.play(type === 'kravenox' && Math.random() < 0.5 ? d.atk2 : d.atk, { once: true, restart: true, speed: 1.3 });
+    else if (sw <= 0.05) inst.play(m.moving ? d.walk : d.idle, { speed: m.moving ? 1.2 : 1 });
+    r.lastSwing = sw;
+    if (type === 'kravenox') inst.tint('Dragon_Main', m.enraged ? 0x5a1020 : 0x2c1a3c);
+    inst.update(dt);
+  };
+  r.g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return r;
+}
+
 // ---------------------------------------------------------------- NPCs
 const NPCS = [
   { id: 'master', name: 'Mestra Odete', x: VIL.x + 6, z: VIL.z + 6, look: [0x9b4dca, 0x2b2b5a, 'flower'] },
@@ -525,6 +556,19 @@ const NPCS = [
   { id: 'shop', name: 'Mercador Farid', x: OAS.x + 4, z: OAS.z - 21, look: [0xb5651d, 0x2a1a0a, 'turban'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
 ];
+function upgradeNPCs() {
+  for (const n of NPCS) {
+    const [cloth, hair, hat] = n.look, fem = ['veil', 'flower'].includes(hat);
+    const inst = ModelKit.instance(fem ? 'hooded_adventurer' : 'worker', 1.72);
+    if (!inst) return;
+    for (const c of [...n.g.children]) if (c !== n.bang) n.g.remove(c);
+    if (fem) { inst.tint('DarkBrown', cloth); inst.tint('LightBrown', 0xe8d8b0); const sw = inst.obj.getObjectByName('Sword') || inst.mesh('Sword'); if (sw) sw.visible = false; }
+    else { inst.tint('Shirt', cloth); inst.tint('Hair', hair); inst.tint('Pants', 0x4a3a2a); }
+    inst.play(fem ? 'Idle' : 'Man_Idle');
+    n.g.add(inst.root); n.inst = inst;
+    inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  }
+}
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
   x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText('!', 32, 52); x.fillStyle = '#ffcf40'; x.fillText('!', 32, 52);
@@ -583,13 +627,13 @@ const QUESTS = [
   { mob: 'pompom', n: 5, txt: 'Derrote 5 Pompons nos Campos Dourados', xp: 60, zeny: 80, red: 3 },
   { mob: 'zunzum', n: 5, txt: 'Derrote 5 Zunzuns', xp: 120, zeny: 120, red: 4 },
   { mob: 'fungolino', n: 5, txt: 'Derrote 5 Fungolinos', xp: 220, zeny: 160, blue: 2 },
-  { mob: 'besouro', n: 6, txt: 'Derrote 6 Besouros Rubi nas Areias Rubras', xp: 500, zeny: 300, red: 5 },
-  { mob: 'serpe', n: 5, txt: 'Derrote 5 Serpes de Areia', xp: 900, zeny: 400, blue: 3 },
+  { mob: 'besouro', n: 6, txt: 'Derrote 6 Caranguejos Rubi nas Areias Rubras', xp: 500, zeny: 300, red: 5 },
+  { mob: 'serpe', n: 5, txt: 'Derrote 5 Raptores das Dunas', xp: 900, zeny: 400, blue: 3 },
   { mob: 'guardiao', n: 1, txt: 'Derrote o Guardião das Areias nas ruínas', xp: 2500, zeny: 1500, blue: 5 },
 ];
 
 // ---------------------------------------------------------------- estado
-let mobs = [], drops = [], fx = [], floaters = [], respawnQ = [];
+let mobs = [], drops = [], fx = [], floaters = [], respawnQ = [], corpses = [];
 let time = 0, running = false, zone = null, nearNpc = null, dialogOpen = false;
 const keys = {};
 const camS = { yaw: Math.PI, pitch: 0.42, dist: 9, x: 0, y: 0, z: 0 };
@@ -699,6 +743,7 @@ function dmgMob(m, base, crit, magic, color) {
   let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
+  if (m.type === 'kravenox') Kvx.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
   Audio8.sfx(crit ? 'crit' : 'hit');
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
@@ -712,7 +757,9 @@ function killMob(m) {
   m.dead = true; mobs = mobs.filter(o => o !== m);
   burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), m.d.boss ? 0xffcf40 : 0xffe0f0, m.d.boss ? 70 : 18, m.d.boss ? 9 : 4, 0.9);
   Audio8.sfx(m.d.boss ? 'boom' : 'die');
-  scene.remove(m.model.g); m.lab.remove();
+  m.lab.remove();
+  if (m.model.inst) { m.model.inst.play(m.model.def.die, { once: true, restart: true }); corpses.push({ g: m.model.g, inst: m.model.inst, t: 1.6 }); }
+  else scene.remove(m.model.g);
   drops.push(makeDrop('zeny', irand(...m.d.zeny), m.x, m.z));
   for (const [it, ch] of m.d.drops) if (Math.random() < ch) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
@@ -773,7 +820,7 @@ function handPos() { const v = new THREE.Vector3(); (L.orb || L.handR).getWorldP
 function attack() {
   if (P.dead || dialogOpen || P.atkCd > 0) return;
   const c = CLS();
-  P.atkCd = stats.aspd(); P.attackAnim = 1; P.sit = false;
+  P.atkCd = stats.aspd(); P.attackAnim = 1; P.sit = false; P.atkSeq = (P.atkSeq || 0) + 1;
   const k = c.rhythm ? applyRhythm(rhythm()) : 1;
   const m = nearestMob(c.range + 0.4);
   if (m) P.face = Math.atan2(m.x - P.x, m.z - P.z);
@@ -814,6 +861,7 @@ function useSkill(i) {
   if (tgt) P.face = Math.atan2(tgt.x - P.x, tgt.z - P.z);
   const k = c.rhythm ? applyRhythm(rhythm()) : 1;
   if (c.rhythm) { P.dance = 1; notes(4); } else P.cast = 1;
+  P.atkSeq = (P.atkSeq || 0) + 1;
   const base = (s.magic ? stats.matk() : stats.atk()) * (s.mult || 1) * k;
   const crit = () => Math.random() < stats.crit() + (s.critBonus || 0);
   const hitOne = (m, b) => {
@@ -911,7 +959,10 @@ function summon(kind, life) {
   const g = new THREE.Group(); scene.add(g);
   const bone = toon(0xe8e4d0), glow = new THREE.MeshLambertMaterial({ color: 0x50dcff, emissive: 0x50dcff, emissiveIntensity: 0.8 });
   const mn = { kind, g, life, cd: 0.5, face: P.face, swing: 0 };
-  if (kind === 'skeleton') {
+  if (kind === 'skeleton' && ModelKit.ready) {
+    mn.inst = ModelKit.instance('skeleton', 1.7); g.add(mn.inst.root); mn.inst.play('Skeleton_Spawn', { once: true });
+    mn.spawnT = mn.inst.clip('Skeleton_Spawn'); mn.arm = new THREE.Group();
+  } else if (kind === 'skeleton') {
     [-0.1, 0.1].forEach(x => mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.8), bone, x, 0.4, 0, g));
     mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.5, 6), bone, 0, 1.05, 0, g);
     for (let i = 0; i < 3; i++) mesh(new THREE.TorusGeometry(0.17 - i * 0.02, 0.025, 4, 10), bone, 0, 0.95 + i * 0.12, 0, g).rotation.x = Math.PI / 2;
@@ -948,6 +999,11 @@ function updateMinions(dt) {
       else if (bd > 1.6) go(tgt.x, tgt.z, 4.5);
       else { mn.face = Math.atan2(tgt.x - mn.x, tgt.z - mn.z); if (mn.cd <= 0) { mn.cd = 1.1; mn.swing = 1; dmgMob(tgt, stats.matk() * 0.75, Math.random() < 0.08, true, 0xe8e4d0); } }
       mn.arm.rotation.x = -mn.swing * 2;
+      if (mn.inst) {
+        mn.spawnT -= dt;
+        if (mn.spawnT <= 0) mn.inst.play(mn.swing > 0.9 ? 'Skeleton_Attack' : (tgt && bd > 1.6) || (!tgt && Math.hypot(P.x - mn.x, P.z - mn.z) > 2.5) ? 'Skeleton_Running' : 'Skeleton_Idle', { once: mn.swing > 0.9, restart: mn.swing > 0.99 });
+        mn.inst.update(dt);
+      }
     } else {
       mn.orb.rotation.y += dt * 3; mn.orb.position.y = 2.2 + Math.sin(time * 4) * 0.1;
       if (tgt && mn.cd <= 0) { mn.cd = 0.9; const from = new THREE.Vector3(); mn.orb.getWorldPosition(from); shoot(from, tgt, 0x50dcff, false, m => dmgMob(m, stats.atk() * 0.8, false, true, 0x50dcff)); }
@@ -981,7 +1037,10 @@ function update(dt) {
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Kvx.update(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
+  for (const c of corpses) { c.t -= dt; c.inst.update(dt); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
+  corpses = corpses.filter(c => c.t > 0);
+  for (const n of NPCS) if (n.inst) n.inst.update(dt);
   for (const c of clouds) { c.position.x += dt * 1.2; if (c.position.x > WX + 20) c.position.x = -WX - 20; }
   if (Math.random() < dt * 30) { // água do chafariz
     const m = new THREE.Mesh(fxGeo.dot, new THREE.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true }));
@@ -1132,6 +1191,7 @@ function stepMob(m, tx, tz, sp, dt) {
 
 // ---------------------------------------------------------------- animação da Lyra
 function animateLyra(dt) {
+  if (L.model) return animateModel(dt);
   lyra.position.set(P.x, P.y, P.z);
   lyra.rotation.y = P.face + (P.dance > 0 ? (1 - P.dance) * TAU * 2 : 0);
   const t = time, run = P.moving && P.onGround;
@@ -1160,6 +1220,31 @@ function animateLyra(dt) {
   if (L.tail) L.tail.rotation.x = 0.2 + (run ? 0.5 : 0) + Math.sin(t * (run ? 13 : 2.5)) * 0.15;
   if (L.tail) L.tail.rotation.z = Math.sin(t * 2) * 0.15;
   L.head.rotation.y = P.sit ? 0 : Math.sin(t * 0.7) * 0.15;
+  lyra.visible = !(P.hurtT > 0 && Math.floor(time * 30) % 2);
+  if (L.ribbon) updateRibbon(dt);
+}
+
+function animateModel(dt) {
+  lyra.position.set(P.x, P.y, P.z);
+  lyra.rotation.y = P.face + (P.dance > 0 ? (1 - P.dance) * TAU * 2 : 0);
+  const a = L.inst, C = CLS();
+  let st, once = false, speed = 1, restart = false;
+  if (P.dead) { st = 'Death'; once = true; }
+  else if (P.dashT > 0) { st = 'Roll'; once = true; speed = 1.7; }
+  else if (P.attackAnim > 0 || P.cast > 0) {
+    st = (C.ranged || (P.cast > 0 && !C.rhythm)) ? 'Gun_Shoot' : (C.weapon === 'club' ? 'Punch_Right' : 'Sword_Slash'); once = true;
+    speed = Math.max(1.3, a.clip(st) / Math.max(0.3, stats.aspd()));
+    restart = P.atkSeq !== L.lastSeq; L.lastSeq = P.atkSeq;
+  }
+  else if (P.dance > 0) st = 'Wave';
+  else if (P.moving && P.onGround) { st = 'Run'; speed = stats.speed() / 6.2; }
+  else if (P.hurtT > 0) { st = 'HitRecieve'; once = true; }
+  else if (P.sit) st = 'Interact';
+  else st = (C.weapon === 'ribbon' || C.ranged) ? 'Idle' : 'Idle_Sword';
+  a.play(st, { once, speed, restart });
+  a.update(dt);
+  if (L.orb) L.orb.scale.setScalar(1 + Math.sin(time * 5) * 0.15);
+  if (L.cape) L.cape.rotation.x = 0.1 + (P.moving ? 0.5 : 0) + Math.sin(time * 4) * 0.05;
   lyra.visible = !(P.hurtT > 0 && Math.floor(time * 30) % 2);
   if (L.ribbon) updateRibbon(dt);
 }
@@ -1470,6 +1555,7 @@ addEventListener('keydown', e => {
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc);
   if (k === 'c') toggleStats();
+  if (k === 'enter') { e.preventDefault(); openChat(); return; }
   if (k === 'k') toggleSkills();
   if (k === 'x') { P.sit = !P.sit; log(P.sit ? 'Você se sentou para descansar.' : 'Você se levantou.', 'sys'); }
   if (k === 'm') toggleMusic();
@@ -1517,6 +1603,11 @@ function showHelp() {
   <b style="color:#c08000">PERFEITO</b> = +60% de dano e aumenta o combo (até +100%). Errar o tempo zera o combo.<br><br>
   Caminho: Solmira → Campos Dourados → Areias Rubras → Oásis de Kharum. O jogo salva sozinho.`);
 }
+function openChat() { $('chatbox').classList.remove('hidden'); $('chat-in').focus(); for (const k in keys) keys[k] = false; }
+function sendChat() { const i = $('chat-in'); Net.say(i.value); i.value = ''; $('chatbox').classList.add('hidden'); i.blur(); }
+$('btn-chat').onclick = openChat;
+$('chat-send').onclick = sendChat;
+$('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') { $('chatbox').classList.add('hidden'); e.target.blur(); } });
 $('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
 $('btn-sit').onclick = () => { P.sit = !P.sit; };
 
@@ -1554,7 +1645,7 @@ function start(fromSave) {
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
-  running = true; Kvx.init(); buildHotbar();
+  running = true; Kvx.init(); Net.init(); buildHotbar();
   const who = `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`Bem-vindo(a) de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
@@ -1595,6 +1686,14 @@ function armNew() {
 $('btn-new').onclick = () => { if (loadSave() && !armNew()) return; start(false); };
 $('btn-cont').onclick = () => start(true);
 renderCreate();
+(function loadModels() {
+  const btn = $('btn-new'), cont = $('btn-cont'), label = btn.textContent;
+  btn.disabled = true; cont.disabled = true;
+  ModelKit.load(p => { btn.textContent = `⏳ Carregando personagens… ${Math.round(p * 100)}%`; }).then(ok => {
+    btn.disabled = false; cont.disabled = false; btn.textContent = label;
+    if (ok) { upgradeNPCs(); renderCreate(); }
+  });
+})();
 if (!loadSave()) $('btn-cont').style.display = 'none';
 $('name-in').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-new').click(); });
 
