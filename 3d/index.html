@@ -35,11 +35,12 @@
   <div id="quest" class="win"></div>
   <div id="menu">
     <button id="btn-stat" title="Atributos (C)">📊</button>
+    <button id="btn-skill" title="Habilidades (K)">📜</button>
     <button id="btn-sit" title="Sentar (X)">🧘</button>
     <button id="btn-music" title="Música (M)">🎵</button>
     <button id="btn-help" title="Ajuda (H)">❓</button>
   </div>
-  <canvas id="minimap" width="180" height="108"></canvas>
+  <div id="mapbox"><canvas id="minimap" width="180" height="108"></canvas><div id="zonename"></div></div>
   <div id="combo"></div>
   <div id="judge"></div>
   <div id="prompt" class="hidden"></div>
@@ -49,6 +50,7 @@
     <div id="hotbar"></div>
   </div>
   <div id="statwin" class="win hidden"></div>
+  <div id="skillwin" class="win hidden"></div>
   <div id="dialog" class="win hidden"></div>
   <div id="banner"></div>
   <div id="touch" class="hidden">
@@ -61,6 +63,8 @@
     </div>
   </div>
 </div>
+
+<div id="rotate"><div class="rbox"><div class="ricon">📱</div><b>Vire o celular de lado</b><span>Crônicas de Solmira foi feito para jogar com o celular deitado.</span></div></div>
 
 <div id="title" class="t3d">
   <div class="tlogo">

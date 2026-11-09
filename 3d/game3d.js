@@ -555,6 +555,7 @@ const P = {
   name: 'Lyra', race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0,
   lv: 1, xp: 0, zeny: 60, statPts: 3, str: 3, agi: 3, vit: 3, int: 3, dex: 3, luk: 3,
   hp: 1, sp: 1, inv: { red: 5, blue: 1 }, x: VIL.x, z: VIL.z + 10, y: 0, vy: 0, face: Math.PI,
+  skillLv: {}, skillPts: 0,
   atkCd: 0, attackAnim: 0, dance: 0, cast: 0, sit: false, dead: false, deadT: 0, regenT: 0, cds: {}, buffs: {},
   combo: 0, comboT: 0, best: 0, dashT: 0, dashCd: 0, home: 'solmira', quest: 0, qcount: 0, hurtT: 0,
 };
@@ -744,8 +745,8 @@ function gainXp(n) {
     burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffcf40, 40, 6, 1.1);
     floater(P.x, P.y + 2.6, P.z, 'LEVEL UP!', 'lvl');
     log(`✨ <b>Nível ${P.lv}!</b> Você ganhou pontos de atributo (${TOUCH ? 'botão 📊' : 'tecla C'}).`, 'gold');
-    const sk = SKILLS.find(s => s.lv === P.lv);
-    if (sk) log(`Nova habilidade: <b>${sk.icon} ${sk.name}</b> [${sk.key}]`, 'gold');
+    P.skillPts++;
+    log(`📜 +1 ponto de habilidade! Abra a árvore (${TOUCH ? 'botão 📜' : 'tecla K'}).`, 'gold');
     buildHotbar();
   }
 }
@@ -796,9 +797,11 @@ function nearestN(r, n) {
   return l;
 }
 function useSkill(i) {
-  const s = SKILLS[i], c = CLS();
-  if (!s || P.dead || dialogOpen) return;
-  if (P.lv < s.lv) { log(`${s.name} requer nível ${s.lv}.`, 'bad'); return; }
+  const c = CLS();
+  if (!SKILLS[i] || P.dead || dialogOpen) return;
+  const L = P.skillLv[SKILLS[i].id] || 0;
+  if (!L) { log(`${SKILLS[i].name} ainda não foi aprendida. Use a árvore de habilidades (${TOUCH ? '📜' : 'K'}).`, 'bad'); return; }
+  const s = scaleSkill(SKILLS[i], L);
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
   if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
@@ -996,7 +999,7 @@ function update(dt) {
   for (const n of NPCS) n.bang.position.y = 2.3 + Math.sin(time * 3) * 0.1;
   const z = zoneOf(P.x, P.z);
   if (z !== zone) {
-    zone = z; Audio8.play(ZONES[z].music); banner(ZONES[z].name);
+    zone = z; Audio8.play(ZONES[z].music); banner(ZONES[z].name); $('zonename').textContent = ZONES[z].name;
     log(`Você entrou em <b>${ZONES[z].name}</b>.`, 'sys');
     if (ZONES[z].town) P.home = z;
   }
@@ -1215,10 +1218,12 @@ function updateHUD() {
   $('hptxt').textContent = `${Math.ceil(P.hp)} / ${mh}`; $('sptxt').textContent = `${Math.floor(P.sp)} / ${ms}`; $('xptxt').textContent = `${(P.xp / need * 100).toFixed(1)}%`;
   $('zeny').textContent = P.zeny.toLocaleString('pt-BR');
   $('btn-stat').classList.toggle('alert', P.statPts > 0);
+  $('btn-skill').classList.toggle('alert', SKILLS.some((s, i) => canLearn(i)));
+  if (!$('skillwin').classList.contains('hidden')) renderSkills();
   document.querySelectorAll('.slot[data-skill]').forEach(el => {
     const s = SKILLS[+el.dataset.skill];
     el.querySelector('.cd').style.height = ((P.cds[s.id] || 0) / s.cd * 100) + '%';
-    el.classList.toggle('locked', P.lv < s.lv); el.classList.toggle('nosp', P.sp < s.sp);
+    el.classList.toggle('locked', !(P.skillLv[s.id] > 0)); el.classList.toggle('nosp', P.sp < scaleSkill(s, P.skillLv[s.id] || 1).sp);
   });
   let b = '';
   for (const id in P.buffs) b += `<span>${P.buffs[id].icon || '✦'} ${Math.ceil(P.buffs[id].t)}s</span>`;
@@ -1285,7 +1290,8 @@ function buildHotbar() {
   SKILLS.forEach((s, i) => {
     const el = document.createElement('div'); el.className = 'slot'; el.dataset.skill = i;
     el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP)\n${s.desc}`;
-    el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span><span class="cost">${P.lv < s.lv ? 'Nv' + s.lv : s.sp}</span><div class="cd"></div>`;
+    const lv = P.skillLv[s.id] || 0;
+    el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span>${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
     el.onclick = () => useSkill(i); hb.appendChild(el);
   });
   [['red', 'Q', '🧪'], ['blue', 'E', '💧']].forEach(([id, k, ic]) => {
@@ -1309,7 +1315,69 @@ $('statwin').addEventListener('click', e => {
   if (k && P.statPts > 0) { P[k]++; P.statPts--; Audio8.sfx('click'); renderStats(); }
   if (e.target.dataset.close !== undefined) toggleStats();
 });
-function toggleStats() { $('statwin').classList.toggle('hidden'); renderStats(); }
+function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); renderStats(); }
+
+// ---------------------------------------------------------------- árvore de habilidades
+const SK_MAX = 5;
+// estrutura igual para todas as classes: [inicial] → [ramo A, ramo B] → [final]
+const SK_REQ = [[], [[0, 2]], [[0, 3]], [[1, 3], [2, 2]]];
+function scaleSkill(s, L) {
+  const k = L - 1, o = { ...s };
+  if (s.mult) o.mult = s.mult * (1 + 0.2 * k);
+  if (s.stun) o.stun = s.stun * (1 + 0.1 * k);
+  if (s.dur) o.dur = Math.round(s.dur * (1 + 0.1 * k));
+  if (s.pct) o.pct = s.pct * (1 + 0.1 * k);
+  if (s.heal) o.heal = s.heal * (1 + 0.15 * k);
+  if (s.life) o.life = Math.round(s.life * (1 + 0.15 * k));
+  if (s.poison) o.poison = s.poison * (1 + 0.2 * k);
+  if (s.mods) { o.mods = {}; for (const [m, v] of Object.entries(s.mods)) o.mods[m] = ['def', 'crit', 'poison', 'regen'].includes(m) ? v * (1 + 0.25 * k) : 1 + (v - 1) * (1 + 0.25 * k); }
+  o.sp = Math.round(s.sp * (1 + 0.12 * k));
+  return o;
+}
+function reqMet(i) { return SK_REQ[i].every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
+function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
+function learn(i) {
+  if (!canLearn(i)) return;
+  const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--;
+  Audio8.sfx(P.skillLv[s.id] === 1 ? 'buff' : 'click');
+  if (P.skillLv[s.id] === 1) log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold');
+  buildHotbar(); renderSkills(); save();
+}
+function describe(s, L) {
+  const e = scaleSkill(s, Math.max(1, L)), bits = [];
+  if (e.mult) bits.push(`${Math.round(e.mult * 100)}% de dano${e.hits > 1 ? ` ×${e.hits}` : ''}`);
+  if (e.stun) bits.push(`atordoa ${e.stun.toFixed(1)}s`);
+  if (e.dur) bits.push(`${e.dur}s`);
+  if (e.pct) bits.push(`cura ${Math.round(e.pct * 100)}%`);
+  if (e.heal) bits.push(`cura ${Math.round(e.heal * 100)}%`);
+  if (e.life) bits.push(`dura ${e.life}s`);
+  bits.push(`${e.sp} SP`);
+  return bits.join(' · ');
+}
+function renderSkills() {
+  const w = $('skillwin');
+  const node = (i, cls) => {
+    const s = SKILLS[i], L = P.skillLv[s.id] || 0;
+    const reqs = [];
+    if (P.lv < s.lv) reqs.push(`nível ${s.lv}`);
+    for (const [j, lv] of SK_REQ[i]) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
+    return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''}">
+      <span class="si2">${s.icon}</span>
+      <div class="sb"><div class="sn">${s.name}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
+      <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
+      ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button></div>`;
+  };
+  const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <span class="x" data-close>×</span></div>
+    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(ganhe 1 por nível)</small></div>
+    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>`;
+  if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
+}
+$('skillwin').addEventListener('click', e => {
+  const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
+  if (e.target.dataset.close !== undefined) toggleSkills();
+});
+function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills(); }
 
 // ---------------------------------------------------------------- diálogos
 function dialog(title, text, opts) {
@@ -1391,7 +1459,7 @@ addEventListener('keydown', e => {
   if (!running || e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
   if (k === ' ' || k.startsWith('arrow')) e.preventDefault();
-  if (k === 'escape') { closeDialog(); $('statwin').classList.add('hidden'); return; }
+  if (k === 'escape') { closeDialog(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); return; }
   if (dialogOpen) return;
   keys[k] = true;
   if (e.repeat) return;
@@ -1402,6 +1470,7 @@ addEventListener('keydown', e => {
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc);
   if (k === 'c') toggleStats();
+  if (k === 'k') toggleSkills();
   if (k === 'x') { P.sit = !P.sit; log(P.sit ? 'Você se sentou para descansar.' : 'Você se levantou.', 'sys'); }
   if (k === 'm') toggleMusic();
   if (k === 'h') showHelp();
@@ -1448,14 +1517,14 @@ function showHelp() {
   <b style="color:#c08000">PERFEITO</b> = +60% de dano e aumenta o combo (até +100%). Errar o tempo zera o combo.<br><br>
   Caminho: Solmira → Campos Dourados → Areias Rubras → Oásis de Kharum. O jogo salva sozinho.`);
 }
-$('btn-stat').onclick = toggleStats; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
+$('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
 $('btn-sit').onclick = () => { P.sit = !P.sit; };
 
 // ---------------------------------------------------------------- salvar
 const SAVE_KEY = 'lyra3d-save-v1';
 function save() {
   if (!running) return;
-  const keep = ['kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -1475,6 +1544,12 @@ function start(fromSave) {
     P.statPts = 3;
   }
   refreshSkills(); rebuildAvatar();
+  if (!fromSave) { P.skillLv = { [SKILLS[0].id]: 1 }; P.skillPts = 0; }
+  else if (!P.skillLv || !Object.keys(P.skillLv).length || !SKILLS.some(s => P.skillLv[s.id])) {   // save antigo: converte
+    P.skillLv = {}; SKILLS.forEach(s => { if (P.lv >= s.lv) P.skillLv[s.id] = 1; });
+    P.skillPts = Math.max(0, P.lv - Object.keys(P.skillLv).length);
+  }
+  try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) { }
   if (!fromSave) { P.hp = stats.maxHp(); P.sp = stats.maxSp(); }
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;

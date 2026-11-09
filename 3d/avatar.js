@@ -11,7 +11,8 @@ function buildAvatar(root, look) {
   const T = c => new THREE.MeshToonMaterial({ color: c, gradientMap: TOON_GRAD });
   const TD = c => new THREE.MeshToonMaterial({ color: c, side: THREE.DoubleSide, gradientMap: TOON_GRAD });
   const GLOW = c => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.7 });
-  const skin = T(race.skins[look.skin % race.skins.length]);
+  if (!window.SKIN_GRAD) { const t = new THREE.DataTexture(new Uint8Array([165, 195, 220, 240, 255]), 5, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true; window.SKIN_GRAD = t; }
+  const skin = new THREE.MeshToonMaterial({ color: race.skins[look.skin % race.skins.length], gradientMap: SKIN_GRAD });
   const hairC = HAIR_COLORS[look.hair % HAIR_COLORS.length];
   const hair = T(hairC), hairD = T(new THREE.Color(hairC).multiplyScalar(0.75).getHex());
   const cloth = T(C.colors.cloth), clothD = T(new THREE.Color(C.colors.cloth).multiplyScalar(0.7).getHex());
@@ -29,7 +30,7 @@ function buildAvatar(root, look) {
   const legMat = C.outfit === 'dress' ? skin : C.outfit === 'armor' ? clothD : C.outfit === 'robe' ? clothD : cloth;
   const limb = (len, rad, mat, parent, x, y, z) => {
     const p = new THREE.Group(); p.position.set(x, y, z); parent.add(p);
-    add(new THREE.CylinderGeometry(rad, rad * 0.85, len, 8), mat, 0, -len / 2, 0, p); return p;
+    add(new THREE.CapsuleGeometry(rad, Math.max(0.01, len - rad * 2), 4, 12), mat, 0, -len / 2, 0, p); return p;
   };
   L.legL = limb(0.82, 0.07, legMat, body, -0.1, 0.86, 0);
   L.legR = limb(0.82, 0.07, legMat, body, 0.1, 0.86, 0);
@@ -88,8 +89,14 @@ function buildAvatar(root, look) {
   const head = L.head;
   head.scale.set(1 / (sx * width), 1 / sy, 1 / (sz * width));   // cabeça não deforma com a raça
   head.scale.multiplyScalar(race.beard ? 1.12 : 1);
-  add(new THREE.SphereGeometry(0.17, 16, 12), skin, 0, 0, 0, head);
-  add(new THREE.SphereGeometry(0.185, 16, 12, 0, TAU, 0, Math.PI * 0.55), hair, 0, 0.02, -0.015, head);
+  add(new THREE.SphereGeometry(0.17, 28, 20), skin, 0, 0, 0, head);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.1715, 32, 16, Math.PI / 2 - 0.95, 1.9, 0.95, 1.15),
+    new THREE.MeshToonMaterial({ map: faceTexture(look, fem), transparent: true, gradientMap: TOON_GRAD, depthWrite: false }));
+  face.rotation.y = 0; head.add(face);
+  add(new THREE.SphereGeometry(0.185, 24, 16, 0, TAU, 0, Math.PI * 0.55), hair, 0, 0.02, -0.015, head);
+  // franja e volume
+  for (let i = 0; i < 5; i++) { const b = add(new THREE.SphereGeometry(0.06, 10, 8), hair, -0.11 + i * 0.055, 0.11 - Math.abs(i - 2) * 0.012, 0.13 - Math.abs(i - 2) * 0.015, head); b.scale.set(0.9, 1.25, 0.55); b.rotation.z = (i - 2) * 0.25; }
+  if (fem) [-1, 1].forEach(sd => { const lk = add(new THREE.SphereGeometry(0.05, 10, 8), hair, sd * 0.15, -0.09, 0.05, head); lk.scale.set(0.7, 2.4, 0.8); });
   if (fem) {
     add(new THREE.SphereGeometry(0.19, 12, 8, Math.PI * 0.1, Math.PI * 0.8, Math.PI * 0.35, Math.PI * 0.45), hair, 0, 0, -0.02, head).rotation.y = Math.PI;
     if (look.cls === 'dancarina' || look.cls === 'arqueira') {
@@ -102,15 +109,14 @@ function buildAvatar(root, look) {
     }
     if (race.beard) [-1, 1].forEach(s => { for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.045 - i * 0.008, 6, 5), hair, s * 0.16, -0.08 - i * 0.07, -0.02, head); });
   } else {
-    for (let i = 0; i < 5; i++) { const sp = add(new THREE.ConeGeometry(0.05, 0.12, 5), hair, -0.1 + i * 0.05, 0.17, 0.06 - Math.abs(i - 2) * 0.02, head); sp.rotation.x = -0.6; }
+    for (let i = 0; i < 7; i++) { const sp = add(new THREE.ConeGeometry(0.055, 0.15, 6), hair, -0.13 + i * 0.043, 0.16 - Math.abs(i - 3) * 0.012, 0.02 - Math.abs(i - 3) * 0.025, head); sp.rotation.set(-0.8, 0, (i - 3) * -0.18); }
+    [-1, 1].forEach(sd => { const bk = add(new THREE.SphereGeometry(0.06, 10, 8), hair, sd * 0.15, -0.04, -0.04, head); bk.scale.set(0.6, 1.4, 1); });
   }
   if (race.beard && !fem) {
     const b = add(new THREE.ConeGeometry(0.13, 0.32, 8), hair, 0, -0.18, 0.08, head); b.rotation.x = Math.PI + 0.25;
     add(new THREE.BoxGeometry(0.16, 0.035, 0.04), hair, 0, -0.06, 0.16, head);
   }
   if (race.ears) [-1, 1].forEach(s => { const e = add(new THREE.ConeGeometry(0.035, 0.2, 5), skin, s * 0.18, 0.02, -0.02, head); e.rotation.z = -s * 1.2; e.rotation.x = -0.3; });
-  [-0.06, 0.06].forEach(x => add(new THREE.SphereGeometry(0.025, 6, 5), T(look.race === 'elfo_negro' ? 0xff5050 : 0x3a2a4a), x, 0, 0.155, head));
-  if (fem) [-0.09, 0.09].forEach(x => add(new THREE.SphereGeometry(0.025, 6, 4), T(0xffa0a0), x, -0.05, 0.14, head));
 
   // ---------------- chapéus
   switch (C.hat) {
@@ -124,7 +130,7 @@ function buildAvatar(root, look) {
     case 'helm':
       add(new THREE.SphereGeometry(0.2, 12, 8, 0, TAU, 0, Math.PI / 2), metal, 0, 0.02, 0, head);
       add(new THREE.BoxGeometry(0.03, 0.12, 0.3), accent, 0, 0.21, -0.02, head);
-      add(new THREE.BoxGeometry(0.04, 0.12, 0.03), metal, 0, -0.02, 0.19, head); break;
+      add(new THREE.BoxGeometry(0.02, 0.07, 0.02), metal, 0, 0.03, 0.19, head); break;
     case 'circlet':
       add(new THREE.TorusGeometry(0.18, 0.018, 4, 18), trim, 0, 0.07, 0, head).rotation.x = Math.PI / 2;
       add(new THREE.OctahedronGeometry(0.035), GLOW(C.colors.accent), 0, 0.08, 0.18, head); break;
@@ -207,6 +213,44 @@ function buildAvatar(root, look) {
     }
   }
   root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  head.traverse(o => { if (o.isMesh) o.receiveShadow = false; });
   addOutline(root);
   return L;
+}
+
+const _faceCache = {};
+function faceTexture(look, fem) {
+  const eye = { humano: '#4a7ad0', anao: '#7a4a22', elfo: '#2fa86a', elfo_negro: '#e03040' }[look.race] || '#4a7ad0';
+  const key = eye + fem;
+  if (_faceCache[key]) return _faceCache[key];
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d');
+  // a área do rosto: olhos no meio, boca embaixo
+  const cx = 128, ey = 76, dx = 40;
+  g.save(); g.translate(cx, ey); g.scale(1.3, 1.3); g.translate(-cx, -ey);
+  for (const sd of [-1, 1]) {
+    const x = cx + sd * dx;
+    // branco do olho
+    g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, ey, 15, fem ? 17 : 13, 0, 0, Math.PI * 2); g.fill();
+    // íris em degradê
+    const gr = g.createLinearGradient(x, ey - 14, x, ey + 14); gr.addColorStop(0, '#1a1020'); gr.addColorStop(0.45, eye); gr.addColorStop(1, '#ffffff');
+    g.fillStyle = gr; g.beginPath(); g.ellipse(x, ey + 1, 10.5, fem ? 14 : 11, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#120a18'; g.beginPath(); g.ellipse(x, ey + 2, 5, fem ? 7 : 5.5, 0, 0, Math.PI * 2); g.fill();
+    // brilhos
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(x - 4, ey - 5, 3.6, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x + 4, ey + 6, 1.8, 0, Math.PI * 2); g.fill();
+    // cílios / pálpebra superior
+    g.strokeStyle = '#1a1020'; g.lineWidth = fem ? 4.5 : 3.5; g.lineCap = 'round';
+    g.beginPath(); g.ellipse(x, ey + 2, 16, fem ? 18 : 14, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+    if (fem) { g.beginPath(); g.moveTo(x + sd * 15, ey - 9); g.lineTo(x + sd * 21, ey - 13); g.stroke(); }
+    // sobrancelha
+    g.lineWidth = fem ? 3 : 4.5; g.beginPath(); g.moveTo(x - sd * 11, ey - (fem ? 26 : 22)); g.quadraticCurveTo(x, ey - (fem ? 31 : 27), x + sd * 13, ey - (fem ? 25 : 20)); g.stroke();
+    // bochechas
+    if (fem) { g.fillStyle = 'rgba(255,120,130,.35)'; g.beginPath(); g.ellipse(x + sd * 8, ey + 27, 11, 5, 0, 0, Math.PI * 2); g.fill(); }
+  }
+  // nariz e boca
+  g.strokeStyle = 'rgba(150,80,70,.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(cx + 1, ey + 20); g.lineTo(cx - 2, ey + 27); g.stroke();
+  g.strokeStyle = '#8a3a40'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx - 10, ey + 41); g.quadraticCurveTo(cx, ey + (fem ? 48 : 45), cx + 10, ey + 41); g.stroke();
+  g.restore();
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_faceCache[key] = t);
 }

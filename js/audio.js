@@ -37,15 +37,15 @@ const Audio8 = (() => {
     // Valsa alegre da vila — 3/4
     solmira: {
       bpm: 138, div: 2, swing: 0,
-      lead: { wave: 'triangle', gain: 0.20, vib: 5, rel: 0.12, notes:
+      lead: { inst: 'flute', wave: 'triangle', gain: 0.16, vib: 5, rel: 0.12, notes:
         'D5 - B4 - G4 - A4 - B4 C5 D5 - E5 - D5 - B4 - A4 - - - . . ' +
         'G4 - A4 B4 C5 - B4 - A4 - G4 - F#4 - G4 A4 B4 - A4 - - - . . ' +
         'B4 - D5 - G5 - F#5 - E5 - D5 - C5 - E5 - A4 - B4 - - - . . ' +
         'C5 - B4 - A4 - G4 - E4 - F#4 G4 A4 - F#4 - D4 - G4 - - - . .' },
-      bass: { wave: 'sine', gain: 0.30, rel: 0.2, notes:
+      bass: { inst: 'pluck', wave: 'sine', gain: 0.14, rel: 0.2, notes:
         ['G2', 'D2', 'E2', 'D2', 'C2', 'G2', 'D2', 'D2', 'G2', 'D2', 'A2', 'E2', 'C2', 'G2', 'D2', 'G2']
           .map(r => `${r} - . . . .`).join(' ') },
-      pad: { wave: 'square', gain: 0.035, rel: 0.05, notes:
+      pad: { inst: 'pluck', wave: 'square', gain: 0.05, rel: 0.05, notes:
         ['G', 'D', 'Em', 'D', 'C', 'G', 'D', 'D', 'G', 'D', 'Am', 'Em', 'C', 'G', 'D', 'G']
           .map(c => `. . ${CH[c]} . ${CH[c]} .`).join(' ') },
       drums: 'k . h . h . k . h . h h'
@@ -53,32 +53,32 @@ const Audio8 = (() => {
     // Campos dourados — 4/4 saltitante
     campos: {
       bpm: 144, div: 2,
-      lead: { wave: 'square', gain: 0.09, vib: 0, rel: 0.06, notes:
+      lead: { inst: 'pluck', wave: 'square', gain: 0.13, vib: 0, rel: 0.06, notes:
         'D5 . A4 . F#4 A4 D5 E5 F#5 - E5 D5 E5 - A4 . ' +
         'B4 . D5 . G5 - F#5 E5 F#5 - - - . . . . ' +
         'G5 . F#5 E5 D5 . B4 . A4 . F#4 A4 D5 - C#5 . ' +
         'B4 . C#5 D5 E5 . A4 . D5 - - - . . A4 .' },
-      bass: { wave: 'triangle', gain: 0.32, rel: 0.08, notes:
+      bass: { inst: 'bass', wave: 'triangle', gain: 0.22, rel: 0.08, notes:
         ['D2', 'D2', 'G2', 'D2', 'G2', 'D2', 'A2', 'D2'].map(r => {
           const f = { D2: 'A2', G2: 'D3', A2: 'E3' }[r];
           return `${r} . ${r} . ${f} . ${r} .`;
         }).join(' ') },
-      pad: { wave: 'triangle', gain: 0.05, rel: 0.3, notes:
+      pad: { inst: 'strings', wave: 'triangle', gain: 0.022, rel: 0.3, notes:
         ['D', 'D', 'G', 'D', 'G', 'D', 'A', 'D'].map(c => `${CH[c]} - - - - - - -`).join(' ') },
       drums: 'k . h . s . h . k k h . s . h h'
     },
     // Oásis — escala frígia dominante, tom exótico
     kharum: {
       bpm: 108, div: 2,
-      lead: { wave: 'sawtooth', gain: 0.06, vib: 7, rel: 0.15, filter: 1600, notes:
+      lead: { inst: 'flute', wave: 'sawtooth', gain: 0.15, vib: 7, rel: 0.15, filter: 1600, notes:
         'E4 F4 G#4 - A4 - G#4 F4 E4 - - - . . B3 . ' +
         'E4 F4 G#4 A4 B4 - C5 B4 A4 - G#4 - F4 - E4 . ' +
         'B4 - C5 - D5 C5 B4 A4 G#4 - A4 B4 - - . . ' +
         'C5 B4 A4 G#4 F4 - G#4 F4 E4 - - - - . . .' },
-      bass: { wave: 'sine', gain: 0.28, rel: 0.4, notes:
+      bass: { inst: 'bass', wave: 'sine', gain: 0.22, rel: 0.4, notes:
         'E2 - - - - - . . E2 - - - F2 - . . E2 - - - - - . . E2 - - - B1 - - . ' +
         'E2 - - - - - . . F2 - - - E2 - . . D2 - - - E2 - . . E2 - - - - - - .' },
-      pad: { wave: 'triangle', gain: 0.045, rel: 0.5, notes:
+      pad: { inst: 'strings', wave: 'triangle', gain: 0.02, rel: 0.5, notes:
         'E3+B3 - - - - - - - - - - - - - - - F3+C4 - - - - - - - E3+B3 - - - - - - - ' +
         'D3+A3 - - - - - - - E3+G#3 - - - - - - - F3+A3 - - - - - - - E3+B3 - - - - - - -' },
       drums: 't . t k . . t . t . t k . t . .'
@@ -86,34 +86,34 @@ const Audio8 = (() => {
     // Deserto vermelho — tenso e rápido
     areias: {
       bpm: 156, div: 2,
-      lead: { wave: 'square', gain: 0.08, vib: 3, rel: 0.05, notes:
+      lead: { inst: 'strings', wave: 'square', gain: 0.045, vib: 3, rel: 0.05, notes:
         'A4 . A4 C5 B4 . A4 . E5 - D5 - C5 - B4 . ' +
         'A4 . A4 C5 B4 . G#4 . A4 - - - . . E4 . ' +
         'F4 . F4 A4 G4 . F4 . E4 - G4 - B4 - D5 . ' +
         'C5 . B4 A4 G#4 . B4 . A4 - - - . . . .' },
-      bass: { wave: 'sawtooth', gain: 0.10, rel: 0.05, filter: 700, notes:
+      bass: { inst: 'bass', wave: 'sawtooth', gain: 0.2, rel: 0.05, filter: 700, notes:
         ['A1', 'A1', 'A1', 'E2', 'F1', 'G1', 'E2', 'A1'].map(r => {
           const o = r.replace(/\d/, d => +d + 1);
           return `${r} ${r} ${o} ${r} ${r} ${o} ${r} ${o}`;
         }).join(' ') },
-      pad: { wave: 'triangle', gain: 0.04, rel: 0.3, notes:
+      pad: { inst: 'brass', wave: 'triangle', gain: 0.018, rel: 0.3, notes:
         ['Am', 'Am', 'Am', 'E', 'F', 'C', 'E', 'Am'].map(c => `${CH[c]} - - - - - - -`).join(' ') },
       drums: 'k . s . k k s . k . s . k k s s'
     },
     // Fenda de Kravenox — chefe semanal, ré menor sombrio
     kravenox: {
       bpm: 164, div: 2,
-      lead: { wave: 'sawtooth', gain: 0.07, vib: 4, rel: 0.05, filter: 2200, notes:
+      lead: { inst: 'brass', wave: 'sawtooth', gain: 0.05, vib: 4, rel: 0.05, filter: 2200, notes:
         'D5 . D5 F5 E5 . D5 . A4 - C5 - Bb4 - A4 . ' +
         'D5 . D5 F5 G5 . A5 . Bb5 - A5 - G5 - E5 . ' +
         'F5 . E5 D5 C#5 . D5 . E5 - A4 - C#5 - E5 . ' +
         'D5 - - - . . A4 . D5 - - - - . . .' },
-      bass: { wave: 'square', gain: 0.07, rel: 0.04, filter: 600, notes:
+      bass: { inst: 'bass', wave: 'square', gain: 0.24, rel: 0.04, filter: 600, notes:
         ['D2', 'D2', 'Bb1', 'Bb1', 'G1', 'A1', 'A1', 'D2'].map(r => {
           const o = r.replace(/\d/, d => +d + 1);
           return `${r} ${r} ${o} ${r} ${r} ${o} ${r} ${r}`;
         }).join(' ') },
-      pad: { wave: 'triangle', gain: 0.045, rel: 0.4, notes:
+      pad: { inst: 'choir', wave: 'triangle', gain: 0.05, rel: 0.4, notes:
         ['Dm', 'Dm', 'Bb', 'Bb', 'Gm', 'A', 'A', 'Dm'].map(c => `${CH[c]} - - - - - - -`).join(' ') },
       drums: 'k k s . k k s k k k s . k s s s'
     }
@@ -128,7 +128,14 @@ const Audio8 = (() => {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain(); master.gain.value = 0.8; master.connect(ctx.destination);
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.55; musicBus.connect(master);
+    // compressor + reverb de salão para a música soar orquestral
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.connect(master);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0.7; musicBus.connect(comp);
+    const verb = ctx.createConvolver(), len = ctx.sampleRate * 2.6, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    verb.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = 0.32;
+    musicBus.connect(verb); verb.connect(wet); wet.connect(comp);
     sfxBus = ctx.createGain(); sfxBus.gain.value = 0.6; sfxBus.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
@@ -157,6 +164,65 @@ const Audio8 = (() => {
     node.connect(env); env.connect(bus);
     osc.start(t); osc.stop(t + dur + r + 0.05);
   }
+  // instrumentos sintetizados (sem som de videogame antigo)
+  function instr(name, f, t, dur, gain) {
+    const out = ctx.createGain(); out.connect(musicBus);
+    const env = (g, a, hold, r) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + a); g.gain.setValueAtTime(gain, t + Math.max(a, hold)); g.gain.exponentialRampToValueAtTime(0.0001, t + hold + r); return t + hold + r + 0.05; };
+    const osc = (type, fr, det = 0) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = fr; o.detune.value = det; return o; };
+    const lp = fr => { const b = ctx.createBiquadFilter(); b.type = 'lowpass'; b.frequency.value = fr; return b; };
+    let end;
+    switch (name) {
+      case 'flute': {                        // flauta: seno + vibrato + sopro
+        const g = ctx.createGain(); end = env(g, 0.07, dur, 0.18);
+        const o1 = osc('sine', f), o2 = osc('sine', f * 2); const g2 = ctx.createGain(); g2.gain.value = 0.18;
+        const lfo = osc('sine', 5.2), lg = ctx.createGain(); lg.gain.value = f * 0.006; lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
+        o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(out);
+        [o1, o2, lfo].forEach(o => { o.start(t); o.stop(end); });
+        const n = ctx.createBufferSource(); n.buffer = noiseBuf; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 2;
+        const ng = ctx.createGain(); ng.gain.setValueAtTime(gain * 0.25, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+        n.connect(bp); bp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.15);
+        break;
+      }
+      case 'strings': {                      // cordas: 3 serras desafinadas + filtro, ataque lento
+        const g = ctx.createGain(); end = env(g, 0.18, dur, 0.5); const f1 = lp(Math.min(2600, f * 5)); f1.connect(g); g.connect(out);
+        [-9, 0, 8].forEach(d => { const o = osc('sawtooth', f, d); o.connect(f1); o.start(t); o.stop(end); });
+        break;
+      }
+      case 'pluck': {                        // harpa/violão: ataque rápido e decaimento
+        const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.5, dur * 1.6)); end = t + Math.max(0.5, dur * 1.6) + 0.05;
+        const f1 = lp(f * 6); f1.frequency.setValueAtTime(f * 8, t); f1.frequency.exponentialRampToValueAtTime(f * 1.5, t + 0.4);
+        const o1 = osc('triangle', f), o2 = osc('sawtooth', f, 4); const g2 = ctx.createGain(); g2.gain.value = 0.35;
+        o1.connect(f1); o2.connect(g2); g2.connect(f1); f1.connect(g); g.connect(out); [o1, o2].forEach(o => { o.start(t); o.stop(end); });
+        break;
+      }
+      case 'bell': {                         // sino / celesta
+        const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); end = t + 1.7;
+        const o1 = osc('sine', f), o2 = osc('sine', f * 2.76), o3 = osc('sine', f * 5.4); const g2 = ctx.createGain(); g2.gain.value = 0.3; const g3 = ctx.createGain(); g3.gain.value = 0.12;
+        o1.connect(g); o2.connect(g2); g2.connect(g); o3.connect(g3); g3.connect(g); g.connect(out); [o1, o2, o3].forEach(o => { o.start(t); o.stop(end); });
+        break;
+      }
+      case 'brass': {                        // metais: serra com filtro que abre
+        const g = ctx.createGain(); end = env(g, 0.06, dur, 0.2); const f1 = lp(400);
+        f1.frequency.setValueAtTime(300, t); f1.frequency.linearRampToValueAtTime(Math.min(3500, f * 6), t + 0.12); f1.frequency.linearRampToValueAtTime(f * 3, t + dur);
+        [-5, 5].forEach(d => { const o = osc('sawtooth', f, d); o.connect(f1); o.start(t); o.stop(end); });
+        f1.connect(g); g.connect(out);
+        break;
+      }
+      case 'bass': {                         // contrabaixo dedilhado
+        const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(gain * 0.4, t + 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.25); end = t + dur + 0.3;
+        const f1 = lp(f * 4); const o1 = osc('sine', f), o2 = osc('triangle', f * 2); const g2 = ctx.createGain(); g2.gain.value = 0.25;
+        o1.connect(f1); o2.connect(g2); g2.connect(f1); f1.connect(g); g.connect(out); [o1, o2].forEach(o => { o.start(t); o.stop(end); });
+        break;
+      }
+      case 'choir': {                        // coro: formantes sobre serras suaves
+        const g = ctx.createGain(); end = env(g, 0.3, dur, 0.6); g.connect(out);
+        const mix = ctx.createGain();
+        [-6, 6].forEach(d => { const o = osc('sawtooth', f, d); o.connect(mix); o.start(t); o.stop(end); });
+        [[700, 6], [1150, 8]].forEach(([fr, q]) => { const b = ctx.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = fr; b.Q.value = q; mix.connect(b); b.connect(g); });
+        break;
+      }
+    }
+  }
   function noise(bus, t, dur, gain, type, fr) {
     const src = ctx.createBufferSource(); src.buffer = noiseBuf;
     const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = fr;
@@ -167,10 +233,10 @@ const Audio8 = (() => {
   }
   function drum(k, t) {
     switch (k) {
-      case 'k': tone(musicBus, 'sine', 150, t, 0.12, 0.55, { slide: 45, rel: 0.05 }); break;
-      case 's': noise(musicBus, t, 0.14, 0.25, 'bandpass', 1800); tone(musicBus, 'triangle', 220, t, 0.05, 0.1); break;
-      case 'h': noise(musicBus, t, 0.04, 0.08, 'highpass', 7000); break;
-      case 't': tone(musicBus, 'sine', 420, t, 0.09, 0.25, { slide: 260, rel: 0.05 }); break;
+      case 'k': tone(musicBus, 'sine', 110, t, 0.2, 0.5, { slide: 42, rel: 0.12 }); noise(musicBus, t, 0.05, 0.05, 'lowpass', 300); break;   // tambor grave
+      case 's': noise(musicBus, t, 0.22, 0.13, 'lowpass', 2600); tone(musicBus, 'sine', 190, t, 0.08, 0.12, { slide: 120 }); break;           // caixa suave
+      case 'h': noise(musicBus, t, 0.05, 0.03, 'highpass', 9000); break;                                                                     // chocalho
+      case 't': tone(musicBus, 'sine', 300, t, 0.14, 0.22, { slide: 180, rel: 0.08 }); noise(musicBus, t, 0.03, 0.04, 'bandpass', 1200); break; // tabla
     }
   }
 
@@ -182,7 +248,7 @@ const Audio8 = (() => {
       for (const ch of ['lead', 'bass', 'pad']) {
         const c = tr[ch]; if (!c) continue;
         const e = c.ev[step % c.ev.length];
-        if (e) for (const f of e.f) tone(musicBus, c.wave, f, nextTime, e.len * spb * 0.92, c.gain, { vib: c.vib, rel: c.rel, filter: c.filter });
+        if (e) for (const f of e.f) { if (c.inst) instr(c.inst, f, nextTime, e.len * spb * 0.92, c.gain); else tone(musicBus, c.wave, f, nextTime, e.len * spb * 0.92, c.gain, { vib: c.vib, rel: c.rel, filter: c.filter }); }
       }
       const d = tr.dr[step % tr.dr.length];
       if (d && d !== '.') drum(d, nextTime);
