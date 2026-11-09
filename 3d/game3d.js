@@ -197,6 +197,34 @@ palms.forEach(p => addOb(p.x, p.z, 0.5));
 instanced(new THREE.CylinderGeometry(0.18, 0.28, 2, 6), M(0x7a4f2a), trees, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + o.s, o.z); s.setScalar(o.s); c.set(0xffffff); });
 instanced(new THREE.IcosahedronGeometry(1.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), trees, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 2.6 * o.s, o.z); s.set(o.s, o.s * 1.15, o.s); q.setFromEuler(new THREE.Euler(0, o.x, 0)); c.setHSL(0.27 + Math.sin(o.x * 3) * 0.04, 0.55, 0.32 + Math.cos(o.z) * 0.05); });
 instanced(new THREE.IcosahedronGeometry(1.0, 0), new THREE.MeshLambertMaterial({ flatShading: true }), trees, (o, p, q, s, c) => { p.set(o.x + 0.3, height(o.x, o.z) + 3.8 * o.s, o.z - 0.2); s.setScalar(o.s); c.setHSL(0.26, 0.55, 0.42); });
+const treeIM = scene.children.filter(o => o.isInstancedMesh && o.count === trees.length);
+const treeOrig = treeIM.map(im => trees.map((t, i) => { const m4 = new THREE.Matrix4(); im.getMatrixAt(i, m4); return m4; }));
+const treeGrid = new Map();
+trees.forEach((t, i) => { const k = Math.floor(t.x / CELL) + ',' + Math.floor(t.z / CELL); if (!treeGrid.has(k)) treeGrid.set(k, []); treeGrid.get(k).push(i); });
+let treeHidden = new Set();
+const ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
+function hideTreesBetween(ax, az, bx, bz, by0, by1) {
+  const now = new Set(), len = Math.hypot(bx - ax, bz - az) || 1;
+  for (let k = 0; k <= 12; k++) {
+    const x = lerp(ax, bx, k / 12), z = lerp(az, bz, k / 12);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const l = treeGrid.get((Math.floor(x / CELL) + i) + ',' + (Math.floor(z / CELL) + j)); if (!l) continue;
+      for (const ti of l) {
+        const t = trees[ti];
+        // distância do tronco ao segmento câmera→personagem
+        const u = clamp(((t.x - ax) * (bx - ax) + (t.z - az) * (bz - az)) / (len * len), 0, 1);
+        const d = Math.hypot(ax + (bx - ax) * u - t.x, az + (bz - az) * u - t.z);
+        const ly = lerp(by0, by1, u), top = height(t.x, t.z) + 4.6 * t.s;
+        if (d < 2.3 * t.s && ly < top && u > 0.04) now.add(ti);
+      }
+    }
+  }
+  let dirty = false;
+  for (const ti of treeHidden) if (!now.has(ti)) { treeIM.forEach((im, n) => im.setMatrixAt(ti, treeOrig[n][ti])); dirty = true; }
+  for (const ti of now) if (!treeHidden.has(ti)) { treeIM.forEach(im => im.setMatrixAt(ti, ZERO_M)); dirty = true; }
+  if (dirty) treeIM.forEach(im => { im.instanceMatrix.needsUpdate = true; });
+  treeHidden = now;
+}
 instanced(new THREE.DodecahedronGeometry(0.8, 0), new THREE.MeshLambertMaterial({ flatShading: true }), rocks, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + o.s * 0.3, o.z); s.set(o.s * 1.2, o.s * 0.8, o.s); q.setFromEuler(new THREE.Euler(o.x, o.z, 0)); c.setHSL(0.08, 0.12, o.x > 50 ? 0.5 : 0.45); });
 instanced(new THREE.CylinderGeometry(0.32, 0.36, 2.6, 8), new THREE.MeshLambertMaterial({ flatShading: true }), cacti, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 1.3 * o.s, o.z); s.setScalar(o.s); c.set(0x3f8f4a); });
 instanced(new THREE.CylinderGeometry(0.2, 0.22, 1.1, 6), new THREE.MeshLambertMaterial({ flatShading: true }), cacti, (o, p, q, s, c) => { p.set(o.x + Math.cos(o.r) * 0.55 * o.s, height(o.x, o.z) + 1.6 * o.s, o.z + Math.sin(o.r) * 0.55 * o.s); s.setScalar(o.s); c.set(0x3f8f4a); });
@@ -279,40 +307,15 @@ for (let i = 0; i < 18; i++) {
 const toon = c => new THREE.MeshToonMaterial({ color: c });
 const SKIN = toon(0xffd9be), HAIR = toon(0xff7b6b), HAIR_D = toon(0xd9534f), CLOTH = toon(0x1fb5a8), CLOTH_D = toon(0x13887e), GOLD = toon(0xffcf40), SILK = 0xff4fa3, EYE = toon(0x3a2a4a);
 
-// ---------------------------------------------------------------- Lyra (modelo 3D)
-function limb(len, rad, mat, parent, x, y, z) {
-  const pivot = new THREE.Group(); pivot.position.set(x, y, z); parent.add(pivot);
-  mesh(new THREE.CylinderGeometry(rad, rad * 0.85, len, 8), mat, 0, -len / 2, 0, pivot);
-  return pivot;
-}
+// ---------------------------------------------------------------- personagem (gerado por avatar.js)
 const lyra = new THREE.Group(); scene.add(lyra);
-const body = new THREE.Group(); lyra.add(body);
-const L = {};
-L.legL = limb(0.82, 0.065, SKIN, body, -0.1, 0.86, 0); L.legR = limb(0.82, 0.065, SKIN, body, 0.1, 0.86, 0);
-[L.legL, L.legR].forEach(l => { mesh(new THREE.BoxGeometry(0.13, 0.08, 0.24), CLOTH_D, 0, -0.84, 0.04, l); mesh(new THREE.TorusGeometry(0.07, 0.015, 4, 10), GOLD, 0, -0.72, 0, l).rotation.x = Math.PI / 2; });
-L.skirt = mesh(new THREE.ConeGeometry(0.42, 0.5, 12, 1, true), new THREE.MeshToonMaterial({ color: 0x1fb5a8, side: THREE.DoubleSide }), 0, 0.78, 0, body);
-mesh(new THREE.TorusGeometry(0.42, 0.02, 4, 16), GOLD, 0, 0.53, 0, L.skirt).rotation.x = Math.PI / 2;
-L.skirt.children[0].position.y = -0.25;
-mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.06, 12), GOLD, 0, 1.0, 0, body);
-mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.14, 12), SKIN, 0, 1.09, 0, body);
-mesh(new THREE.CylinderGeometry(0.19, 0.16, 0.22, 12), CLOTH, 0, 1.26, 0, body);
-mesh(new THREE.SphereGeometry(0.035, 6, 5), toon(SILK), 0, 1.0, 0.17, body);
-L.armL = limb(0.5, 0.05, SKIN, body, -0.24, 1.33, 0); L.armR = limb(0.5, 0.05, SKIN, body, 0.24, 1.33, 0);
-[L.armL, L.armR].forEach(a => mesh(new THREE.TorusGeometry(0.055, 0.015, 4, 10), GOLD, 0, -0.32, 0, a).rotation.x = Math.PI / 2);
-L.handR = new THREE.Object3D(); L.handR.position.y = -0.52; L.armR.add(L.handR);
-mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 8), SKIN, 0, 1.4, 0, body);
-L.head = new THREE.Group(); L.head.position.y = 1.56; body.add(L.head);
-mesh(new THREE.SphereGeometry(0.17, 16, 12), SKIN, 0, 0, 0, L.head);
-const hairCap = mesh(new THREE.SphereGeometry(0.185, 16, 12, 0, TAU, 0, Math.PI * 0.55), HAIR, 0, 0.02, -0.015, L.head);
-mesh(new THREE.SphereGeometry(0.19, 12, 8, Math.PI * 0.1, Math.PI * 0.8, Math.PI * 0.35, Math.PI * 0.45), HAIR, 0, 0, -0.02, L.head).rotation.y = Math.PI;
-mesh(new THREE.SphereGeometry(0.08, 8, 6), HAIR_D, 0, 0.14, -0.14, L.head);
-L.tail = new THREE.Group(); L.tail.position.set(0, 0.12, -0.18); L.head.add(L.tail);
-[[0.075, 0, -0.08], [0.065, -0.12, -0.14], [0.05, -0.25, -0.17], [0.035, -0.36, -0.18]].forEach(([r, y, z]) => mesh(new THREE.SphereGeometry(r, 8, 6), HAIR, 0, y, z, L.tail));
-for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.03, 6, 4), toon(0xfff4a8), -0.12 + Math.cos(k * TAU / 5) * 0.035, 0.15 + Math.sin(k * TAU / 5) * 0.035, 0.05, L.head, false);
-mesh(new THREE.SphereGeometry(0.022, 6, 4), toon(SILK), -0.12, 0.15, 0.06, L.head, false);
-[-0.06, 0.06].forEach(x => mesh(new THREE.SphereGeometry(0.025, 6, 5), EYE, x, 0.0, 0.155, L.head, false));
-[-0.09, 0.09].forEach(x => mesh(new THREE.SphereGeometry(0.025, 6, 5), toon(0xffa0a0), x, -0.05, 0.14, L.head, false));
-lyra.traverse(o => { if (o.isMesh) o.castShadow = true; });
+let L = buildAvatar(lyra, { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0 });
+let body = L.body;
+function rebuildAvatar() {
+  L = buildAvatar(lyra, { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin });
+  body = L.body; ribbon.visible = !!L.ribbon;
+  lyra.updateMatrixWorld(true); L.handR.getWorldPosition(ribPts[0]); ribPts.forEach(p => p.copy(ribPts[0]));
+}
 
 // fita de seda (rastro físico)
 const RIB_N = 26, ribPts = Array.from({ length: RIB_N }, () => new THREE.Vector3());
@@ -474,29 +477,30 @@ for (const n of NPCS) {
 }
 
 // ---------------------------------------------------------------- jogadora
-const SKILLS = [
-  { key: '1', id: 'whirl', name: 'Chicote Giratório', lv: 1, sp: 8, cd: 1.2, icon: '🌀', desc: 'Gira a fita causando 150% de dano ao redor.' },
-  { key: '2', id: 'charm', name: 'Passo Encantador', lv: 3, sp: 14, cd: 6, icon: '💫', desc: 'Atordoa inimigos próximos por 3s.' },
-  { key: '3', id: 'breeze', name: 'Dança da Brisa', lv: 5, sp: 20, cd: 25, icon: '🍃', desc: '25s: +50% vel. de ataque, +30% movimento.' },
-  { key: '4', id: 'moon', name: 'Canção da Lua', lv: 8, sp: 28, cd: 15, icon: '🌙', desc: 'Cura 35% do HP e regenera por 6s.' },
-  { key: '5', id: 'finale', name: 'Grande Finale', lv: 12, sp: 45, cd: 12, icon: '✨', desc: '350% de dano em grande área.' },
-];
 const P = {
-  name: 'Lyra', lv: 1, xp: 0, zeny: 60, statPts: 3, str: 3, agi: 3, vit: 3, int: 3,
+  name: 'Lyra', race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0,
+  lv: 1, xp: 0, zeny: 60, statPts: 3, str: 3, agi: 3, vit: 3, int: 3, dex: 3, luk: 3,
   hp: 1, sp: 1, inv: { red: 5, blue: 1 }, x: VIL.x, z: VIL.z + 10, y: 0, vy: 0, face: Math.PI,
-  atkCd: 0, attackAnim: 0, dance: 0, sit: false, dead: false, deadT: 0, regenT: 0, cds: {}, buffs: {},
+  atkCd: 0, attackAnim: 0, dance: 0, cast: 0, sit: false, dead: false, deadT: 0, regenT: 0, cds: {}, buffs: {},
   combo: 0, comboT: 0, best: 0, dashT: 0, dashCd: 0, home: 'solmira', quest: 0, qcount: 0, hurtT: 0,
 };
+const CLS = () => CLASSES[P.cls] || CLASSES.dancarina;
+let SKILLS = [];
+function refreshSkills() { SKILLS = CLS().skills.map((s, i) => ({ ...s, key: String(i + 1) })); }
+refreshSkills();
+// bônus de buffs: multiplicativos (atk, matk, aspd, speed) e aditivos (def, crit, poison, regen)
+function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
+function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const stats = {
-  atk: () => 8 + P.str * 2 + P.lv + Math.floor(P.agi / 3),
-  matk: () => 6 + P.int * 3 + P.lv,
-  def: () => Math.floor(P.vit * 0.6),
-  maxHp: () => 90 + P.vit * 14 + P.lv * 12,
-  maxSp: () => 30 + P.int * 7 + P.lv * 3,
-  aspd: () => Math.max(0.22, 0.7 - P.agi * 0.012) / (P.buffs.breeze ? 1.5 : 1),
-  speed: () => 6.2 * (P.buffs.breeze ? 1.3 : 1),
-  flee: () => Math.min(0.55, 0.03 + P.agi * 0.012),
-  crit: () => Math.min(0.5, 0.04 + P.agi * 0.004 + P.str * 0.002),
+  atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3) * bmul('atk')); },
+  matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3) * bmul('matk')),
+  def: () => Math.floor(P.vit * 0.6) + badd('def'),
+  maxHp: () => Math.round((80 + P.vit * 13 + P.lv * 11) * CLS().hp),
+  maxSp: () => Math.round((25 + P.int * 7 + P.lv * 3) * CLS().sp),
+  aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
+  speed: () => 6.2 * bmul('speed'),
+  flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003),
+  crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit')),
 };
 const xpNeed = lv => Math.floor(30 + 22 * Math.pow(lv, 1.75));
 
@@ -615,17 +619,20 @@ function applyRhythm(r) {
 }
 
 // ---------------------------------------------------------------- combate
-function dmgMob(m, base, crit) {
-  if (m.dead) return;
-  let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def));
+function dmgMob(m, base, crit, magic, color) {
+  if (m.dead) return 0;
+  let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
-  floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : '');
+  floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
   Audio8.sfx(crit ? 'crit' : 'hit');
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
-  burst(_p.clone(), crit ? 0xffcf40 : 0xffffff, crit ? 10 : 5, 3, 0.4);
+  burst(_p.clone(), color ?? (crit ? 0xffcf40 : 0xffffff), crit ? 10 : 5, 3, 0.4);
+  if (!magic && badd('poison') > 0) poison(m, stats.atk() * 0.3, 5);
   if (m.hp <= 0) killMob(m);
+  return dmg;
 }
+function poison(m, dps, t) { if (!m.dead) m.dot = { dps, t, acc: 0 }; }
 function killMob(m) {
   m.dead = true; mobs = mobs.filter(o => o !== m);
   burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), m.d.boss ? 0xffcf40 : 0xffe0f0, m.d.boss ? 70 : 18, m.d.boss ? 9 : 4, 0.9);
@@ -662,7 +669,7 @@ function gainXp(n) {
     floater(P.x, P.y + 2.6, P.z, 'LEVEL UP!', 'lvl');
     log(`✨ <b>Nível ${P.lv}!</b> Você ganhou pontos de atributo (tecla C).`, 'gold');
     const sk = SKILLS.find(s => s.lv === P.lv);
-    if (sk) log(`Nova dança: <b>${sk.icon} ${sk.name}</b> [${sk.key}]`, 'gold');
+    if (sk) log(`Nova habilidade: <b>${sk.icon} ${sk.name}</b> [${sk.key}]`, 'gold');
     buildHotbar();
   }
 }
@@ -685,43 +692,191 @@ function nearestMob(r, cone = true) {
   }
   return best;
 }
+function handPos() { const v = new THREE.Vector3(); (L.orb || L.handR).getWorldPosition(v); return v; }
 function attack() {
   if (P.dead || dialogOpen || P.atkCd > 0) return;
+  const c = CLS();
   P.atkCd = stats.aspd(); P.attackAnim = 1; P.sit = false;
-  const k = applyRhythm(rhythm());
-  const m = nearestMob(3.4);
+  const k = c.rhythm ? applyRhythm(rhythm()) : 1;
+  const m = nearestMob(c.range + 0.4);
   if (m) P.face = Math.atan2(m.x - P.x, m.z - P.z);
-  slash(k > 1.3 ? 0xffcf40 : SILK);
-  Audio8.sfx('whip');
-  if (m) {
-    const d = Math.hypot(m.x - P.x, m.z - P.z);
-    if (d < 3.4 + (m.d.boss ? 1.6 : 0)) dmgMob(m, stats.atk() * k, Math.random() < stats.crit());
+  if (c.ranged) {
+    if (!m) return;
+    Audio8.sfx(c.magic ? 'pick' : 'whip');
+    const base = c.magic ? stats.matk() * 0.9 : stats.atk();
+    shoot(handPos(), m, c.proj, false, t => dmgMob(t, base * k, Math.random() < stats.crit(), c.magic, c.proj));
+  } else {
+    slash(k > 1.3 ? 0xffcf40 : c.colors.accent);
+    Audio8.sfx('whip');
+    if (m && Math.hypot(m.x - P.x, m.z - P.z) < c.range + (m.d.boss ? 1.6 : 0)) dmgMob(m, stats.atk() * k, Math.random() < stats.crit());
   }
 }
+function healP(h) { h = Math.round(h); if (h <= 0 || P.dead) return; P.hp = Math.min(stats.maxHp(), P.hp + h); floater(P.x, P.y + 2.4, P.z, '+' + h, 'heal'); }
+function addBuff(id, dur, mods, icon) { P.buffs[id] = { t: dur, mods, icon }; }
+const nearAt = (x, z, r) => mobs.filter(m => Math.hypot(m.x - x, m.z - z) < r + (m.d.boss ? 1.6 : 0));
+function nearestN(r, n) {
+  const l = mobs.filter(m => Math.hypot(m.x - P.x, m.z - P.z) < r).sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z)).slice(0, n);
+  for (let i = 0; l.length && l.length < n; i++) l.push(l[i]);
+  return l;
+}
 function useSkill(i) {
-  const s = SKILLS[i];
+  const s = SKILLS[i], c = CLS();
   if (!s || P.dead || dialogOpen) return;
   if (P.lv < s.lv) { log(`${s.name} requer nível ${s.lv}.`, 'bad'); return; }
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
-  P.sp -= s.sp; P.cds[s.id] = s.cd; P.sit = false; P.dance = 1;
-  const k = applyRhythm(rhythm());
-  notes(4);
-  const near = r => mobs.filter(m => Math.hypot(m.x - P.x, m.z - P.z) < r + (m.d.boss ? 1.6 : 0));
-  const c = new THREE.Vector3(P.x, P.y + 1, P.z);
-  switch (s.id) {
-    case 'whirl': Audio8.sfx('whip'); ring(P.x, P.z, 4, SILK, 0.4); ring(P.x, P.z, 3, 0xffcf40, 0.3);
-      near(4).forEach(m => dmgMob(m, stats.atk() * 1.5 * k, Math.random() < stats.crit())); break;
-    case 'charm': Audio8.sfx('skill'); ring(P.x, P.z, 6, 0xb48cff, 0.7);
-      near(6).forEach(m => { m.stun = 3; dmgMob(m, stats.matk() * 0.8 * k, false); }); break;
-    case 'breeze': Audio8.sfx('buff'); P.buffs.breeze = 25; burst(c, 0x7dff9a, 30, 5, 0.9); log('🍃 Dança da Brisa: você está leve como o vento!', 'gold'); break;
-    case 'moon': { Audio8.sfx('heal'); const h = Math.round(stats.maxHp() * 0.35 * k); P.hp = Math.min(stats.maxHp(), P.hp + h); P.buffs.moon = 6;
-      floater(P.x, P.y + 2.4, P.z, '+' + h, 'heal'); ring(P.x, P.z, 2.5, 0xcfe8ff, 0.8); burst(c, 0xcfe8ff, 25, 3, 1.2); break; }
-    case 'finale': Audio8.sfx('boom'); Audio8.sfx('buff');
-      [SILK, 0xffcf40, 0x4fd1ff, 0xb48cff].forEach((cl, j) => setTimeout(() => ring(P.x, P.z, 3 + j * 2, cl, 0.6), j * 90));
-      burst(c, 0xffcf40, 50, 8, 1.1); notes(8);
-      near(8).forEach(m => dmgMob(m, (stats.atk() * 1.8 + stats.matk() * 1.7) * k, Math.random() < stats.crit())); break;
+  if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
+  const targeted = ['strike', 'blast', 'bolt', 'step', 'drain', 'charge'].includes(s.type);
+  const range = s.type === 'strike' ? c.range + 0.8 : (s.type === 'step' || s.type === 'charge') ? 12 : Math.max(c.range, 10);
+  const tgt = targeted ? nearestMob(range) : null;
+  if (targeted && !tgt) { log('Nenhum alvo ao alcance.', 'bad'); return; }
+  P.sp -= s.sp; P.cds[s.id] = s.cd; P.sit = false;
+  if (s.hpCost) { const c2 = Math.round(stats.maxHp() * s.hpCost); P.hp -= c2; floater(P.x, P.y + 2, P.z, c2, 'hurt'); }
+  if (tgt) P.face = Math.atan2(tgt.x - P.x, tgt.z - P.z);
+  const k = c.rhythm ? applyRhythm(rhythm()) : 1;
+  if (c.rhythm) { P.dance = 1; notes(4); } else P.cast = 1;
+  const base = (s.magic ? stats.matk() : stats.atk()) * (s.mult || 1) * k;
+  const crit = () => Math.random() < stats.crit() + (s.critBonus || 0);
+  const hitOne = (m, b) => {
+    for (let h = 0; h < (s.hits || 1); h++) dmgMob(m, b, crit(), s.magic, s.color);
+    if (s.stun && !m.dead) m.stun = Math.max(m.stun, s.stun);
+    if (s.poison) poison(m, stats.matk() * 0.35 * s.poison, 6);
+  };
+  const center = new THREE.Vector3(P.x, P.y + 1, P.z);
+  switch (s.type) {
+    case 'strike':
+      slash(s.color); Audio8.sfx('whip'); hitOne(tgt, base);
+      if (s.heal) healP(stats.maxHp() * s.heal);
+      if (s.steal) { const z = irand(5, 12) + tgt.d.lv * 2; P.zeny += z; Audio8.sfx('coin'); floater(P.x, P.y + 2, P.z, `+${z}z`, 'zeny'); }
+      break;
+    case 'nova':
+      Audio8.sfx(s.mult >= 3 ? 'boom' : 'skill');
+      ring(P.x, P.z, s.r, s.color, 0.5); ring(P.x, P.z, s.r * 0.65, 0xffffff, 0.35); burst(center, s.color, 30, s.r * 1.2, 0.8);
+      nearAt(P.x, P.z, s.r).forEach(m => hitOne(m, base));
+      if (s.heal) healP(stats.maxHp() * s.heal);
+      if (s.regen) addBuff(s.id + '_regen', s.regen, { regen: 0.03 }, '💚');
+      break;
+    case 'blast': {
+      const x = tgt.x, z = tgt.z, gy = groundY(x, z);
+      Audio8.sfx('boom'); ring(x, z, s.r, s.color, 0.6); ring(x, z, s.r * 0.5, 0xffffff, 0.4);
+      burst(new THREE.Vector3(x, gy + 1, z), s.color, 36, s.r * 1.3, 1);
+      for (let j = 0; j < 8; j++) burst(new THREE.Vector3(x + rand(-s.r, s.r) * 0.7, gy + 4, z + rand(-s.r, s.r) * 0.7), s.color, 2, 1, 0.5);
+      nearAt(x, z, s.r).forEach(m => hitOne(m, base));
+      break;
+    }
+    case 'bolt': {
+      Audio8.sfx('skill');
+      const list = s.spread ? nearestN(range, s.shots) : Array(s.shots || 1).fill(tgt);
+      list.forEach((t, j) => setTimeout(() => { if (!P.dead && !t.dead) shoot(handPos(), t, s.color, s.big, m => hitOne(m, base)); }, j * 130));
+      break;
+    }
+    case 'drain':
+      Audio8.sfx('skill');
+      shoot(handPos(), tgt, s.color, true, m => { const d = dmgMob(m, base, crit(), true, s.color); healP(d * s.steal); });
+      break;
+    case 'step': {
+      const a = Math.atan2(tgt.x - P.x, tgt.z - P.z);
+      const nx = tgt.x + Math.sin(a) * 1.3, nz = tgt.z + Math.cos(a) * 1.3;
+      burst(center, s.color, 20, 3, 0.5);
+      if (!blocked(nx, nz)) { P.x = nx; P.z = nz; P.y = groundY(nx, nz); }
+      P.face = a + Math.PI; Audio8.sfx('whip'); slash(s.color);
+      burst(new THREE.Vector3(P.x, P.y + 1, P.z), s.color, 20, 3, 0.5);
+      dmgMob(tgt, base, true, false, s.color);
+      break;
+    }
+    case 'charge': {
+      const a = Math.atan2(tgt.x - P.x, tgt.z - P.z), d = Math.hypot(tgt.x - P.x, tgt.z - P.z) - 1.4;
+      for (let t = 0; t < d; t += 0.7) { const x = P.x + Math.sin(a) * t, z = P.z + Math.cos(a) * t; if (blocked(x, z)) break; burst(new THREE.Vector3(x, groundY(x, z) + 0.4, z), s.color, 2, 1.5, 0.4); P.x = x; P.z = z; }
+      P.y = groundY(P.x, P.z); Audio8.sfx('boom'); ring(tgt.x, tgt.z, 2.5, s.color, 0.4); hitOne(tgt, base);
+      break;
+    }
+    case 'buff':
+      addBuff(s.id, s.dur, s.mods, s.icon); Audio8.sfx('buff'); burst(center, s.color, 30, 5, 0.9); ring(P.x, P.z, 2.5, s.color, 0.6);
+      if (s.heal) healP(stats.maxHp() * s.heal);
+      log(`${s.icon} <b>${s.name}</b> ativo por ${s.dur}s.`, 'gold');
+      break;
+    case 'heal':
+      Audio8.sfx('heal'); healP(stats.maxHp() * s.pct); ring(P.x, P.z, 2.5, s.color, 0.8); burst(center, s.color, 25, 3, 1.2);
+      break;
+    case 'summon':
+      Audio8.sfx('skill'); summon(s.minion, s.life);
+      break;
   }
+}
+
+// ---------------------------------------------------------------- projéteis
+let projs = [];
+const projGeo = new THREE.SphereGeometry(0.13, 8, 6);
+function shoot(from, target, color, big, onHit) {
+  const m = new THREE.Mesh(projGeo, new THREE.MeshBasicMaterial({ color }));
+  if (big) m.scale.setScalar(1.9);
+  m.position.copy(from); scene.add(m);
+  projs.push({ m, target, onHit, color });
+}
+function updateProjs(dt) {
+  for (const p of projs) {
+    const t = p.target;
+    if (!t || t.dead) { p.done = true; continue; }
+    _v.set(t.x, groundY(t.x, t.z) + t.model.h * 0.5, t.z);
+    _d.subVectors(_v, p.m.position); const d = _d.length();
+    if (d < 0.5) { p.done = true; p.onHit(t); continue; }
+    p.m.position.addScaledVector(_d, Math.min(1, 24 * dt / d));
+    if (Math.random() < 0.5) burst(p.m.position.clone(), p.color, 1, 0.5, 0.25);
+  }
+  projs = projs.filter(p => { if (p.done) { scene.remove(p.m); p.m.material.dispose(); } return !p.done; });
+}
+
+// ---------------------------------------------------------------- invocações
+let minions = [];
+function summon(kind, life) {
+  const g = new THREE.Group(); scene.add(g);
+  const bone = toon(0xe8e4d0), glow = new THREE.MeshLambertMaterial({ color: 0x50dcff, emissive: 0x50dcff, emissiveIntensity: 0.8 });
+  const mn = { kind, g, life, cd: 0.5, face: P.face, swing: 0 };
+  if (kind === 'skeleton') {
+    [-0.1, 0.1].forEach(x => mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.8), bone, x, 0.4, 0, g));
+    mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.5, 6), bone, 0, 1.05, 0, g);
+    for (let i = 0; i < 3; i++) mesh(new THREE.TorusGeometry(0.17 - i * 0.02, 0.025, 4, 10), bone, 0, 0.95 + i * 0.12, 0, g).rotation.x = Math.PI / 2;
+    mesh(new THREE.SphereGeometry(0.17, 10, 8), bone, 0, 1.5, 0, g);
+    [-0.06, 0.06].forEach(x => mesh(new THREE.SphereGeometry(0.035, 6, 4), new THREE.MeshBasicMaterial({ color: 0x7dff4a }), x, 1.52, 0.14, g));
+    mn.arm = new THREE.Group(); mn.arm.position.set(0.25, 1.25, 0); g.add(mn.arm);
+    mesh(new THREE.BoxGeometry(0.05, 0.8, 0.02), toon(0x9a9aa8), 0, -0.4, 0.1, mn.arm).rotation.x = 0.3;
+  } else {
+    mesh(new THREE.CylinderGeometry(0.4, 0.55, 0.4, 8), toon(0x5a6470), 0, 0.2, 0, g);
+    mesh(new THREE.CylinderGeometry(0.12, 0.2, 1.6, 6), toon(0xd08a30), 0, 1.1, 0, g);
+    mn.orb = mesh(new THREE.OctahedronGeometry(0.28), glow, 0, 2.2, 0, g);
+  }
+  mn.x = P.x + Math.sin(P.face + 1) * 1.6; mn.z = P.z + Math.cos(P.face + 1) * 1.6;
+  if (blocked(mn.x, mn.z)) { mn.x = P.x; mn.z = P.z; }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  minions.push(mn);
+  burst(new THREE.Vector3(mn.x, groundY(mn.x, mn.z) + 0.8, mn.z), kind === 'skeleton' ? 0x7dff4a : 0x50dcff, 30, 3, 0.8);
+  log(kind === 'skeleton' ? '💀 Um esqueleto se ergue para lutar ao seu lado!' : '🗼 Torre de Raios montada!', 'gold');
+}
+function updateMinions(dt) {
+  for (const mn of minions) {
+    mn.life -= dt; mn.cd -= dt; mn.swing = Math.max(0, mn.swing - dt * 3);
+    const reach = mn.kind === 'tower' ? 12 : 10;
+    let tgt = null, bd = 1e9;
+    for (const m of mobs) { const d = Math.hypot(m.x - mn.x, m.z - mn.z); if (d < reach && d < bd) { bd = d; tgt = m; } }
+    const go = (tx, tz, sp) => {
+      const dx = tx - mn.x, dz = tz - mn.z, d = Math.hypot(dx, dz); if (d < 0.05) return;
+      const nx = mn.x + dx / d * sp * dt, nz = mn.z + dz / d * sp * dt;
+      if (!blocked(nx, nz)) { mn.x = nx; mn.z = nz; }
+      mn.face = Math.atan2(dx, dz);
+    };
+    if (mn.kind === 'skeleton') {
+      if (!tgt) { if (Math.hypot(P.x - mn.x, P.z - mn.z) > 2.5) go(P.x, P.z, 5.5); }
+      else if (bd > 1.6) go(tgt.x, tgt.z, 4.5);
+      else { mn.face = Math.atan2(tgt.x - mn.x, tgt.z - mn.z); if (mn.cd <= 0) { mn.cd = 1.1; mn.swing = 1; dmgMob(tgt, stats.matk() * 0.75, Math.random() < 0.08, true, 0xe8e4d0); } }
+      mn.arm.rotation.x = -mn.swing * 2;
+    } else {
+      mn.orb.rotation.y += dt * 3; mn.orb.position.y = 2.2 + Math.sin(time * 4) * 0.1;
+      if (tgt && mn.cd <= 0) { mn.cd = 0.9; const from = new THREE.Vector3(); mn.orb.getWorldPosition(from); shoot(from, tgt, 0x50dcff, false, m => dmgMob(m, stats.atk() * 0.8, false, true, 0x50dcff)); }
+    }
+    mn.g.position.set(mn.x, groundY(mn.x, mn.z), mn.z); mn.g.rotation.y = mn.face;
+    if (mn.life <= 0) { burst(new THREE.Vector3(mn.x, mn.g.position.y + 0.8, mn.z), 0xaaaaaa, 20, 3, 0.6); scene.remove(mn.g); }
+  }
+  minions = minions.filter(mn => mn.life > 0);
 }
 function usePotion(id) {
   if (P.dead) return;
@@ -746,7 +901,7 @@ function update(dt) {
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
-  updateFx(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt);
   for (const c of clouds) { c.position.x += dt * 1.2; if (c.position.x > WX + 20) c.position.x = -WX - 20; }
   if (Math.random() < dt * 30) { // água do chafariz
     const m = new THREE.Mesh(fxGeo.dot, new THREE.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true }));
@@ -785,7 +940,8 @@ function updatePlayer(dt) {
     return;
   }
   for (const k in P.cds) P.cds[k] = Math.max(0, P.cds[k] - dt);
-  for (const k in P.buffs) { P.buffs[k] -= dt; if (P.buffs[k] <= 0) { delete P.buffs[k]; if (k === 'breeze') log('A Dança da Brisa terminou.', 'sys'); } }
+  for (const k in P.buffs) { P.buffs[k].t -= dt; if (P.buffs[k].t <= 0) delete P.buffs[k]; }
+  P.cast = Math.max(0, P.cast - dt * 2.5);
   P.atkCd -= dt; P.attackAnim = Math.max(0, P.attackAnim - dt * 4); P.dance = Math.max(0, P.dance - dt * 1.5);
   P.hurtT = Math.max(0, P.hurtT - dt); P.dashCd -= dt;
 
@@ -795,7 +951,7 @@ function updatePlayer(dt) {
     P.hp = Math.min(stats.maxHp(), P.hp + Math.max(1, Math.floor(stats.maxHp() * 0.02 + P.vit * 0.3)));
     P.sp = Math.min(stats.maxSp(), P.sp + Math.max(1, Math.floor(stats.maxSp() * 0.03 + P.int * 0.2)));
   }
-  if (P.buffs.moon) P.hp = Math.min(stats.maxHp(), P.hp + stats.maxHp() * 0.03 * dt);
+  const rg = badd('regen'); if (rg) P.hp = Math.min(stats.maxHp(), P.hp + stats.maxHp() * rg * dt);
 
   let ix = 0, iz = 0;
   if (!dialogOpen) {
@@ -824,7 +980,7 @@ function updatePlayer(dt) {
   const gy = groundY(P.x, P.z);
   P.vy -= 20 * dt; P.y += P.vy * dt;
   if (P.y <= gy) { P.y = gy; P.vy = 0; P.onGround = true; } else P.onGround = P.y - gy < 0.05;
-  if (P.buffs.breeze && Math.random() < 0.3) burst(new THREE.Vector3(P.x, P.y + rand(0.3, 1.5), P.z), 0x7dff9a, 1, 0.8, 0.5);
+  if (Object.keys(P.buffs).length && Math.random() < 0.2) burst(new THREE.Vector3(P.x, P.y + rand(0.3, 1.5), P.z), CLS().colors.accent, 1, 0.8, 0.5);
 
   for (const d of drops) if (d.t > 0.4 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
     d.taken = true; scene.remove(d.m);
@@ -842,6 +998,11 @@ function updatePlayer(dt) {
 }
 
 function updateMob(m, dt) {
+  if (m.dot) {
+    m.dot.t -= dt; m.dot.acc += dt;
+    if (m.dot.acc >= 1) { m.dot.acc = 0; const d = Math.max(1, Math.round(m.dot.dps)); m.hp -= d; floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, d, 'poison'); burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), 0x7dff4a, 4, 1.5, 0.5); if (m.hp <= 0) { killMob(m); return; } }
+    if (m.dot && m.dot.t <= 0) m.dot = null;
+  }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
   if (m.stun > 0) m.stun -= dt;
   else {
@@ -899,9 +1060,15 @@ function animateLyra(dt) {
   if (P.dead) body.position.y = 0.2;
   L.legL.rotation.x = P.sit ? -1.5 : sw * 0.8; L.legR.rotation.x = P.sit ? -1.5 : -sw * 0.8;
   if (!P.onGround && !P.sit) { L.legL.rotation.x = -0.6; L.legR.rotation.x = 0.3; }
-  L.skirt.scale.set(1 + (P.dance > 0 ? 0.35 : run ? 0.08 : 0), 1, 1 + (P.dance > 0 ? 0.35 : run ? 0.08 : 0));
-  L.skirt.rotation.y = Math.sin(t * 3) * 0.1;
-  if (P.attackAnim > 0) {
+  if (L.skirt) L.skirt.scale.set(1 + (P.dance > 0 ? 0.35 : run ? 0.08 : 0), 1, 1 + (P.dance > 0 ? 0.35 : run ? 0.08 : 0));
+  if (L.skirt) L.skirt.rotation.y = Math.sin(t * 3) * 0.1;
+  if (L.cape) L.cape.rotation.x = 0.12 + (run ? 0.5 : 0) + Math.sin(t * 4) * 0.05;
+  if (L.orb) L.orb.scale.setScalar(1 + Math.sin(t * 5) * 0.15);
+  if (P.cast > 0) {
+    L.armR.rotation.set(-1.6 - Math.sin(P.cast * Math.PI) * 0.8, 0, 0.1); L.armL.rotation.set(-1.4, 0, -0.1);
+  } else if (P.attackAnim > 0 && CLS().ranged) {
+    L.armR.rotation.set(-1.5, 0, 0.1); L.armL.rotation.set(-1.5 + (CLS().weapon === 'bow' ? 0 : 1.2), 0, -0.1);
+  } else if (P.attackAnim > 0) {
     const a = 1 - P.attackAnim;
     L.armR.rotation.set(-2.6 + a * 3.4, 0, 0.3 - a * 0.9); L.armL.rotation.set(0.3, 0, -0.4);
   } else if (P.dance > 0) {
@@ -909,11 +1076,11 @@ function animateLyra(dt) {
   } else {
     L.armR.rotation.set(-sw * 0.8, 0, 0.18 + Math.sin(t * 2) * 0.03); L.armL.rotation.set(sw * 0.8, 0, -0.18 - Math.sin(t * 2) * 0.03);
   }
-  L.tail.rotation.x = 0.2 + (run ? 0.5 : 0) + Math.sin(t * (run ? 13 : 2.5)) * 0.15;
-  L.tail.rotation.z = Math.sin(t * 2) * 0.15;
+  if (L.tail) L.tail.rotation.x = 0.2 + (run ? 0.5 : 0) + Math.sin(t * (run ? 13 : 2.5)) * 0.15;
+  if (L.tail) L.tail.rotation.z = Math.sin(t * 2) * 0.15;
   L.head.rotation.y = P.sit ? 0 : Math.sin(t * 0.7) * 0.15;
   lyra.visible = !(P.hurtT > 0 && Math.floor(time * 30) % 2);
-  updateRibbon(dt);
+  if (L.ribbon) updateRibbon(dt);
 }
 
 // ---------------------------------------------------------------- câmera
@@ -921,12 +1088,21 @@ function updateCamera(dt) {
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, 4, 18);
   const tx = P.x, ty = P.y + 1.3, tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
-  const cx = camS.x + Math.sin(camS.yaw) * Math.cos(camS.pitch) * camS.dist;
-  const cz = camS.z + Math.cos(camS.yaw) * Math.cos(camS.pitch) * camS.dist;
-  let cy = camS.y + Math.sin(camS.pitch) * camS.dist;
+  // aproxima a câmera quando uma árvore/casa fica entre ela e o personagem
+  const dx = Math.sin(camS.yaw) * Math.cos(camS.pitch), dy = Math.sin(camS.pitch), dz = Math.cos(camS.yaw) * Math.cos(camS.pitch);
+  let want = camS.dist;
+  for (let k = 1; k <= 16; k++) {
+    const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
+    const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
+    if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
+  }
+  camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 14 : 3)));
+  const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
+  let cy = camS.y + dy * camS.cur;
   cy = Math.max(cy, height(cx, cz) + 0.6);
   camera.position.set(cx, cy, cz);
   camera.lookAt(camS.x, camS.y, camS.z);
+  hideTreesBetween(cx, cz, camS.x, camS.z, cy, camS.y);
   sun.position.set(P.x + 30, P.y + 50, P.z + 18); sun.target.position.set(P.x, P.y, P.z);
 }
 
@@ -956,7 +1132,7 @@ function updateLabels() {
 function updateHUD() {
   const mh = stats.maxHp(), ms = stats.maxSp(), need = xpNeed(P.lv);
   $('st-name').textContent = P.name;
-  $('st-lv').textContent = `Dançarina · Nv ${P.lv}`;
+  $('st-lv').textContent = `${RACES[P.race].name} · ${className(P.cls, P.gender)} · Nv ${P.lv}`;
   $('hpbar').style.width = (P.hp / mh * 100) + '%'; $('spbar').style.width = (P.sp / ms * 100) + '%'; $('xpbar').style.width = (P.xp / need * 100) + '%';
   $('hptxt').textContent = `${Math.ceil(P.hp)} / ${mh}`; $('sptxt').textContent = `${Math.floor(P.sp)} / ${ms}`; $('xptxt').textContent = `${(P.xp / need * 100).toFixed(1)}%`;
   $('zeny').textContent = P.zeny.toLocaleString('pt-BR');
@@ -967,8 +1143,7 @@ function updateHUD() {
     el.classList.toggle('locked', P.lv < s.lv); el.classList.toggle('nosp', P.sp < s.sp);
   });
   let b = '';
-  if (P.buffs.breeze) b += `<span>🍃 ${Math.ceil(P.buffs.breeze)}s</span>`;
-  if (P.buffs.moon) b += `<span>🌙 ${Math.ceil(P.buffs.moon)}s</span>`;
+  for (const id in P.buffs) b += `<span>${P.buffs[id].icon || '✦'} ${Math.ceil(P.buffs[id].t)}s</span>`;
   if (P.sit) b += '<span>🧘 Descansando</span>';
   $('buffs').innerHTML = b;
   $('combo').innerHTML = P.combo >= 2 ? `<b>${P.combo}</b> COMBO<small>+${Math.min(100, P.combo * 5)}% dano</small>` : '';
@@ -981,6 +1156,8 @@ function updateHUD() {
 const bc = $('beatcv'), bg = bc.getContext('2d');
 function drawBeat() {
   const W = bc.width, H = bc.height, cx = W / 2;
+  bc.style.display = CLS().rhythm ? '' : 'none';
+  if (!CLS().rhythm) return;
   bg.clearRect(0, 0, W, H);
   const b = Audio8.beat();
   bg.fillStyle = 'rgba(20,26,40,.55)'; bg.beginPath(); bg.roundRect(0, 0, W, H, 10); bg.fill();
@@ -1040,9 +1217,9 @@ function buildHotbar() {
 }
 function renderStats() {
   const w = $('statwin');
-  const row = (k, l, i) => `<div class="srow"><span class="sl">${l}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts ? '' : 'disabled'}>+</button><span class="si">${i}</span></div>`;
-  const html = `<div class="wt">Atributos <span class="x" data-close>×</span></div>
-    ${row('str', 'FOR', 'Dano físico')}${row('agi', 'AGI', 'Vel. ataque, esquiva')}${row('vit', 'VIT', 'HP e defesa')}${row('int', 'INT', 'SP e dano mágico')}
+  const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts ? '' : 'disabled'}>+</button><span class="si">${STAT_INFO[k]}</span></div>`;
+  const html = `<div class="wt">${className(P.cls, P.gender)} ${RACES[P.race].name} <span class="x" data-close>×</span></div>
+    ${STAT_KEYS.map(row).join('')}
     <div class="pts">Pontos disponíveis: <b>${P.statPts}</b></div>
     <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b><br>
     Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
@@ -1074,7 +1251,7 @@ function talk(n) {
   const nm = `💬 ${n.name}`;
   switch (n.id) {
     case 'healer':
-      dialog(nm, 'Que a luz guie seus passos, dançarina. Deixe-me cuidar de você.', [
+      dialog(nm, 'Que a luz guie seus passos, viajante. Deixe-me cuidar de você.', [
         { label: '✚ Curar (grátis)', fn: () => { P.hp = stats.maxHp(); P.sp = stats.maxSp(); Audio8.sfx('heal'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xcfe8ff, 25, 3, 1); log(`${n.name} restaurou seu HP e SP.`, 'item'); } },
         { label: 'Até logo' }]); break;
     case 'shop': {
@@ -1089,7 +1266,7 @@ function talk(n) {
       const q = QUESTS[P.quest];
       if (!q) { dialog(nm, `Você restaurou o ritmo do mundo, ${P.name}! Estou tão orgulhosa.<br>Seu melhor combo foi <b>${P.best}</b>. Consegue superar?`); break; }
       if (P.qcount >= q.n) {
-        dialog(nm, `Maravilhoso! Seus passos estão cada vez mais precisos.<br><br>Recompensa: <b>${q.xp} XP</b>, <b>${q.zeny}z</b>${q.red ? `, ${q.red}× Poção Vermelha` : ''}${q.blue ? `, ${q.blue}× Poção Azul` : ''}.`, [
+        dialog(nm, `Maravilhoso! Você está ficando cada vez mais forte.<br><br>Recompensa: <b>${q.xp} XP</b>, <b>${q.zeny}z</b>${q.red ? `, ${q.red}× Poção Vermelha` : ''}${q.blue ? `, ${q.blue}× Poção Azul` : ''}.`, [
           { label: '🎁 Receber recompensa', fn: () => {
             P.zeny += q.zeny; P.inv.red += q.red || 0; P.inv.blue += q.blue || 0; Audio8.sfx('coin'); gainXp(q.xp);
             P.quest++; P.qcount = 0; buildHotbar(); save();
@@ -1097,7 +1274,7 @@ function talk(n) {
           } }]);
       } else if (P.quest === 0 && P.qcount === 0) {
         dialog(nm, `${P.name}, algo terrível aconteceu: a <b>melodia do mundo saiu do compasso</b>, e os monstros ficaram agitados.<br><br>
-          Só uma dançarina pode trazer o ritmo de volta. <b>Golpeie no tempo da música</b> — veja o marcador de ritmo embaixo da tela. Golpes perfeitos causam muito mais dano e aumentam seu combo!<br><br>
+          Precisamos de heróis para proteger as vilas. Mostre do que sua classe é capaz!<br><br>
           Primeira lição: <b>${q.txt}</b>.`, [{ label: 'Estou pronta!' }]);
       } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: aperte <b>X</b> para sentar e recuperar HP/SP mais rápido.</small>`);
       break;
@@ -1181,12 +1358,12 @@ function showHelp() {
   if (TOUCH) return dialog('📜 Como jogar', `
   🕹️ <b>Joystick</b> (esquerda) para andar · <b>arraste a tela</b> para girar a câmera<br>
   ⚔️ golpe de fita · ⤴ pular · 💨 esquivar · 💬 falar com NPC<br>
-  Toque nos ícones de baixo para as danças e poções.<br><br>
+  Toque nos ícones de baixo para as habilidades e poções.<br><br>
   🎵 <b>Combate rítmico:</b> golpeie quando as barrinhas encontram o centro do marcador. <b style="color:#c08000">PERFEITO</b> = +60% de dano e aumenta o combo!`);
   dialog('📜 Como jogar', `
   <b>WASD</b> andar · <b>Arrastar o mouse</b> gira a câmera · <b>Roda</b> zoom<br>
   <b>Clique</b> ou <b>J</b> — golpe de fita · <b>Espaço</b> pular · <b>Shift</b> esquiva<br>
-  <b>1–5</b> danças especiais · <b>Q</b> Poção Vermelha · <b>E</b> Poção Azul<br>
+  <b>1–4</b> habilidades da classe · <b>Q</b> Poção Vermelha · <b>E</b> Poção Azul<br>
   <b>F</b> falar com NPC · <b>C</b> atributos · <b>X</b> sentar · <b>M</b> música<br><br>
   🎵 <b>Combate rítmico:</b> golpeie quando as barrinhas encontram o centro do marcador.
   <b style="color:#c08000">PERFEITO</b> = +60% de dano e aumenta o combo (até +100%). Errar o tempo zera o combo.<br><br>
@@ -1199,7 +1376,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 const SAVE_KEY = 'lyra3d-save-v1';
 function save() {
   if (!running) return;
-  const keep = ['name', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -1207,17 +1384,51 @@ setInterval(save, 8000); addEventListener('beforeunload', save);
 
 function start(fromSave) {
   Audio8.init();
-  $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
-  if (fromSave) { const s = loadSave(); Object.assign(P, s, { inv: { red: 0, blue: 0, ...s.inv } }); if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; } }
-  else { P.name = ($('name-in').value.trim() || 'Lyra').slice(0, 16); P.hp = stats.maxHp(); P.sp = stats.maxSp(); }
+  $('title').classList.add('hidden'); $('hud').classList.remove('hidden'); camera.clearViewOffset();
+  if (fromSave) {
+    const s = loadSave();
+    Object.assign(P, { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, dex: 3, luk: 3 }, s, { inv: { red: 0, blue: 0, ...s.inv } });
+    if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; }
+  } else {
+    Object.assign(P, CREATE, { name: ($('name-in').value.trim() || 'Lyra').slice(0, 16) });
+    const r = RACES[P.race].bonus, c = CLASSES[P.cls].bonus;
+    for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
+    P.statPts = 3;
+  }
+  refreshSkills(); rebuildAvatar();
+  if (!fromSave) { P.hp = stats.maxHp(); P.sp = stats.maxSp(); }
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
-  L.handR.getWorldPosition(ribPts[0]); ribPts.forEach(p => p.copy(ribPts[0]));
   running = true; buildHotbar();
-  if (fromSave) log(`Bem-vinda de volta, <b>${P.name}</b>!`, 'gold');
-  else if (TOUCH) { log(`Bem-vinda, <b>${P.name}</b>! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
-  else { log(`Bem-vinda, <b>${P.name}</b>! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
+  const who = `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
+  if (fromSave) log(`Bem-vindo(a) de volta, <b>${P.name}</b>!`, 'gold');
+  else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
+  else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
+}
+
+// ---------------------------------------------------------------- criação de personagem
+const CREATE = { race: 'humano', gender: 'f', cls: 'dancarina', hair: 0, skin: 0 };
+function renderCreate() {
+  const chips = (id, items, cur, onPick) => {
+    const el = $(id); el.innerHTML = '';
+    items.forEach(([val, label, style]) => {
+      const b = document.createElement('button'); b.className = 'chip' + (val === cur ? ' on' : '');
+      b.innerHTML = label; if (style) b.style.cssText = style;
+      b.onclick = () => { Audio8.init(); Audio8.sfx('click'); onPick(val); renderCreate(); };
+      el.appendChild(b);
+    });
+  };
+  chips('c-race', Object.entries(RACES).map(([k, r]) => [k, r.name]), CREATE.race, v => { CREATE.race = v; CREATE.skin = 0; });
+  chips('c-gender', [['f', 'Feminino'], ['m', 'Masculino']], CREATE.gender, v => CREATE.gender = v);
+  chips('c-class', Object.keys(CLASSES).map(k => [k, `${CLASSES[k].skills[0].icon} ${className(k, CREATE.gender)}`]), CREATE.cls, v => CREATE.cls = v);
+  chips('c-hair', HAIR_COLORS.map((c, i) => [i, '', `background:#${c.toString(16).padStart(6, '0')}`]), CREATE.hair, v => CREATE.hair = v);
+  chips('c-skin', RACES[CREATE.race].skins.map((c, i) => [i, '', `background:#${c.toString(16).padStart(6, '0')}`]), CREATE.skin, v => CREATE.skin = v);
+  const r = RACES[CREATE.race], c = CLASSES[CREATE.cls];
+  const st = STAT_KEYS.map(k => `${STAT_NAMES[k]} <b>${Math.max(1, 3 + (r.bonus[k] || 0) + (c.bonus[k] || 0))}</b>`).join(' · ');
+  $('c-info').innerHTML = `<p><b>${r.name}:</b> ${r.desc}</p><p><b>${className(CREATE.cls, CREATE.gender)}:</b> ${c.role}</p>
+    <p class="cst">${st}</p><p class="csk">${c.skills.map(s => `${s.icon} ${s.name} <small>(Nv ${s.lv})</small>`).join('<br>')}</p>`;
+  Object.assign(P, CREATE); refreshSkills(); rebuildAvatar();
 }
 // confirmação dentro do jogo (confirm() não funciona em todo lugar, ex.: páginas do Claude)
 let newArmed = false;
@@ -1229,6 +1440,7 @@ function armNew() {
 }
 $('btn-new').onclick = () => { if (loadSave() && !armNew()) return; start(false); };
 $('btn-cont').onclick = () => start(true);
+renderCreate();
 if (!loadSave()) $('btn-cont').style.display = 'none';
 $('name-in').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-new').click(); });
 
@@ -1243,11 +1455,13 @@ function loop(now) {
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {
     // vitrine na tela de título
-    time += dt; P.dance = (time % 4) < 1.2 ? 1 - (time % 4) / 1.2 : 0;
+    time += dt; const ph = time % 4;
+    if (CLS().rhythm) P.dance = ph < 1.2 ? 1 - ph / 1.2 : 0; else { P.dance = 0; P.cast = ph < 0.6 ? 1 - ph / 0.6 : 0; }
     P.moving = false; P.onGround = true;
     animateLyra(dt);
     camera.position.set(P.x + Math.sin(time * 0.2) * 5, P.y + 1.8, P.z + Math.cos(time * 0.2) * 5);
     camera.lookAt(P.x, P.y + 1.1, P.z);
+    camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.2, 0, innerWidth, innerHeight);
     sun.position.set(P.x + 30, P.y + 50, P.z + 18); sun.target.position.set(P.x, P.y, P.z);
     renderer.render(scene, camera);
   }

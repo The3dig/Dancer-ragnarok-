@@ -34,7 +34,21 @@ O progresso é salvo no navegador (localStorage).
 
 ---
 
-# 🌟 Spin-off 3D: Lyra — Ritmo Perdido
+# 🌍 Crônicas de Solmira (3D)
+
+Abra `3d/index.html`. É um MMORPG 3D de mundo aberto com criação de personagem:
+
+- **Raças:** Humano, Anão, Elfo e Elfo Negro. Cada uma tem proporções e bônus de atributos próprios.
+- **Classes:** Dançarina, Arqueira, Guerreiro, Paladino, Sacerdote, Assassino, Arruaceiro, Necromante, Mago da Luz, Mago Negro e Ferreira de Raios.
+  - Cada classe tem roupa, arma e tipo de ataque próprios (corpo a corpo, flechas ou magia).
+  - Cada classe tem 4 habilidades: projéteis, explosões em área, veneno, invocações (esqueleto, torre de raios), roubo de vida, teletransporte e buffs.
+- **Corpo** masculino ou feminino, além de cor de cabelo e de pele.
+- **6 atributos:** FOR, AGI, VIT, INT, DES e SOR.
+- O combate no ritmo da música é exclusivo da Dançarina.
+
+Os arquivos ficam em `3d/classes.js` (dados das raças e classes) e `3d/avatar.js` (montagem dos modelos 3D).
+
+## Origem: spin-off Lyra — Ritmo Perdido
 
 Abra `3d/index.html`. É um jogo de ação em 3D, com câmera em terceira pessoa, e se passa no mesmo mundo:
 Solmira, Campos Dourados, Areias Rubras e Oásis de Kharum, num único mapa contínuo. Os monstros são os mesmos do jogo 2D.

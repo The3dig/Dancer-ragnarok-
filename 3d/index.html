@@ -11,7 +11,7 @@
 <link rel="icon" href="../icons/icon-192.png">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Dançarina">
-<title>Lyra: Ritmo Perdido</title>
+<title>Crônicas de Solmira</title>
 <link rel="stylesheet" href="../css/style.css">
 <link rel="stylesheet" href="style3d.css">
 </head>
@@ -61,23 +61,34 @@
 </div>
 
 <div id="title" class="t3d">
-  <div class="tbox">
-    <h1>Lyra</h1>
-    <h2>Ritmo Perdido</h2>
-    <p class="sub">Um spin-off 3D de <i>Dançarina: A Fita de Seda</i></p>
-    <input id="name-in" maxlength="16" placeholder="Nome da sua dançarina" value="Lyra">
+  <div class="tlogo">
+    <h1>Crônicas de Solmira</h1>
+    <p class="sub">MMORPG de mundo aberto · 4 raças · 11 classes</p>
+  </div>
+  <div class="create win">
+    <div class="wt">Criar personagem</div>
+    <div class="cbody">
+      <label class="cname">Nome <input id="name-in" maxlength="16" placeholder="Nome do personagem" value="Lyra"></label>
+      <div class="crow"><span class="cl">Raça</span><div id="c-race" class="chips"></div></div>
+      <div class="crow"><span class="cl">Corpo</span><div id="c-gender" class="chips"></div></div>
+      <div class="crow"><span class="cl">Classe</span><div id="c-class" class="chips cls"></div></div>
+      <div class="crow"><span class="cl">Cabelo</span><div id="c-hair" class="chips sw"></div></div>
+      <div class="crow"><span class="cl">Pele</span><div id="c-skin" class="chips sw"></div></div>
+      <div id="c-info" class="cinfo"></div>
+    </div>
     <div class="tbtns">
       <button id="btn-new">✨ Novo Jogo</button>
       <button id="btn-cont">▶ Continuar</button>
     </div>
-    <p class="hint">WASD andar · Clique para golpear <b>no ritmo</b> · 1–5 danças · H ajuda</p>
-    <p class="hint"><a href="../index.html">← Jogar a versão 2D original</a></p>
+    <p class="hint"><a href="../index.html">Jogar a versão 2D original</a></p>
   </div>
 </div>
 
 <script src="lib/three.min.js"></script>
 <script src="../js/compat.js"></script>
 <script src="../js/audio.js"></script>
+<script src="classes.js"></script>
+<script src="avatar.js"></script>
 <script src="game3d.js"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.Capacitor)

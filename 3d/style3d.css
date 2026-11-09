@@ -61,3 +61,34 @@ body.touch #combo b { font-size: 38px; }
 @media (max-height: 420px) { body.touch #quest { display: none; } }
 #minimap, #quest { margin-right: env(safe-area-inset-right); }
 #quest { margin-left: env(safe-area-inset-left); }
+
+/* ---------- criação de personagem ---------- */
+#title.t3d { display: flex; justify-content: space-between; align-items: stretch; padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); background: linear-gradient(90deg, rgba(10,8,20,.15) 40%, rgba(10,8,20,.6)); }
+.tlogo { align-self: flex-start; color: #fff; text-shadow: 0 2px 8px #000; }
+.tlogo h1 { margin: 0; font: bold 42px Georgia, serif; letter-spacing: 1px; background: linear-gradient(#ffe9a0, #ff8a6b); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 6px rgba(0,0,0,.6)); }
+.create { width: min(400px, 52vw); max-height: 100%; display: flex; flex-direction: column; }
+.cbody { padding: 8px 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.cname { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #345; }
+.cname input { flex: 1; margin: 0; width: auto; padding: 6px; font-size: 13px; text-align: left; }
+.crow { display: flex; gap: 8px; align-items: flex-start; }
+.crow .cl { width: 48px; flex: none; font-weight: bold; color: #345; padding-top: 5px; font-size: 11px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+.chip { font: 11px Verdana, sans-serif; padding: 5px 8px; border-radius: 4px; border: 1px solid #8fa2bc; background: #fff; color: #234; cursor: pointer; }
+.chip.on { background: linear-gradient(#7aa0d6, #4f78b8); color: #fff; border-color: #2a4a80; }
+.chips.cls .chip { flex: 1 1 46%; text-align: left; }
+.chips.sw .chip { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #8fa2bc; }
+.chips.sw .chip.on { box-shadow: 0 0 0 3px #4f78b8; }
+.cinfo { font-size: 11px; color: #345; background: #eef2f8; border-radius: 5px; padding: 6px 8px; line-height: 1.5; }
+.cinfo p { margin: 0 0 4px; }
+.cinfo .cst { color: #234; }
+.create .tbtns { padding: 8px; border-top: 1px solid #c8d2e0; }
+.create .hint { margin: 0 0 8px; text-align: center; }
+.create .hint a { color: #4f78b8; }
+.dmg.mag { color: #c8a8ff; }
+.dmg.poison { color: #7dff4a; font-size: 14px; }
+@media (max-width: 700px), (max-height: 500px) {
+  .tlogo h1 { font-size: 24px; }
+  .tlogo .sub { font-size: 11px; }
+  .create { width: min(380px, 60vw); }
+  .chip { padding: 4px 6px; font-size: 10px; }
+}
