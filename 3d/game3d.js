@@ -78,17 +78,25 @@ function mesh(geo, mat, x = 0, y = 0, z = 0, parent = null, shadow = true) {
 }
 
 // ---------------------------------------------------------------- mundo
-const WX = 150, WZ = 90;
+const WX = 220, WZ = 90;
 const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 }, LAIR = { x: -20, z: -64 };
+// Reino Quebrado (extremo leste): Cidadela do Cisma e a Torre do Cisma
+const CIT = { x: 188, z: 4 }, TOWER = { x: 196, z: -30 };
+const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
+const FLOORS = [0, 1, 2, 3, 4, 5].map(i => ({ i, x: -250 + i * 100, z: TZ, y: 40 + i * 14, r: i === 5 ? 34 : 17 }));
+const inTower = z => z > 300;
+const floorAt = (x, z) => { for (const f of FLOORS) if (Math.hypot(x - f.x, z - f.z) < f.r + 6) return f; return null; };
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
 function dRoad(x, z) {
   let d = Math.abs(z);
-  if (x < -140 || x > 142) d = 99;
+  if (x < -140 || x > 200) d = 99;
   const bd = Math.abs(x - 115) + (z < 0 ? -z : z > 40 ? z - 40 : 0);
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
+  if (inTower(z)) { const f = floorAt(x, z); return f && f.i === 5 ? 'topo' : 'torre'; }
+  if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
   if (x < -62) return 'solmira';
   if (Math.hypot(x - OAS.x, z - OAS.z) < 34) return 'kharum';
@@ -104,6 +112,7 @@ function height(x, z) {
   f *= smooth(26, 36, Math.hypot(x - OAS.x, z - OAS.z));
   f *= smooth(14, 22, Math.hypot(x - RUIN.x, z - RUIN.z));
   f *= smooth(19, 27, Math.hypot(x - LAIR.x, z - LAIR.z));
+  f *= smooth(26, 40, Math.hypot(x - CIT.x, z - CIT.z));
   h *= f;
   const rd = Math.abs(x - riverX(z));
   if (rd < 10) { h = lerp(Math.max(h, 0.3), h, smooth(6, 10, rd)); h -= 2.4 * (1 - smooth(2.6, 4.6, rd)); }
@@ -113,9 +122,9 @@ function height(x, z) {
   return h;
 }
 const onBridge = (x, z) => Math.abs(z) < 2.6 && Math.abs(x - riverX(z)) < 6;
-const groundY = (x, z) => onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
+const groundY = (x, z) => inTower(z) ? (floorAt(x, z) || FLOORS[0]).y : onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
 const nearWater = (x, z) => Math.abs(x - riverX(z)) < 5 || Math.hypot(x - OAS.x, z - OAS.z) < 9.5;
-const isWater = (x, z) => !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
+const isWater = (x, z) => !inTower(z) && !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
 
 function groundColor(x, z, y, c) {
   const n = Math.sin(x * 0.9) * Math.cos(z * 0.7) * 0.03 + Math.sin(x * 0.31 + z * 0.17) * 0.03;
@@ -131,6 +140,14 @@ function groundColor(x, z, y, c) {
   if (od < 17 && od > 7) c.setHSL(0.11, 0.45, 0.72 + n);
   if (od >= 7 && od < 10.5) c.setHSL(0.28, 0.5, 0.4 + n);
   if (y < -0.3 && !onBridge(x, z) && nearWater(x, z)) c.setHSL(0.1, 0.35, 0.42);
+  const rq = smooth(150, 164, x);
+  if (rq > 0) {
+    const dk = new THREE.Color().setHSL(0.76, 0.18, 0.17 + n * 1.5);
+    const vein = Math.abs(Math.sin(x * 0.55 + Math.sin(z * 0.3) * 2.2) + Math.cos(z * 0.5 + Math.sin(x * 0.2)));
+    if (vein < 0.09) dk.setHSL(0.78, 0.8, 0.45);
+    if (Math.hypot(x - CIT.x, z - CIT.z) < 22 && dRoad(x, z) > 3.4) dk.setHSL(0.75, 0.06, 0.3 + ((Math.floor(x * 0.8) + Math.floor(z * 0.8)) & 1) * 0.04);
+    c.lerp(dk, rq);
+  }
   const lair = Math.hypot(x - LAIR.x, z - LAIR.z);
   if (lair < 20) {
     c.setHSL(0.76, 0.22, 0.16 + n + smooth(14, 20, lair) * 0.1);
@@ -144,7 +161,7 @@ function groundColor(x, z, y, c) {
 
 // terreno
 (function buildTerrain() {
-  const geo = new THREE.PlaneGeometry(WX * 2, WZ * 2, 240, 144);
+  const geo = new THREE.PlaneGeometry(WX * 2, WZ * 2, 352, 144);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
@@ -186,6 +203,7 @@ function addOb(x, z, r) {
     }
 }
 function blocked(x, z, r = 0.45) {
+  if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - 1 - r) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
   const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
@@ -211,7 +229,7 @@ for (let a = 0; a < TAU; a += 0.09) {
   if (Math.abs(z) < 7 || x < -WX + 3) continue;
   trees.push({ x, z, s: rr(1, 1.5) });
 }
-for (let i = 0; i < 2200 && trees.length < 340; i++) {
+for (let i = 0; i < 3200 && trees.length < 470; i++) {
   const x = rr(-WX + 5, 46), z = rr(-WZ + 5, WZ - 5);
   if (Math.hypot(x - VIL.x, z - VIL.z) < 52 && x < -55) continue;
   if (WHEAT.some(([wx, wz, ww, wd]) => x > wx - 2 && x < wx + ww + 2 && z > wz - 2 && z < wz + wd + 2)) continue;
@@ -221,12 +239,12 @@ for (let i = 0; i < 2200 && trees.length < 340; i++) {
 trees.forEach(t => addOb(t.x, t.z, 0.7));
 for (let i = 0; i < 1500 && cacti.length < 70; i++) {
   const x = rr(56, WX - 5), z = rr(-WZ + 5, WZ - 5);
-  if (Math.hypot(x - OAS.x, z - OAS.z) < 36 || Math.hypot(x - RUIN.x, z - RUIN.z) < 18 || !freeSpot(x, z)) continue;
+  if (x > 150 || Math.hypot(x - OAS.x, z - OAS.z) < 36 || Math.hypot(x - RUIN.x, z - RUIN.z) < 18 || !freeSpot(x, z)) continue;
   cacti.push({ x, z, s: rr(0.8, 1.3), r: rr(0, TAU) }); addOb(x, z, 0.5);
 }
 for (let i = 0; i < 1500 && rocks.length < 90; i++) {
   const x = rr(-60, WX - 5), z = rr(-WZ + 5, WZ - 5);
-  if (Math.hypot(x - OAS.x, z - OAS.z) < 34 || !freeSpot(x, z)) continue;
+  if (Math.hypot(x - OAS.x, z - OAS.z) < 34 || Math.hypot(x - CIT.x, z - CIT.z) < 30 || !freeSpot(x, z)) continue;
   const s = rr(0.5, x > 50 ? 1.8 : 1); rocks.push({ x, z, s }); addOb(x, z, s * 0.8);
 }
 for (let a = 0; a < TAU; a += TAU / 14) palms.push({ x: OAS.x + Math.cos(a) * 11.5, z: OAS.z + Math.sin(a) * 11.5, s: rr(0.9, 1.2), lean: rr(-0.2, 0.2) });
@@ -426,7 +444,11 @@ const MOBDEF = {
   fungolino: { name: 'Fungolino', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
   besouro:   { name: 'Caranguejo Rubi', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Raptor das Dunas', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
-  kravenox:  { name: 'Kravenox', lv: 40, hp: 30000, atk: 70, def: 22, xp: 6000, zeny: [2500, 3500], speed: 3.0, aggro: 30, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
+  kravenox:  { name: 'Kravenox', lv: 40, hp: 50000, atk: 70, def: 22, xp: 6000, zeny: [2500, 3500], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
+  larva:     { name: 'Larva da Essência', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
+  verme:     { name: 'Verme de Dentes', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
+  esfera:    { name: 'Sentinela Esférica', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
+  sentinela: { name: 'Sentinela do Vazio', lv: 19, hp: 1000, atk: 52, def: 20, xp: 380, zeny: [40, 90], speed: 2.6, aggro: 16, respawn: 1e9, drops: [['red', 0.5], ['blue', 0.3]] },
   guardiao:  { name: 'Guardião das Areias', lv: 18, hp: 2400, atk: 42, def: 15, xp: 900, zeny: [300, 500], speed: 2.0, aggro: 14, respawn: 90, boss: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
@@ -436,6 +458,7 @@ function mobModel(type) {
   const mt = c => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
   const ms = c => { const m = new THREE.MeshToonMaterial({ color: c }); mats.push(m); return m; };
   const r = { g, mats };
+  if (['larva', 'verme', 'esfera', 'sentinela'].includes(type)) return towerMobModel(type, r, mt);
   if (ModelKit.ready && MOB_MODELS[type]) return mobFromModel(type, r);
   if (type === 'kravenox') return kravenoxModel(r, mt);
   switch (type) {
@@ -554,6 +577,9 @@ const NPCS = [
   { id: 'guard', name: 'Guarda Tobias', x: VIL.x + 40, z: VIL.z - 5, look: [0x6a6f7a, 0x333333, 'helm'] },
   { id: 'healer', name: 'Curandeira Samira', x: OAS.x - 10, z: OAS.z - 18, look: [0xf4f0e6, 0x1a1a1a, 'veil'] },
   { id: 'shop', name: 'Mercador Farid', x: OAS.x + 4, z: OAS.z - 21, look: [0xb5651d, 0x2a1a0a, 'turban'] },
+  { id: 'watch', name: 'Vigia Morvan', x: CIT.x + 2, z: CIT.z - 16, look: [0x2a2430, 0x1a1a1a, 'helm'] },
+  { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
+  { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
 ];
 function upgradeNPCs() {
@@ -809,7 +835,7 @@ function nearestMob(r, cone = true) {
   let best = null, bs = 1e9;
   for (const m of mobs) {
     const dx = m.x - P.x, dz = m.z - P.z, d = Math.hypot(dx, dz);
-    if (d > r + (m.d.boss ? 1.6 : 0)) continue;
+    if (d > r + (m.d.rad ?? (m.d.boss ? 1.6 : 0))) continue;
     let ang = Math.abs(((Math.atan2(dx, dz) - P.face + Math.PI) % TAU + TAU) % TAU - Math.PI);
     const score = d + (cone ? ang * 1.5 : 0);
     if (score < bs) { bs = score; best = m; }
@@ -832,12 +858,12 @@ function attack() {
   } else {
     slash(k > 1.3 ? 0xffcf40 : c.colors.accent);
     Audio8.sfx('whip');
-    if (m && Math.hypot(m.x - P.x, m.z - P.z) < c.range + (m.d.boss ? 1.6 : 0)) dmgMob(m, stats.atk() * k, Math.random() < stats.crit());
+    if (m && Math.hypot(m.x - P.x, m.z - P.z) < c.range + (m.d.rad ?? (m.d.boss ? 1.6 : 0))) dmgMob(m, stats.atk() * k, Math.random() < stats.crit());
   }
 }
 function healP(h) { h = Math.round(h); if (h <= 0 || P.dead) return; P.hp = Math.min(stats.maxHp(), P.hp + h); floater(P.x, P.y + 2.4, P.z, '+' + h, 'heal'); }
 function addBuff(id, dur, mods, icon) { P.buffs[id] = { t: dur, mods, icon }; }
-const nearAt = (x, z, r) => mobs.filter(m => Math.hypot(m.x - x, m.z - z) < r + (m.d.boss ? 1.6 : 0));
+const nearAt = (x, z, r) => mobs.filter(m => Math.hypot(m.x - x, m.z - z) < r + (m.d.rad ?? (m.d.boss ? 1.6 : 0)));
 function nearestN(r, n) {
   const l = mobs.filter(m => Math.hypot(m.x - P.x, m.z - P.z) < r).sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z)).slice(0, n);
   for (let i = 0; l.length && l.length < n; i++) l.push(l[i]);
@@ -1027,7 +1053,10 @@ const ZONES = {
   solmira: { name: 'Vila de Solmira', music: 'solmira', town: true },
   campos: { name: 'Campos Dourados', music: 'campos' },
   areias: { name: 'Areias Rubras', music: 'areias' },
-  lair: { name: 'Fenda de Kravenox', music: 'kravenox' },
+  lair: { name: 'Cratera do Cisma', music: 'areias' },
+  cidadela: { name: 'Cidadela do Cisma', music: 'kharum', town: true },
+  torre: { name: 'Torre do Cisma', music: 'areias' },
+  topo: { name: 'Topo da Torre do Cisma', music: 'kravenox' },
   kharum: { name: 'Oásis de Kharum', music: 'kharum', town: true },
 };
 function update(dt) {
@@ -1037,7 +1066,7 @@ function update(dt) {
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; c.inst.update(dt); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt);
@@ -1063,8 +1092,10 @@ function update(dt) {
     if (ZONES[z].town) P.home = z;
   }
   if (P.combo && (P.comboT -= dt) <= 0) { if (P.combo >= 3) log(`Combo final: ${P.combo}`, 'sys'); P.combo = 0; }
-  const des = smooth(40, 70, P.x);
-  skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); scene.fog.color.copy(skyMat.uniforms.horizon.value);
+  const des = inTower(P.z) ? 0 : smooth(40, 70, P.x);
+  skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
+  if (dark > 0) { skyMat.uniforms.horizon.value.lerp(new THREE.Color(0x4a1830), dark); skyMat.uniforms.top.value.lerp(new THREE.Color(0x12081c), dark); }
+  scene.fog.color.copy(skyMat.uniforms.horizon.value);
 }
 
 function updatePlayer(dt) {
@@ -1073,7 +1104,7 @@ function updatePlayer(dt) {
     if (P.deadT <= 0) {
       P.dead = false; P.hp = Math.round(stats.maxHp() * 0.5); P.sp = Math.round(stats.maxSp() * 0.5);
       P.xp = Math.max(0, P.xp - Math.floor(xpNeed(P.lv) * 0.03));
-      const h = P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : { x: VIL.x, z: VIL.z + 10 };
+      const h = P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : { x: VIL.x, z: VIL.z + 10 };
       P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z);
     }
     return;
@@ -1181,7 +1212,7 @@ function updateMob(m, dt) {
 function stepMob(m, tx, tz, sp, dt) {
   const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
   if (d < 0.01) return;
-  const vx = dx / d * sp * dt, vz = dz / d * sp * dt, r = m.d.boss ? 1.2 : 0.5;
+  const vx = dx / d * sp * dt, vz = dz / d * sp * dt, r = m.d.rad ? m.d.rad * 0.6 : m.d.boss ? 1.2 : 0.5;
   let moved = false;
   if (!blocked(m.x + vx, m.z, r)) { m.x += vx; moved = true; }
   if (!blocked(m.x, m.z + vz, r)) { m.z += vz; moved = true; }
@@ -1251,8 +1282,9 @@ function animateModel(dt) {
 
 // ---------------------------------------------------------------- câmera
 function updateCamera(dt) {
-  camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, 4, 18);
-  const tx = P.x, ty = P.y + 1.3, tz = P.z;
+  const big = inTower(P.z) && Tower.floor === 5;                   // topo da torre: câmera para o gigante
+  camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
+  const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
   // aproxima a câmera quando uma árvore/casa fica entre ela e o personagem
   const dx = Math.sin(camS.yaw) * Math.cos(camS.pitch), dy = Math.sin(camS.pitch), dz = Math.cos(camS.yaw) * Math.cos(camS.pitch);
@@ -1265,7 +1297,7 @@ function updateCamera(dt) {
   camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 14 : 3)));
   const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
   let cy = camS.y + dy * camS.cur;
-  cy = Math.max(cy, height(cx, cz) + 0.6);
+  cy = Math.max(cy, (inTower(cz) ? groundY(camS.x, camS.z) : height(cx, cz)) + 0.6);
   camera.position.set(cx, cy, cz);
   camera.lookAt(camS.x, camS.y, camS.z);
   hideTreesBetween(cx, cz, camS.x, camS.z, cy, camS.y);
@@ -1362,6 +1394,7 @@ function drawMinimap() {
   const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
   mg.drawImage(mmBase, 0, 0);
   for (const m of mobs) { mg.fillStyle = m.d.boss ? '#ff3030' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, m.d.boss ? 4 : 2, m.d.boss ? 4 : 2); }
+  if (inTower(P.z)) { Tower.minimap(mg); return; }
   Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { mg.fillStyle = '#ffcf40'; mg.fillRect((n.x + WX) * sx - 1.5, (n.z + WZ) * sz - 1.5, 3, 3); }
   const px = (P.x + WX) * sx, pz = (P.z + WZ) * sz;
@@ -1511,6 +1544,7 @@ function talk(n) {
       } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`);
       break;
     }
+    case 'watch': dialog(nm, 'Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas</b>, <b>Vermes de Dentes</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>'); break;
     case 'guard': dialog(nm, 'Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Zunzuns</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.'); break;
     case 'elder': dialog(nm, 'Dizem que o <b>Guardião das Areias</b> dança ao som das tempestades, nas ruínas ao sudeste daqui.<br>Ele só se curva diante de quem acerta o ritmo perfeito. Volte quando estiver acima do nível 15.'); break;
   }
@@ -1627,6 +1661,7 @@ function start(fromSave) {
   if (fromSave) {
     const s = loadSave();
     Object.assign(P, { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, dex: 3, luk: 3 }, s, { inv: { red: 0, blue: 0, ...s.inv } });
+    if (inTower(P.z)) { P.x = CIT.x; P.z = CIT.z + 8; }
     if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; }
   } else {
     Object.assign(P, CREATE, { name: ($('name-in').value.trim() || 'Lyra').slice(0, 16) });

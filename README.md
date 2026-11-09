@@ -63,14 +63,26 @@ Quem abrir o mesmo link ao mesmo tempo aparece no seu mundo, com nome, classe, v
 Personagens e monstros usam modelos animados CC0 da Quaternius e da Kenney (veja `3d/models/CREDITOS.txt`).
 Cada classe pinta a roupa com cores próprias e prende arma, chapéu e capa nos ossos do modelo.
 
-## ☠ Kravenox — chefe mundial semanal
+## ☠ Kravenox — chefe mundial semanal na Torre do Cisma
 
-- Todo **sábado, das 20h às 22h** (horário do aparelho), o Kravenox desperta na **Fenda de Kravenox**, ao sul dos Campos Dourados. A fenda aparece como uma caveira no minimapa.
-- Seis aventureiros (NPCs de raças e classes aleatórias) vão até lá lutar junto com você.
-- Ele faz ataques avisados por círculos no chão: rugido, meteoros e explosões. Escape com a esquiva.
-- Ele invoca crias e se enfurece abaixo de 50% de vida.
-- Quem derrotar ganha uma recompensa grande e o título « Matador de Kravenox ». Depois disso ele só volta no sábado seguinte.
-- Para testar a qualquer hora, abra `3d/index.html#kravenox`.
+O Kravenox segue o design original do universo Kravenox (repositório The3dig/kravenox):
+a criatura de espinhos negra, com cabeça redonda e coroa de espinhos, olhos vermelhos,
+sorriso de dentes pontudos, barriga em placas e garras. Aqui ele é gigante, com cerca de 23 m.
+
+- Ele fica no **topo da Torre do Cisma**, na **Cidadela do Cisma** (Reino Quebrado, no extremo leste do mapa).
+- A torre tem **6 andares**. Cada andar só libera a escada depois que todos os inimigos dele morrem:
+  Larvas da Essência, Vermes de Dentes, Sentinelas Esféricas e Sentinelas do Vazio.
+- Durante a semana ele **dorme** no topo. Ele desperta todo **sábado das 20h às 22h** (horário do aparelho).
+- Ataques, todos avisados no chão:
+  - **Garra:** meia-lua vermelha.
+  - **Raio da Essência:** faixa no chão.
+  - **Esmagamento:** um salto que faz brotar espinhos do chão.
+  - **Espinhos:** brotam embaixo dos jogadores.
+  - **Modo Fúria:** aura vermelha abaixo de 50% de vida.
+- Ele invoca Larvas da Essência. Seis aventureiros (NPCs) sobem junto com você.
+- A vida dele é compartilhada no multiplayer.
+- Quem derrotar ganha uma recompensa e o título « Matador de Kravenox », uma vez por semana.
+- Para testar a qualquer hora, abra o link com `#kravenox` no final.
 
 ## Origem: spin-off Lyra — Ritmo Perdido
 

@@ -7,67 +7,91 @@
 
 // ---------------------------------------------------------------- visual
 function kravenoxModel(r, mt) {
-  const g = r.g, b = new THREE.Group(); g.add(b); r.b = b;
-  const glowM = c => { const m = new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 1 }); return m; };
-  const hide = mt(0x2a1838), hideD = mt(0x170c22), bone = mt(0xd8cfc0), red = glowM(0xff2a2a);
-  r.redMats = [red];
-  // patas traseiras
-  r.legs = [];
-  [[-1.3, -0.6], [1.3, -0.6], [-1.2, 1.4], [1.2, 1.4]].forEach(([x, z], i) => {
-    const p = new THREE.Group(); p.position.set(x, 2.4, z); b.add(p);
-    mesh(new THREE.CylinderGeometry(0.45, 0.3, 2.4, 7), i < 2 ? hide : hideD, 0, -1.2, 0, p);
-    for (let k = -1; k <= 1; k++) { const c = mesh(new THREE.ConeGeometry(0.12, 0.5, 5), bone, k * 0.22, -2.35, 0.35, p); c.rotation.x = Math.PI / 2; }
-    r.legs.push(p);
-  });
-  // corpo
-  const torso = mesh(new THREE.SphereGeometry(1.9, 14, 10), hide, 0, 3.6, 0.2, b); torso.scale.set(1.05, 0.95, 1.5);
-  mesh(new THREE.SphereGeometry(1.5, 12, 8), hideD, 0, 3.2, -1.6, b).scale.set(1, 0.8, 1.1);
-  // espinhos nas costas
-  for (let i = 0; i < 7; i++) { const sp = mesh(new THREE.ConeGeometry(0.28 - i * 0.02, 1.4 - i * 0.1, 5), bone, 0, 5.2 - i * 0.12, 1.6 - i * 0.65, b); sp.rotation.x = -0.4; }
-  // runas brilhantes no peito
-  r.core = mesh(new THREE.OctahedronGeometry(0.45), red, 0, 3.7, 2.7, b);
-  // asas
-  r.wings = [-1, 1].map(s => {
-    const p = new THREE.Group(); p.position.set(s * 1.3, 5, 0); b.add(p);
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0); shape.lineTo(s * 6.5, 2.5); shape.lineTo(s * 5.8, 0.4); shape.lineTo(s * 4.6, 1.2); shape.lineTo(s * 4, -0.8); shape.lineTo(s * 2.6, 0.2); shape.lineTo(s * 1.8, -1.6); shape.lineTo(0, -0.6);
-    const w = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshLambertMaterial({ color: 0x3a1430, side: THREE.DoubleSide, emissive: 0x200008 }));
-    w.castShadow = true; p.add(w); r.mats.push(w.material);
-    const arm = mesh(new THREE.CylinderGeometry(0.1, 0.06, 6.9, 5), bone, s * 3.2, 1.25, 0, p); arm.rotation.z = -s * 1.2;
+  // Criatura de espinhos do desenho original: corpo negro, cabeça redonda com coroa de
+  // espinhos, olhos vermelhos, sorriso de dentes pontudos, barriga em placas e garras.
+  const S = 6;                                                    // gigante: ~19 m
+  const g = r.g, b = new THREE.Group(); b.scale.setScalar(S); g.add(b); r.b = b;
+  const glowM = (c, i = 1.4) => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: i });
+  const black = mt(0x141118), black2 = mt(0x1d1922), plate = mt(0x2a2530), claw = mt(0x3a3440), tooth = mt(0xe8e2d8), mouthM = mt(0x2a0608);
+  const eyeM = new THREE.MeshBasicMaterial({ color: 0xff0a0a, toneMapped: false }), auraM = new THREE.MeshBasicMaterial({ color: 0xff1a1a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false });
+  r.eyeM = eyeM;
+  const add = (geo, m, x, y, z, p = b) => mesh(geo, m, x, y, z, p);
+  // pernas curtas e grossas com 3 garras
+  r.legs = [-1, 1].map(s => {
+    const p = new THREE.Group(); p.position.set(s * 0.42, 0.75, 0); b.add(p);
+    add(new THREE.CapsuleGeometry(0.3, 0.45, 6, 12), black, 0, -0.35, 0, p);
+    const foot = add(new THREE.SphereGeometry(0.34, 14, 10), black2, 0, -0.68, 0.12, p); foot.scale.set(1, 0.5, 1.35);
+    for (let k = -1; k <= 1; k++) { const c = add(new THREE.ConeGeometry(0.07, 0.24, 6), claw, k * 0.15, -0.72, 0.52, p); c.rotation.x = Math.PI / 2; }
     return p;
   });
-  // pescoço e cabeça
-  const neck = mesh(new THREE.CylinderGeometry(0.7, 1.0, 2.2, 8), hide, 0, 5.2, 2.5, b); neck.rotation.x = 0.7;
-  const head = new THREE.Group(); head.position.set(0, 6.2, 3.6); b.add(head); r.head = head;
-  mesh(new THREE.BoxGeometry(1.5, 1.1, 1.8), hide, 0, 0, 0, head);
-  mesh(new THREE.BoxGeometry(1.2, 0.55, 1.3), hideD, 0, -0.35, 1.2, head);
-  r.jaw = mesh(new THREE.BoxGeometry(1.1, 0.3, 1.5), hideD, 0, -0.75, 0.9, head);
-  for (let k = -2; k <= 2; k++) { const t = mesh(new THREE.ConeGeometry(0.07, 0.3, 4), bone, k * 0.2, -0.55, 1.75, head); t.rotation.x = Math.PI; }
-  [-0.38, 0.38].forEach(x => mesh(new THREE.BoxGeometry(0.32, 0.14, 0.1), red, x, 0.15, 0.92, head));
-  [-1, 1].forEach(s => {
-    const h1 = mesh(new THREE.ConeGeometry(0.22, 1.8, 6), bone, s * 0.6, 0.9, -0.5, head); h1.rotation.set(-0.7, 0, -s * 0.45);
-    const h2 = mesh(new THREE.ConeGeometry(0.12, 0.9, 5), bone, s * 0.85, 0.2, -0.2, head); h2.rotation.set(-0.3, 0, -s * 1.2);
+  // corpo e barriga em placas
+  const torso = add(new THREE.SphereGeometry(0.85, 24, 18), black, 0, 1.45, 0); torso.scale.set(1, 1.05, 0.85);
+  for (let row = 0; row < 3; row++) for (const col of [-1, 1]) {
+    const pl = add(new THREE.BoxGeometry(0.42, 0.26, 0.12), plate, col * 0.23, 1.72 - row * 0.3, 0.66 - Math.abs(row - 1) * 0.04);
+    pl.rotation.x = (row - 1) * 0.25;
+  }
+  // braços com garras
+  r.arms = [-1, 1].map(s => {
+    const p = new THREE.Group(); p.position.set(s * 0.78, 1.85, 0.05); p.rotation.z = s * 0.35; b.add(p);
+    add(new THREE.CapsuleGeometry(0.22, 0.6, 6, 12), black, 0, -0.42, 0, p);
+    add(new THREE.SphereGeometry(0.26, 12, 10), black2, 0, -0.85, 0.05, p);
+    for (let k = -1; k <= 1; k++) { const c = add(new THREE.ConeGeometry(0.06, 0.3, 6), claw, k * 0.11, -1.08, 0.12, p); c.rotation.x = Math.PI - 0.4; }
+    for (let k = 0; k < 3; k++) { const sp = add(new THREE.ConeGeometry(0.07, 0.28, 6), black2, s * 0.2, -0.15 - k * 0.22, -0.08, p); sp.rotation.z = -s * 1.3; }
+    return p;
   });
-  // coroa flutuante de cristais
-  r.crown = new THREE.Group(); r.crown.position.set(0, 8.2, 3.3); b.add(r.crown);
-  for (let i = 0; i < 6; i++) { const a = i * TAU / 6; const c = mesh(new THREE.OctahedronGeometry(0.28), red, Math.cos(a) * 0.9, 0, Math.sin(a) * 0.9, r.crown); c.scale.y = 1.8; }
-  // cauda
+  // espinhos das costas e cauda
+  for (let k = 0; k < 6; k++) { const sp = add(new THREE.ConeGeometry(0.13 - k * 0.01, 0.55 - k * 0.04, 6), black2, 0, 2.05 - k * 0.22, -0.55 - k * 0.12); sp.rotation.x = -0.9 - k * 0.1; }
   r.tail = [];
-  for (let i = 0; i < 9; i++) r.tail.push(mesh(new THREE.SphereGeometry(0.7 - i * 0.065, 8, 6), i % 2 ? hide : hideD, 0, 2.9 - i * 0.12, -2.8 - i * 0.8, b));
-  mesh(new THREE.ConeGeometry(0.3, 1.2, 5), bone, 0, 1.9, -10.2, b).rotation.x = -Math.PI / 2;
+  for (let k = 0; k < 6; k++) {
+    const t = add(new THREE.SphereGeometry(0.3 - k * 0.04, 12, 10), black, 0, 0.75 - k * 0.07, -0.85 - k * 0.32); r.tail.push(t);
+    const sp = add(new THREE.ConeGeometry(0.07, 0.25, 6), black2, 0, 0.3 - k * 0.03, 0, t); sp.rotation.x = -0.4;
+  }
+  // cabeça redonda e grande com coroa de espinhos
+  const head = new THREE.Group(); head.position.set(0, 2.75, 0.05); b.add(head); r.head = head;
+  const hs = add(new THREE.SphereGeometry(0.95, 28, 22), black, 0, 0, 0, head); hs.scale.set(1.08, 0.95, 0.95);
+  for (let k = 0; k < 13; k++) {                                    // coroa: raios em volta do rosto
+    const a = -Math.PI * 0.1 + k / 12 * Math.PI * 1.2;
+    const sp = add(new THREE.ConeGeometry(0.15, 0.6, 6), black2, Math.cos(a) * 0.98, Math.sin(a) * 0.9 + 0.05, -0.2, head);
+    sp.rotation.z = a - Math.PI / 2;
+  }
+  for (let k = 0; k < 5; k++) { const sp = add(new THREE.ConeGeometry(0.14, 0.55, 6), black2, 0, 0.75 - k * 0.12, -0.45 - k * 0.12, head); sp.rotation.x = -0.6 - k * 0.2; }
+  // olhos vermelhos bravos (inclinados) e sobrancelhas
+  [-1, 1].forEach(s => {
+    const e = add(new THREE.SphereGeometry(0.2, 16, 12), eyeM, s * 0.36, 0.12, 0.8, head); e.scale.set(1.25, 0.7, 0.45); e.rotation.z = s * 0.35;
+    const br = add(new THREE.BoxGeometry(0.45, 0.1, 0.18), black2, s * 0.36, 0.33, 0.8, head); br.rotation.z = s * 0.45;
+  });
+  // sorriso largo de dentes pontudos
+  const mouth = new THREE.Group(); mouth.position.set(0, -0.32, 0.78); head.add(mouth); r.mouth = mouth;
+  const m1 = add(new THREE.BoxGeometry(1.1, 0.22, 0.12), mouthM, 0, 0, 0, mouth);
+  for (let k = 0; k < 9; k++) {
+    const x = -0.48 + k * 0.12, curve = -Math.abs(x) * 0.12;
+    const t1 = add(new THREE.ConeGeometry(0.045, 0.13, 4), tooth, x, 0.08 + curve, 0.06, mouth); t1.rotation.x = Math.PI;
+    const t2 = add(new THREE.ConeGeometry(0.045, 0.12, 4), tooth, x + 0.06, -0.08 + curve, 0.06, mouth);
+  }
+  m1.scale.y = 1;
+  // aura do Modo Fúria
+  r.aura = [];
+  for (let k = 0; k < 14; k++) { const a = k / 14 * TAU, f = add(new THREE.ConeGeometry(0.45, 2.6 + (k % 3) * 0.6, 8, 1, true), auraM, Math.cos(a) * 1.25, 1.6 + (k % 2) * 0.6, Math.sin(a) * 1.1); r.aura.push(f); }
+  r.auraM = auraM;
   r.anim = (m, t) => {
-    const enr = m.enraged ? 1.6 : 1;
-    r.wings[0].rotation.z = Math.sin(t * 2.2 * enr) * 0.3 - 0.1; r.wings[1].rotation.z = -Math.sin(t * 2.2 * enr) * 0.3 + 0.1;
-    r.crown.rotation.y = t * 1.5 * enr; r.crown.position.y = 8.2 + Math.sin(t * 2) * 0.2;
-    r.core.rotation.y = t * 3; r.core.scale.setScalar(1 + Math.sin(t * 6) * 0.15);
-    r.jaw.position.y = -0.75 - Math.max(0, m.roar || 0) * 0.4;
-    r.head.rotation.x = -(m.roar || 0) * 0.5;
-    r.tail.forEach((s, i) => s.position.x = Math.sin(t * 2 + i * 0.6) * (0.2 + i * 0.12));
-    r.legs.forEach((l, i) => l.rotation.x = m.moving ? Math.sin(t * 5 + i * Math.PI) * 0.35 : 0);
-    b.position.y = Math.sin(t * 1.5) * 0.1;
-    red.emissiveIntensity = m.enraged ? 1.4 + Math.sin(t * 10) * 0.5 : 1;
+    const enr = m.enraged ? 1.5 : 1, sleep = !!m.sleeping;
+    const breath = Math.sin(t * (sleep ? 0.8 : 2) * enr);
+    torso.scale.set(1 + breath * 0.02, 1.05 + breath * 0.02, 0.85);
+    head.position.y = 2.75 + breath * 0.03 - (sleep ? 0.35 : 0);
+    head.rotation.x = sleep ? 0.45 : -(m.roar || 0) * 0.35 - (m.beam || 0) * 0.15;
+    mouth.scale.y = 1 + (m.roar || 0) * 2.2 + (m.beam || 0) * 1.5;
+    eyeM.color.setRGB(sleep ? 0.08 : 1, sleep ? 0 : (m.beam || 0) * 0.4, sleep ? 0 : (m.beam || 0) * 0.2);
+    const sw = m.swing || 0;
+    r.arms[0].rotation.x = sleep ? 0.6 : -sw * 2.2 + Math.sin(t * 1.5) * 0.08;
+    r.arms[1].rotation.x = sleep ? 0.6 : (m.pound > 0 ? -2.6 * Math.sin(m.pound * Math.PI) : Math.sin(t * 1.5 + 1) * 0.08);
+    r.legs.forEach((l, i) => l.rotation.x = m.moving ? Math.sin(t * 4 + i * Math.PI) * 0.45 : 0);
+    r.tail.forEach((s, i) => s.position.x = Math.sin(t * 1.6 + i * 0.6) * (0.05 + i * 0.05));
+    b.position.y = (m.pound > 0 ? Math.sin(m.pound * Math.PI) * 9 : 0) - (sleep ? 2.4 : 0);
+    b.rotation.x = sleep ? 0.25 : 0;
+    auraM.opacity = m.enraged ? 0.45 + Math.sin(t * 9) * 0.15 : 0;
+    r.aura.forEach((f, i) => { f.scale.y = 1 + Math.sin(t * 8 + i) * 0.3; });
   };
-  r.h = 9.5;
+  r.h = 3.9 * S;
   return r;
 }
 
@@ -75,6 +99,7 @@ function kravenoxModel(r, mt) {
 const Kvx = (() => {
   const DAY = 6, START = 20, END = 22;            // sábado, 20h–22h
   const ALLY_NAMES = ['Bruna Ferro', 'Tião do Arco', 'Zéfiro', 'Nanda Lumen', 'Grum Pedrabarba', 'Selvyn', 'Morgana Cinza', 'Duda Faísca', 'Otávio Brasa', 'Lia Sereno'];
+  const AR = () => FLOORS[5];                                   // topo da Torre do Cisma
   let boss = null, allies = [], teles = [], active = false, forced = false, checkT = 0, phaseT = 0, lastMsg = '';
   const forcedByLink = () => /kravenox/i.test(location.hash);
 
@@ -106,13 +131,13 @@ const Kvx = (() => {
 
   function wake() {
     if (boss) return;
-    boss = spawnMob('kravenox', null, LAIR);
-    boss.sx = LAIR.x; boss.sz = LAIR.z; boss.state = 'idle'; boss.specT = 5; boss.addT = 20; boss.meleeT = 2;
+    boss = spawnMob('kravenox', null, { x: AR().x, z: AR().z - 6 });
+    boss.sx = AR().x; boss.sz = AR().z - 6; boss.face = 0; boss.state = 'idle'; boss.specT = 5; boss.addT = 20; boss.meleeT = 2;
     active = true;
     banner('☠ KRAVENOX DESPERTOU ☠');
     Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 300);
-    log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> na Fenda de Kravenox! Todos os aventureiros estão indo para lá!', 'bad');
-    log('📍 A fenda fica ao sul dos Campos Dourados (caveira vermelha no minimapa).', 'gold');
+    log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> no topo da Torre do Cisma! Todos os aventureiros estão subindo!', 'bad');
+    log('📍 Ele está no <b>topo da Torre do Cisma</b>, na Cidadela do Cisma (extremo leste). Suba os 6 andares!', 'gold');
     spawnAllies();
   }
   function sleep(msg) {
@@ -132,9 +157,9 @@ const Kvx = (() => {
       const g = new THREE.Group(); scene.add(g);
       const L2 = buildAvatar(g, look);
       if (L2.ribbon) L2.ribbon = false;
-      const a = LAIR, ang = rand(0, TAU), rr0 = rand(28, 34);
+      const a = AR(), ang = rand(0, TAU), rr0 = rand(20, 27);
       const al = { g, L: L2, look, name: names[i], x: a.x + Math.cos(ang) * rr0, z: a.z + Math.sin(ang) * rr0, hp: 600, maxHp: 600, cd: rand(0, 1.5), down: 0, face: 0, atk: 0, moving: false, slot: ang };
-      if (blocked(al.x, al.z)) { al.x = LAIR.x + 10; al.z = LAIR.z + 26; }
+      if (blocked(al.x, al.z)) { al.x = AR().x + 6; al.z = AR().z + 22; }
       const lab = document.createElement('div'); lab.className = 'alabel'; lab.innerHTML = `${al.name}<small>${className(look.cls, look.gender)}</small><i><b></b></i>`;
       $('labels').appendChild(lab); al.lab = lab;
       allies.push(al);
@@ -204,16 +229,50 @@ const Kvx = (() => {
     scene.add(fill, edge);
     teles.push({ x, z, r, t: delay, max: delay, mult, fill, edge });
   }
+  // faixa (Raio da Essência)
+  function teleLine(x0, z0, a, len, w, delay, mult) {
+    const geo = new THREE.PlaneGeometry(w, len); geo.rotateX(-Math.PI / 2); geo.translate(0, 0, len / 2);
+    const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0.15, depthWrite: false }));
+    fill.position.set(x0, groundY(x0, z0) + 0.15, z0); fill.rotation.y = a; scene.add(fill);
+    const edge = new THREE.Object3D();
+    teles.push({ line: true, x: x0, z: z0, a, len, w, t: delay, max: delay, mult, fill, edge });
+  }
+  function inLine(tl, x, z) { const dx = x - tl.x, dz = z - tl.z, lz = dx * Math.sin(tl.a) + dz * Math.cos(tl.a), lx = dx * Math.cos(tl.a) - dz * Math.sin(tl.a); return lz > 0 && lz < tl.len && Math.abs(lx) < tl.w / 2; }
+  function beamFx(tl) {
+    const geo = new THREE.CylinderGeometry(1.2, 1.2, tl.len, 12, 1, true); geo.rotateX(Math.PI / 2); geo.translate(0, 0, tl.len / 2);
+    const b = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+    b.position.set(tl.x, groundY(tl.x, tl.z) + 9, tl.z); b.rotation.y = tl.a; scene.add(b);
+    fx.push({ m: b, life: 0.6, max: 0.6, kind: 'note', v: new THREE.Vector3(0, 0, 0) });
+    for (let k = 0; k < 10; k++) burst(new THREE.Vector3(tl.x + Math.sin(tl.a) * k * tl.len / 10, groundY(tl.x, tl.z) + 1, tl.z + Math.cos(tl.a) * k * tl.len / 10), 0xff3030, 4, 3, 0.6);
+  }
+  function spikeRing(x, z, r) {
+    const n = Math.max(5, Math.round(r * 1.6)), y = groundY(x, z);
+    for (let k = 0; k < n; k++) {
+      const a = k / n * TAU, rr = r * (0.3 + Math.random() * 0.7);
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.5 + Math.random() * 0.5, 3 + Math.random() * 4, 6), new THREE.MeshLambertMaterial({ color: 0x1a0a10, emissive: 0xc01010, emissiveIntensity: 0.8, transparent: true }));
+      sp.position.set(x + Math.cos(a) * rr, y + 1.5, z + Math.sin(a) * rr); scene.add(sp);
+      fx.push({ m: sp, life: 1.2, max: 1.2, kind: 'note', v: new THREE.Vector3(0, -0.4, 0) });
+    }
+    burst(new THREE.Vector3(x, y + 1, z), 0xff2a2a, 30, r, 0.8);
+  }
+  function clawFx(m) {
+    const geo = new THREE.RingGeometry(5, 11, 32, 1, -Math.PI * 0.4, Math.PI * 0.8); geo.rotateX(-Math.PI / 2);
+    const c = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    c.position.set(m.x, groundY(m.x, m.z) + 3, m.z); c.rotation.y = m.face - Math.PI / 2; scene.add(c);
+    fx.push({ m: c, life: 0.35, max: 0.35, kind: 'note', v: new THREE.Vector3(0, 0, 0) });
+  }
   function updateTeles(dt) {
     for (const tl of teles) {
       tl.t -= dt; const k = 1 - tl.t / tl.max;
-      tl.fill.scale.set(tl.r * k, 1, tl.r * k); tl.fill.material.opacity = 0.15 + k * 0.35;
+      if (tl.line) tl.fill.material.opacity = 0.15 + k * 0.45; else { tl.fill.scale.set(tl.r * k, 1, tl.r * k); tl.fill.material.opacity = 0.15 + k * 0.35; }
       if (tl.t <= 0) {
         tl.done = true; scene.remove(tl.fill); scene.remove(tl.edge);
-        Audio8.sfx('boom'); ring(tl.x, tl.z, tl.r, 0xff5030, 0.5);
+        Audio8.sfx('boom'); if (!tl.line) ring(tl.x, tl.z, tl.r, 0xff5030, 0.5);
         burst(new THREE.Vector3(tl.x, groundY(tl.x, tl.z) + 0.5, tl.z), 0xff4020, 26, tl.r * 1.5, 0.8);
-        if (boss && Math.hypot(P.x - tl.x, P.z - tl.z) < tl.r) hurtPlayer(boss, tl.mult);
-        allies.forEach(al => { if (Math.hypot(al.x - tl.x, al.z - tl.z) < tl.r) hurtAlly(al, 70 * tl.mult); });
+        const hit = (x, z) => tl.line ? inLine(tl, x, z) : Math.hypot(x - tl.x, z - tl.z) < tl.r;
+        if (tl.line) beamFx(tl);
+        if (boss && hit(P.x, P.z)) hurtPlayer(boss, tl.mult);
+        allies.forEach(al => { if (hit(al.x, al.z)) hurtAlly(al, 70 * tl.mult); });
       }
     }
     teles = teles.filter(t => !t.done);
@@ -229,47 +288,53 @@ const Kvx = (() => {
     const enr = m.enraged ? 1.4 : 1;
     // alvo: jogador ou aliado mais próximo dentro da arena
     const cands = [];
-    if (!P.dead && Math.hypot(P.x - LAIR.x, P.z - LAIR.z) < 30) cands.push({ x: P.x, z: P.z, p: true });
-    allies.forEach(al => { if (al.down <= 0 && Math.hypot(al.x - LAIR.x, al.z - LAIR.z) < 30) cands.push({ x: al.x, z: al.z, al }); });
+    if (!P.dead && Math.hypot(P.x - AR().x, P.z - AR().z) < 36) cands.push({ x: P.x, z: P.z, p: true });
+    allies.forEach(al => { if (al.down <= 0 && Math.hypot(al.x - AR().x, al.z - AR().z) < 36) cands.push({ x: al.x, z: al.z, al }); });
     if (!cands.length) {
-      if (Math.hypot(m.x - LAIR.x, m.z - LAIR.z) > 1) stepMob(m, LAIR.x, LAIR.z, m.d.speed, dt);
+      if (Math.hypot(m.x - m.sx, m.z - m.sz) > 1) stepMob(m, m.sx, m.sz, m.d.speed, dt);
       return;
     }
     cands.sort((a, b) => Math.hypot(a.x - m.x, a.z - m.z) - Math.hypot(b.x - m.x, b.z - m.z));
     const tg = Math.random() < 0.002 ? cands[irand(0, cands.length - 1)] : (m.focus && cands.includes(m.focus) ? m.focus : cands[0]);
     m.focus = tg;
     const d = Math.hypot(tg.x - m.x, tg.z - m.z);
-    if (m.stun > 0) { m.stun -= dt * 2; return; }                // chefe resiste ao atordoamento
-    if (d > 5.5) stepMob(m, tg.x, tg.z, m.d.speed * enr, dt);
+    m.pound = Math.max(0, (m.pound || 0) - dt / 1.3); m.beam = Math.max(0, (m.beam || 0) - dt);
+    if (m.stun > 0) { m.stun -= dt * 3; return; }                    // gigante quase não é atordoado
+    if (m.pound > 0 || m.beam > 0) return;                           // parado durante os golpes grandes
+    if (d > 11) stepMob(m, tg.x, tg.z, m.d.speed * enr, dt);
     else m.face = Math.atan2(tg.x - m.x, tg.z - m.z);
-    // mordida / garra
+    const fx = Math.sin(m.face), fz = Math.cos(m.face);
+    // Garra: meia-lua vermelha à frente
     m.meleeT -= dt * enr;
-    if (m.meleeT <= 0 && d < 7) {
-      m.meleeT = 2.2; m.roar = 0.4; Audio8.sfx('hurt');
-      if (tg.p) hurtPlayer(m, 1); else hurtAlly(tg.al, 90);
+    if (m.meleeT <= 0 && d < 16) {
+      m.meleeT = 3; m.swing = 1;
+      telegraph(m.x + fx * 9, m.z + fz * 9, 7.5, 0.7, 1.2, 0xff2a2a);
+      setTimeout(() => { if (boss) { clawFx(m); Audio8.sfx('crit'); } }, 650);
     }
     // golpes especiais
     m.specT -= dt * enr;
     if (m.specT <= 0) {
-      m.specT = 6; m.spec = ((m.spec || 0) + 1) % 3;
-      if (m.spec === 1) {
-        m.roar = 1.4; telegraph(m.x, m.z, 10, 1.6, 1.7);
-        log('☠ Kravenox ruge! <b>Saia do círculo vermelho!</b>', 'bad');
-      } else if (m.spec === 2) {
+      m.specT = 7; m.spec = ((m.spec || 0) + 1) % 3;
+      if (m.spec === 1) {                                              // Raio da Essência
+        const a = Math.atan2(tg.x - m.x, tg.z - m.z); m.face = a; m.beam = 1.6;
+        teleLine(m.x, m.z, a, 46, 6, 1.5, 2.0);
+        log('🔴 Kravenox carrega o <b>Raio da Essência</b>! Saia da faixa vermelha!', 'bad');
+      } else if (m.spec === 2) {                                       // Esmagamento
+        m.pound = 1; telegraph(m.x, m.z, 15, 1.3, 1.6, 0xff2a2a);
+        setTimeout(() => { if (boss) spikeRing(m.x, m.z, 15); }, 1250);
+        log('⬇️ Kravenox salta para o <b>Esmagamento</b>! Use a esquiva!', 'bad');
+      } else {                                                         // espinhos brotando sob os alvos
         const pts = [{ x: P.x, z: P.z }, ...allies.filter(a => a.down <= 0).map(a => ({ x: a.x, z: a.z }))].slice(0, 6);
-        pts.forEach((p, i) => setTimeout(() => boss && telegraph(p.x + rand(-1, 1), p.z + rand(-1, 1), 3.2, 1.4, 1.3, 0xff6a00), i * 150));
-        log(`☄️ Meteoros sombrios! <b>Use a esquiva (${TOUCH ? 'botão 💨' : 'Shift'}).</b>`, 'bad');
-      } else {
-        for (let i = 0; i < 3; i++) { const a = rand(0, TAU); telegraph(m.x + Math.cos(a) * rand(4, 9), m.z + Math.sin(a) * rand(4, 9), 3.5, 1.2, 1.2, 0xb020ff); }
-        if (m.enraged) telegraph(m.x, m.z, 6, 1.2, 1.4);
+        pts.forEach((p, i) => setTimeout(() => { if (boss) { telegraph(p.x, p.z, 3.4, 1.1, 1.3, 0xff2a2a); setTimeout(() => spikeRing(p.x, p.z, 3.4), 1050); } }, i * 120));
+        if (m.enraged) telegraph(m.x, m.z, 9, 1.1, 1.5);
       }
     }
     // crias
     m.addT -= dt;
     if (m.addT <= 0 && m.hp < m.maxHp * 0.75) {
       m.addT = 28;
-      for (let i = 0; i < 3; i++) { const c = spawnMob('besouro', null, { x: m.x + rand(-6, 6), z: m.z + rand(-6, 6) }); c.state = 'chase'; c.at = null; c.area = [m.x - 10, m.x + 10, m.z - 10, m.z + 10]; c.noRespawn = true; }
-      log('🪲 Kravenox invocou suas crias!', 'bad');
+      for (let i = 0; i < 3; i++) { const c = spawnMob('larva', null, { x: m.x + rand(-6, 6), z: m.z + rand(-6, 6) }); c.state = 'chase'; c.at = null; c.area = [m.x - 10, m.x + 10, m.z - 10, m.z + 10]; c.noRespawn = true; }
+      log('🐛 Kravenox chamou <b>Larvas da Essência</b>!', 'bad');
     }
   }
 
@@ -332,8 +397,8 @@ const Kvx = (() => {
     let body;
     if (boss) {
       const left = forced ? 'modo teste' : `termina em ${fmt(endTime() - new Date())}`;
-      const dist = Math.round(Math.hypot(P.x - LAIR.x, P.z - LAIR.z));
-      body = `<b class="live">● ACORDADO</b> · ${left}<br>${dist > 25 ? `📍 Fenda de Kravenox a ${dist} m (caveira no minimapa)` : 'Você está na fenda. Lute!'}`;
+      const onRoof = inTower(P.z) && Tower.floor === 5;
+      body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Você está no topo. Derrube o Soberano!' : '📍 Topo da Torre do Cisma — Cidadela do Cisma, extremo leste (caveira no minimapa)'}`;
     } else if (killedThisWeek()) body = `✅ Derrotado esta semana!<br>Próximo despertar em <b>${fmt(nextStart() - new Date())}</b>`;
     else body = `Desperta todo <b>sábado às 20h</b><br>Faltam <b>${fmt(nextStart() - new Date())}</b>`;
     const html = `<div class="wt">☠ Kravenox</div><div class="wb">${body}</div>`;
@@ -341,7 +406,7 @@ const Kvx = (() => {
     el.classList.toggle('live', !!boss);
   }
   function minimap(g, sx, sz) {
-    const x = (LAIR.x + WX) * sx, y = (LAIR.z + WZ) * sz;
+    const x = (TOWER.x + WX) * sx, y = (TOWER.z + WZ) * sz;
     const pulse = boss ? 3 + Math.sin(time * 6) * 2 : 0;
     g.fillStyle = boss ? '#ff2020' : 'rgba(60,10,50,.85)';
     g.beginPath(); g.arc(x, y, 5 + pulse, 0, TAU); g.fill();
