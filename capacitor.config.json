@@ -1,0 +1,7 @@
+{
+  "appId": "com.lyra.dancarina",
+  "appName": "Dançarina",
+  "webDir": "www",
+  "backgroundColor": "#1a1530",
+  "android": { "allowMixedContent": false }
+}

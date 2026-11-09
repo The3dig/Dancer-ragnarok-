@@ -1,0 +1,17 @@
+{
+  "name": "Dançarina: A Fita de Seda",
+  "short_name": "Dançarina",
+  "description": "RPG da dançarina Lyra, em 2D e no spin-off 3D Ritmo Perdido.",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1a1530",
+  "theme_color": "#2a1d52",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

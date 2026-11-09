@@ -58,3 +58,31 @@ embaixo da tela. Um golpe **PERFEITO** causa +60% de dano e aumenta o combo (at�
 
 A Mestra Odete dá uma sequência de missões que termina no **Guardião das Areias**.
 Usa [Three.js](https://threejs.org) r149 (licença MIT), incluído em `3d/lib/`.
+
+---
+
+# 📱 App para celular
+
+O jogo virou app de dois jeitos:
+
+**1. App Android (APK).** A cada push, o GitHub Actions (`.github/workflows/android.yml`) compila o APK e o publica
+na página **Releases** do repositório:
+- `android-teste`: gerado a partir de outros branches
+- `android-latest`: gerado a partir do `main`
+
+Abra a página pelo celular, baixe o `Dancarina.apk` e toque para instalar.
+O app abre deitado, em tela cheia, e a tela não apaga enquanto você joga.
+
+**2. PWA (instalar pelo navegador).** Funciona offline e tem ícone próprio. Para publicar:
+1. Em Settings → Pages, escolha "Source: GitHub Actions".
+2. Faça merge no `main`. O workflow `pages.yml` publica o site.
+3. No celular, abra o site e escolha "Adicionar à tela inicial".
+
+O jogo 3D tem controles por toque: joystick, ⚔️ ataque, ⤴ pulo, 💨 esquiva e 💬 conversar. Para girar a câmera, arraste a tela.
+
+Para gerar o APK no seu computador (precisa do Android Studio):
+```
+npm install
+npm run android:init
+cd android && ./gradlew assembleDebug
+```

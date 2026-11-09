@@ -12,11 +12,13 @@ const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); ret
 const TAU = Math.PI * 2;
 function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const R = mulberry(2024);
+const TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+if (TOUCH) document.body.classList.add('touch');
 const rr = (a, b) => a + R() * (b - a);
 
 // ---------------------------------------------------------------- renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -30,7 +32,7 @@ scene.fog = new THREE.Fog(SKY_GREEN.clone(), 55, 160);
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
 const hemi = new THREE.HemisphereLight(0xdff0ff, 0x6a7a4a, 0.8); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d8, 0.85);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.castShadow = true; sun.shadow.mapSize.set(TOUCH ? 1024 : 2048, TOUCH ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 140 });
 sun.shadow.bias = -0.0008;
 scene.add(sun, sun.target);
@@ -799,6 +801,7 @@ function updatePlayer(dt) {
   if (!dialogOpen) {
     if (keys.w || keys.arrowup) iz += 1; if (keys.s || keys.arrowdown) iz -= 1;
     if (keys.a) ix += 1; if (keys.d) ix -= 1;
+    if (joy.x || joy.y) { ix -= joy.x; iz -= joy.y; }
     if (keys.arrowleft) camS.yaw += dt * 2.2; if (keys.arrowright) camS.yaw -= dt * 2.2;
   }
   P.moving = false;
@@ -833,8 +836,9 @@ function updatePlayer(dt) {
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
   const pr = $('prompt');
-  if (nearNpc && !dialogOpen) { pr.innerHTML = `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
+  if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
+  $('t-talk').classList.toggle('hidden', !nearNpc || dialogOpen);
 }
 
 function updateMob(m, dt) {
@@ -1115,15 +1119,17 @@ cvEl.addEventListener('contextmenu', e => e.preventDefault());
 cvEl.addEventListener('pointerdown', e => {
   if (!running) return;
   Audio8.init();
-  drag = { x: e.clientX, y: e.clientY, b: e.button };
+  drag = { x: e.clientX, y: e.clientY, b: e.button, id: e.pointerId };
   if (e.button === 0 && e.pointerType === 'mouse') attack();
 });
 addEventListener('pointermove', e => {
-  if (!drag) return;
-  camS.yaw -= (e.clientX - drag.x) * 0.006; camS.pitch += (e.clientY - drag.y) * 0.005;
+  if (!drag || e.pointerId !== drag.id) return;
+  const ts = e.pointerType === 'touch' ? 1.4 : 1;
+  camS.yaw -= (e.clientX - drag.x) * 0.006 * ts; camS.pitch += (e.clientY - drag.y) * 0.005;
   drag.x = e.clientX; drag.y = e.clientY;
 });
-addEventListener('pointerup', () => { drag = null; });
+addEventListener('pointerup', e => { if (drag && e.pointerId === drag.id) drag = null; });
+addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) drag = null; });
 cvEl.addEventListener('wheel', e => { camS.dist += e.deltaY * 0.01; e.preventDefault(); }, { passive: false });
 addEventListener('keydown', e => {
   if (!running || e.target.tagName === 'INPUT') return;
@@ -1136,8 +1142,8 @@ addEventListener('keydown', e => {
   const si = SKILLS.findIndex(s => s.key === k); if (si >= 0) useSkill(si);
   if (k === 'j' || k === 'k') attack();
   if (k === 'q') usePotion('red'); if (k === 'e') usePotion('blue');
-  if (k === ' ' && P.onGround && !P.dead) { P.vy = 7.5; P.sit = false; }
-  if (k === 'shift' && P.dashCd <= 0 && !P.dead) { P.dashT = 0.2; P.dashCd = 0.9; Audio8.sfx('whip'); }
+  if (k === ' ') doJump();
+  if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc);
   if (k === 'c') toggleStats();
   if (k === 'x') { P.sit = !P.sit; log(P.sit ? 'Você se sentou para descansar.' : 'Você se levantou.', 'sys'); }
@@ -1146,8 +1152,37 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+function doJump() { if (P.onGround && !P.dead && !dialogOpen) { P.vy = 7.5; P.sit = false; } }
+function doDash() { if (P.dashCd <= 0 && !P.dead && !dialogOpen) { P.dashT = 0.2; P.dashCd = 0.9; P.sit = false; Audio8.sfx('whip'); } }
+
+// ---------------------------------------------------------------- controles por toque
+const joy = { x: 0, y: 0, id: null };
+{
+  const base = $('joy'), knob = $('knob');
+  const setJoy = e => {
+    const r = base.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, max = r.width / 2;
+    let dx = e.clientX - cx, dy = e.clientY - cy; const l = Math.hypot(dx, dy);
+    if (l > max) { dx *= max / l; dy *= max / l; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    const k = Math.hypot(dx, dy) / max;
+    joy.x = k > 0.2 ? dx / max : 0; joy.y = k > 0.2 ? dy / max : 0;
+  };
+  base.addEventListener('pointerdown', e => { Audio8.init(); joy.id = e.pointerId; base.setPointerCapture(e.pointerId); setJoy(e); e.preventDefault(); });
+  base.addEventListener('pointermove', e => { if (e.pointerId === joy.id) setJoy(e); });
+  const end = e => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; };
+  base.addEventListener('pointerup', end); base.addEventListener('pointercancel', end);
+  const btn = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); Audio8.init(); fn(); });
+  btn('t-atk', attack); btn('t-jump', doJump); btn('t-dash', doDash);
+  btn('t-talk', () => { if (nearNpc) talk(nearNpc); });
+  if (TOUCH) $('touch').classList.remove('hidden');
+}
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
 function showHelp() {
+  if (TOUCH) return dialog('📜 Como jogar', `
+  🕹️ <b>Joystick</b> (esquerda) para andar · <b>arraste a tela</b> para girar a câmera<br>
+  ⚔️ golpe de fita · ⤴ pular · 💨 esquivar · 💬 falar com NPC<br>
+  Toque nos ícones de baixo para as danças e poções.<br><br>
+  🎵 <b>Combate rítmico:</b> golpeie quando as barrinhas encontram o centro do marcador. <b style="color:#c08000">PERFEITO</b> = +60% de dano e aumenta o combo!`);
   dialog('📜 Como jogar', `
   <b>WASD</b> andar · <b>Arrastar o mouse</b> gira a câmera · <b>Roda</b> zoom<br>
   <b>Clique</b> ou <b>J</b> — golpe de fita · <b>Espaço</b> pular · <b>Shift</b> esquiva<br>
@@ -1181,6 +1216,7 @@ function start(fromSave) {
   L.handR.getWorldPosition(ribPts[0]); ribPts.forEach(p => p.copy(ribPts[0]));
   running = true; buildHotbar();
   if (fromSave) log(`Bem-vinda de volta, <b>${P.name}</b>!`, 'gold');
+  else if (TOUCH) { log(`Bem-vinda, <b>${P.name}</b>! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
   else { log(`Bem-vinda, <b>${P.name}</b>! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
 }
 $('btn-new').onclick = () => { if (loadSave() && !confirm('Começar um novo jogo vai apagar o progresso salvo. Continuar?')) return; start(false); };

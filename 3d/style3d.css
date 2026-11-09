@@ -36,3 +36,26 @@
 #title .sub { color: #e8d8ff; margin: 0 0 6px; font-size: 13px; }
 #title a { color: #9fd0ff; }
 @media (max-width: 640px) { #quest, #minimap { display: none; } }
+
+/* ---------- controles por toque ---------- */
+#touch { position: absolute; inset: 0; pointer-events: none; }
+#joy { position: absolute; left: calc(24px + env(safe-area-inset-left)); bottom: 24px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,26,40,.35); border: 2px solid rgba(255,255,255,.35); pointer-events: auto; touch-action: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffd0e8, #ff4fa3); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+#tbtns { position: absolute; right: calc(20px + env(safe-area-inset-right)); bottom: 20px; width: 170px; height: 170px; pointer-events: none; }
+#tbtns button { position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); background: rgba(20,26,40,.5); color: #fff; font-size: 24px; pointer-events: auto; touch-action: none; }
+#tbtns button:active { background: rgba(255,79,163,.6); }
+#t-atk { right: 0; bottom: 0; width: 92px; height: 92px; font-size: 38px !important; background: rgba(255,79,163,.45) !important; }
+#t-jump { right: 100px; bottom: 6px; width: 60px; height: 60px; }
+#t-dash { right: 20px; bottom: 100px; width: 60px; height: 60px; }
+#t-talk { right: 96px; bottom: 82px; width: 60px; height: 60px; background: rgba(255,207,64,.55) !important; }
+body.touch #chat { top: 6px; bottom: auto; left: 50%; transform: translateX(-50%); width: 36vw; height: 56px; font-size: 10px; pointer-events: none; opacity: .85; }
+body.touch #status { transform: scale(.8); transform-origin: top left; }
+body.touch #quest { top: 132px; transform: scale(.8); transform-origin: top left; }
+body.touch #minimap { width: 135px; height: 81px; }
+body.touch #menu button { width: 32px; height: 32px; font-size: 15px; }
+body.touch .slot { width: 40px; height: 40px; }
+body.touch #beatcv { width: 240px; height: 32px; }
+body.touch #judge { bottom: 100px; }
+body.touch #combo { top: 30%; }
+body.touch #combo b { font-size: 38px; }
+@media (max-height: 420px) { body.touch #quest { display: none; } }

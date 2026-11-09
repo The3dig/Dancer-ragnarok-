@@ -1,0 +1,58 @@
+name: App Android (APK)
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar projeto Android (ícones, splash, tela deitada)
+        run: npm run android:init
+
+      - name: Compilar APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Renomear APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Dancarina.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dancarina-apk
+          path: Dancarina.apk
+
+      - name: Publicar APK na página de Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.ref_name == 'main' && 'latest' || 'teste' }}
+          name: Dançarina — app Android (${{ github.ref_name }})
+          prerelease: ${{ github.ref_name != 'main' }}
+          target_commitish: ${{ github.sha }}
+          body: |
+            Baixe o **Dancarina.apk** no celular Android e abra o arquivo para instalar.
+            (Se o Android pedir, permita "instalar apps de fontes desconhecidas".)
+
+            Versão gerada do commit ${{ github.sha }}.
+          files: Dancarina.apk

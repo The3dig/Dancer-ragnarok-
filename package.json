@@ -1,0 +1,20 @@
+{
+  "name": "dancarina",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dançarina: A Fita de Seda + spin-off 3D Lyra: Ritmo Perdido",
+  "scripts": {
+    "build": "node scripts/build-www.js",
+    "serve": "npx --yes http-server www -p 8080 -c-1",
+    "android:init": "npm run build && npx cap add android && npx capacitor-assets generate --android && node scripts/patch-android.js",
+    "android:sync": "npm run build && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.1.2",
+    "@capacitor/core": "6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "6.1.2"
+  }
+}

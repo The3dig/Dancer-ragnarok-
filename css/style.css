@@ -90,3 +90,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #10141c; fon
   .slot { width: 40px; height: 40px; }
   .tbox h1 { font-size: 40px; }
 }
+
+/* celular deitado */
+@media (max-height: 500px) {
+  #status { transform: scale(.8); transform-origin: top left; }
+  #chat { height: 64px; width: 26vw; font-size: 10px; }
+  .slot { width: 40px; height: 40px; }
+  #title .tbox h1 { font-size: 38px; }
+  #title-cv { height: 110px; width: 155px; }
+}
