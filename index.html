@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Dançarina: A Fita de Seda</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div id="status" class="win">
+    <div class="wt"><span id="st-name">Lyra</span></div>
+    <div class="wb">
+      <div id="st-lv">Dançarina · Nv 1</div>
+      <div class="bar"><span class="lb">HP</span><div class="track"><div id="hpbar" class="fill hp"></div><em id="hptxt"></em></div></div>
+      <div class="bar"><span class="lb">SP</span><div class="track"><div id="spbar" class="fill sp"></div><em id="sptxt"></em></div></div>
+      <div class="bar"><span class="lb">XP</span><div class="track thin"><div id="xpbar" class="fill xp"></div><em id="xptxt"></em></div></div>
+      <div class="zeny">💰 <b id="zeny">0</b> z</div>
+      <div id="buffs"></div>
+    </div>
+  </div>
+
+  <div id="menu">
+    <button id="btn-stat" title="Atributos (A)">📊</button>
+    <button id="btn-sit" title="Sentar (X)">🧘</button>
+    <button id="btn-music" title="Música (M)">🎵</button>
+    <button id="btn-help" title="Ajuda (H)">❓</button>
+  </div>
+
+  <div id="chat" class="win"></div>
+  <div id="hotbar"></div>
+  <div id="statwin" class="win hidden"></div>
+  <div id="dialog" class="win hidden"></div>
+  <div id="banner"></div>
+</div>
+
+<div id="title">
+  <div class="tbox">
+    <h1>Dançarina</h1>
+    <h2>A Fita de Seda</h2>
+    <canvas id="title-cv" width="240" height="170"></canvas>
+    <input id="name-in" maxlength="16" placeholder="Nome da sua dançarina" value="Lyra">
+    <div class="tbtns">
+      <button id="btn-new">✨ Novo Jogo</button>
+      <button id="btn-cont">▶ Continuar</button>
+    </div>
+    <p class="hint">Clique para andar · Q W E R T para dançar · H para ajuda</p>
+  </div>
+</div>
+
+<script src="js/audio.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
