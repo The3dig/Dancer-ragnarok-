@@ -92,7 +92,7 @@ const Net = (() => {
         if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.45; restart = true; }
         if (r.atkT > 0) { r.atkT -= dt; anim = C.ranged ? 'Gun_Shoot' : (C.weapon === 'club' ? 'Punch_Right' : 'Sword_Slash'); once = true; }
         r.L.inst.play(anim, { once, restart, speed: anim === 'Run' ? 1 : 1.5 });
-        r.L.inst.update(dt);
+        r.L.inst.update(dt); updateFollow(r.L);
       }
       // nome, classe e vida
       const sp = toScreen(r.x, r.g.position.y + 2.15, r.z);

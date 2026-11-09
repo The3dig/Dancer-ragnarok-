@@ -15,25 +15,35 @@ const RACES = {
   humano: {
     name: 'Humano', desc: 'Versáteis e adaptáveis. Bons em qualquer classe.',
     bonus: { str: 1, agi: 1, vit: 1, int: 1, dex: 1, luk: 1 }, scale: [1, 1, 1],
+    classes: ['guerreiro', 'paladino', 'arqueira', 'assassino', 'arruaceiro', 'sacerdote', 'mago_luz', 'mago_negro', 'dancarina'],
     skins: [0xffd9be, 0xe8b48f, 0xb07a50],
   },
   anao: {
     name: 'Anão', desc: 'Baixos, largos e duros como pedra. Ótimos combatentes de linha de frente.',
     bonus: { vit: 3, str: 3, agi: -1, luk: 1 }, scale: [1.2, 0.78, 1.2], beard: true,
+    classes: ['guerreiro', 'saqueador', 'ferreira'],
     skins: [0xf2c6a2, 0xd49a72, 0xa8724c],
   },
   elfo: {
     name: 'Elfo', desc: 'Altos e graciosos, com olhos aguçados. Mestres do arco e da magia de luz.',
     bonus: { dex: 3, agi: 2, int: 1, vit: -1 }, scale: [0.94, 1.08, 0.94], ears: true,
+    classes: ['guerreiro', 'arqueira', 'dancarina', 'sacerdote', 'mago_luz'],
     skins: [0xfde6d4, 0xf0d2bc, 0xe4c0a0],
   },
   elfo_negro: {
     name: 'Elfo Negro', desc: 'Filhos das cavernas profundas. Letais nas sombras e nas artes proibidas.',
     bonus: { int: 3, agi: 2, luk: 1, vit: -1 }, scale: [0.94, 1.08, 0.94], ears: true,
+    classes: ['guerreiro', 'assassino', 'arqueira', 'dancarina', 'mago_negro', 'necromante'],
     skins: [0x8a8fb8, 0x6c7099, 0x55597e],
   },
 };
 
+RACES.orc = {
+  name: 'Orc', desc: 'Guerreiros das estepes queimadas. Força bruta, couro grosso e espíritos ancestrais.',
+  bonus: { str: 4, vit: 3, int: -1, dex: -1 }, scale: [1.16, 1.07, 1.16], orc: true, tusks: true,
+  classes: ['berserker', 'monge', 'xama'],
+  skins: [0x6f9a4a, 0x8a7a4a, 0x5a6a5a],
+};
 const HAIR_COLORS = [0xff7b6b, 0xf4d58d, 0x6b3e26, 0x1e1e24, 0xf2f2f2, 0x7fb7ff, 0xb48cff, 0x5fd38d];
 
 // Tipos de habilidade (motor genérico em game3d.js):
@@ -165,5 +175,52 @@ const CLASSES = {
     ],
   },
 };
+
+Object.assign(CLASSES, {
+  saqueador: {
+    name: { f: 'Saqueadora', m: 'Saqueador' }, role: 'Coletor de espólio. Bate pesado e arranca itens extras dos monstros.',
+    weapon: 'axe', outfit: 'leather', hat: 'goggles', colors: { cloth: 0x6a4a2a, trim: 0xc8a050, accent: 0x6ad0ff },
+    range: 3.0, dmg: 'str', aspd: 0.8, hp: 1.2, sp: 0.9, crit: 0.05, bonus: { str: 2, luk: 2, vit: 1 },
+    skills: [
+      { id: 'plunder', name: 'Pilhagem', icon: '💰', lv: 1, sp: 7, cd: 2, type: 'strike', mult: 1.6, plunder: true, color: 0xffcf40, desc: '160% de dano; se o alvo morrer logo, solta um item extra.' },
+      { id: 'stunhit', name: 'Martelada Atordoante', icon: '🔨', lv: 4, sp: 12, cd: 6, type: 'strike', mult: 2.0, stun: 2, color: 0xffaa40, desc: '200% de dano e 2s de atordoamento.' },
+      { id: 'treasure', name: 'Faro de Tesouro', icon: '🧭', lv: 8, sp: 18, cd: 40, type: 'buff', dur: 60, mods: { drop: 1.6, crit: 0.1 }, color: 0xffcf40, desc: '60s: +60% de chance de itens e +10% de crítico.' },
+      { id: 'avalanche', name: 'Avalanche', icon: '🪨', lv: 12, sp: 32, cd: 10, type: 'nova', r: 5, mult: 2.8, stun: 1, color: 0xb08a5a, desc: 'Rochas caem ao redor (280%) e atordoam.' },
+    ],
+  },
+  berserker: {
+    name: { f: 'Berserker', m: 'Berserker' }, role: 'Fúria pura. Machado gigante, quanto mais apanha, mais bate.',
+    weapon: 'greataxe', outfit: 'leather', hat: 'bandana', colors: { cloth: 0x5a2a1a, trim: 0x9a8a6a, accent: 0xd03a2a },
+    range: 3.4, dmg: 'str', aspd: 0.85, hp: 1.35, sp: 0.8, crit: 0.07, bonus: { str: 3, vit: 2 },
+    skills: [
+      { id: 'brutal', name: 'Golpe Brutal', icon: '🪓', lv: 1, sp: 7, cd: 1.6, type: 'strike', mult: 2.4, color: 0xff5a3a, desc: 'Um golpe de machado de 240%.' },
+      { id: 'warcry', name: 'Rugido de Guerra', icon: '📢', lv: 4, sp: 14, cd: 8, type: 'nova', r: 5, mult: 1.0, stun: 1.5, color: 0xff7a3a, desc: 'Um rugido que atordoa todos por perto.' },
+      { id: 'bloodrage', name: 'Fúria Sangrenta', icon: '🩸', lv: 8, sp: 10, cd: 30, type: 'buff', dur: 25, mods: { atk: 1.4, aspd: 1.25 }, hpCost: 0.1, color: 0xc0203a, desc: 'Sacrifica 10% do HP: +40% de dano e +25% de vel. de ataque.' },
+      { id: 'massacre', name: 'Massacre', icon: '💀', lv: 12, sp: 34, cd: 11, type: 'nova', r: 4.5, mult: 3.3, hits: 1, color: 0xff3a2a, desc: 'Gira o machado em fúria (330% ao redor).' },
+    ],
+  },
+  monge: {
+    name: { f: 'Monja de Punho', m: 'Monge de Punho' }, role: 'Lutador de mãos nuas. Combos rápidos e pele de pedra.',
+    weapon: 'fists', outfit: 'leather', hat: 'bandana', colors: { cloth: 0xc87a2a, trim: 0x3a2a1a, accent: 0xffcf40 },
+    range: 2.6, dmg: 'str', aspd: 0.5, hp: 1.2, sp: 1.0, crit: 0.08, bonus: { str: 2, agi: 2, vit: 1 },
+    skills: [
+      { id: 'flurry', name: 'Rajada de Punhos', icon: '👊', lv: 1, sp: 6, cd: 1.2, type: 'strike', mult: 0.9, hits: 3, color: 0xffcf40, desc: 'Três socos rápidos (90% cada).' },
+      { id: 'thunderpalm', name: 'Palma Trovejante', icon: '🖐️', lv: 4, sp: 14, cd: 6, type: 'blast', r: 3, mult: 1.8, stun: 1, color: 0x9fd0ff, desc: 'Onda de choque no alvo (180%) que atordoa.' },
+      { id: 'stoneskin', name: 'Pele de Pedra', icon: '🗿', lv: 8, sp: 16, cd: 30, type: 'buff', dur: 25, mods: { def: 25, aspd: 1.1 }, color: 0xb0a090, desc: '25s: +25 de defesa e +10% de vel. de ataque.' },
+      { id: 'finalfist', name: 'Punho Final', icon: '💥', lv: 12, sp: 30, cd: 9, type: 'charge', mult: 3.6, stun: 1.5, color: 0xffcf40, desc: 'Avança e acerta um soco de 360%.' },
+    ],
+  },
+  xama: {
+    name: { f: 'Xamã', m: 'Xamã' }, role: 'Fala com os espíritos do clã. Maldições, bênçãos e tempestades.',
+    weapon: 'staff', staffColor: 0x5fd38d, totem: true, outfit: 'robe', hat: 'feather', colors: { cloth: 0x4a3a2a, trim: 0xc8a050, accent: 0x5fd38d },
+    range: 11, dmg: 'int', ranged: true, magic: true, proj: 0x5fd38d, aspd: 1.0, hp: 1.05, sp: 1.3, crit: 0.03, bonus: { int: 3, vit: 1, luk: 1 },
+    skills: [
+      { id: 'ancestral', name: 'Raio Ancestral', icon: '⚡', lv: 1, sp: 9, cd: 1.4, type: 'bolt', mult: 2.0, magic: true, shots: 1, color: 0x5fd38d, desc: 'Um raio dos ancestrais (200%).' },
+      { id: 'clancurse', name: 'Maldição do Clã', icon: '🌀', lv: 4, sp: 16, cd: 7, type: 'blast', r: 4, mult: 1.2, magic: true, poison: 2, color: 0x7dff4a, desc: 'Maldição em área (120%) com veneno forte.' },
+      { id: 'ancblessing', name: 'Bênção dos Ancestrais', icon: '🪶', lv: 8, sp: 20, cd: 40, type: 'buff', dur: 45, mods: { atk: 1.25, matk: 1.25 }, heal: 0.15, color: 0xffe9a0, desc: '45s: +25% de dano físico e mágico; cura 15%.' },
+      { id: 'spiritstorm', name: 'Tempestade de Espíritos', icon: '🌪️', lv: 12, sp: 42, cd: 12, type: 'nova', r: 7, mult: 3.4, magic: true, color: 0x5fd38d, desc: 'Espíritos varrem a área (340%).' },
+    ],
+  },
+});
 
 function className(cls, gender) { return CLASSES[cls].name[gender] || CLASSES[cls].name.f; }

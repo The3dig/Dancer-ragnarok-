@@ -150,10 +150,11 @@ const Kvx = (() => {
 
   // ---------------- aliados
   function spawnAllies() {
-    const races = Object.keys(RACES), clss = Object.keys(CLASSES);
+    const races = Object.keys(RACES);
     const names = ALLY_NAMES.slice().sort(() => Math.random() - 0.5);
     for (let i = 0; i < 6; i++) {
-      const look = { race: races[irand(0, races.length - 1)], cls: clss[irand(0, clss.length - 1)], gender: Math.random() < 0.5 ? 'f' : 'm', hair: irand(0, 7), skin: irand(0, 2) };
+      const race = races[irand(0, races.length - 1)], clss = RACES[race].classes;
+      const look = { race, cls: clss[irand(0, clss.length - 1)], gender: Math.random() < 0.5 ? 'f' : 'm', hair: irand(0, 7), skin: irand(0, 2) };
       const g = new THREE.Group(); scene.add(g);
       const L2 = buildAvatar(g, look);
       if (L2.ribbon) L2.ribbon = false;
@@ -200,7 +201,7 @@ const Kvx = (() => {
       }
       if (al.L.model) {
         const st = al.atk > 0.9 ? (C.ranged ? 'Gun_Shoot' : 'Sword_Slash') : al.atk > 0 ? al.L.inst.curName : al.moving ? 'Run' : (C.ranged ? 'Idle' : 'Idle_Sword');
-        al.L.inst.play(st, { once: al.atk > 0, restart: al.atk > 0.97, speed: 1.4 }); al.L.inst.update(dt);
+        al.L.inst.play(st, { once: al.atk > 0, restart: al.atk > 0.97, speed: 1.4 }); al.L.inst.update(dt); updateFollow(al.L);
         al.g.position.set(al.x, groundY(al.x, al.z), al.z); al.g.rotation.y = al.face;
         continue;
       }

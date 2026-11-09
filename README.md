@@ -34,7 +34,9 @@ O progresso é salvo no navegador (localStorage).
 
 ---
 
-# 🌍 Crônicas de Solmira (3D)
+# 🌍 Reino Quebrado Online (3D)
+
+Antigo "Crônicas de Solmira". MMORPG 3D do universo Kravenox.
 
 Abra `3d/index.html`. É um MMORPG 3D de mundo aberto com criação de personagem:
 

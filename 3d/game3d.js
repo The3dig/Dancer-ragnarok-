@@ -789,7 +789,8 @@ function killMob(m) {
   if (m.model.inst) { m.model.inst.play(m.model.def.die, { once: true, restart: true }); corpses.push({ g: m.model.g, inst: m.model.inst, t: 1.6 }); }
   else scene.remove(m.model.g);
   drops.push(makeDrop('zeny', irand(...m.d.zeny), m.x, m.z));
-  for (const [it, ch] of m.d.drops) if (Math.random() < ch) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+  const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1);
+  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
   const xp = Math.round(m.d.xp * mult);
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP`, 'xp');
@@ -902,6 +903,7 @@ function useSkill(i) {
     case 'strike':
       slash(s.color); Audio8.sfx('whip'); hitOne(tgt, base);
       if (s.heal) healP(stats.maxHp() * s.heal);
+      if (s.plunder) tgt.plundered = time;
       if (s.steal) { const z = irand(5, 12) + tgt.d.lv * 2; P.zeny += z; Audio8.sfx('coin'); floater(P.x, P.y + 2, P.z, `+${z}z`, 'zeny'); }
       break;
     case 'nova':
@@ -1279,6 +1281,7 @@ function animateModel(dt) {
   else st = (C.weapon === 'ribbon' || C.ranged) ? 'Idle' : 'Idle_Sword';
   a.play(st, { once, speed, restart });
   a.update(dt);
+  updateFollow(L);
   if (L.orb) L.orb.scale.setScalar(1 + Math.sin(time * 5) * 0.15);
   if (L.cape) L.cape.rotation.x = 0.1 + (P.moving ? 0.5 : 0) + Math.sin(time * 4) * 0.05;
   lyra.visible = !(P.hurtT > 0 && Math.floor(time * 30) % 2);
@@ -1706,7 +1709,9 @@ function renderCreate() {
   };
   chips('c-race', Object.entries(RACES).map(([k, r]) => [k, r.name]), CREATE.race, v => { CREATE.race = v; CREATE.skin = 0; });
   chips('c-gender', [['f', 'Feminino'], ['m', 'Masculino']], CREATE.gender, v => CREATE.gender = v);
-  chips('c-class', Object.keys(CLASSES).map(k => [k, `${CLASSES[k].skills[0].icon} ${className(k, CREATE.gender)}`]), CREATE.cls, v => CREATE.cls = v);
+  const allowed = RACES[CREATE.race].classes || Object.keys(CLASSES);
+  if (!allowed.includes(CREATE.cls)) CREATE.cls = allowed[0];
+  chips('c-class', allowed.map(k => [k, `${CLASSES[k].skills[0].icon} ${className(k, CREATE.gender)}`]), CREATE.cls, v => CREATE.cls = v);
   chips('c-hair', HAIR_COLORS.map((c, i) => [i, '', `background:#${c.toString(16).padStart(6, '0')}`]), CREATE.hair, v => CREATE.hair = v);
   chips('c-skin', RACES[CREATE.race].skins.map((c, i) => [i, '', `background:#${c.toString(16).padStart(6, '0')}`]), CREATE.skin, v => CREATE.skin = v);
   const r = RACES[CREATE.race], c = CLASSES[CREATE.cls];

@@ -3,6 +3,9 @@
 //  e cria instâncias com animações prontas.
 // =====================================================================
 'use strict';
+const ANIM_ALIAS = {
+  orc_brute: { Run: 'Walk', Sword_Slash: 'Weapon', Punch_Right: 'Punch', Gun_Shoot: 'Punch', Roll: 'Walk', HitRecieve: 'HitReact', Idle_Sword: 'Idle', Wave: 'Idle', Interact: 'Idle' },
+};
 const ModelKit = (() => {
   const NAMES = ['adventurer', 'hooded_adventurer', 'worker', 'slime_pink', 'bee', 'mushroom_imp', 'crab', 'raptor', 'orc_brute', 'skeleton'];
   const lib = {};
@@ -72,6 +75,8 @@ const ModelKit = (() => {
     has(n) { return !!this.actions[n]; }
     clip(n) { return this.actions[n] ? this.actions[n].getClip().duration : 1; }
     play(n, { once = false, fade = 0.18, speed = 1, restart = false } = {}) {
+      if (!this.actions[n] && ANIM_ALIAS[this.name] && ANIM_ALIAS[this.name][n]) n = ANIM_ALIAS[this.name][n];
+      if (!this.actions[n]) n = this.actions.Idle ? 'Idle' : n;
       const a = this.actions[n]; if (!a) return;
       if (this.curName === n && !restart) { a.timeScale = speed; return; }
       a.reset(); a.timeScale = speed;
