@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Lyra: Ritmo Perdido</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="style3d.css">
+</head>
+<body>
+<div id="labels"><div id="pname" class="pname"></div></div>
+
+<div id="hud" class="hidden">
+  <div id="status" class="win">
+    <div class="wt"><span id="st-name">Lyra</span></div>
+    <div class="wb">
+      <div id="st-lv">Dançarina · Nv 1</div>
+      <div class="bar"><span class="lb">HP</span><div class="track"><div id="hpbar" class="fill hp"></div><em id="hptxt"></em></div></div>
+      <div class="bar"><span class="lb">SP</span><div class="track"><div id="spbar" class="fill sp"></div><em id="sptxt"></em></div></div>
+      <div class="bar"><span class="lb">XP</span><div class="track thin"><div id="xpbar" class="fill xp"></div><em id="xptxt"></em></div></div>
+      <div class="zeny">💰 <b id="zeny">0</b> z</div>
+      <div id="buffs"></div>
+    </div>
+  </div>
+  <div id="quest" class="win"></div>
+  <div id="menu">
+    <button id="btn-stat" title="Atributos (C)">📊</button>
+    <button id="btn-sit" title="Sentar (X)">🧘</button>
+    <button id="btn-music" title="Música (M)">🎵</button>
+    <button id="btn-help" title="Ajuda (H)">❓</button>
+  </div>
+  <canvas id="minimap" width="180" height="108"></canvas>
+  <div id="combo"></div>
+  <div id="judge"></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="chat" class="win"></div>
+  <div id="bottom">
+    <canvas id="beatcv" width="300" height="40"></canvas>
+    <div id="hotbar"></div>
+  </div>
+  <div id="statwin" class="win hidden"></div>
+  <div id="dialog" class="win hidden"></div>
+  <div id="banner"></div>
+</div>
+
+<div id="title" class="t3d">
+  <div class="tbox">
+    <h1>Lyra</h1>
+    <h2>Ritmo Perdido</h2>
+    <p class="sub">Um spin-off 3D de <i>Dançarina: A Fita de Seda</i></p>
+    <input id="name-in" maxlength="16" placeholder="Nome da sua dançarina" value="Lyra">
+    <div class="tbtns">
+      <button id="btn-new">✨ Novo Jogo</button>
+      <button id="btn-cont">▶ Continuar</button>
+    </div>
+    <p class="hint">WASD andar · Clique para golpear <b>no ritmo</b> · 1–5 danças · H ajuda</p>
+    <p class="hint"><a href="../index.html">← Jogar a versão 2D original</a></p>
+  </div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="../js/audio.js"></script>
+<script src="game3d.js"></script>
+</body>
+</html>

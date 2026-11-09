@@ -3,7 +3,7 @@
 // =====================================================================
 const Audio8 = (() => {
   let ctx = null, master, musicBus, sfxBus, noiseBuf;
-  let musicOn = true, current = null, timer = null, nextTime = 0, step = 0;
+  let musicOn = true, current = null, timer = null, nextTime = 0, step = 0, startTime = 0;
 
   const SEMI = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
   function freq(n) {
@@ -176,7 +176,7 @@ const Audio8 = (() => {
   function play(name) {
     if (!ctx) return;
     if (current === name) return;
-    current = name; step = 0; nextTime = ctx.currentTime + 0.1;
+    current = name; step = 0; nextTime = ctx.currentTime + 0.1; startTime = nextTime;
     if (!timer) timer = setInterval(scheduler, 25);
   }
   function stop() { current = null; }
@@ -209,5 +209,14 @@ const Audio8 = (() => {
     }
   }
 
-  return { init, play, stop, toggleMusic, sfx, get musicOn() { return musicOn; } };
+  // posição no compasso (usado pelo combate rítmico do spin-off 3D)
+  function beat() {
+    if (!ctx || !current) return null;
+    const bpm = TRACKS[current].bpm;
+    const b = (ctx.currentTime - startTime) * bpm / 60;
+    const ph = ((b % 1) + 1) % 1;
+    return { bpm, beat: b, phase: ph, offset: Math.min(ph, 1 - ph) * 60 / bpm };
+  }
+
+  return { init, play, stop, toggleMusic, sfx, beat, get musicOn() { return musicOn; } };
 })();

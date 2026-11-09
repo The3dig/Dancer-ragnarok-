@@ -1,0 +1,38 @@
+#cv3 { position: fixed; inset: 0; display: block; touch-action: none; }
+#hud { z-index: 2; }
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.mlabel { position: absolute; left: 0; top: 0; text-align: center; white-space: nowrap; font: bold 11px Verdana; color: #ffd0d0; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.mlabel.boss { color: #ffcf40; font-size: 13px; }
+.mlabel small { color: #ddd; font-weight: normal; }
+.mlabel i { display: block; width: 50px; height: 5px; margin: 2px auto 0; background: rgba(0,0,0,.6); border: 1px solid #000; }
+.mlabel.boss i { width: 120px; height: 7px; }
+.mlabel b { display: block; height: 100%; background: #4cd964; }
+.mlabel.stun span::after { content: ' ★'; color: #ffcf40; }
+.pname { position: absolute; left: 0; top: 0; font: bold 12px Verdana; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.dmg { position: absolute; left: 0; top: 0; font: bold 18px Verdana; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000; }
+.dmg.crit { color: #ffcf40; font-size: 24px; }
+.dmg.hurt { color: #ff5a5a; }
+.dmg.miss { color: #8fd3ff; font-size: 14px; }
+.dmg.heal { color: #7dff9a; font-size: 20px; }
+.dmg.sp { color: #6fb3ff; }
+.dmg.zeny { color: #ffcf40; font-size: 14px; }
+.dmg.lvl { color: #ffcf40; font-size: 28px; }
+
+#quest { position: absolute; top: 175px; left: 8px; width: 220px; font-size: 11px; }
+#quest .wt { background: linear-gradient(#d6a84a, #b07a20); text-shadow: 0 1px 0 #6a4a10; }
+#minimap { position: absolute; top: 52px; right: 8px; border: 2px solid #8fa2bc; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,.4); }
+#statwin { top: 170px; }
+#bottom { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#bottom #hotbar { position: static; transform: none; }
+#combo { position: absolute; right: 24px; top: 40%; text-align: right; color: #fff; font: bold 16px Georgia, serif; text-shadow: 0 2px 6px #000; pointer-events: none; }
+#combo b { display: block; font-size: 52px; color: #ffcf40; line-height: 1; }
+#combo small { display: block; font: 11px Verdana; color: #ffd0e8; }
+#judge { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); font: bold 22px Georgia, serif; opacity: 0; pointer-events: none; text-shadow: 0 2px 6px #000; }
+#judge.perfect { color: #ffcf40; } #judge.good { color: #7dff9a; } #judge.miss { color: #aab; font-size: 15px; }
+#judge.pop { animation: judge .6s ease-out; }
+@keyframes judge { 0% { opacity: 1; transform: translateX(-50%) scale(1.4); } 60% { opacity: 1; transform: translateX(-50%) scale(1); } 100% { opacity: 0; transform: translateX(-50%) translateY(-14px); } }
+#prompt { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); background: rgba(20,26,40,.8); color: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid #ffcf40; }
+#title.t3d { background: linear-gradient(180deg, rgba(30,20,60,.55), rgba(10,8,20,.2) 40%, rgba(10,8,20,.75)); align-items: flex-end; padding-bottom: 6vh; }
+#title .sub { color: #e8d8ff; margin: 0 0 6px; font-size: 13px; }
+#title a { color: #9fd0ff; }
+@media (max-width: 640px) { #quest, #minimap { display: none; } }

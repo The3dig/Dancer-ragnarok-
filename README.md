@@ -31,3 +31,30 @@ Cada mapa tem uma música própria, gerada em tempo real com WebAudio (`js/audio
 - ✨ Grande Finale (Nv 12): dano muito alto em área
 
 O progresso é salvo no navegador (localStorage).
+
+---
+
+# 🌟 Spin-off 3D: Lyra — Ritmo Perdido
+
+Abra `3d/index.html`. É um jogo de ação em 3D, com câmera em terceira pessoa, e se passa no mesmo mundo:
+Solmira, Campos Dourados, Areias Rubras e Oásis de Kharum, num único mapa contínuo. Os monstros são os mesmos do jogo 2D.
+
+**Combate rítmico:** a melodia do mundo saiu do compasso. Golpeie no tempo da música, guiando-se pelo marcador
+embaixo da tela. Um golpe **PERFEITO** causa +60% de dano e aumenta o combo (até +100%). Errar o tempo zera o combo.
+
+| Controle | Ação |
+|---|---|
+| WASD | Andar |
+| Arrastar o mouse / roda | Girar a câmera / zoom |
+| Clique ou J | Golpe de fita |
+| Espaço / Shift | Pular / esquivar |
+| 1–5 | Danças especiais |
+| Q / E | Poção Vermelha / Poção Azul |
+| F | Falar com NPC |
+| C | Atributos |
+| X | Sentar |
+| M | Música |
+| H | Ajuda |
+
+A Mestra Odete dá uma sequência de missões que termina no **Guardião das Areias**.
+Usa [Three.js](https://threejs.org) r149 (licença MIT), incluído em `3d/lib/`.
