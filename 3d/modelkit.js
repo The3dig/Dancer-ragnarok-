@@ -4,7 +4,7 @@
 // =====================================================================
 'use strict';
 const ModelKit = (() => {
-  const NAMES = ['adventurer', 'hooded_adventurer', 'worker', 'slime_pink', 'bee', 'mushroom_imp', 'crab', 'raptor', 'orc_brute', 'dragon', 'dragon_whelp', 'skeleton'];
+  const NAMES = ['adventurer', 'hooded_adventurer', 'worker', 'slime_pink', 'bee', 'mushroom_imp', 'crab', 'raptor', 'orc_brute', 'skeleton'];
   const lib = {};
   let ready = false, failed = false;
   const _v = new THREE.Vector3();

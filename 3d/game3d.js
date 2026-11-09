@@ -523,7 +523,7 @@ const MOB_MODELS = {
   besouro:   { m: 'crab', h: 0.95, idle: 'Idle', walk: 'Walk', atk: 'Bite_Front', die: 'Death' },
   serpe:     { m: 'raptor', h: 1.35, idle: 'Velociraptor_Idle', walk: 'Velociraptor_Run', atk: 'Velociraptor_Attack', die: 'Velociraptor_Death', tint: { '*': 0xc8955a } },
   guardiao:  { m: 'orc_brute', h: 3.6, idle: 'Idle', walk: 'Walk', atk: 'Weapon', die: 'Death', tint: { Orc_Main: 0xc79a5c, Orc_Secondary: 0x8a5a32 } },
-  kravenox:  { m: 'dragon', h: 7.5, y: 1.2, idle: 'Flying_Idle', walk: 'Fast_Flying', atk: 'Headbutt', atk2: 'Punch', die: 'Death', tint: { Dragon_Main: 0x2c1a3c, Dragon_Secondary: 0x8a1838, Dragon_Horn: 0xe8dcc8 } },
+  // Kravenox mantém o visual original (kravenoxModel em kravenox.js)
 };
 function mobFromModel(type, r) {
   const d = MOB_MODELS[type], inst = ModelKit.instance(d.m, d.h);
