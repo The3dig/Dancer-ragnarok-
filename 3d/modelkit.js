@@ -33,7 +33,7 @@ const ModelKit = (() => {
     let n = 0;
     try {
       for (const name of NAMES) {
-        if (!(window.GLB && window.GLB[name])) await loadScript(`models/${name}.js`);
+        if (!(window.GLB && window.GLB[name])) await loadScript(`${window.GAME_BASE || ''}models/${name}.js`);
         const gltf = await new Promise((res, rej) => loader.parse(b64ToBuf(window.GLB[name]), '', res, rej));
         delete window.GLB[name];
         gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
