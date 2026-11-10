@@ -22,6 +22,22 @@ const Vida = (() => {
     ovo: ['Ovo', '🥚', 8, 0, 'colheita'], la: ['Lã', '🧶', 20, 0, 'colheita'], leite: ['Leite', '🥛', 14, 0, 'colheita'],
     pao: ['Pão de Trigo', '🍞', 10, 0, 'comida', { heal: 0.3 }],
   };
+  // equipamentos: pow = dano (físico para lutadores, mágico para magos)
+  const GEAR = {
+    arma_ferro: ['Arma de Ferro Velho', '⚔️', 'arma', 120, { pow: 6 }],
+    arma_cristal: ['Arma de Cristal', '🗡️', 'arma', 480, { pow: 14 }],
+    arma_essencia: ['Arma da Essência', '🔱', 'arma', 0, { pow: 26, crit: 0.03 }, 600],
+    manto: ['Manto de Viajante', '🧥', 'armadura', 90, { def: 4, hp: 30 }],
+    cota: ['Cota do Reino', '🦺', 'armadura', 420, { def: 10, hp: 90 }],
+    arm_negra: ['Armadura Negra', '🥋', 'armadura', 0, { def: 18, hp: 180 }, 650],
+    anel_raiz: ['Anel de Raiz', '💍', 'acessorio', 150, { crit: 0.03, sp: 10 }],
+    amuleto: ['Amuleto da Fonte', '📿', 'acessorio', 380, { sp: 40, hp: 40 }],
+    marca: ['Marca dos Quatro Espinhos', '✴️', 'acessorio', 0, { pow: 8, crit: 0.06 }, 900],
+  };
+  for (const [id, [name, ic, slot, price, mods, sell]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, price: price || sell * 2, sell: sell || Math.round(price / 2) };
+  const SLOTS = { arma: 'Arma', armadura: 'Armadura', acessorio: 'Acessório' };
+  const MODN = { pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico' };
+  const modTxt = m => Object.entries(m || {}).map(([k, v]) => `${MODN[k]} +${k === 'crit' ? Math.round(v * 100) + '%' : v}`).join(' · ');
   for (const [id, [name, ic, sell, price, kind, extra]] of Object.entries(NEW)) ITEMS[id] = { name, ic, sell, price: price || sell * 2, kind, ...(extra || {}) };
   const it = id => ITEMS[id] || { name: id, ic: '❔', sell: 0, price: 0 };
   const has = (id, n = 1) => (P.inv[id] || 0) >= n;
@@ -30,6 +46,9 @@ const Vida = (() => {
   // materiais que cada monstro solta
   const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.45]);
+  const GEAR_DROP = { besouro: [['manto', 0.03], ['anel_raiz', 0.02]], serpe: [['arma_cristal', 0.02], ['cota', 0.02]], guardiao: [['arma_essencia', 0.3], ['arm_negra', 0.25]],
+    sentinela: [['arm_negra', 0.04], ['arma_essencia', 0.03]], kravenox: [['marca', 1], ['arma_essencia', 1]], verme: [['cota', 0.04]], esfera: [['amuleto', 0.04]] };
+  for (const [t, l] of Object.entries(GEAR_DROP)) if (MOBDEF[t]) MOBDEF[t].drops.push(...l);
 
   // ---------------------------------------------------------------- Sítio
   const CROPS = {
@@ -202,6 +221,12 @@ const Vida = (() => {
       { label: '← Voltar', fn: () => { menu(); return true; } }]);
     menu();
   }
+  function gearShop() {
+    const sh = () => dialog('⚔️ Equipamentos', `Equipe pela 🎒 mochila. <small>Zeny: <b>${P.zeny}z</b></small>`, [
+      ...Object.keys(GEAR).filter(id => GEAR[id][3]).map(id => ({ label: `${it(id).ic} ${it(id).name} — ${it(id).price}z (${modTxt(it(id).mods)})`, fn: () => { if (buyIt(id, 1, it(id).price)) log(`Comprou <b>${it(id).name}</b>. Equipe pela mochila 🎒.`, 'item'); sh(); return true; } })),
+      { label: 'Sair' }]);
+    sh();
+  }
   // vende ao NPC (materiais e colheita)
   function sellAll(kinds = ['mat', 'colheita']) {
     let z = 0, parts = [];
@@ -210,16 +235,56 @@ const Vida = (() => {
     P.zeny += z; Audio8.sfx('coin'); log(`Vendeu ${parts.join(', ')} por <b>${z}z</b>.`, 'gold');
   }
 
-  // ---------------------------------------------------------------- mochila
-  function bag() {
+  // ---------------------------------------------------------------- mochila (inventário com o personagem)
+  const gear = k => { let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += ITEMS[id].mods[k] || 0; } return v; };
+  let sel = null;
+  function invWin() {
+    let w = $('invwin');
+    if (!w) {
+      w = document.createElement('div'); w.id = 'invwin'; w.className = 'win hidden'; $('hud').appendChild(w);
+      w.addEventListener('click', e => { const t = e.target.closest('[data-a]'); if (!t) return; Audio8.sfx('click'); act(t.dataset.a, t.dataset.v); });
+    }
+    return w;
+  }
+  function bag() { $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); if (dialogOpen) closeDialog(); sel = null; renderInv(); invWin().classList.remove('hidden'); }
+  function closeInv() { invWin().classList.add('hidden'); }
+  function renderInv() {
+    P.equip = P.equip || {};
+    const C = CLASSES[P.cls], spr = C.sprite ? (C.sprite.kind === 'dir' ? C.sprite.base + '_down_0' : C.sprite.base + '_down_0') : null;
+    const img = spr && window.SPR && SPR[spr] ? `<img class="doll-img" src="data:image/png;base64,${SPR[spr]}">` : '';
+    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on' : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}</small><br>${id ? it(id).name : '<i>vazio</i>'}</span></div>`; }).join('');
     const ids = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
-    const list = ids.length ? ids.map(id => `<span class="bagi">${it(id).ic} ${it(id).name} <b>×${P.inv[id]}</b></span>`).join('') : '<i>Vazia. Derrote monstros para juntar materiais.</i>';
-    const opts = [];
-    for (const id of ids) if (ITEMS[id].use || ITEMS[id].heal) opts.push({ label: `Usar ${it(id).ic} ${it(id).name}`, fn: () => { use(id); bag(); return true; } });
-    opts.push({ label: '🤝 Trocar com jogador', fn: () => { tradePick(); return true; } });
-    opts.push(st.stall ? { label: '🏪 Fechar minha banca', fn: () => { closeStall(); bag(); return true; } } : { label: '🏪 Abrir banca', fn: () => { stallSetup(); return true; } });
-    opts.push({ label: 'Fechar' });
-    dialog(`🎒 Mochila <small>· ${P.zeny}z</small>`, `<div class="bag">${list}</div>`, opts);
+    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq' : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || '<i class="empty">Vazia. Derrote monstros para juntar materiais.</i>';
+    let det = '<small>Toque num item para ver o que dá para fazer.</small>';
+    if (sel && sel.startsWith('eq:')) {
+      const sl = sel.slice(3), id = P.equip[sl];
+      det = id ? `<b>${it(id).ic} ${it(id).name}</b> <small>${modTxt(it(id).mods)}</small><div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button></div>` : `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
+    } else if (sel && P.inv[sel] > 0) {
+      const I = ITEMS[sel], btns = [];
+      if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
+      if (I.use || I.heal) btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`);
+      det = `<b>${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? SLOTS[I.slot] + ' · ' + modTxt(I.mods) : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : 'Vende por ' + I.sell + 'z no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
+    }
+    const mag = CLASSES[P.cls].magic;
+    invWin().innerHTML = `<div class="wt">🎒 Mochila <small>· ${P.zeny}z</small><span class="x" data-a="close">×</span></div>
+      <div class="invb">
+        <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div>${slots}
+          <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div></div>
+        <div class="invr"><div class="igrid">${cells}</div><div class="idet">${det}</div>
+          <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>
+      </div>`;
+  }
+  function act(a, v) {
+    if (a === 'close') return closeInv();
+    if (a === 'sel') sel = sel === v ? null : v;
+    if (a === 'eq') sel = 'eq:' + v;
+    if (a === 'equip') { const sl = ITEMS[v].slot; P.equip = P.equip || {}; if (P.equip[sl]) add(P.equip[sl], 1); add(v, -1); P.equip[sl] = v; Audio8.sfx('buff'); log(`Equipou <b>${it(v).name}</b>.`, 'item'); sel = 'eq:' + sl; }
+    if (a === 'unequip') { const id = P.equip[v]; if (id) { add(id, 1); P.equip[v] = null; log(`Tirou <b>${it(id).name}</b>.`, 'sys'); } }
+    if (a === 'use') { use(v); if (!P.inv[v]) sel = null; }
+    if (a === 'trade') { closeInv(); return tradePick(); }
+    if (a === 'stall') { closeInv(); return st.stall ? closeStall() : stallSetup(); }
+    P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
+    renderInv();
   }
   function use(id) {
     if (ITEMS[id].use === 'pot') return usePotion(id);
@@ -415,5 +480,5 @@ const Vida = (() => {
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, get stall() { return st.stall; } };
+  return { init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, get stall() { return st.stall; } };
 })();
