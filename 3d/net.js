@@ -5,7 +5,7 @@
 // =====================================================================
 'use strict';
 const Net = (() => {
-  let room = null, sendT = 0, lastSent = '', online = 1;
+  let room = null, sendT = 0, lastSent = '', online = 1, myPeer = null;
   const remotes = new Map();   // peer -> jogador remoto
   const seenSay = new Map();
 
@@ -18,6 +18,7 @@ const Net = (() => {
     room.onPeers(ch => {
       for (const p of ch.left) drop(p.peer);
       online = ch.peers.length || 1;
+      for (const p of ch.peers) if (p.isMe && p.sameTab) myPeer = p.peer;
       for (const p of ch.peers) if (!p.isMe || !p.sameTab) upsert(p);
       updateBadge();
       for (const p of ch.joined) if (!p.sameTab && p.presence && p.presence.n) log(`👋 <b>${esc(p.presence.n)}</b> entrou no mundo.`, 'item');
@@ -74,9 +75,11 @@ const Net = (() => {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
         kd: P.kvxDmg || null, title: P.title || null, say: P.say || null,
+        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}),
       };
       const j = JSON.stringify(pres);
       if (j !== lastSent) { lastSent = j; room.presence(pres).catch(() => { }); }
+      if (typeof Vida !== 'undefined') Vida.onPeers(peers());
     }
     for (const r of remotes.values()) {
       const s = r.s || {};
@@ -103,7 +106,7 @@ const Net = (() => {
       const near = Math.hypot(r.x - P.x, r.z - P.z) < 45;
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;
-      const html = `${esc(s.n)} <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : ''}</small><i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
+      const html = `${esc(s.n)} <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
       if (r.lab.dataset.h !== html) { r.lab.innerHTML = html; r.lab.dataset.h = html; }
       if (r.bubT > 0) {
         r.bubT -= dt; r.bub.classList.remove('hidden');
@@ -133,5 +136,8 @@ const Net = (() => {
     if (myBubT > 0) { myBubT -= dt; const sp = toScreen(P.x, P.y + 2.7, P.z); b.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`; }
     else b.classList.add('hidden');
   }
-  return { init, update, kvxOthers, say, tickMyBubble, get connected() { return !!room; }, get count() { return remotes.size + 1; } };
+  // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
+  function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
+  return { peers, get me() { return myPeer; },
+    init, update, kvxOthers, say, tickMyBubble, get connected() { return !!room; }, get count() { return remotes.size + 1; } };
 })();

@@ -107,10 +107,11 @@ const FLOORS = [0, 1, 2, 3, 4, 5].map(i => ({ i, x: -250 + i * 100, z: TZ, y: 40
 const inTower = z => z > 300;
 const floorAt = (x, z) => { for (const f of FLOORS) if (Math.hypot(x - f.x, z - f.z) < f.r + 6) return f; return null; };
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
+const FARM = { x: -176, z: 0 };   // Sítio de Solmira (vida.js)
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
 function dRoad(x, z) {
   let d = Math.abs(z);
-  if (x < -140 || x > 200) d = 99;
+  if (x < -162 || x > 200) d = 99;
   const bd = Math.abs(x - 115) + (z < 0 ? -z : z > 40 ? z - 40 : 0);
   return Math.min(d, bd);
 }
@@ -118,6 +119,7 @@ function zoneOf(x, z) {
   if (inTower(z)) { const f = floorAt(x, z); return f && f.i === 5 ? 'topo' : 'torre'; }
   if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
+  if (Math.hypot(x - FARM.x, z - FARM.z) < 22) return 'sitio';
   if (x < -62) return 'solmira';
   if (Math.hypot(x - OAS.x, z - OAS.z) < 34) return 'kharum';
   if (x >= 48) return 'areias';
@@ -129,6 +131,7 @@ function height(x, z) {
   h += des * (Math.sin(x * 0.07 + z * 0.035) * 1.6 + Math.cos(z * 0.11) * 0.7);
   let f = smooth(3, 10, dRoad(x, z));
   f *= smooth(36, 50, Math.hypot(x - VIL.x, z - VIL.z));
+  f *= smooth(20, 30, Math.hypot(x - FARM.x, z - FARM.z));
   f *= smooth(26, 36, Math.hypot(x - OAS.x, z - OAS.z));
   f *= smooth(14, 22, Math.hypot(x - RUIN.x, z - RUIN.z));
   f *= smooth(19, 27, Math.hypot(x - LAIR.x, z - LAIR.z));
@@ -252,6 +255,7 @@ for (let a = 0; a < TAU; a += 0.09) {
 for (let i = 0; i < 3200 && trees.length < 470; i++) {
   const x = rr(-WX + 5, 46), z = rr(-WZ + 5, WZ - 5);
   if (Math.hypot(x - VIL.x, z - VIL.z) < 52 && x < -55) continue;
+  if (Math.hypot(x - FARM.x, z - FARM.z) < 24) continue;
   if (WHEAT.some(([wx, wz, ww, wd]) => x > wx - 2 && x < wx + ww + 2 && z > wz - 2 && z < wz + wd + 2)) continue;
   if (!freeSpot(x, z, 6)) continue;
   trees.push({ x, z, s: rr(0.8, 1.4) });
@@ -713,7 +717,7 @@ const QUESTS = [
 
 // ---------------------------------------------------------------- estado
 let mobs = [], drops = [], fx = [], floaters = [], respawnQ = [], corpses = [];
-let time = 0, running = false, zone = null, nearNpc = null, dialogOpen = false;
+let time = 0, running = false, zone = null, nearNpc = null, nearUse = null, dialogOpen = false;
 const keys = {};
 const camS = { yaw: Math.PI, pitch: 0.42, dist: 9, x: 0, y: 0, z: 0 };
 
@@ -855,9 +859,10 @@ function killMob(m) {
   respawnQ.push({ type: m.type, area: m.area, at: m.at, t: m.d.respawn });
 }
 const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: new THREE.SphereGeometry(0.16, 10, 8), blue: new THREE.SphereGeometry(0.16, 10, 8) };
-const dropMat = { zeny: new THREE.MeshLambertMaterial({ color: 0xf5c518, emissive: 0x604000 }), red: new THREE.MeshLambertMaterial({ color: 0xe8312f, emissive: 0x400000 }), blue: new THREE.MeshLambertMaterial({ color: 0x2f7ae8, emissive: 0x001840 }) };
+dropGeo.mat = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+const dropMat = { mat: new THREE.MeshLambertMaterial({ color: 0xc8b070, emissive: 0x302810 }), zeny: new THREE.MeshLambertMaterial({ color: 0xf5c518, emissive: 0x604000 }), red: new THREE.MeshLambertMaterial({ color: 0xe8312f, emissive: 0x400000 }), blue: new THREE.MeshLambertMaterial({ color: 0x2f7ae8, emissive: 0x001840 }) };
 function makeDrop(id, n, x, z) {
-  const m = new THREE.Mesh(dropGeo[id], dropMat[id]); m.castShadow = true;
+  const m = new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
   if (id === 'zeny') m.rotation.x = Math.PI / 2;
   m.position.set(x, groundY(x, z) + 0.4, z); scene.add(m);
   return { id, n, x, z, m, t: 0 };
@@ -1134,6 +1139,7 @@ function usePotion(id) {
 // ---------------------------------------------------------------- atualização
 const ZONES = {
   solmira: { name: 'Vila de Solmira', music: 'solmira', town: true },
+  sitio: { name: 'Sítio de Solmira', music: 'solmira' },
   campos: { name: 'Campos Dourados', music: 'campos' },
   areias: { name: 'Areias Rubras', music: 'areias' },
   lair: { name: 'Cratera do Cisma', music: 'areias' },
@@ -1149,6 +1155,7 @@ function update(dt) {
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
+  if (typeof Vida !== 'undefined') Vida.update(dt);
   updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
@@ -1246,9 +1253,11 @@ function updatePlayer(dt) {
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
   const pr = $('prompt');
+  nearUse = !nearNpc && typeof Vida !== 'undefined' ? Vida.nearest() : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
+  else if (nearUse && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
-  $('t-talk').classList.toggle('hidden', !nearNpc || dialogOpen);
+  $('t-talk').classList.toggle('hidden', !(nearNpc || nearUse) || dialogOpen);
 }
 
 function updateMob(m, dt) {
@@ -1618,6 +1627,7 @@ function talk(n) {
         { label: `🧪 Poção Vermelha — 25z`, fn: () => { buy('red', 1); shop(); return true; } },
         { label: `🧪×10 — 250z`, fn: () => { buy('red', 10); shop(); return true; } },
         { label: `💧 Poção Azul — 90z`, fn: () => { buy('blue', 1); shop(); return true; } },
+        { label: '💰 Vender materiais e colheita', fn: () => { Vida.sellAll(); shop(); return true; } },
         { label: 'Sair' }]);
       shop(); break;
     }
@@ -1638,6 +1648,7 @@ function talk(n) {
       } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`);
       break;
     }
+    case 'farm': Vida.talkFarm(eu); break;
     case 'watch': dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
     case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor. Volte quando estiver acima do nível 15.`); break;
@@ -1681,7 +1692,7 @@ addEventListener('keydown', e => {
   if (k === 'q') usePotion('red'); if (k === 'e') usePotion('blue');
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
-  if (k === 'f' && nearNpc) talk(nearNpc);
+  if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
   if (k === 'c') toggleStats();
   if (k === 'enter') { e.preventDefault(); openChat(); return; }
   if (k === 'k') toggleSkills();
@@ -1712,7 +1723,7 @@ const joy = { x: 0, y: 0, id: null };
   base.addEventListener('pointerup', end); base.addEventListener('pointercancel', end);
   const btn = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); Audio8.init(); fn(); });
   btn('t-atk', attack); btn('t-jump', doJump); btn('t-dash', doDash);
-  btn('t-talk', () => { if (nearNpc) talk(nearNpc); });
+  btn('t-talk', () => { if (nearNpc) talk(nearNpc); else if (nearUse) nearUse.fn(); });
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
@@ -1775,7 +1786,7 @@ function start(fromSave) {
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
-  running = true; Kvx.init(); Net.init(); buildHotbar();
+  running = true; Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }

@@ -29,6 +29,8 @@ const SpriteKit = (() => {
     return (TEX[n] = t);
   }
   const has = n => !!IMG[n];
+  // registra um desenho feito em canvas (ex.: animais do Sítio) como sprite
+  function addCanvas(n, c) { IMG[n] = c; delete TEX[n]; }
 
   const shadowGeo = new THREE.CircleGeometry(1, 20); shadowGeo.rotateX(-Math.PI / 2);
   const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false });
@@ -158,7 +160,7 @@ const SpriteKit = (() => {
   }
 
   return {
-    load, actor, fx, tick, tex, has, light,
+    load, actor, fx, tick, tex, has, light, addCanvas,
     get ready() { return ready; },
     setLight(v) { light.setScalar(v); },
   };

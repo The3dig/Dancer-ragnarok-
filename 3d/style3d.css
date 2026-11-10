@@ -284,3 +284,11 @@ body.touch #prompt { top: calc(50px + env(safe-area-inset-top)); font-size: 12px
   body.touch #chat { top: calc(164px + env(safe-area-inset-top)); bottom: auto; left: calc(8px + env(safe-area-inset-left)); margin-left: 0; transform: none;
     width: 136px; height: clamp(34px, calc(100% - 296px), 90px); font-size: 9px; line-height: 1.25; padding: 3px 5px; }
 }
+/* mochila, troca e banca */
+.bag { display: flex; flex-wrap: wrap; gap: 4px 10px; max-height: 38vh; overflow-y: auto; font-size: 12px; }
+.bagi { white-space: nowrap; }
+.trade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; }
+.trade > div { background: rgba(255,255,255,.05); border-radius: 8px; padding: 6px; }
+.trade em { color: #7dff9a; font-style: normal; }
+.alabel em.bk { display: block; font-style: normal; color: #ffd860; font-size: 10px; }
+#dialog .dopts { max-height: 46vh; overflow-y: auto; }
