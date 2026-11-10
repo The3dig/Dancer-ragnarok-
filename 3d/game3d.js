@@ -1842,8 +1842,30 @@ function nameOk() {
   if (v.length < 2) { $('name-in').classList.add('err'); $('name-in').placeholder = 'Escolha um nome (mín. 2 letras)'; $('name-in').focus(); Audio8.sfx('miss'); return false; }
   $('name-in').classList.remove('err'); return true;
 }
-$('btn-new').onclick = () => {
-  if (!nameOk()) return; if (loadSave() && !armNew()) return; start(false); };
+// nome único: no link do Claude os nomes ficam guardados no banco compartilhado (nomes/<id da pessoa>)
+async function nameFree(v) {
+  if (!window.claude || !window.claude.use) return true;                       // fora do Claude não há banco para conferir
+  const low = v.toLowerCase();
+  const tmo = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r(null), ms))]);
+  try {
+    const db = await tmo(window.claude.use('db'), 6000), user = await tmo(window.claude.use('user'), 6000);
+    if (!db || !user) return true;
+    const id = await user.id();
+    const snap = await tmo(db.collection('nomes').where('n', '==', low).get(), 6000);
+    if (snap && snap.docs.some(d => d.id !== id)) return false;
+    if (id) await tmo(db.doc('nomes/' + id).set({ n: low, nome: v, at: Date.now() }), 6000);
+  } catch (e) { }
+  return true;
+}
+let checking = false;
+$('btn-new').onclick = async () => {
+  if (checking || !nameOk()) return; if (loadSave() && !armNew()) return;
+  const v = $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16), btn = $('btn-new'), label = btn.textContent;
+  checking = true; btn.textContent = '⏳ Conferindo o nome…';
+  const ok = await nameFree(v);
+  checking = false; btn.textContent = '✨ Novo Jogo';
+  if (!ok) { $('name-in').classList.add('err'); $('name-in').value = ''; $('name-in').placeholder = `"${v}" já existe. Escolha outro nome`; Audio8.sfx('miss'); return; }
+  start(false); };
 $('btn-cont').onclick = () => start(true);
 renderCreate();
 (function loadModels() {
