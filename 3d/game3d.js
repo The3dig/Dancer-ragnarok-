@@ -22,7 +22,17 @@ THREE.ColorManagement.legacyMode = false;
 { const setHSL0 = THREE.Color.prototype.setHSL; THREE.Color.prototype.setHSL = function (h, s, l) { setHSL0.call(this, h, s, l); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.25 : 2));
-renderer.setSize(innerWidth, innerHeight);
+// tamanho real da área visível: no iPhone (Safari e app do Claude) a moldura pode
+// crescer para caber num canvas antigo após girar a tela; por isso o canvas segue
+// sempre 100% do elemento e o tamanho é medido nele, nunca imposto.
+let VW = innerWidth, VH = innerHeight;
+function measure() {
+  const de = document.documentElement, vv = window.visualViewport;
+  VW = Math.max(1, Math.round(Math.min(de.clientWidth || innerWidth, vv ? vv.width : 1e9, innerWidth)));
+  VH = Math.max(1, Math.round(Math.min(de.clientHeight || innerHeight, vv ? vv.height : 1e9, innerHeight)));
+}
+measure();
+renderer.setSize(VW, VH, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -60,14 +70,22 @@ function addOutline(root) {
   root.traverse(o => { if (o.isMesh && !o.isOutline && !o.material.transparent && o.material.side !== THREE.DoubleSide && !o.material.isMeshBasicMaterial) list.push(o); });
   for (const o of list) { const ol = new THREE.Mesh(o.geometry, OUTLINE); ol.isOutline = true; ol.castShadow = false; o.add(ol); }
 }
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
+const camera = new THREE.PerspectiveCamera(55, VW / VH, 0.1, 400);
 const hemi = new THREE.HemisphereLight(0xe4f2ff, 0x5a6a3a, 0.75); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1dc, 1.25);
 sun.castShadow = true; sun.shadow.mapSize.set(TOUCH ? 1024 : 2048, TOUCH ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 140 });
 sun.shadow.bias = -0.0008;
 scene.add(sun, sun.target);
-function fitScreen() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+let lastFit = '';
+function fitScreen() {
+  measure();
+  const k = VW + 'x' + VH; if (k === lastFit) return; lastFit = k;
+  renderer.setSize(VW, VH, false); camera.aspect = VW / VH; camera.updateProjectionMatrix();
+  document.body.style.setProperty('--vh', VH + 'px');
+}
+if (window.visualViewport) visualViewport.addEventListener('resize', fitScreen);
+setInterval(fitScreen, 700);
 addEventListener('resize', fitScreen);
 addEventListener('orientationchange', () => { fitScreen(); setTimeout(fitScreen, 300); setTimeout(fitScreen, 900); });
 
@@ -767,7 +785,7 @@ function updateFx(dt) {
 const _p = new THREE.Vector3();
 function toScreen(x, y, z) {
   _p.set(x, y, z).project(camera);
-  return { x: (_p.x + 1) / 2 * innerWidth, y: (1 - _p.y) / 2 * innerHeight, vis: _p.z < 1 && Math.abs(_p.x) < 1.2 && Math.abs(_p.y) < 1.2 };
+  return { x: (_p.x + 1) / 2 * VW, y: (1 - _p.y) / 2 * VH, vis: _p.z < 1 && Math.abs(_p.x) < 1.2 && Math.abs(_p.y) < 1.2 };
 }
 function floater(x, y, z, txt, cls) {
   const el = document.createElement('div'); el.className = 'dmg ' + (cls || ''); el.textContent = txt;
@@ -1828,7 +1846,7 @@ function loop(now) {
     animateLyra(dt);
     camera.position.set(P.x + Math.sin(time * 0.2) * 5, P.y + 1.8, P.z + Math.cos(time * 0.2) * 5);
     camera.lookAt(P.x, P.y + 1.1, P.z);
-    camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.2, 0, innerWidth, innerHeight);
+    camera.setViewOffset(VW, VH, VW * 0.2, 0, VW, VH);
     sun.position.set(P.x + 30, P.y + 50, P.z + 18); sun.target.position.set(P.x, P.y, P.z);
     sky.position.copy(camera.position); renderer.render(scene, camera);
   }

@@ -140,7 +140,7 @@ const SpriteKit = (() => {
     const { from, to } = f.beam;
     f.s.position.copy(from).add(to).multiplyScalar(0.5);
     const a = from.clone().project(camera), b = to.clone().project(camera);
-    const ang = Math.atan2((b.y - a.y) * innerHeight, (b.x - a.x) * innerWidth);
+    const ang = Math.atan2((b.y - a.y) * (typeof VH !== 'undefined' ? VH : innerHeight), (b.x - a.x) * (typeof VW !== 'undefined' ? VW : innerWidth));
     f.m.rotation = ang;
     const len = from.distanceTo(to);
     f.s.scale.set(len, f.h, 1);
