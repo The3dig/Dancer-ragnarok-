@@ -1,5 +1,5 @@
 // Service worker: guarda os arquivos do jogo para funcionar offline.
-const CACHE = 'dancarina-v17';
+const CACHE = 'dancarina-v18';
 const FILES = [
   './', './index.html', './2d.html', './manifest.webmanifest', './css/style.css',
   './js/compat.js', './js/audio.js', './js/maps.js', './js/sprites.js', './js/game.js',
@@ -17,7 +17,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request).then(r => {
+    fetch(e.request, { cache: 'no-cache' }).then(r => {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy));
       return r;
