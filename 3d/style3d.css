@@ -272,3 +272,10 @@ body.touch #chatbox { bottom: auto; top: 60px; }
 .chips.heroes .chip img { width: 44px; height: 44px; image-rendering: pixelated; border-radius: 6px; background: rgba(0,0,0,.35); }
 .chips.heroes .chip span { font-size: 11px; }
 @media (max-height: 470px) { .chips.heroes { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; } .chips.heroes .chip { padding: 3px 1px; } .chips.heroes .chip img { width: 34px; height: 34px; } .chips.heroes .chip span { font-size: 9px; } }
+/* celular deitado: aviso "Toque 💬" logo abaixo do menu (não tampa o personagem)
+   e chat acima da barra de habilidades (não fica atrás dela) */
+body.touch #prompt { top: calc(50px + env(safe-area-inset-top)); font-size: 12px; padding: 4px 10px; }
+@media (max-height: 470px) {
+  body.touch #prompt { top: calc(48px + env(safe-area-inset-top)); font-size: 11px; }
+  body.touch #chat { bottom: 92px; height: 40px; }
+}

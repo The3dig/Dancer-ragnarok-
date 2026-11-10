@@ -670,7 +670,7 @@ for (const n of NPCS) {
   const bang = bangSprite(); bang.position.y = 2.3; g.add(bang); n.bang = bang; n.g = g;
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   addOutline(g);
-  addOb(n.x, n.z, 0.45);
+  addOb(n.x, n.z, 1.6);
 }
 
 // ---------------------------------------------------------------- jogadora
