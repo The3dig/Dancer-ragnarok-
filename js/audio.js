@@ -263,7 +263,7 @@ const Audio8 = (() => {
   let fileBus = null, fileSrc = null, fileName = null, fileGain = null;
   function loadFile(name) {
     if (bufs[name]) return Promise.resolve(bufs[name]);
-    if (!loading[name]) loading[name] = fetch(MUSIC_BASE + name + '.m4a').then(r => r.arrayBuffer())
+    if (!loading[name]) loading[name] = fetch(MUSIC_BASE + name + '.mp4').then(r => r.arrayBuffer())
       .then(ab => new Promise((ok, no) => ctx.decodeAudioData(ab, ok, no))).then(b => (bufs[name] = b)).catch(() => null);
     return loading[name];
   }

@@ -1,11 +1,11 @@
 // Service worker: guarda os arquivos do jogo para funcionar offline.
-const CACHE = 'dancarina-v23';
+const CACHE = 'dancarina-v24';
 const FILES = [
   './', './index.html', './2d.html', './manifest.webmanifest', './css/style.css',
   './js/compat.js', './js/audio.js', './js/maps.js', './js/sprites.js', './js/game.js',
   './3d/index.html', './3d/style3d.css', './3d/classes.js', './3d/avatar.js', './3d/game3d.js', './3d/kravenox.js', './3d/net.js', './3d/tower.js', './3d/vida.js', './3d/modelkit.js', './3d/sprites.js', './3d/spritekit.js', './3d/lib/gltf-loader.js', './3d/lib/three.min.js',
   './3d/models/adventurer.js', './3d/models/bee.js', './3d/models/crab.js', './3d/models/hooded_adventurer.js', './3d/models/mushroom_imp.js', './3d/models/orc_brute.js', './3d/models/raptor.js', './3d/models/skeleton.js', './3d/models/slime_pink.js', './3d/models/worker.js',
-  './musica/solmira.m4a', './musica/campos.m4a', './musica/areias.m4a', './musica/kharum.m4a', './musica/kravenox.m4a',
+  './musica/solmira.mp4', './musica/campos.mp4', './musica/areias.mp4', './musica/kharum.mp4', './musica/kravenox.mp4',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
 ];
 self.addEventListener('install', e => {

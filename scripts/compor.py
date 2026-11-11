@@ -234,7 +234,7 @@ for nome, fn in PECAS.items():
                     '-o', 'synth.reverb.room-size=0.75', '-o', 'synth.reverb.width=0.9', '-o', 'synth.reverb.level=0.6',
                     '-F', wav, SF, mid], check=True)
     # corta a 2ª volta (já com a cauda da reverberação da 1ª): laço sem emenda
-    m4a = os.path.join(OUT, nome + '.m4a')
+    m4a = os.path.join(OUT, nome + '.mp4')
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{dur:.4f}', '-t', f'{dur:.4f}', '-i', wav,
                     '-af', 'loudnorm=I=-18:TP=-2', '-ar', '44100', '-c:a', 'aac', '-b:a', '96k', m4a], check=True)
     os.remove(wav)

@@ -6,8 +6,8 @@ Gravada com o FluidSynth e o banco de instrumentos **MuseScore General**
 
 | Arquivo | Onde toca | Clima |
 |---|---|---|
-| solmira.m4a | Vila e Sítio de Solmira | valsa pastoral: flauta, oboé, harpa, cordas |
-| campos.m4a | Campos Dourados | aventura: trompas, cordas, tímpanos |
-| areias.m4a | Areias Rubras, Torre, Cratera | escala frígia: oboé, harpa, percussão |
-| kharum.m4a | Oásis de Kharum, Cidadela do Cisma | mistério: coral, sinos, clarinete |
-| kravenox.m4a | Topo da Torre (chefe) | épica e sombria: metais, coral, tímpanos |
+| solmira.mp4 | Vila e Sítio de Solmira | valsa pastoral: flauta, oboé, harpa, cordas |
+| campos.mp4 | Campos Dourados | aventura: trompas, cordas, tímpanos |
+| areias.mp4 | Areias Rubras, Torre, Cratera | escala frígia: oboé, harpa, percussão |
+| kharum.mp4 | Oásis de Kharum, Cidadela do Cisma | mistério: coral, sinos, clarinete |
+| kravenox.mp4 | Topo da Torre (chefe) | épica e sombria: metais, coral, tímpanos |
