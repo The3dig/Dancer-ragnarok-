@@ -12,9 +12,9 @@ const Tower = (() => {
   // ---------------- Cidadela do Cisma
   [[CIT.x - 16, CIT.z - 8, 0.6], [CIT.x - 18, CIT.z + 14, 0.2], [CIT.x + 16, CIT.z + 14, -0.3], [CIT.x + 18, CIT.z - 6, -0.6], [CIT.x - 2, CIT.z + 20, 0]].forEach(([x, z, rot]) => {
     const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = Math.atan2(CIT.x - x, CIT.z - z) + rot * 0; scene.add(g);
-    mesh(new THREE.BoxGeometry(5.5, 3.4, 5), TM(TEX.darkstone, [2.2, 1.4], 0xb0a8b8), 0, 1.7, 0, g);
+    mesh(new THREE.BoxGeometry(5.5, 3.4, 5), PM('pedra.jpg', [2.6, 1.7], 0x9890a4), 0, 1.7, 0, g);
     [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.4, 3.6, 0.4), TM(TEX.wood, [0.3, 1], 0x806a70), a * 2.75, 1.8, b * 2.5, g)));
-    const roof = mesh(new THREE.ConeGeometry(4.6, 3.2, 4), TM(TEX.plank, [3, 2], 0x9a6a6e), 0, 5, 0, g); roof.rotation.y = Math.PI / 4;
+    const roof = mesh(new THREE.ConeGeometry(4.6, 3.2, 4), PM('telha.jpg', [4, 2], 0xb89aa0), 0, 5, 0, g); roof.rotation.y = Math.PI / 4;
     mesh(new THREE.BoxGeometry(1.1, 1.9, 0.12), lam(0x1a1018), 0, 0.95, 2.53, g);
     [-1.6, 1.6].forEach(wx => mesh(new THREE.BoxGeometry(0.7, 0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0x8a3a20 }), wx, 2.2, 2.53, g, false));
     addOb(x, z, 3.6);
@@ -68,7 +68,7 @@ const Tower = (() => {
     for (let k = 0; k < n; k++) {
       const a = k / n * TAU, x = Math.sin(a) * (f.r + 0.4), z = Math.cos(a) * (f.r + 0.4);
       if (!top && Math.abs(z - f.r) < 3 && Math.abs(x) < 3) continue;                 // vão da chegada
-      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.6, wallH, 1.2), TM(TEX.darkstone, [1.4, wallH / 3], k % 2 ? 0xa098a8 : 0x807888), x, wallH / 2, z, g); b.rotation.y = a;
+      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.6, wallH, 1.2), PM('pedra.jpg', [1.6, wallH / 2.5], k % 2 ? 0x8a8298 : 0x6e6880), x, wallH / 2, z, g); b.rotation.y = a;
       if (!top && k % 3 === 0) {                                                       // tochas
         const t = mesh(new THREE.BoxGeometry(0.3, 0.6, 0.3), glow(k % 2 ? PURPLE : RED), x * 0.93, 2.8, z * 0.93, g, false);
       }
