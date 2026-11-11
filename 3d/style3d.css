@@ -408,3 +408,22 @@ body.touch #statwin { width: min(560px, 70vw); overflow-y: auto; }
 #quest .qi.focus::before { content: '🧭 '; }
 #quest .wt small { opacity: .6; font-family: Nunito, sans-serif; font-size: .8em; }
 body.walking #quest .qi.focus::before { content: '🚶 '; }
+
+/* item visto de perto na mochila */
+#invwin .invb { position: relative; }
+.iview { position: absolute; inset: 0; z-index: 4; display: flex; gap: 14px; align-items: center; padding: 10px 14px; background: #16121e; border: 1px solid rgba(242,200,106,.5); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.6); }
+.iv-art { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.iv-mini .tcard { transform: scale(.62); transform-origin: left center; margin-right: -46px; }
+.iv-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.iv-txt .iv-n { font: 800 16px Cinzel, serif; }
+.iv-txt p { margin: 4px 0; font-size: 12px; line-height: 1.35; color: #e8e0cc; }
+.ibig { width: 110px; height: 110px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 70px; background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.12), rgba(0,0,0,.35)); border: 2px solid #5a5060; }
+.ibig.r1 { border-color: #4a90ff; box-shadow: 0 0 18px rgba(74,144,255,.45) inset; } .ibig.r2 { border-color: #a050ff; box-shadow: 0 0 18px rgba(160,80,255,.5) inset; } .ibig.r3 { border-color: #ffa020; box-shadow: 0 0 22px rgba(255,160,32,.55) inset; }
+.tcard { width: 122px; height: 172px; flex-shrink: 0; border-radius: 9px; padding: 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #3a2810;
+  background: linear-gradient(160deg, #f7e9bd, #dcb866 60%, #c39a48); border: 3px solid #7a5418; box-shadow: 0 0 18px rgba(255,190,80,.5), inset 0 0 0 1px #fff3c8; }
+.tcard .tc-t { font: 800 10px Cinzel, serif; text-align: center; line-height: 1.1; min-height: 22px; display: flex; align-items: center; }
+.tcard .tc-pic { width: 100%; height: 86px; border: 2px solid #7a5418; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(circle at 50% 60%, #5a4a7a, #1e1828); }
+.tcard .tc-pic img { max-height: 80px; max-width: 100px; image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+.tcard .tc-b { font: 700 9px Nunito, sans-serif; text-align: center; line-height: 1.2; }
+.tcard .tc-s { font: 700 8.5px Nunito, sans-serif; margin-top: auto; background: rgba(122,84,24,.18); border-radius: 4px; padding: 1px 5px; }
+@media (max-height: 470px) { .ibig { width: 84px; height: 84px; font-size: 52px; } .tcard { transform: scale(.86); transform-origin: center; margin: -12px -8px; } .iv-txt .iv-n { font-size: 14px; } }
