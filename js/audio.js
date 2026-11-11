@@ -261,29 +261,32 @@ const Audio8 = (() => {
   const LOOPS = {"title": {"loop": 1, "a": 0.5, "b": 42.2391304}, "vila": {"loop": 1, "a": 0.5, "b": 34.7857143}, "floresta": {"loop": 1, "a": 0.5, "b": 49.7307692}, "vale": {"loop": 1, "a": 0.5, "b": 64.5}, "abismo": {"loop": 1, "a": 0.5, "b": 60.5}, "cidade": {"loop": 1, "a": 0.5, "b": 53.8333333}, "fortaleza": {"loop": 1, "a": 0.5, "b": 46.2142857}, "masmorra": {"loop": 1, "a": 0.5, "b": 46.2142857}, "chefe": {"loop": 1, "a": 0.5, "b": 26.1}};
   const FILES = Object.keys(LOOPS);
   const MUSIC_BASE = (() => { try { return new URL('../musica/', document.currentScript.src).href; } catch (e) { return 'musica/'; } })();
-  const bufs = {}, loading = {};
-  let fileBus = null, fileSrc = null, fileName = null, fileGain = null;
-  function loadFile(name) {
-    if (bufs[name]) return Promise.resolve(bufs[name]);
-    if (!loading[name]) loading[name] = fetch(MUSIC_BASE + name + '.mp4').then(r => r.arrayBuffer())
-      .then(ab => new Promise((ok, no) => ctx.decodeAudioData(ab, ok, no))).then(b => (bufs[name] = b)).catch(() => null);
-    return loading[name];
+  // tocada em streaming por <audio> (não decodifica a trilha inteira na memória: sem travar ao trocar de região)
+  let fileBus = null, fileName = null, cur = null;
+  function deck() {
+    const el = new window.Audio(); el.preload = 'auto'; el.crossOrigin = 'anonymous'; el.setAttribute('playsinline', '');
+    const g = ctx.createGain(); g.gain.value = 0;
+    try { ctx.createMediaElementSource(el).connect(g); } catch (e) { }
+    g.connect(fileBus);
+    const d = { el, g, a: 0.5, b: 0 };
+    el.addEventListener('timeupdate', () => { if (d.b && el.currentTime > d.b - 0.15) el.currentTime = d.a; });
+    el.addEventListener('ended', () => { el.currentTime = d.a; el.play().catch(() => { }); });
+    return d;
   }
+  const decks = [];
   function playFile(name) {
-    if (!fileBus) { fileBus = ctx.createGain(); fileBus.gain.value = musicOn ? 0.9 : 0; fileBus.connect(master); }
+    if (!fileBus) { fileBus = ctx.createGain(); fileBus.gain.value = musicOn ? 0.9 : 0; fileBus.connect(master); decks.push(deck(), deck());
+      const u = decks[1].el; u.src = MUSIC_BASE + name + '.mp4'; u.play().then(() => { if (cur !== decks[1]) u.pause(); }).catch(() => { }); }   // iPhone: libera os dois tocadores no mesmo toque
     if (fileName === name) return;
     fileName = name;
-    const old = fileSrc, oldG = fileGain;
-    if (old) { oldG.gain.setTargetAtTime(0, ctx.currentTime, 0.6); setTimeout(() => { try { old.stop(); } catch (e) { } }, 3000); }
-    fileSrc = null;
-    loadFile(name).then(b => {
-      if (!b || fileName !== name) return;
-      const src = ctx.createBufferSource(), g = ctx.createGain();
-      const L = LOOPS[name] || {}; src.buffer = b; src.loop = L.loop !== 0; src.loopStart = L.a || 0.05; src.loopEnd = Math.min(b.duration, L.b || b.duration);
-      g.gain.value = 0; g.gain.setTargetAtTime(1, ctx.currentTime, 0.8);
-      src.connect(g); g.connect(fileBus); src.start(ctx.currentTime + 0.05, 0.05);
-      fileSrc = src; fileGain = g;
-    });
+    const old = cur;
+    if (old) { old.g.gain.setTargetAtTime(0, ctx.currentTime, 0.6); setTimeout(() => { if (cur !== old) old.el.pause(); }, 3000); }
+    const d = decks[0] === old ? decks[1] : decks[0];
+    const L = LOOPS[name] || {}; d.a = L.a || 0.05; d.b = L.b || 0;
+    d.el.src = MUSIC_BASE + name + '.mp4'; d.el.currentTime = 0;
+    d.g.gain.cancelScheduledValues(ctx.currentTime); d.g.gain.setValueAtTime(0, ctx.currentTime); d.g.gain.setTargetAtTime(1, ctx.currentTime + 0.1, 0.8);
+    d.el.play().catch(() => { });
+    cur = d;
   }
 
   function play(name) {

@@ -276,7 +276,8 @@ function height(x, z) {
   if (Math.abs(x) > WX - 6 || Math.abs(z) > WZ - 6) h += (Math.max(Math.abs(x) - WX + 6, Math.abs(z) - WZ + 6, 0)) * 1.2;
   return h;
 }
-const onBridge = (x, z) => Math.abs(z) < 2.6 && Math.abs(x - riverX(z)) < 6;
+const BRIDGES = [-58, 0, 56];   // pontes sobre o rio (z)
+const onBridge = (x, z) => Math.abs(x - riverX(z)) < 6 && BRIDGES.some(bz => Math.abs(z - bz) < 2.6);
 const groundY = (x, z) => inTower(z) ? (floorAt(x, z) || FLOORS[0]).y : onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
 const nearWater = (x, z) => Math.abs(x - riverX(z)) < 5 || Math.hypot(x - OAS.x, z - OAS.z) < 9.5;
 const isWater = (x, z) => !inTower(z) && !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
@@ -419,7 +420,7 @@ const WAVES = (() => {
     return [Math.round((-dx / l * 0.5 + 0.5) * 255), Math.round((-dy / l * 0.5 + 0.5) * 255), Math.round((1 / l * 0.5 + 0.5) * 255)]; });
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t;
 })();
-const waterMat = new THREE.MeshPhongMaterial({ color: 0x34565f, specular: 0xd0e0e8, shininess: 90, transparent: true, opacity: 0.88, normalMap: WAVES, normalScale: new THREE.Vector2(0.6, 0.6) });
+const waterMat = new THREE.MeshPhongMaterial({ color: 0x34565f, specular: 0x5a6a70, shininess: 40, transparent: true, opacity: 0.88, normalMap: WAVES, normalScale: new THREE.Vector2(0.35, 0.35) });
 {
   const rg = new THREE.PlaneGeometry(18, WZ * 2, 1, 90); rg.rotateX(-Math.PI / 2);
   const p = rg.attributes.position;
@@ -430,10 +431,13 @@ const waterMat = new THREE.MeshPhongMaterial({ color: 0x34565f, specular: 0xd0e0
 }
 // ponte
 {
-  const bx = riverX(0);
-  const deck = mesh(new THREE.BoxGeometry(12, 0.3, 5), PM('madeira.jpg', [3, 1], 0x8a7058), bx, 0.2, 0);
-  for (let i = -5; i <= 5; i += 1.2) mesh(new THREE.BoxGeometry(0.15, 0.32, 5.02), PM('madeira.jpg', [0.2, 1], 0x6a5040), bx + i, 0.21, 0);
-  [-2.5, 2.5].forEach(z => { mesh(new THREE.BoxGeometry(12, 0.15, 0.15), PM('madeira.jpg', [3, 0.1], 0x6a5040), bx, 1.1, z); for (let i = -6; i <= 6; i += 2) mesh(new THREE.BoxGeometry(0.2, 1, 0.2), PM('madeira.jpg', [0.1, 0.5], 0x6a5040), bx + i, 0.6, z); });
+  const MD = PM('madeira.jpg', [3, 1], 0x8a7058), MT = PM('madeira.jpg', [0.2, 1], 0x6a5040), MR = PM('madeira.jpg', [3, 0.1], 0x6a5040), MP = PM('madeira.jpg', [0.1, 0.5], 0x6a5040);
+  for (const bz of BRIDGES) {
+    const bx = riverX(bz);
+    mesh(new THREE.BoxGeometry(12, 0.3, 5), MD, bx, 0.2, bz);
+    for (let i = -5; i <= 5; i += 1.2) mesh(new THREE.BoxGeometry(0.15, 0.32, 5.02), MT, bx + i, 0.21, bz);
+    [-2.5, 2.5].forEach(z => { mesh(new THREE.BoxGeometry(12, 0.15, 0.15), MR, bx, 1.1, bz + z); for (let i = -6; i <= 6; i += 2) mesh(new THREE.BoxGeometry(0.2, 1, 0.2), MP, bx + i, 0.6, bz + z); });
+  }
 }
 
 // ---------------------------------------------------------------- obstáculos (grade espacial)
@@ -575,10 +579,39 @@ instanced(cardGeo([0, 1, 2].map(k => [0, 0.7, 0, k * Math.PI / 3, 0, 2.0, 1.5, -
 {
   const stalks = [];
   for (const [wx, wz, ww, wd] of WHEAT) for (let x = wx; x < wx + ww; x += 0.7) for (let z = wz; z < wz + wd; z += 0.7) stalks.push({ x: x + rr(0, 0.5), z: z + rr(0, 0.5), h: rr(0.8, 1.2) });
-  window.wheat = instanced(new THREE.ConeGeometry(0.12, 1.2, 4), new THREE.MeshLambertMaterial({ flatShading: true }), stalks, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + 0.6 * o.h, o.z); s.set(1, o.h, 1); c.setHSL(0.12 + rr(-0.01, 0.02), 0.75, 0.55); });
+  window.WHEAT_STALKS = stalks;
 }
 // grama que balança e flores
 const windU = { value: 0 };
+{
+  // trigo: tufos de espigas (textura desenhada) que ondulam com o vento, em ondas que correm pelo campo
+  const c = document.createElement('canvas'); c.width = 128; c.height = 256; const g = c.getContext('2d');
+  let sd = 7; const rn = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+  for (let k = 0; k < 16; k++) {
+    const x0 = 10 + rn() * 108, top = 20 + rn() * 70, lean = (rn() - 0.5) * 22, hue = 38 + rn() * 10, li = 48 + rn() * 18;
+    g.strokeStyle = `hsl(${hue},45%,${li - 10}%)`; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(x0, 256); g.quadraticCurveTo(x0 + lean * 0.3, 160, x0 + lean, top + 40); g.stroke();
+    for (let j = 0; j < 9; j++) {                       // grãos da espiga
+      const t = j / 9, ex = x0 + lean + Math.sin(j * 2.1) * 0.5, ey = top + 40 - t * 44;
+      g.fillStyle = `hsl(${hue},${60 + rn() * 15}%,${li + rn() * 10}%)`;
+      g.beginPath(); g.ellipse(ex + (j % 2 ? 3 : -3), ey, 2.6, 5, (j % 2 ? 0.5 : -0.5), 0, TAU); g.fill();
+    }
+    g.strokeStyle = `hsla(${hue},50%,75%,.6)`; g.lineWidth = 0.8;   // pragana
+    for (let j = 0; j < 5; j++) { const ey = top + 36 - j * 9, ex = x0 + lean; g.beginPath(); g.moveTo(ex, ey); g.lineTo(ex + (j % 2 ? 7 : -7), ey - 14); g.stroke(); }
+  }
+  const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
+  const wm = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.35, side: THREE.DoubleSide });
+  wm.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', 'float faceDirection = 1.0; vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;');
+    sh.uniforms.uTime = windU;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      'vec3 transformed = position; float wx = instanceMatrix[3].x, wz = instanceMatrix[3].z; float gust = sin(uTime * 1.3 - wx * 0.22 - wz * 0.12) * 0.5 + 0.5; float h = max(position.y, 0.0); float sw = (0.12 + 0.35 * gust) * h * h + sin(uTime * 3.1 + wx * 1.7 + wz * 1.3) * 0.04 * h; transformed.x += sw; transformed.z += sw * 0.4; transformed.y -= sw * sw * 0.3;');
+  };
+  const wg = cardGeo([0, 1, 2].map(k => [0, 0.6, 0, k * Math.PI / 3, 0, 1.2, 1.2, -0.6, true]));
+  const clumps = window.WHEAT_STALKS.filter((_, i) => i % 2 === 0);
+  window.wheat = instanced(wg, wm, clumps, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z), o.z); s.set(1, o.h, 1); q.setFromEuler(new THREE.Euler(0, o.x * 2.3 + o.z, 0)); c.setHSL(0.11, 0.3, 0.9 + rr(-0.08, 0.06)); });
+  window.wheat.castShadow = false;
+}
 {
   const grassOk = (x, z) => x < 44 && dRoad(x, z) > 3.8 && Math.hypot(x - VIL.x, z - VIL.z) > 18 && Math.hypot(x - LAIR.x, z - LAIR.z) > 21 &&
     !isWater(x, z) && Math.abs(x - riverX(z)) > 5.5 && !WHEAT.some(([wx, wz, ww, wd]) => x > wx && x < wx + ww && z > wz && z < wz + wd) && Math.abs(x) < WX - 6 && Math.abs(z) < WZ - 6;
