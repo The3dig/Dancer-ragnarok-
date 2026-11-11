@@ -457,19 +457,21 @@ const Vida = (() => {
   }
 
   // ---------------------------------------------------------------- drops no chão: ícone do item, brilho e feixe de luz pela raridade
+  const shadowGeo = new THREE.CircleGeometry(0.35, 16), shadowMat = new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.35, depthWrite: false });
   const iconTex = {}, beamGeo = new THREE.CylinderGeometry(0.1, 0.22, 6, 12, 1, true), coreGeo = new THREE.CylinderGeometry(0.04, 0.08, 6, 8, 1, true);
   function itemIcon(ic) {
     if (iconTex[ic]) return iconTex[ic];
-    const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d');
-    const gr = g.createRadialGradient(48, 48, 4, 48, 48, 46); gr.addColorStop(0, 'rgba(255,240,200,.55)'); gr.addColorStop(1, 'rgba(255,220,160,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, 96, 96);
-    g.font = '58px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 6; g.fillText(ic, 48, 52);
+    // o próprio item (poção, bota, espada...) desenhado grande, com contorno escuro para ler no chão
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.font = '96px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = 'rgba(0,0,0,.95)'; g.shadowBlur = 10; g.fillText(ic, 64, 70); g.shadowBlur = 3; g.fillText(ic, 64, 70);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return (iconTex[ic] = t);
   }
   function dropMesh(id) {
     const I = id === 'zeny' ? { ic: '🪙' } : it(id), grp = new THREE.Group();
     const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
-    spr.scale.setScalar(id === 'zeny' ? 0.55 : 0.75); grp.add(spr);
+    spr.scale.setScalar(id === 'zeny' ? 0.7 : 1.05); spr.position.y = 0.15; grp.add(spr);
+    const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = -0.37; grp.add(sh);   // sombrinha no chão
     const rar = I.kind === 'equip' ? I.rar : -1;
     if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade
       const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7][Math.max(0, rar)];

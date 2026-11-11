@@ -125,6 +125,7 @@ function applyQuality() {
   const lv = QUAL.level;
   FOLIAGE.forEach(im => im.castShadow = lv >= 2);
   if (lv === 0) {
+    sun.castShadow = false;          // sem sombras: corta metade do trabalho da placa de vídeo
     renderer.setPixelRatio(Math.min(devicePixelRatio, 0.8)); lastFit = ''; fitScreen();
     sun.shadow.mapSize.set(512, 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
     if (window.grassIM) window.grassIM.visible = false;
@@ -343,7 +344,7 @@ function groundMix(x, z, y) {
   return { t, w };
 }
 (function buildTerrain() {
-  const geo = new THREE.PlaneGeometry(WX * 2, WZ * 2, 352, 144);
+  const geo = new THREE.PlaneGeometry(WX * 2, WZ * 2, TOUCH ? 230 : 352, TOUCH ? 94 : 144);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), wts = new Float32Array(pos.count * 4);
   for (let i = 0; i < pos.count; i++) {
@@ -464,7 +465,7 @@ function freeSpot(x, z, minRoad = 5) {
 // ---------------------------------------------------------------- vegetação (instanced)
 function instanced(geo, mat, list, setup) {
   const im = new THREE.InstancedMesh(geo, mat, list.length);
-  im.castShadow = true; im.receiveShadow = true;
+  im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false;   // as cópias se espalham pelo mapa: a esfera da malha não serve para cortar
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), c = new THREE.Color();
   list.forEach((o, i) => { setup(o, p, q, s, c); m4.compose(p, q, s); im.setMatrixAt(i, m4); im.setColorAt(i, c); });
   scene.add(im); return im;
@@ -546,6 +547,24 @@ FOLIAGE.push(instanced(PINE_SIL, pineSilMat, trees, (o, p, q, s, c) => { const p
 FOLIAGE.push(instanced(LEAF_G, leafMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? 0 : o.s * 1.1); q.setFromEuler(new THREE.Euler(0, o.z * 2.3, 0)); c.setHSL(0.2 + Math.sin(o.x) * 0.03, 0.3, 0.8 + Math.sin(o.z * 2) * 0.06); }));
 const treeIM = scene.children.filter(o => o.isInstancedMesh && o.count === trees.length);
 const treeOrig = treeIM.map(im => trees.map((t, i) => { const m4 = new THREE.Matrix4(); im.getMatrixAt(i, m4); return m4; }));
+const treeCol = treeIM.map(im => trees.map((t, i) => { const c = new THREE.Color(); im.getColorAt(i, c); return c; }));
+// só desenha as cópias que existem (escala ≠ 0) e, do pinheiro detalhado, só as perto; longe fica a silhueta
+const treeUse = treeIM.map((im, n) => trees.map((_, i) => i).filter(i => treeOrig[n][i].elements[0] !== 0 || treeOrig[n][i].elements[5] !== 0));
+const TREE_R = TOUCH ? 75 : 120;
+let treeRef = { x: 1e9, z: 1e9 };
+function refreshTrees(force) {
+  if (!force && Math.hypot(P.x - treeRef.x, P.z - treeRef.z) < 5) return;
+  treeRef = { x: P.x, z: P.z };
+  treeIM.forEach((im, n) => {
+    const cut = im.material === pineMat; let k = 0;
+    for (const i of treeUse[n]) {
+      if (treeHidden.has(i)) continue;
+      if (cut) { const t = trees[i]; if (Math.hypot(t.x - P.x, t.z - P.z) > TREE_R) continue; }
+      im.setMatrixAt(k, treeOrig[n][i]); im.setColorAt(k, treeCol[n][i]); k++;
+    }
+    im.count = k; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  });
+}
 const treeGrid = new Map();
 trees.forEach((t, i) => { const k = Math.floor(t.x / CELL) + ',' + Math.floor(t.z / CELL); if (!treeGrid.has(k)) treeGrid.set(k, []); treeGrid.get(k).push(i); });
 let treeHidden = new Set();
@@ -566,11 +585,10 @@ function hideTreesBetween(ax, az, bx, bz, by0, by1) {
       }
     }
   }
-  let dirty = false;
-  for (const ti of treeHidden) if (!now.has(ti)) { treeIM.forEach((im, n) => im.setMatrixAt(ti, treeOrig[n][ti])); dirty = true; }
-  for (const ti of now) if (!treeHidden.has(ti)) { treeIM.forEach(im => im.setMatrixAt(ti, ZERO_M)); dirty = true; }
-  if (dirty) treeIM.forEach(im => { im.instanceMatrix.needsUpdate = true; });
+  let dirty = now.size !== treeHidden.size;
+  if (!dirty) for (const ti of now) if (!treeHidden.has(ti)) { dirty = true; break; }
   treeHidden = now;
+  refreshTrees(dirty);
 }
 window.rockList = rocks; window.rockIM = instanced(new THREE.DodecahedronGeometry(0.8, 1), PM('rocha_clara.jpg', [1, 1]), rocks, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + o.s * 0.3, o.z); s.set(o.s * 1.2, o.s * 0.8, o.s); q.setFromEuler(new THREE.Euler(o.x, o.z, 0)); c.setHSL(0.08, 0.15, o.x > 50 ? 0.62 : 0.5); });
 // deserto: moitas de capim seco fotográfico (no lugar dos cactos)

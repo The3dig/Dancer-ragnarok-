@@ -128,10 +128,19 @@ const Quests = (() => {
     for (const id in S().act) { const q = byId[id]; if (!q) continue; const st = q.steps.find(s => s.kill === m.type); if (st) { const a = S().act[id]; a.k[m.type] = (a.k[m.type] || 0) + 1; if (ready(q) && !a.avisou) { a.avisou = 1; log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b>: objetivo cumprido! ${q.board ? 'Volte ao Quadro de Caça.' : 'Volte a ' + (q.to || q.giver) + '.'}`, 'gold'); } } }
   }
   // painel: até 3 missões, a principal primeiro
+  // linha única: título + o que falta (para caber mais missões no canto da tela)
+  function compact(q) {
+    let tail;
+    if (ready(q)) tail = '✅'; else if (!q.steps.length) tail = '💬';
+    else { const i = Math.max(0, q.steps.findIndex((st, k) => prog(q, k) < need(st))); tail = `<b>${prog(q, i)}/${need(q.steps[i])}</b>`; }
+    return `<div class="qi"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b> ${tail}</div>`;
+  }
   function html() {
-    const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean).sort((a, b) => (a.type === 'principal' ? -1 : 0) - (b.type === 'principal' ? -1 : 0)).slice(0, 3);
+    // principal primeiro, depois as mais novas (a última aceita aparece sempre); o resto vira "+N"
+    const all = Object.keys(S().act).map(id => byId[id]).filter(Boolean), main = all.filter(q => q.type === 'principal'), rest = all.filter(q => q.type !== 'principal').reverse();
+    const act = main.concat(rest).slice(0, 4), more = all.length - act.length;
     if (!act.length) return '';
-    return `<div class="wt">📜 Missões</div><div class="wb">` + act.map(q => `<div class="qi"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + `</div>`;
+    return `<div class="wt">📜 Missões</div><div class="wb">` + act.map(q => q.type !== 'principal' && act.length > 2 ? compact(q) : `<div class="qi"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + (more > 0 ? `<div class="qi qmore">+${more} ${more > 1 ? 'missões' : 'missão'} </div>` : '') + `</div>`;
   }
   // destino da seta: missão principal ativa (ou a primeira)
   function target() {

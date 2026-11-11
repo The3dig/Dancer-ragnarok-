@@ -50,7 +50,7 @@ const Props = (() => {
     const im = new THREE.InstancedMesh(geo, mesh.material, list.length);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     list.forEach((it, i) => { setup(it, p, q, s, L); m4.compose(p, q, s); im.setMatrixAt(i, m4); });
-    im.castShadow = true; im.receiveShadow = true; scene.add(im);
+    im.castShadow = !TOUCH; im.receiveShadow = true; im.frustumCulled = false; scene.add(im);
     return im;
   }
 
