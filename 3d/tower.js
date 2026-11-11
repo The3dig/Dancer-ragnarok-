@@ -12,11 +12,16 @@ const Tower = (() => {
   // ---------------- Cidadela do Cisma
   [[CIT.x - 16, CIT.z - 8, 0.6], [CIT.x - 18, CIT.z + 14, 0.2], [CIT.x + 16, CIT.z + 14, -0.3], [CIT.x + 18, CIT.z - 6, -0.6], [CIT.x - 2, CIT.z + 20, 0]].forEach(([x, z, rot]) => {
     const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = Math.atan2(CIT.x - x, CIT.z - z) + rot * 0; scene.add(g);
-    mesh(new THREE.BoxGeometry(5.5, 3.4, 5), PM('pedra.jpg', [2.6, 1.7], 0x9890a4), 0, 1.7, 0, g);
-    [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.4, 3.6, 0.4), TM(TEX.wood, [0.3, 1], 0x806a70), a * 2.75, 1.8, b * 2.5, g)));
-    const roof = mesh(new THREE.ConeGeometry(4.6, 3.2, 4), PM('telha.jpg', [4, 2], 0xb89aa0), 0, 5, 0, g); roof.rotation.y = Math.PI / 4;
-    mesh(new THREE.BoxGeometry(1.1, 1.9, 0.12), lam(0x1a1018), 0, 0.95, 2.53, g);
-    [-1.6, 1.6].forEach(wx => mesh(new THREE.BoxGeometry(0.7, 0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0x8a3a20 }), wx, 2.2, 2.53, g, false));
+    const st = PM('pedra.jpg', [2.6, 2.0], 0x9890a4), st2 = PM('pedra.jpg', [0.5, 2], 0x8a8296);
+    mesh(new THREE.BoxGeometry(5.5, 4.0, 5), st, 0, 2.0, 0, g);
+    [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.7, 3.4, 0.9), st2, a * 2.85, 1.7, b * 2.3, g)));   // contrafortes
+    mesh(new THREE.BoxGeometry(5.9, 0.35, 5.4), st2, 0, 4.1, 0, g);                                  // cornija
+    const roof = mesh(new THREE.ConeGeometry(4.3, 5.2, 4), PM('telha.jpg', [5, 3], 0xb8a2a8), 0, 6.7, 0, g); roof.rotation.y = Math.PI / 4;
+    mesh(new THREE.BoxGeometry(0.8, 3.2, 0.8), st2, 1.4, 7.2, -1.2, g);                               // chaminé
+    mesh(new THREE.ConeGeometry(0.18, 1.4, 6), lam(0x2a2430), 0, 9.9, 0, g);
+    mesh(new THREE.BoxGeometry(1.2, 2.2, 0.14), PM('madeira.jpg', [0.5, 1], 0x5a4038), 0, 1.1, 2.53, g);
+    const winM = new THREE.MeshBasicMaterial({ color: 0x9a4a24 });
+    [-1.7, 1.7].forEach(wx => { mesh(new THREE.BoxGeometry(0.6, 1.1, 0.1), winM, wx, 2.5, 2.53, g, false); const ar = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10, 1, false, 0, Math.PI), winM, wx, 3.05, 2.53, g, false); ar.rotation.set(Math.PI / 2, 0, Math.PI / 2); });
     addOb(x, z, 3.6);
   });
   // cristais roxos e tochas pela cidade
@@ -32,8 +37,9 @@ const Tower = (() => {
   let ty = 0;
   for (let i = 0; i < 6; i++) {
     const r0 = 9.5 - i * 0.9, r1 = r0 - 0.6, h = 9;
-    mesh(new THREE.CylinderGeometry(r1, r0, h, 12), lam(i % 2 ? STONE : STONE_D), 0, ty + h / 2, 0, ext);
-    mesh(new THREE.CylinderGeometry(r1 + 0.5, r1 + 0.5, 0.6, 12), lam(0x3a3040), 0, ty + h, 0, ext);
+    mesh(new THREE.CylinderGeometry(r1, r0, h, 20), PM('pedra.jpg', [8, 3.5], i % 2 ? 0x7a7088 : 0x625a70), 0, ty + h / 2, 0, ext);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + i * 0.2; const b = mesh(new THREE.BoxGeometry(1.1, h * 0.9, 1.4), PM('pedra.jpg', [0.5, 3], 0x6a6278), Math.sin(a) * (r0 - 0.1), ty + h * 0.45, Math.cos(a) * (r0 - 0.1), ext); b.rotation.y = a; }
+    mesh(new THREE.CylinderGeometry(r1 + 0.6, r1 + 0.6, 0.7, 20), PM('pedra.jpg', [8, 0.3], 0x585068), 0, ty + h, 0, ext);
     for (let k = 0; k < 6; k++) {                               // janelas vermelhas
       const a = k / 6 * TAU + i * 0.3, wr = (r0 + r1) / 2;
       const w = mesh(new THREE.BoxGeometry(0.9, 1.8, 0.2), glow(RED), Math.sin(a) * wr, ty + h * 0.55, Math.cos(a) * wr, ext, false); w.rotation.y = a;
@@ -48,7 +54,7 @@ const Tower = (() => {
   const beacon = mesh(new THREE.OctahedronGeometry(1.6), glow(RED), 0, ty + 4, 0, ext, false);
   // porta com portal (de frente para a cidade)
   const doorZ = TOWER.z + 9.6, doorX = TOWER.x;
-  mesh(new THREE.BoxGeometry(4, 5.5, 1), lam(0x120e16), 0, 2.75, 9.3, ext);
+  mesh(new THREE.BoxGeometry(4.6, 6.2, 1.2), PM('pedra.jpg', [2, 3], 0x6a6278), 0, 3.1, 9.3, ext);
   const doorGlow = mesh(new THREE.PlaneGeometry(3, 4.6), new THREE.MeshBasicMaterial({ color: 0xb050ff, transparent: true, opacity: 0.75 }), 0, 2.4, 9.85, ext, false);
   addOb(TOWER.x, TOWER.z, 9.6);
   const DOOR = { x: doorX, z: doorZ + 1.4 };

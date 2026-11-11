@@ -7,7 +7,8 @@ const ANIM_ALIAS = {
   orc_brute: { Run: 'Walk', Sword_Slash: 'Weapon', Punch_Right: 'Punch', Gun_Shoot: 'Punch', Roll: 'Walk', HitRecieve: 'HitReact', Idle_Sword: 'Idle', Wave: 'Idle', Interact: 'Idle' },
 };
 const ModelKit = (() => {
-  const NAMES = ['adventurer', 'hooded_adventurer', 'worker', 'slime_pink', 'bee', 'mushroom_imp', 'crab', 'raptor', 'orc_brute', 'skeleton'];
+  // personagens e monstros agora são sprites; só o esqueleto (invocação) ainda é modelo 3D
+  const NAMES = ['skeleton'];
   const lib = {};
   let ready = false, failed = false;
   const _v = new THREE.Vector3();

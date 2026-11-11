@@ -333,7 +333,15 @@ function groundMix(x, z, y) {
 })();
 
 // água
-const waterMat = new THREE.MeshPhongMaterial({ color: 0x24434e, specular: 0x9fb8c0, shininess: 160, transparent: true, opacity: 0.9 });
+// água: mapa de normais de ondas (gerado) que desliza, com brilho do sol
+const WAVES = (() => {
+  const N = 256, h = new Float32Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let v = 0, a = 1, f = 1 / 32; for (let o = 0; o < 4; o++) { v += a * vnoise(x, y, f, N * f); a *= 0.5; f *= 2; } h[y * N + x] = v; }
+  const c = noiseCanvas(N, (x, y) => { const at = (i, j) => h[((j + N) % N) * N + (i + N) % N]; const dx = (at(x + 1, y) - at(x - 1, y)) * 3, dy = (at(x, y + 1) - at(x, y - 1)) * 3, l = Math.hypot(dx, dy, 1);
+    return [Math.round((-dx / l * 0.5 + 0.5) * 255), Math.round((-dy / l * 0.5 + 0.5) * 255), Math.round((1 / l * 0.5 + 0.5) * 255)]; });
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t;
+})();
+const waterMat = new THREE.MeshPhongMaterial({ color: 0x34565f, specular: 0xd0e0e8, shininess: 90, transparent: true, opacity: 0.88, normalMap: WAVES, normalScale: new THREE.Vector2(0.6, 0.6) });
 {
   const rg = new THREE.PlaneGeometry(18, WZ * 2, 1, 90); rg.rotateX(-Math.PI / 2);
   const p = rg.attributes.position;
@@ -346,8 +354,8 @@ const waterMat = new THREE.MeshPhongMaterial({ color: 0x24434e, specular: 0x9fb8
 {
   const bx = riverX(0);
   const deck = mesh(new THREE.BoxGeometry(12, 0.3, 5), PM('madeira.jpg', [3, 1], 0x8a7058), bx, 0.2, 0);
-  for (let i = -5; i <= 5; i += 1.2) mesh(new THREE.BoxGeometry(0.15, 0.32, 5.02), M(0x6b4423), bx + i, 0.21, 0);
-  [-2.5, 2.5].forEach(z => { mesh(new THREE.BoxGeometry(12, 0.15, 0.15), M(0x6b4423), bx, 1.1, z); for (let i = -6; i <= 6; i += 2) mesh(new THREE.BoxGeometry(0.2, 1, 0.2), M(0x6b4423), bx + i, 0.6, z); });
+  for (let i = -5; i <= 5; i += 1.2) mesh(new THREE.BoxGeometry(0.15, 0.32, 5.02), PM('madeira.jpg', [0.2, 1], 0x6a5040), bx + i, 0.21, 0);
+  [-2.5, 2.5].forEach(z => { mesh(new THREE.BoxGeometry(12, 0.15, 0.15), PM('madeira.jpg', [3, 0.1], 0x6a5040), bx, 1.1, z); for (let i = -6; i <= 6; i += 2) mesh(new THREE.BoxGeometry(0.2, 1, 0.2), PM('madeira.jpg', [0.1, 0.5], 0x6a5040), bx + i, 0.6, z); });
 }
 
 // ---------------------------------------------------------------- obstáculos (grade espacial)
@@ -481,7 +489,7 @@ function hideTreesBetween(ax, az, bx, bz, by0, by1) {
   if (dirty) treeIM.forEach(im => { im.instanceMatrix.needsUpdate = true; });
   treeHidden = now;
 }
-instanced(new THREE.DodecahedronGeometry(0.8, 1), PM('rocha_clara.jpg', [1, 1]), rocks, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + o.s * 0.3, o.z); s.set(o.s * 1.2, o.s * 0.8, o.s); q.setFromEuler(new THREE.Euler(o.x, o.z, 0)); c.setHSL(0.08, 0.15, o.x > 50 ? 0.62 : 0.5); });
+window.rockList = rocks; window.rockIM = instanced(new THREE.DodecahedronGeometry(0.8, 1), PM('rocha_clara.jpg', [1, 1]), rocks, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z) + o.s * 0.3, o.z); s.set(o.s * 1.2, o.s * 0.8, o.s); q.setFromEuler(new THREE.Euler(o.x, o.z, 0)); c.setHSL(0.08, 0.15, o.x > 50 ? 0.62 : 0.5); });
 // deserto: moitas de capim seco fotográfico (no lugar dos cactos)
 instanced(cardGeo([0, 1, 2].map(k => [0, 0.7, 0, k * Math.PI / 3, 0, 2.0, 1.5, -1.0, true])), cardMat('capim_seco.png'), cacti, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z), o.z); s.setScalar(o.s); q.setFromEuler(new THREE.Euler(0, o.r, 0)); c.setHSL(0.1, 0.25, 0.85); });
 // trigo
@@ -529,8 +537,11 @@ function house(x, z, rot, w, d, roofC, style) {
   const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = rot; scene.add(g);
   if (style === 'sand') {
     mesh(new THREE.BoxGeometry(w, 3.2, d), PM('pedra.jpg', [w / 2, 1.6], 0xd8b890), 0, 1.6, 0, g);
-    mesh(new THREE.BoxGeometry(w + 0.3, 0.3, d + 0.3), M(0xcfb07a), 0, 3.3, 0, g);
-    if (roofC) mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.32, 16, 8, 0, TAU, 0, Math.PI / 2), M(roofC), 0, 3.4, 0, g);
+    const adobe = PM('reboco.jpg', [1, 0.5], 0xc8a478);
+    mesh(new THREE.BoxGeometry(w + 0.3, 0.3, d + 0.3), adobe, 0, 3.3, 0, g);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.BoxGeometry(0.5, 0.6, 0.5), adobe, a * (w / 2), 3.7, b * (d / 2), g));   // ameias
+    for (let k = -2; k <= 2; k++) { const v = mesh(new THREE.CylinderGeometry(0.1, 0.1, d + 1.0, 6), PM('madeira.jpg', [0.2, 1], 0x6a5040), k * w / 5.5, 2.9, 0, g); v.rotation.x = Math.PI / 2; }   // vigas salientes
+    if (roofC) mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.32, 20, 10, 0, TAU, 0, Math.PI / 2), PM('reboco.jpg', [2, 1], new THREE.Color(roofC).lerp(new THREE.Color(0xd8c8b0), 0.6).getHex()), 0, 3.4, 0, g);
     const door = mesh(new THREE.BoxGeometry(1.1, 1.8, 0.1), M(0x5a3a1a), 0, 0.9, d / 2 + 0.03, g, false);
     [-w / 2 + 1, w / 2 - 1].forEach(wx => mesh(new THREE.BoxGeometry(0.6, 0.8, 0.1), M(0x2a3a5a), wx, 2, d / 2 + 0.03, g, false));
   } else if (style === 'tent') {
@@ -1333,7 +1344,7 @@ const ZONES = {
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
 };
 function update(dt) {
-  time += dt; windU.value = time;
+  time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
   updatePlayer(dt);
   for (const m of mobs) updateMob(m, dt);
   for (const r of respawnQ) r.t -= dt;
@@ -2074,7 +2085,8 @@ renderCreate();
 (function loadModels() {
   const btn = $('btn-new'), cont = $('btn-cont'), label = btn.textContent;
   btn.disabled = true; cont.disabled = true;
-  Promise.all([ModelKit.load(p => { btn.textContent = `⏳ Carregando personagens… ${Math.round(p * 100)}%`; }), SpriteKit.load()]).then(([ok]) => {
+  Promise.all([ModelKit.load(p => { btn.textContent = `⏳ Carregando personagens… ${Math.round(p * 100)}%`; }), SpriteKit.load(), Props.load()]).then(([ok]) => {
+    Props.decorate();
     btn.disabled = false; cont.disabled = false; btn.textContent = label;
     if (SpriteKit.ready) spriteNPCs(); else if (ok) upgradeNPCs();
     renderCreate();
