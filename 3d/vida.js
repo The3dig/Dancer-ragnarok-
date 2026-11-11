@@ -114,9 +114,9 @@ const Vida = (() => {
     flor: { seed: 's_flor', min: 15, n: [1, 2], color: 0xff7ec8 },
   };
   const ANIMALS = {
-    galinha: { name: 'Galinha', price: 60, prod: 'ovo', min: 4, n: [1, 2], h: 0.62 },
-    ovelha: { name: 'Ovelha', price: 220, prod: 'la', min: 8, n: [1, 2], h: 1.0 },
-    vaca: { name: 'Vaca', price: 420, prod: 'leite', min: 10, n: [2, 3], h: 1.45 },
+    galinha: { name: 'Galinha', price: 60, prod: 'ovo', min: 4, n: [1, 2], h: 0.78 },
+    ovelha: { name: 'Ovelha', price: 220, prod: 'la', min: 8, n: [1, 2], h: 1.3 },
+    vaca: { name: 'Vaca', price: 420, prod: 'leite', min: 10, n: [2, 3], h: 1.85 },
   };
   const MAX_ANIMALS = 8;
   let st = { plots: Array(8).fill(null), animals: [], stall: null, pend: [] };
@@ -240,22 +240,75 @@ const Vida = (() => {
 
   // ---------------------------------------------------------------- animais em pixel art
   function pix(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; draw((x, y, ww, hh, col) => { g.fillStyle = col; g.fillRect(x, y, ww, hh); }); return c; }
+  // pixel art dos animais: formas simples rasterizadas, com sombreado em faixas (luz de cima/esquerda) e contorno escuro
+  function art(w, h, shapes, outline = '#1c1610') {
+    const cell = new Array(w * h).fill(null);
+    const hex = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    for (const S of shapes) {
+      const col = hex(S.c);
+      let x0, y0, x1, y1, inside;
+      if (S.e) { const [cx, cy, rx, ry] = S.e; x0 = cx - rx; x1 = cx + rx; y0 = cy - ry; y1 = cy + ry; inside = (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1; }
+      else if (S.r) { const [rx, ry, rw, rh] = S.r; x0 = rx; y0 = ry; x1 = rx + rw; y1 = ry + rh; inside = (x, y) => x >= rx && x < rx + rw && y >= ry && y < ry + rh; }
+      else { const P = S.p; x0 = Math.min(...P.map(q => q[0])); x1 = Math.max(...P.map(q => q[0])); y0 = Math.min(...P.map(q => q[1])); y1 = Math.max(...P.map(q => q[1]));
+        inside = (x, y) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i][1] > y) !== (P[j][1] > y) && x < (P[j][0] - P[i][0]) * (y - P[i][1]) / (P[j][1] - P[i][1]) + P[i][0]) c = !c; return c; }; }
+      for (let y = Math.max(0, Math.floor(y0)); y <= Math.min(h - 1, Math.ceil(y1)); y++) for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(w - 1, Math.ceil(x1)); x++) {
+        if (!inside(x + 0.5, y + 0.5)) continue;
+        const i = y * w + x; if (S.clip && !cell[i]) continue;
+        let k = 1;
+        if (S.flat !== true) {                                  // faixas de luz: claro no alto/esquerda, escuro embaixo/direita
+          const ny = (y + 0.5 - y0) / Math.max(1, y1 - y0), nx = (x + 0.5 - x0) / Math.max(1, x1 - x0), v = ny * 0.75 + nx * 0.25;
+          k = v < 0.28 ? 1.14 : v < 0.62 ? 1.0 : v < 0.86 ? 0.84 : 0.72;
+          if (S.dith && ((x + y) % 2 === 0) && v > 0.5) k *= 0.93;
+        }
+        cell[i] = col.map(c => Math.max(0, Math.min(255, Math.round(c * k))));
+      }
+    }
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'), im = g.createImageData(w, h), o = hex(outline);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; let v = cell[i];
+      if (!v) { const n = (xx, yy) => xx >= 0 && yy >= 0 && xx < w && yy < h && cell[yy * w + xx]; if (n(x - 1, y) || n(x + 1, y) || n(x, y - 1) || n(x, y + 1)) v = o; else continue; }
+      im.data.set([v[0], v[1], v[2], 255], i * 4);
+    }
+    g.putImageData(im, 0, 0); return c;
+  }
   function drawAnimals() {
-    SpriteKit.addCanvas('a_galinha', pix(16, 15, f => {
-      f(4, 5, 9, 6, '#f4f0e8'); f(3, 6, 2, 3, '#e8e0d0'); f(11, 2, 3, 4, '#f4f0e8'); f(12, 0, 2, 2, '#d8302a'); f(14, 3, 2, 1, '#f0b020');
-      f(12, 3, 1, 1, '#1a1a1a'); f(6, 7, 4, 2, '#e0d8c8'); f(6, 11, 1, 3, '#f0b020'); f(10, 11, 1, 3, '#f0b020'); f(5, 14, 3, 1, '#f0b020'); f(9, 14, 3, 1, '#f0b020');
-    }));
-    SpriteKit.addCanvas('a_ovelha', pix(22, 17, f => {
-      for (const [x, y] of [[3, 3], [7, 2], [11, 2], [15, 3], [3, 7], [7, 7], [11, 7], [15, 6]]) f(x, y, 5, 5, '#f2efe6');
-      f(4, 4, 14, 7, '#ebe6da'); f(17, 4, 4, 5, '#2a2a2a'); f(19, 5, 1, 1, '#ffffff'); f(16, 3, 2, 2, '#2a2a2a');
-      f(5, 12, 2, 4, '#2a2a2a'); f(9, 12, 2, 4, '#2a2a2a'); f(13, 12, 2, 4, '#2a2a2a'); f(16, 12, 2, 4, '#2a2a2a');
-    }));
-    SpriteKit.addCanvas('a_vaca', pix(26, 19, f => {
-      f(3, 4, 17, 9, '#f4f2ec'); f(5, 5, 4, 3, '#2a2a2a'); f(12, 8, 5, 4, '#2a2a2a'); f(15, 4, 3, 2, '#2a2a2a');
-      f(19, 2, 6, 6, '#f4f2ec'); f(20, 2, 2, 2, '#2a2a2a'); f(19, 0, 1, 2, '#d8d0b8'); f(24, 0, 1, 2, '#d8d0b8'); f(22, 6, 4, 3, '#f0a0a8'); f(21, 4, 1, 1, '#1a1a1a');
-      f(4, 13, 2, 5, '#e8e4dc'); f(8, 13, 2, 5, '#e8e4dc'); f(14, 13, 2, 5, '#e8e4dc'); f(17, 13, 2, 5, '#e8e4dc'); f(10, 13, 3, 2, '#f0a0a8'); f(2, 5, 1, 6, '#2a2a2a');
-      for (const x of [4, 8, 14, 17]) f(x, 18, 2, 1, '#3a3a3a');
-    }));
+    // vaca malhada, de lado (olhando para a direita)
+    SpriteKit.addCanvas('a_vaca', art(64, 46, [
+      { r: [15, 30, 4, 12], c: '#a8a296' }, { r: [41, 30, 4, 12], c: '#a8a296' },                     // pernas do outro lado
+      { r: [15, 41, 4, 2], c: '#2e241c', flat: true }, { r: [41, 41, 4, 2], c: '#2e241c', flat: true },
+      { r: [8, 16, 2, 16], c: '#3a302a', flat: true }, { e: [8.5, 33, 2.2, 2.6], c: '#2a221c' },        // rabo
+      { e: [28, 24, 20, 11], c: '#f2eee4', dith: true },                                                 // corpo
+      { e: [21, 19, 7, 6], c: '#2c2622', clip: true }, { e: [35, 28, 6, 5], c: '#2c2622', clip: true }, { e: [13, 27, 4, 4], c: '#2c2622', clip: true }, { e: [33, 15, 4, 3], c: '#2c2622', clip: true },
+      { e: [35, 34, 5, 3], c: '#eea2aa' },                                                               // úbere
+      { r: [11, 30, 5, 13], c: '#ece6da' }, { r: [37, 30, 5, 13], c: '#ece6da' },                      // pernas da frente
+      { r: [11, 41, 5, 3], c: '#2e241c', flat: true }, { r: [37, 41, 5, 3], c: '#2e241c', flat: true },
+      { p: [[42, 14], [50, 10], [52, 22], [44, 26]], c: '#f2eee4' },                                    // pescoço
+      { e: [53, 16, 7, 6.5], c: '#f2eee4' }, { e: [52, 13, 3.5, 3], c: '#2c2622', clip: true },        // cabeça
+      { e: [58, 21, 4.5, 3.8], c: '#f0b2b2' }, { r: [60, 20, 1, 1], c: '#5a2a2a', flat: true },       // focinho
+      { r: [54, 14, 2, 2], c: '#141010', flat: true }, { r: [54, 14, 1, 1], c: '#ffffff', flat: true }, // olho
+      { e: [46, 11, 4, 2], c: '#e2dccf' }, { p: [[50, 9], [51, 4], [53, 9]], c: '#e8dcc0' }, { p: [[55, 9], [57, 4], [58, 9]], c: '#e8dcc0' },
+    ]));
+    // ovelha de lã fofa (cada tufo é sombreado à parte) e cara escura
+    const wool = [];
+    for (const [x, y, r] of [[12, 20, 6], [18, 15, 6.5], [26, 13, 6.5], [34, 14, 6.5], [40, 18, 6], [10, 27, 6], [17, 28, 6.5], [25, 29, 6.5], [33, 28, 6.5], [40, 25, 6], [21, 21, 7], [30, 21, 7]]) wool.push({ e: [x, y, r, r * 0.92], c: '#efe9dc', dith: true });
+    SpriteKit.addCanvas('a_ovelha', art(56, 42, [
+      { r: [14, 30, 3, 10], c: '#1e1a18' }, { r: [33, 30, 3, 10], c: '#1e1a18' },
+      ...wool,
+      { r: [11, 31, 4, 10], c: '#2e2824' }, { r: [30, 31, 4, 10], c: '#2e2824' },
+      { e: [47, 20, 6, 5.5], c: '#2e2824' }, { e: [51, 23, 3.2, 2.6], c: '#3e3632' },                 // cabeça e focinho
+      { e: [42, 16, 4, 2], c: '#2a2420' }, { e: [44, 13, 4.5, 3.5], c: '#f2ede2' },                   // orelha e topete
+      { r: [48, 18, 2, 2], c: '#e8dcc0', flat: true }, { r: [49, 18, 1, 1], c: '#141010', flat: true },
+    ]));
+    // galinha
+    SpriteKit.addCanvas('a_galinha', art(32, 30, [
+      { r: [12, 21, 1, 6], c: '#d89a20', flat: true }, { r: [17, 21, 1, 6], c: '#e8a828', flat: true }, { r: [10, 27, 4, 1], c: '#d89a20', flat: true }, { r: [16, 27, 4, 1], c: '#e8a828', flat: true },
+      { e: [6, 9, 3.5, 6], c: '#ece6da' }, { e: [9, 8, 3, 6], c: '#f4f0e6' },                          // rabo
+      { e: [14, 16, 9.5, 7], c: '#f6f2ea', dith: true },                                               // corpo
+      { e: [13, 16, 5.5, 3.6], c: '#e2dacb' },                                                         // asa
+      { e: [22, 8, 4.5, 4.5], c: '#f6f2ea' },                                                          // cabeça
+      { e: [21, 3, 1.8, 1.8], c: '#d63a2c' }, { e: [23.5, 2.8, 1.8, 2], c: '#d63a2c' }, { e: [25, 12, 1.3, 2], c: '#d63a2c' },
+      { p: [[26, 7], [30, 8.5], [26, 10]], c: '#f0b020' }, { r: [23, 7, 1, 1], c: '#141010', flat: true },
+    ]));
   }
   function iconSprite(txt) {
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
