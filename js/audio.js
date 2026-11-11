@@ -257,7 +257,9 @@ const Audio8 = (() => {
   }
 
   // ---------- trilha orquestral gravada (musica/*.m4a) ----------
-  const FILES = ['solmira', 'campos', 'areias', 'kharum', 'kravenox'];
+  // trilhas do RPG Kravenox (kravenox-jogar/rpg/music), com os pontos de laço de lá
+  const LOOPS = {"title": {"loop": 1, "a": 0.5, "b": 42.2391304}, "vila": {"loop": 1, "a": 0.5, "b": 34.7857143}, "floresta": {"loop": 1, "a": 0.5, "b": 49.7307692}, "vale": {"loop": 1, "a": 0.5, "b": 64.5}, "abismo": {"loop": 1, "a": 0.5, "b": 60.5}, "cidade": {"loop": 1, "a": 0.5, "b": 53.8333333}, "fortaleza": {"loop": 1, "a": 0.5, "b": 46.2142857}, "masmorra": {"loop": 1, "a": 0.5, "b": 46.2142857}, "chefe": {"loop": 1, "a": 0.5, "b": 26.1}};
+  const FILES = Object.keys(LOOPS);
   const MUSIC_BASE = (() => { try { return new URL('../musica/', document.currentScript.src).href; } catch (e) { return 'musica/'; } })();
   const bufs = {}, loading = {};
   let fileBus = null, fileSrc = null, fileName = null, fileGain = null;
@@ -277,7 +279,7 @@ const Audio8 = (() => {
     loadFile(name).then(b => {
       if (!b || fileName !== name) return;
       const src = ctx.createBufferSource(), g = ctx.createGain();
-      src.buffer = b; src.loop = true; src.loopStart = 0.05; src.loopEnd = b.duration;
+      const L = LOOPS[name] || {}; src.buffer = b; src.loop = L.loop !== 0; src.loopStart = L.a || 0.05; src.loopEnd = Math.min(b.duration, L.b || b.duration);
       g.gain.value = 0; g.gain.setTargetAtTime(1, ctx.currentTime, 0.8);
       src.connect(g); g.connect(fileBus); src.start(ctx.currentTime + 0.05, 0.05);
       fileSrc = src; fileGain = g;

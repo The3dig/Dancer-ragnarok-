@@ -1154,15 +1154,15 @@ function usePotion(id) {
 
 // ---------------------------------------------------------------- atualização
 const ZONES = {
-  solmira: { name: 'Vila de Solmira', music: 'solmira', town: true },
-  sitio: { name: 'Sítio de Solmira', music: 'solmira' },
-  campos: { name: 'Campos Dourados', music: 'campos' },
-  areias: { name: 'Areias Rubras', music: 'areias' },
-  lair: { name: 'Cratera do Cisma', music: 'areias' },
-  cidadela: { name: 'Cidadela do Cisma', music: 'kharum', town: true },
-  torre: { name: 'Torre do Cisma', music: 'areias' },
-  topo: { name: 'Topo da Torre do Cisma', music: 'kravenox' },
-  kharum: { name: 'Oásis de Kharum', music: 'kharum', town: true },
+  solmira: { name: 'Vila de Solmira', music: 'vila', town: true },
+  sitio: { name: 'Sítio de Solmira', music: 'vila' },
+  campos: { name: 'Campos Dourados', music: 'floresta' },
+  areias: { name: 'Areias Rubras', music: 'vale' },
+  lair: { name: 'Cratera do Cisma', music: 'abismo' },
+  cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
+  torre: { name: 'Torre do Cisma', music: 'masmorra' },
+  topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
+  kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
 };
 function update(dt) {
   time += dt; windU.value = time;
@@ -1855,7 +1855,7 @@ function renderCreate() {
     b.className = 'chip' + (k === CREATE.cls ? ' on' : '');
     const src = window.SPR && SPR[C.portrait] ? 'data:image/png;base64,' + SPR[C.portrait] : '';
     b.innerHTML = `<img src="${src}" alt=""><span>${C.name.f}</span>`;
-    b.onclick = () => { Audio8.init(); Audio8.sfx('click'); CREATE.cls = k; CREATE.gender = C.gender; renderCreate(); };
+    b.onclick = () => { Audio8.init(); Audio8.play('title'); Audio8.sfx('click'); CREATE.cls = k; CREATE.gender = C.gender; renderCreate(); };
     el.appendChild(b);
   }
   const c = CLASSES[CREATE.cls];
