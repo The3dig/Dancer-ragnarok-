@@ -19,7 +19,7 @@ const Contas = (() => {
   const intro = el('div', 'intro', '', `
     <div class="in-logo"><div class="in-small">Crônicas do</div><h1>Reino Quebrado</h1><div class="in-on">ONLINE</div></div>
     <p class="in-quote">“Antes do Cisma, o Reino era um só. A Fonte guardava a memória de todos.”</p>
-    <button class="in-go">Toque para entrar</button>`);
+    <button class="in-go">Toque para entrar</button><small class="in-snd">🔊 com som</small>`);
   const slots = el('div', 'slots', 'hidden');
   document.body.appendChild(intro); document.body.appendChild(slots);
   $('title').classList.add('hidden');
@@ -46,7 +46,7 @@ const Contas = (() => {
   }
   function useSlot(i) { slot = i; SAVE_KEY = key(i); if (typeof Vida !== 'undefined' && Vida.useSlot) Vida.useSlot(i); }
   const whenReady = fn => $('btn-new').disabled ? setTimeout(() => whenReady(fn), 300) : fn();
-  setInterval(() => { const b = intro.querySelector('.in-go'); if (b) b.textContent = $('btn-new').disabled ? $('btn-new').textContent : 'Toque para entrar'; }, 300);
+  setInterval(() => { const b = intro.querySelector('.in-go'); if (b) b.textContent = $('btn-new').disabled ? $('btn-new').textContent : '🔊 Toque para entrar'; }, 300);
   function play(i) {
     if ($('btn-new').disabled) return whenReady(() => play(i));
     useSlot(i); slots.classList.add('hidden'); window.INTRO = false;

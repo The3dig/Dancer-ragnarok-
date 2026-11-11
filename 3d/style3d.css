@@ -400,3 +400,4 @@ body.touch #statwin { width: min(560px, 70vw); overflow-y: auto; }
 #slots .sl-back { margin-top: 14px; width: auto; background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); }
 #btn-voltar { margin-top: 8px; background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); border-radius: 10px; padding: 8px; font: 700 13px 'Nunito', sans-serif; width: 100%; }
 @media (max-height: 470px) { #intro h1 { font-size: 38px; } #slots .sl-card { width: 150px; padding: 10px 8px; } #slots .sl-card img, #slots .sl-plus { width: 54px; height: 54px; } #slots h2 { font-size: 16px; margin-bottom: 8px; } }
+#intro .in-snd { opacity: 0; animation: inFade 1s ease both 3.6s; color: #c8b890; font-size: 11px; margin-top: -8px; }

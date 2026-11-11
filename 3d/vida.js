@@ -457,7 +457,7 @@ const Vida = (() => {
   }
 
   // ---------------------------------------------------------------- drops no chão: ícone do item, brilho e feixe de luz pela raridade
-  const iconTex = {}, beamGeo = new THREE.CylinderGeometry(0.06, 0.16, 5, 10, 1, true);
+  const iconTex = {}, beamGeo = new THREE.CylinderGeometry(0.1, 0.22, 6, 12, 1, true), coreGeo = new THREE.CylinderGeometry(0.04, 0.08, 6, 8, 1, true);
   function itemIcon(ic) {
     if (iconTex[ic]) return iconTex[ic];
     const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d');
@@ -471,11 +471,13 @@ const Vida = (() => {
     const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
     spr.scale.setScalar(id === 'zeny' ? 0.55 : 0.75); grp.add(spr);
     const rar = I.kind === 'equip' ? I.rar : -1;
-    if (rar >= 1 || id === 'essencia') {
-      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff;
-      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
-      beam.position.y = 1.9; grp.add(beam);
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.42, 24), beam.material.clone()); ring.rotation.x = -Math.PI / 2; ring.position.y = -0.35; ring.material.opacity = 0.6; grp.add(ring);
+    if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade
+      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7][Math.max(0, rar)];
+      const mk = (o, fog) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog });
+      const beam = new THREE.Mesh(beamGeo, mk(base, false)); beam.position.y = 2.6; grp.add(beam);
+      const core = new THREE.Mesh(coreGeo, mk(Math.min(1, base + 0.3), false)); core.position.y = 2.6; grp.add(core);
+      beam.onBeforeRender = () => { const k = 0.7 + 0.3 * Math.sin(time * 4 + grp.id); beam.material.opacity = base * k; core.material.opacity = Math.min(1, base + 0.3) * k; };
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.55, 28), mk(0.7, true)); ring.rotation.x = -Math.PI / 2; ring.position.y = -0.36; grp.add(ring);
     }
     return grp;
   }
