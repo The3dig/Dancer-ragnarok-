@@ -115,7 +115,7 @@ const Props = (() => {
     const l = place('wooden_lantern_01', x + 0.55, z, 0.45, 0, 0);
     if (l) l.position.y = groundY(x, z) + 1.85;
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.7 }));
-    glow.position.set(x + 0.55, groundY(x, z) + 2.05, z); glow.scale.setScalar(1.6); scene.add(glow);
+    glow.position.set(x + 0.55, groundY(x, z) + 2.05, z); glow.scale.setScalar(1.6); scene.add(glow); glows.push(glow);
     addOb(x, z, 0.3);
   }
   let _glow = null;
@@ -125,5 +125,8 @@ const Props = (() => {
     const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(255,220,160,.5)'); gr.addColorStop(1, 'rgba(255,200,120,0)');
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return (_glow = new THREE.CanvasTexture(c));
   }
-  return { load, decorate, place, get ready() { return ready; } };
+  // lanternas mais fortes à noite
+  const glows = [];
+  function setNight(n) { const k = 0.35 + 0.65 * n; for (const g of glows) { g.material.opacity = 0.55 * k; g.scale.setScalar(1.2 + n * 0.6); } }
+  return { load, decorate, place, setNight, get ready() { return ready; } };
 })();

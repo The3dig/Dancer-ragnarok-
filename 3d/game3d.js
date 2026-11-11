@@ -47,9 +47,9 @@ const SKY_TOP_G = new THREE.Color(0x4b6684), SKY_TOP_D = new THREE.Color(0x7690a
 scene.fog = new THREE.Fog(SKY_GREEN.clone(), 38, 165);
 // céu em gradiente com sol
 const skyMat = new THREE.ShaderMaterial({
-  uniforms: { top: { value: SKY_TOP_G.clone() }, horizon: { value: SKY_GREEN.clone() }, sunDir: { value: new THREE.Vector3(0.5, 0.75, 0.3).normalize() } },
+  uniforms: { top: { value: SKY_TOP_G.clone() }, horizon: { value: SKY_GREEN.clone() }, sunDir: { value: new THREE.Vector3(0.5, 0.75, 0.3).normalize() }, night: { value: 0 } },
   vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = vec4(p.xy, p.w * 0.9999, p.w); }',
-  fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; varying vec3 vDir;
+  fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform float night; varying vec3 vDir;
     void main(){ vec3 d = normalize(vDir); float h = clamp(d.y, 0.0, 1.0);
       vec3 c = mix(horizon, top, pow(h, 0.5));
       float s = max(dot(d, sunDir), 0.0);
@@ -60,7 +60,11 @@ const skyMat = new THREE.ShaderMaterial({
       float cl = smoothstep(0.52, 0.78, n) * smoothstep(0.0, 0.25, d.y);
       vec3 cc = mix(c * 1.25 + 0.06, vec3(0.95, 0.9, 0.82) * (0.4 + dot(c, vec3(0.6))), pow(s, 4.0) * 0.5);
       c = mix(c, cc, cl * 0.7);
-      c += vec3(1.0, 0.88, 0.7) * (pow(s, 600.0) * 2.5 + pow(s, 10.0) * 0.22);
+      c += vec3(1.0, 0.88, 0.7) * (pow(s, 600.0) * 2.5 + pow(s, 10.0) * 0.22) * (1.0 - night * 0.8);
+      // estrelas à noite (e a lua do lado oposto ao sol)
+      vec3 sd = floor(d * 220.0); float st = fract(sin(dot(sd, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+      c += vec3(0.9, 0.92, 1.0) * step(0.9975, st) * night * smoothstep(0.05, 0.3, d.y) * (1.0 - cl);
+      float mo = max(dot(d, -sunDir), 0.0); c += vec3(0.8, 0.85, 1.0) * (pow(mo, 900.0) * 1.6 + pow(mo, 30.0) * 0.08) * night;
       gl_FragColor = vec4(c, 1.0);
       #include <tonemapping_fragment>
       #include <encodings_fragment>
@@ -116,6 +120,26 @@ const POST = (() => {
   } };
 })();
 const draw = () => POST ? POST.render() : renderer.render(scene, camera);
+// ---------------------------------------------------------------- dia e noite
+const SUN_OFF = new THREE.Vector3(40, 34, 22);
+const DAYC = { horizon: new THREE.Color(), top: new THREE.Color(), sunC: new THREE.Color(), hemiC: new THREE.Color(), sunDir: new THREE.Vector3() };
+const C_ = h => new THREE.Color(h);
+const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
+function dayCycle() {
+  const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : null;
+  const t = forced ?? ((Date.now() / 1000 / 1800 + 0.2) % 1);          // 0..1 (0,25 manhã · 0,5 meio-dia · 0,75 fim de tarde)
+  const ang = (t - 0.25) * Math.PI * 2, elev = Math.sin(ang + Math.PI / 2 - Math.PI / 2) ;
+  const e = Math.sin((t - 0.2) / 0.62 * Math.PI);                         // elevação do sol: dia de 0,2 a 0,82
+  const light = clamp(e * 1.4, 0, 1), dusk = clamp(1 - Math.abs(e) * 2.2, 0, 1), night = clamp(-e * 2.5, 0, 1);
+  const az = (t - 0.2) / 0.62 * Math.PI;                                    // o sol atravessa o céu
+  SUN_OFF.set(Math.cos(az) * 45, 8 + Math.max(e, 0.12) * 40, 22 + Math.sin(az) * 6);
+  DAYC.sunDir.copy(SUN_OFF).normalize(); if (night > 0) DAYC.sunDir.y = Math.max(DAYC.sunDir.y, 0.15);
+  DAYC.sunC.setRGB(1, 0.88 - dusk * 0.28, 0.74 - dusk * 0.4);
+  DAYC.hemiC.set(0xb9c6d2).lerp(C_(0x5a6a9a), night);
+  DAYC.horizon.copy(SUNSET_H).lerp(NIGHT_H, night); DAYC.top.copy(SUNSET_T).lerp(NIGHT_T, night);
+  return { t, light, night, dusk, sunDir: DAYC.sunDir, sunC: DAYC.sunC, hemiC: DAYC.hemiC, horizon: DAYC.horizon, top: DAYC.top,
+    mixH: Math.max(dusk * 0.7, night * 0.92), mixT: Math.max(dusk * 0.45, night * 0.95), sunI: 0.25 + 1.45 * light, hemiI: 0.42 + 0.22 * light };
+}
 let lastFit = '';
 function fitScreen() {
   const ae = document.activeElement; if (ae && ae.tagName === 'INPUT' && running) return;   // teclado aberto: mantém o tamanho
@@ -331,6 +355,43 @@ function groundMix(x, z, y) {
 })();
 
 // água
+// ---------------------------------------------------------------- cordilheiras no horizonte (silhuetas na névoa)
+const mountains = (() => {
+  const P = [], C = [], I = [];
+  const ring = (cx, cz, rx, rz, n, hBase, hVar, seed) => {
+    const b = P.length / 3;
+    for (let i = 0; i <= n; i++) {
+      const a = i / n * TAU, x = cx + Math.cos(a) * rx, z = cz + Math.sin(a) * rz;
+      const h = hBase + hVar * (0.5 + 0.5 * Math.sin(a * 7 + seed) * Math.cos(a * 3.3 + seed * 2)) + hVar * 0.45 * Math.abs(Math.sin(a * 17 + seed));
+      P.push(x, -20, z, x, h, z); C.push(0.55, 0.55, 0.6, 1, 1, 1);
+      if (i < n) { const k = b + i * 2; I.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+    }
+  };
+  ring(0, 0, WX + 70, WZ + 110, 160, 22, 38, 1.3);
+  ring(0, 0, WX + 130, WZ + 170, 120, 40, 55, 4.1);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.setIndex(I);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, side: THREE.DoubleSide, color: 0x7a8490 }));
+  m.renderOrder = -0.5; scene.add(m); return m;
+})();
+// vagalumes à noite perto do jogador
+const fireflies = (() => {
+  const N = 60, pos = new Float32Array(N * 3), seeds = [];
+  for (let i = 0; i < N; i++) seeds.push([Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * TAU, 0.6 + Math.random() * 1.4]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const dot = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(230,255,160,.8)'); gr.addColorStop(1, 'rgba(200,255,120,0)'); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ map: dot, color: 0xc8ff70, size: 0.32, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  pts.frustumCulled = false; scene.add(pts); return { pts, seeds, pos };
+})();
+function updateFireflies(dt, k) {
+  const zoneOk = P.x < 44 && !inTower(P.z);
+  fireflies.pts.material.opacity = zoneOk ? k * (0.6 + 0.4 * Math.sin(time * 3)) : 0;
+  if (!zoneOk || k <= 0.02) return;
+  fireflies.seeds.forEach(([ox, oz, ph, sp], i) => {
+    const x = P.x + ox + Math.sin(time * 0.4 * sp + ph) * 2, z = P.z + oz + Math.cos(time * 0.33 * sp + ph) * 2;
+    fireflies.pos.set([x, groundY(x, z) + 0.6 + Math.sin(time * sp + ph) * 0.5, z], i * 3);
+  });
+  fireflies.pts.geometry.attributes.position.needsUpdate = true;
+}
 // água: mapa de normais de ondas (gerado) que desliza, com brilho do sol
 const WAVES = (() => {
   const N = 256, h = new Float32Array(N * N);
@@ -1375,11 +1436,19 @@ function update(dt) {
     if (ZONES[z].town) P.home = z;
   }
   if (P.combo && (P.comboT -= dt) <= 0) { if (P.combo >= 3) log(`Combo final: ${P.combo}`, 'sys'); P.combo = 0; }
+  // ciclo de dia e noite (30 min por dia; dia mais longo que a noite)
+  const DAY = dayCycle();
+  sky.material.uniforms.sunDir.value.copy(DAY.sunDir); sky.material.uniforms.night.value = DAY.night;
+  sun.intensity = DAY.sunI; sun.color.copy(DAY.sunC); hemi.intensity = DAY.hemiI; hemi.color.copy(DAY.hemiC);
   const des = inTower(P.z) ? 0 : smooth(40, 70, P.x);
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
+  skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
   if (dark > 0) { skyMat.uniforms.horizon.value.lerp(new THREE.Color(0x4a1830), dark); skyMat.uniforms.top.value.lerp(new THREE.Color(0x12081c), dark); }
+  if (typeof Props !== 'undefined' && Props.setNight) Props.setNight(DAY.night);
+  mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(new THREE.Color(0x2a3440), 0.25);
+  updateFireflies(dt, DAY.night * (1 - dark));
   scene.fog.color.copy(skyMat.uniforms.horizon.value);
-  if (typeof SpriteKit !== 'undefined') SpriteKit.setLight(1 - 0.3 * dark);
+  if (typeof SpriteKit !== 'undefined') SpriteKit.setLight((1 - 0.3 * dark) * (0.62 + 0.38 * DAY.light));
 }
 
 function updatePlayer(dt) {
@@ -1597,7 +1666,7 @@ function updateCamera(dt) {
   camera.position.set(cx, cy, cz);
   camera.lookAt(camS.x, camS.y, camS.z);
   hideTreesBetween(cx, cz, camS.x, camS.z, cy, camS.y);
-  sun.position.set(P.x + 40, P.y + 34, P.z + 22); sun.target.position.set(P.x, P.y, P.z);
+  sun.position.set(P.x + SUN_OFF.x, P.y + SUN_OFF.y, P.z + SUN_OFF.z); sun.target.position.set(P.x, P.y, P.z);
 }
 
 // ---------------------------------------------------------------- HUD
@@ -2119,7 +2188,7 @@ function loop(now) {
     camera.position.set(P.x + Math.sin(time * 0.2) * 5, P.y + 1.8, P.z + Math.cos(time * 0.2) * 5);
     camera.lookAt(P.x, P.y + 1.1, P.z);
     camera.setViewOffset(VW, VH, VW * 0.2, 0, VW, VH);
-    sun.position.set(P.x + 40, P.y + 34, P.z + 22); sun.target.position.set(P.x, P.y, P.z);
+    sun.position.set(P.x + SUN_OFF.x, P.y + SUN_OFF.y, P.z + SUN_OFF.z); sun.target.position.set(P.x, P.y, P.z);
     sky.position.copy(camera.position); draw();
   }
   requestAnimationFrame(loop);
