@@ -1447,6 +1447,7 @@ function updateLabels() {
   $('pname').style.transform = `translate(${ps.x | 0}px,${ps.y | 0}px) translate(-50%,-100%)`;
 }
 function updateHUD() {
+  $('btn-stat').classList.toggle('badge', P.statPts > 0); $('btn-skill').classList.toggle('badge', P.skillPts > 0);
   const mh = stats.maxHp(), ms = stats.maxSp(), need = xpNeed(P.lv);
   $('st-name').textContent = P.name;
   $('st-lv').textContent = `${className(P.cls, P.gender)} · Nv ${P.lv}`;
@@ -1467,8 +1468,10 @@ function updateHUD() {
   $('buffs').innerHTML = b;
   $('combo').innerHTML = P.combo >= 2 ? `<b>${P.combo}</b> COMBO<small>+${Math.min(100, P.combo * 5)}% dano</small>` : '';
   const q = QUESTS[P.quest];
-  $('quest').innerHTML = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}</div>`
-    : `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas! Melhor combo: <b>${P.best}</b></div>`;
+  const qt = questTarget(), qd = qt ? Math.round(Math.hypot(qt.x - P.x, qt.z - P.z)) : 0;
+  const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
+  const qh2 = qh || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
+  if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo
@@ -1509,6 +1512,30 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
     x.fillStyle = '#' + c.getHexString(); x.fillRect(i, j, 1, 1);
   }
 }
+function questTarget() {
+  const q = QUESTS[P.quest]; if (!q || inTower(P.z)) return null;
+  if (P.qcount >= q.n) { const n = NPCS.find(n => n.id === 'master'); return { x: n.x, z: n.z }; }
+  let best = null, bd = 1e9;
+  for (const m of mobs) if (m.type === q.mob) { const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < bd) { bd = d; best = m; } }
+  if (best) return { x: best.x, z: best.z };
+  const sp = SPAWNS.find(s => s.type === q.mob); if (!sp) return null;
+  return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 };
+}
+const qArrow = new THREE.Group(); scene.add(qArrow);
+{
+  const m = new THREE.MeshBasicMaterial({ color: 0xffcf40, transparent: true, opacity: 0.9, depthWrite: false });
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.7, 4), m); head.rotation.x = Math.PI / 2; head.position.z = 0.35; qArrow.add(head);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.5), m); tail.position.z = -0.2; qArrow.add(tail);
+  qArrow.renderOrder = 4; qArrow.scale.setScalar(1.6);
+}
+function updateQuestArrow() {
+  const t = running && !P.dead ? questTarget() : null, d = t ? Math.hypot(t.x - P.x, t.z - P.z) : 0;
+  qArrow.visible = !!t && d > 5;
+  if (!qArrow.visible) return;
+  const a = Math.atan2(t.x - P.x, t.z - P.z);
+  qArrow.position.set(P.x + Math.sin(a) * 2.2, P.y + 0.35 + Math.sin(time * 4) * 0.06, P.z + Math.cos(a) * 2.2);
+  qArrow.rotation.y = a;
+}
 function drawMinimap() {
   const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
   mg.drawImage(mmBase, 0, 0);
@@ -1517,6 +1544,14 @@ function drawMinimap() {
   Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { mg.fillStyle = '#ffcf40'; mg.fillRect((n.x + WX) * sx - 1.5, (n.z + WZ) * sz - 1.5, 3, 3); }
   const px = (P.x + WX) * sx, pz = (P.z + WZ) * sz;
+  const qt = questTarget();
+  if (qt) {                                                     // destino da missão: linha tracejada e estrela dourada
+    const tx = (qt.x + WX) * sx, tz = (qt.z + WZ) * sz;
+    mg.save(); mg.setLineDash([3, 3]); mg.strokeStyle = 'rgba(255,207,64,.85)'; mg.lineWidth = 1.5; mg.beginPath(); mg.moveTo(px, pz); mg.lineTo(tx, tz); mg.stroke();
+    mg.setLineDash([]); mg.fillStyle = '#ffcf40'; mg.strokeStyle = '#000'; mg.beginPath();
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? 2.5 : 6, a = k * Math.PI / 5 - Math.PI / 2; mg.lineTo(tx + Math.cos(a) * r, tz + Math.sin(a) * r); }
+    mg.closePath(); mg.fill(); mg.stroke(); mg.restore();
+  }
   mg.save(); mg.translate(px, pz); mg.rotate(-P.face + Math.PI);
   mg.fillStyle = '#fff'; mg.strokeStyle = '#ff4fa3'; mg.lineWidth = 1.5;
   mg.beginPath(); mg.moveTo(0, -6); mg.lineTo(4, 4); mg.lineTo(-4, 4); mg.closePath(); mg.fill(); mg.stroke();
@@ -1540,17 +1575,17 @@ function buildHotbar() {
 function renderStats() {
   const w = $('statwin');
   const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts ? '' : 'disabled'}>+</button><span class="si">${STAT_INFO[k]}</span></div>`;
-  const html = `<div class="wt">${className(P.cls, P.gender)} <span class="x" data-close>×</span></div>
-    ${STAT_KEYS.map(row).join('')}
-    <div class="pts">Pontos disponíveis: <b>${P.statPts}</b></div>
-    <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b><br>
-    Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
+  const html = `<div class="wt">📊 ${className(P.cls, P.gender)} · Nv ${P.lv}<button class="x" data-close>×</button></div>
+    <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'}</div>
+    <div class="sgrid">${STAT_KEYS.map(row).join('')}</div>
+    <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b> · Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
 $('statwin').addEventListener('click', e => {
-  const k = e.target.dataset.st;
+  const b = e.target.closest('[data-st],[data-close]'); if (!b) return;
+  if (b.dataset.close !== undefined) return toggleStats();
+  const k = b.dataset.st;
   if (k && P.statPts > 0) { P[k]++; P.statPts--; Audio8.sfx('click'); renderStats(); }
-  if (e.target.dataset.close !== undefined) toggleStats();
 });
 function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); renderStats(); }
 
@@ -1605,14 +1640,14 @@ function renderSkills() {
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
       <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button></div>`;
   };
-  const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <span class="x" data-close>×</span></div>
+  const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
     <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(ganhe 1 por nível)</small></div>
     <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
 $('skillwin').addEventListener('click', e => {
+  if (e.target.closest('[data-close]')) return toggleSkills();
   const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
-  if (e.target.dataset.close !== undefined) toggleSkills();
 });
 function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills(); }
 
@@ -1886,7 +1921,7 @@ P.y = groundY(P.x, P.z);
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt);
+    update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow();
     sky.position.copy(camera.position); renderer.render(scene, camera);
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {

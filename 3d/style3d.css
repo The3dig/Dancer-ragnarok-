@@ -328,3 +328,20 @@ body.touch #prompt { top: calc(50px + env(safe-area-inset-top)); font-size: 12px
   body.touch #quest .wb { padding: 3px 8px; line-height: 1.25; }
 }
 body.touch #quest:empty { display: none !important; }
+/* atributos compactos: pontos no topo, grade de 2 colunas, × é um botão */
+#statwin .wt, #skillwin .wt { display: flex; align-items: center; }
+#statwin .x, #skillwin .x { margin-left: auto; background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); border-radius: 8px; width: 34px; height: 30px; font-size: 20px; line-height: 1; padding: 0; cursor: pointer; }
+#statwin .pts { padding: 6px 12px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.08); }
+#statwin .pts.tem { background: rgba(242,200,106,.18); color: var(--gold); }
+#statwin .pts b { font-size: 16px; }
+#statwin .sgrid { display: grid; grid-template-columns: 1fr 1fr; }
+#statwin .srow { padding: 5px 10px; gap: 8px; display: flex; align-items: center; }
+#statwin .srow .sl { width: 32px; }
+#statwin .srow b { min-width: 22px; font-size: 14px; }
+#statwin .srow button { width: 32px; height: 28px; font-size: 16px; }
+#statwin .srow .si { flex: 1; font-size: 10px; line-height: 1.15; }
+#statwin .derived { padding: 6px 12px; font-size: 11px; }
+body.touch #statwin { width: min(560px, 70vw); overflow-y: auto; }
+#menu button.badge { position: relative; box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgba(242,200,106,.7); }
+#menu button.badge::after { content: '!'; position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: #e03a3a; color: #fff; font: 800 11px/16px sans-serif; text-align: center; }
+#quest .qd { color: var(--gold); font-weight: 700; }
