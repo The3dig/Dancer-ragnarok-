@@ -310,3 +310,55 @@ const OLD_TO_HERO = {
   guerreiro: 'kravenox', berserker: 'kravenox', arruaceiro: 'kravenox', saqueador: 'kravenox', assassino: 'kravenox', monge: 'kravenox', ferreira: 'kravenox',
   paladino: 'mae', sacerdote: 'lyra', mago_luz: 'thornox', mago_negro: 'seraphyne', necromante: 'seraphyne', dancarina: 'erya', arqueira: 'erya', xama: 'thornox',
 };
+
+// =====================================================================
+//  Evolução de classe (1ª → 2ª → 3ª), estilo Ragnarok: no nível 20 e no 40
+//  o herói faz uma provação longa nos lugares mais difíceis e evolui.
+//  Cada classe nova libera 2 habilidades (visíveis na árvore desde o início).
+// =====================================================================
+const TIERS = {
+  kravenox: ['Kravenox', 'Espinho Voraz', 'Forma Desperta'],
+  thornox: ['Thornox', 'Guardião da Luz', 'Thornox Coroado'],
+  lyra: ['Lyra', 'Guardiã da Memória', 'Voz da Fonte'],
+  seraphyne: ['Seraphyne', 'Mãos do Vazio', 'Espelho do Vazio'],
+  erya: ['Erya', 'Quinta Marca', 'Escolha Livre'],
+  mae: ['Mãe', 'Lâmina de Auren', 'Guardiã do Entre'],
+};
+const TIER_SKILLS = {
+  kravenox: [
+    { id: 'fome', name: 'Fome do Abismo', icon: '🕳️', tier: 1, lv: 20, sp: 22, cd: 5, type: 'drain', mult: 2.6, steal: 0.45, color: 0xa01020, desc: 'Devora a Essência do alvo (260%) e recupera vida.' },
+    { id: 'esmagamento', name: 'Esmagamento', icon: '💥', tier: 1, lv: 24, sp: 38, cd: 10, type: 'nova', r: 7, mult: 3.4, stun: 1.5, fx: 'espinhos2', color: 0xd01a2a, desc: 'Golpeia o chão: espinhos e abismo em volta (340%).' },
+    { id: 'sombras', name: 'Pelas Sombras', icon: '🌑', tier: 2, lv: 40, sp: 40, cd: 8, type: 'step', mult: 5.0, color: 0x6a1030, desc: '"Thornox pela frente, Kravenox pelas sombras." Surge atrás do alvo (500%).' },
+    { id: 'quarta', name: 'Quarta Essência', icon: '✴️', tier: 2, lv: 46, sp: 80, cd: 18, type: 'blast', r: 8, mult: 6.0, fx: 'espinhos', color: 0xe0e0ff, desc: 'Luz, memória, Vazio e Essência num só golpe (600% em área).' },
+  ],
+  thornox: [
+    { id: 'aurora', name: 'Aurora', icon: '🌅', tier: 1, lv: 20, sp: 30, cd: 10, type: 'heal', pct: 0.6, color: 0xffe9a0, desc: 'Cura 60% do HP.' },
+    { id: 'onda', name: 'Onda de Luz', icon: '🌊', tier: 1, lv: 24, sp: 40, cd: 9, type: 'nova', r: 8, mult: 3.2, magic: true, color: 0xffd860, desc: 'Uma onda dourada que desfaz as sombras (320% em volta).' },
+    { id: 'muralha', name: 'Muralha de Luz', icon: '🏰', tier: 2, lv: 40, sp: 45, cd: 40, type: 'buff', dur: 30, mods: { def: 60 }, heal: 0.3, color: 0xffe9a0, desc: '30s: +60 de defesa e cura 30%.' },
+    { id: 'julgamento', name: 'Julgamento Dourado', icon: '☀️', tier: 2, lv: 46, sp: 80, cd: 16, type: 'blast', r: 7, mult: 6.0, magic: true, stun: 2, color: 0xfff2a0, desc: 'Um pilar de luz cai sobre os inimigos (600%).' },
+  ],
+  lyra: [
+    { id: 'eco', name: 'Eco da Vida', icon: '💗', tier: 1, lv: 20, sp: 26, cd: 30, type: 'buff', dur: 20, mods: { regen: 0.03, def: 10 }, color: 0xffc8e0, desc: '20s: regenera 3% do HP por segundo e +10 de defesa.' },
+    { id: 'memoriaColetiva', name: 'Memória Coletiva', icon: '🫂', tier: 1, lv: 24, sp: 44, cd: 12, type: 'nova', r: 7, mult: 2.4, magic: true, heal: 0.25, color: 0xb8d8ff, desc: 'Cada um carrega a lembrança do outro: 240% em volta e cura 25%.' },
+    { id: 'canção', name: 'Canção da Fonte', icon: '🎶', tier: 2, lv: 40, sp: 50, cd: 40, type: 'buff', dur: 30, mods: { matk: 1.6, aspd: 1.2 }, color: 0xe8f0ff, desc: '30s: +60% de magia e ataques mais rápidos.' },
+    { id: 'ultima', name: 'Última Memória', icon: '🌟', tier: 2, lv: 46, sp: 85, cd: 18, type: 'blast', r: 8, mult: 6.0, magic: true, stun: 3, color: 0xffffff, desc: 'A memória mais antiga da Fonte (600% e prende 3s).' },
+  ],
+  seraphyne: [
+    { id: 'lamina', name: 'Lâmina do Vazio', icon: '🗡️', tier: 1, lv: 20, sp: 24, cd: 3, type: 'bolt', mult: 3.2, magic: true, shots: 2, color: 0xb26bff, desc: 'Duas lâminas de Vazio (320% cada).' },
+    { id: 'espelho', name: 'Espelho do Vazio', icon: '🪞', tier: 1, lv: 24, sp: 46, cd: 12, type: 'blast', r: 6, mult: 3.6, magic: true, stun: 2, color: 0x6a2aa0, desc: 'O Vazio reflete a criatura para dentro dela mesma (360%).' },
+    { id: 'asas', name: 'Asas de Cristal', icon: '🦋', tier: 2, lv: 40, sp: 50, cd: 40, type: 'buff', dur: 25, mods: { matk: 1.5, speed: 1.3, crit: 0.15 }, color: 0xb8a0ff, desc: '25s: +50% de magia, +30% de velocidade e +15% de crítico.' },
+    { id: 'apagar', name: 'Apagar', icon: '⚫', tier: 2, lv: 46, sp: 90, cd: 20, type: 'nova', r: 10, mult: 6.5, magic: true, color: 0x1a0a2a, desc: 'Não destrói: apaga tudo em volta (650%).' },
+  ],
+  erya: [
+    { id: 'novaPorta', name: 'Nova Porta', icon: '🚪', tier: 1, lv: 20, sp: 30, cd: 20, type: 'step', mult: 3.0, color: 0xf0f0c0, desc: 'Cria uma possibilidade: surge atrás do alvo (300%).' },
+    { id: 'quintaMaior', name: 'Marca Viva', icon: '✳️', tier: 1, lv: 24, sp: 44, cd: 10, type: 'bolt', mult: 1.8, magic: true, shots: 5, spread: true, color: 0xf0f0c0, desc: 'Cinco marcas que buscam alvos (180% cada).' },
+    { id: 'antesDeTudo', name: 'Antes de Tudo', icon: '👁️', tier: 2, lv: 40, sp: 50, cd: 40, type: 'buff', dur: 30, mods: { matk: 1.4, def: 30, crit: 0.1 }, heal: 0.25, color: 0xffffff, desc: '30s: +40% de magia, +30 de defesa, +10% de crítico; cura 25%.' },
+    { id: 'todasEscolhas', name: 'Todas as Escolhas', icon: '♾️', tier: 2, lv: 46, sp: 90, cd: 18, type: 'blast', r: 8, mult: 2.4, hits: 3, magic: true, color: 0xfff6c0, desc: 'Todas as possibilidades acertam (3× 240% em área).' },
+  ],
+  mae: [
+    { id: 'auren', name: 'Lâmina de Auren', icon: '⚔️', tier: 1, lv: 20, sp: 22, cd: 3, type: 'strike', mult: 2.4, hits: 2, color: 0xe8e8ff, desc: 'Dois cortes da lâmina antiga (240% cada).' },
+    { id: 'promessa', name: 'Promessa', icon: '🛡️', tier: 1, lv: 24, sp: 36, cd: 35, type: 'buff', dur: 25, mods: { def: 40, atk: 1.25 }, color: 0xe8e8ff, desc: '25s: +40 de defesa e +25% de dano.' },
+    { id: 'entre', name: 'Passagem do Entre', icon: '🌫️', tier: 2, lv: 40, sp: 45, cd: 9, type: 'charge', mult: 5.5, stun: 2, color: 0xd8d8f0, desc: 'Atravessa o Entre até o alvo (550%, atordoa).' },
+    { id: 'voltemTodos', name: 'Voltem, Todos', icon: '🌙', tier: 2, lv: 46, sp: 85, cd: 18, type: 'nova', r: 9, mult: 5.5, heal: 0.35, color: 0xe8e8ff, desc: 'A promessa cumprida: 550% em volta e cura 35%.' },
+  ],
+};

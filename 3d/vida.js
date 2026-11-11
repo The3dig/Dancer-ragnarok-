@@ -22,22 +22,52 @@ const Vida = (() => {
     ovo: ['Ovo', '🥚', 8, 0, 'colheita'], la: ['Lã', '🧶', 20, 0, 'colheita'], leite: ['Leite', '🥛', 14, 0, 'colheita'],
     pao: ['Pão de Trigo', '🍞', 10, 0, 'comida', { heal: 0.3 }],
   };
-  // equipamentos: pow = dano (físico para lutadores, mágico para magos)
+  // ---------------- equipamentos (estilo Priston/Lineage): 8 espaços, raridade e conjuntos
+  // mods: pow = dano (físico ou mágico, conforme o herói), def, hp, sp, crit, spd (velocidade)
+  // [nome, ícone, espaço, preço na loja (0 = só cai de monstro), mods, raridade, conjunto]
   const GEAR = {
-    arma_ferro: ['Arma de Ferro Velho', '⚔️', 'arma', 120, { pow: 6 }],
-    arma_cristal: ['Arma de Cristal', '🗡️', 'arma', 480, { pow: 14 }],
-    arma_essencia: ['Arma da Essência', '🔱', 'arma', 0, { pow: 26, crit: 0.03 }, 600],
-    manto: ['Manto de Viajante', '🧥', 'armadura', 90, { def: 4, hp: 30 }],
-    cota: ['Cota do Reino', '🦺', 'armadura', 420, { def: 10, hp: 90 }],
-    arm_negra: ['Armadura Negra', '🥋', 'armadura', 0, { def: 18, hp: 180 }, 650],
-    anel_raiz: ['Anel de Raiz', '💍', 'acessorio', 150, { crit: 0.03, sp: 10 }],
-    amuleto: ['Amuleto da Fonte', '📿', 'acessorio', 380, { sp: 40, hp: 40 }],
-    marca: ['Marca dos Quatro Espinhos', '✴️', 'acessorio', 0, { pow: 8, crit: 0.06 }, 900],
+    arma_ferro: ['Arma de Ferro Velho', '⚔️', 'arma', 120, { pow: 6 }, 0],
+    arma_cristal: ['Arma de Cristal', '🗡️', 'arma', 0, { pow: 14 }, 1],
+    arma_essencia: ['Arma da Essência', '🔱', 'arma', 0, { pow: 26, crit: 0.03 }, 2],
+    arma_cisma: ['Garra do Cisma', '🦴', 'arma', 0, { pow: 42, crit: 0.06 }, 3],
+    capuz_couro: ['Capuz de Couro', '🪖', 'capacete', 0, { def: 2, hp: 15 }, 0, 'couro'],
+    gibao_couro: ['Gibão de Couro', '🦺', 'armadura', 0, { def: 4, hp: 25 }, 0, 'couro'],
+    luvas_couro: ['Luvas de Couro', '🧤', 'luvas', 0, { def: 1, pow: 2 }, 0, 'couro'],
+    botas_couro: ['Botas de Couro', '🥾', 'botas', 0, { def: 1, spd: 0.04 }, 0, 'couro'],
+    manto: ['Manto de Viajante', '🧥', 'armadura', 90, { def: 4, hp: 30 }, 0],
+    turbante: ['Turbante das Areias', '👳', 'capacete', 0, { def: 4, hp: 30, crit: 0.01 }, 1, 'areias'],
+    manto_areias: ['Manto das Areias', '🧥', 'armadura', 0, { def: 8, hp: 60 }, 1, 'areias'],
+    luvas_areias: ['Braçadeiras das Areias', '🧤', 'luvas', 0, { def: 2, pow: 4, crit: 0.01 }, 1, 'areias'],
+    sandalias: ['Sandálias das Dunas', '👡', 'botas', 0, { def: 2, spd: 0.07 }, 1, 'areias'],
+    cota: ['Cota do Reino', '🦺', 'armadura', 420, { def: 10, hp: 90 }, 1],
+    elmo_sentinela: ['Elmo da Sentinela', '⛑️', 'capacete', 0, { def: 8, hp: 60 }, 2, 'sentinela'],
+    couraca_sentinela: ['Couraça da Sentinela', '🛡️', 'armadura', 0, { def: 16, hp: 140 }, 2, 'sentinela'],
+    manoplas_sentinela: ['Manoplas da Sentinela', '🥊', 'luvas', 0, { def: 4, pow: 8 }, 2, 'sentinela'],
+    grevas_sentinela: ['Grevas da Sentinela', '🥾', 'botas', 0, { def: 4, spd: 0.08, hp: 40 }, 2, 'sentinela'],
+    arm_negra: ['Armadura Negra', '🥋', 'armadura', 0, { def: 18, hp: 180 }, 2],
+    coroa_espinhos: ['Coroa de Espinhos', '👑', 'capacete', 0, { def: 14, hp: 120, pow: 8 }, 3, 'cisma'],
+    manto_cisma: ['Manto do Cisma', '🧛', 'armadura', 0, { def: 26, hp: 260 }, 3, 'cisma'],
+    garras_cisma: ['Garras do Cisma', '🧤', 'luvas', 0, { def: 6, pow: 14, crit: 0.03 }, 3, 'cisma'],
+    passos_cisma: ['Passos do Cisma', '👢', 'botas', 0, { def: 6, spd: 0.12, hp: 80 }, 3, 'cisma'],
+    anel_raiz: ['Anel de Raiz', '💍', 'anel', 150, { crit: 0.03, sp: 10 }, 0],
+    anel_cristal: ['Anel de Cristal', '💍', 'anel', 0, { crit: 0.05, pow: 3 }, 1],
+    anel_vazio: ['Anel do Vazio', '💍', 'anel', 0, { pow: 7, sp: 30 }, 2],
+    anel_kravenox: ['Anel do Soberano', '💍', 'anel', 0, { pow: 12, crit: 0.06, hp: 100 }, 3],
+    amuleto: ['Amuleto da Fonte', '📿', 'colar', 380, { sp: 40, hp: 40 }, 0],
+    colar_sombra: ['Colar de Sombra', '📿', 'colar', 0, { crit: 0.04, hp: 50 }, 1],
+    marca: ['Marca dos Quatro Espinhos', '✴️', 'colar', 0, { pow: 10, crit: 0.07, hp: 120 }, 3],
   };
-  for (const [id, [name, ic, slot, price, mods, sell]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, price: price || sell * 2, sell: sell || Math.round(price / 2) };
-  const SLOTS = { arma: 'Arma', armadura: 'Armadura', acessorio: 'Acessório' };
-  const MODN = { pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico' };
-  const modTxt = m => Object.entries(m || {}).map(([k, v]) => `${MODN[k]} +${k === 'crit' ? Math.round(v * 100) + '%' : v}`).join(' · ');
+  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }];
+  const SETS = {
+    couro: { name: 'Conjunto de Couro', bonus: { hp: 60, def: 3 } },
+    areias: { name: 'Conjunto das Areias', bonus: { crit: 0.05, spd: 0.05, hp: 80 } },
+    sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
+    cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
+  };
+  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000][rar]) / 2) };
+  const SLOTS = { arma: 'Arma', capacete: 'Capacete', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas', anel1: 'Anel', anel2: 'Anel', colar: 'Colar' };
+  const MODN = { pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' };
+  const modTxt = m => Object.entries(m || {}).map(([k, v]) => `${MODN[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(' · ');
   for (const [id, [name, ic, sell, price, kind, extra]] of Object.entries(NEW)) ITEMS[id] = { name, ic, sell, price: price || sell * 2, kind, ...(extra || {}) };
   const it = id => ITEMS[id] || { name: id, ic: '❔', sell: 0, price: 0 };
   const has = (id, n = 1) => (P.inv[id] || 0) >= n;
@@ -46,8 +76,19 @@ const Vida = (() => {
   // materiais que cada monstro solta
   const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.45]);
-  const GEAR_DROP = { besouro: [['manto', 0.03], ['anel_raiz', 0.02]], serpe: [['arma_cristal', 0.02], ['cota', 0.02]], guardiao: [['arma_essencia', 0.3], ['arm_negra', 0.25]],
-    sentinela: [['arm_negra', 0.04], ['arma_essencia', 0.03]], kravenox: [['marca', 1], ['arma_essencia', 1]], verme: [['cota', 0.04]], esfera: [['amuleto', 0.04]] };
+  const GEAR_DROP = {
+    pompom: [['capuz_couro', 0.04], ['botas_couro', 0.02]],
+    zunzum: [['luvas_couro', 0.04], ['botas_couro', 0.03]],
+    fungolino: [['gibao_couro', 0.03], ['anel_raiz', 0.03]],
+    besouro: [['turbante', 0.025], ['luvas_areias', 0.025], ['arma_cristal', 0.02], ['anel_cristal', 0.015]],
+    serpe: [['manto_areias', 0.02], ['sandalias', 0.012], ['colar_sombra', 0.015]],
+    guardiao: [['couraca_sentinela', 0.12], ['arma_essencia', 0.15], ['arm_negra', 0.08]],
+    larva: [['manoplas_sentinela', 0.012]],
+    verme: [['grevas_sentinela', 0.015], ['arma_essencia', 0.01]],
+    esfera: [['anel_vazio', 0.02], ['essencia', 0.02]],
+    sentinela: [['elmo_sentinela', 0.02], ['manoplas_sentinela', 0.015], ['essencia', 0.03]],
+    kravenox: [['marca', 0.5], ['arma_cisma', 0.3], ['coroa_espinhos', 0.25], ['manto_cisma', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.15]],
+  };
   for (const [t, l] of Object.entries(GEAR_DROP)) if (MOBDEF[t]) MOBDEF[t].drops.push(...l);
 
   // ---------------------------------------------------------------- Sítio
@@ -236,7 +277,12 @@ const Vida = (() => {
   }
 
   // ---------------------------------------------------------------- mochila (inventário com o personagem)
-  const gear = k => { let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += ITEMS[id].mods[k] || 0; } return v; };
+  function setCount() { const c = {}; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set) c[I.set] = (c[I.set] || 0) + 1; } return c; }
+  const gear = k => {
+    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += ITEMS[id].mods[k] || 0; }
+    const sc = setCount(); for (const st in sc) if (sc[st] >= 4) v += SETS[st].bonus[k] || 0;
+    return v;
+  };
   let sel = null;
   function invWin() {
     let w = $('invwin');
@@ -246,30 +292,32 @@ const Vida = (() => {
     }
     return w;
   }
-  function bag() { $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); if (dialogOpen) closeDialog(); sel = null; renderInv(); invWin().classList.remove('hidden'); }
+  function migrateEquip() { P.equip = P.equip || {}; if (P.equip.acessorio) { const id = P.equip.acessorio; delete P.equip.acessorio; (ITEMS[id] && ITEMS[id].slot === 'anel' ? (P.equip.anel1 = id) : (P.equip.colar = id)); } }
+  function bag() { migrateEquip(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); if (dialogOpen) closeDialog(); sel = null; renderInv(); invWin().classList.remove('hidden'); }
   function closeInv() { invWin().classList.add('hidden'); }
   function renderInv() {
     P.equip = P.equip || {};
     const C = CLASSES[P.cls], spr = C.sprite ? (C.sprite.kind === 'dir' ? C.sprite.base + '_down_0' : C.sprite.base + '_down_0') : null;
     const img = spr && window.SPR && SPR[spr] ? `<img class="doll-img" src="data:image/png;base64,${SPR[spr]}">` : '';
-    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on' : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}</small><br>${id ? it(id).name : '<i>vazio</i>'}</span></div>`; }).join('');
+    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on r' + (it(id).rar || 0) : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}</small><br>${id ? it(id).name : '<i>vazio</i>'}</span></div>`; }).join('');
     const ids = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
-    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq' : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || '<i class="empty">Vazia. Derrote monstros para juntar materiais.</i>';
+    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || '<i class="empty">Vazia. Derrote monstros para juntar materiais.</i>';
     let det = '<small>Toque num item para ver o que dá para fazer.</small>';
     if (sel && sel.startsWith('eq:')) {
       const sl = sel.slice(3), id = P.equip[sl];
-      det = id ? `<b>${it(id).ic} ${it(id).name}</b> <small>${modTxt(it(id).mods)}</small><div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button></div>` : `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
+      det = id ? `<b style="color:${RARITY[it(id).rar || 0].c}">${it(id).ic} ${it(id).name}</b> <small>${modTxt(it(id).mods)}${it(id).set ? ' · ' + SETS[it(id).set].name : ''}</small><div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button></div>` : `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
     } else if (sel && P.inv[sel] > 0) {
       const I = ITEMS[sel], btns = [];
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
       if (I.use || I.heal) btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`);
-      det = `<b>${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? SLOTS[I.slot] + ' · ' + modTxt(I.mods) : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : 'Vende por ' + I.sell + 'z no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
+      det = `<b style="color:${I.kind === 'equip' ? RARITY[I.rar].c : 'inherit'}">${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? RARITY[I.rar].n + ' · ' + (I.slot === 'anel' ? 'Anel' : SLOTS[I.slot]) + ' · ' + modTxt(I.mods) + (I.set ? ' · ' + SETS[I.set].name : '') : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : 'Vende por ' + I.sell + 'z no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
     }
     const mag = CLASSES[P.cls].magic;
     invWin().innerHTML = `<div class="wt">🎒 Mochila <small>· ${P.zeny}z</small><span class="x" data-a="close">×</span></div>
       <div class="invb">
-        <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div>${slots}
-          <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div></div>
+        <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div><div class="eslots">${slots}</div>
+          <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div>
+          ${Object.entries(setCount()).map(([st, n]) => `<div class="dset ${n >= 4 ? 'on' : ''}">${SETS[st].name}: ${n}/4${n >= 4 ? ' ✅ ' + modTxt(SETS[st].bonus) : ''}</div>`).join('')}</div>
         <div class="invr"><div class="igrid">${cells}</div><div class="idet">${det}</div>
           <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>
       </div>`;
@@ -278,7 +326,7 @@ const Vida = (() => {
     if (a === 'close') return closeInv();
     if (a === 'sel') sel = sel === v ? null : v;
     if (a === 'eq') sel = 'eq:' + v;
-    if (a === 'equip') { const sl = ITEMS[v].slot; P.equip = P.equip || {}; if (P.equip[sl]) add(P.equip[sl], 1); add(v, -1); P.equip[sl] = v; Audio8.sfx('buff'); log(`Equipou <b>${it(v).name}</b>.`, 'item'); sel = 'eq:' + sl; }
+    if (a === 'equip') { let sl = ITEMS[v].slot; P.equip = P.equip || {}; if (sl === 'anel') sl = !P.equip.anel1 ? 'anel1' : !P.equip.anel2 ? 'anel2' : 'anel1'; if (P.equip[sl]) add(P.equip[sl], 1); add(v, -1); P.equip[sl] = v; Audio8.sfx('buff'); log(`Equipou <b>${it(v).name}</b>.`, 'item'); sel = 'eq:' + sl; }
     if (a === 'unequip') { const id = P.equip[v]; if (id) { add(id, 1); P.equip[v] = null; log(`Tirou <b>${it(id).name}</b>.`, 'sys'); } }
     if (a === 'use') { use(v); if (!P.inv[v]) sel = null; }
     if (a === 'trade') { closeInv(); return tradePick(); }
@@ -404,6 +452,63 @@ const Vida = (() => {
     }
   }
 
+  // ---------------------------------------------------------------- drops no chão: ícone do item, brilho e feixe de luz pela raridade
+  const iconTex = {}, beamGeo = new THREE.CylinderGeometry(0.06, 0.16, 5, 10, 1, true);
+  function itemIcon(ic) {
+    if (iconTex[ic]) return iconTex[ic];
+    const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(48, 48, 4, 48, 48, 46); gr.addColorStop(0, 'rgba(255,240,200,.55)'); gr.addColorStop(1, 'rgba(255,220,160,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 96, 96);
+    g.font = '58px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 6; g.fillText(ic, 48, 52);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return (iconTex[ic] = t);
+  }
+  function dropMesh(id) {
+    const I = id === 'zeny' ? { ic: '🪙' } : it(id), grp = new THREE.Group();
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
+    spr.scale.setScalar(id === 'zeny' ? 0.55 : 0.75); grp.add(spr);
+    const rar = I.kind === 'equip' ? I.rar : -1;
+    if (rar >= 1 || id === 'essencia') {
+      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff;
+      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+      beam.position.y = 1.9; grp.add(beam);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.42, 24), beam.material.clone()); ring.rotation.x = -Math.PI / 2; ring.position.y = -0.35; ring.material.opacity = 0.6; grp.add(ring);
+    }
+    return grp;
+  }
+  function pickMsg(id, n) {
+    const I = it(id);
+    if (I.kind === 'equip') {
+      log(`${I.rar >= 2 ? '🎉 ' : ''}Você pegou <b style="color:${RARITY[I.rar].c}">[${RARITY[I.rar].n}] ${I.ic} ${I.name}</b>!`, 'item');
+      if (I.rar >= 2) { banner(`${RARITY[I.rar].n}: ${I.name}`); Audio8.sfx('level'); }
+      return true;
+    }
+    return false;
+  }
+
+  // ---------------------------------------------------------------- bestiário: onde fica cada monstro e o que ele solta
+  const REGION = { pompom: 'Campos Dourados', zunzum: 'Campos Dourados', fungolino: 'Campos Dourados', besouro: 'Areias Rubras', serpe: 'Areias Rubras',
+    guardiao: 'Ruínas das Areias (chefe)', larva: 'Torre do Cisma', verme: 'Torre do Cisma', esfera: 'Torre do Cisma', sentinela: 'Torre do Cisma', kravenox: 'Topo da Torre · sábado 20h (chefe mundial)' };
+  function bestiary(sel) {
+    let w = $('bestwin');
+    if (!w) {
+      w = document.createElement('div'); w.id = 'bestwin'; w.className = 'win hidden'; $('hud').appendChild(w);
+      w.addEventListener('click', e => { const t = e.target.closest('[data-b]'); if (!t) return; Audio8.sfx('click'); if (t.dataset.b === 'x') w.classList.add('hidden'); else bestiary(t.dataset.b); });
+    }
+    if (dialogOpen) closeDialog(); $('invwin') && $('invwin').classList.add('hidden');
+    const types = Object.keys(REGION).filter(t => MOBDEF[t]).sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
+    sel = sel || w.dataset.sel || types[0]; w.dataset.sel = sel;
+    const seen = P.bestiary || {}, d = MOBDEF[sel];
+    const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : '❔'); };
+    const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}</small></span></div>`).join('');
+    const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.1 ? 1 : 0) + '%'}</em></div>`; }).join('');
+    w.innerHTML = `<div class="wt">📖 Bestiário <small>· ${Object.keys(seen).length}/${types.length} conhecidos</small><button class="x" data-b="x">×</button></div>
+      <div class="bb"><div class="blist">${list}</div>
+      <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${REGION[sel]}</small><br><small>Abatidos: ${seen[sel]}</small></div></div><div class="bdl">${drops}</div>`
+        : `<div class="bh">${img(sel)}<div><b>???</b><br><small>Nv ${d.lv} · ${REGION[sel]}</small></div></div><p class="bq">Derrote um para registrar o que ele solta.</p>`}</div></div>`;
+    w.classList.remove('hidden');
+  }
+  function onKill(m) { P.bestiary = P.bestiary || {}; P.bestiary[m.type] = (P.bestiary[m.type] || 0) + 1; }
+
   // ---------------------------------------------------------------- interface com o jogo
   function nearest() {
     let best = null, bd = 1e9;
@@ -477,8 +582,10 @@ const Vida = (() => {
     for (const q of st.pend) P.zeny += q.p; st.pend = [];
     // botão da mochila no menu
     if (!$('btn-bag')) { const b = document.createElement('button'); b.id = 'btn-bag'; b.title = 'Mochila (B)'; b.textContent = '🎒'; b.onclick = bag; $('menu').insertBefore(b, $('btn-chat')); }
+    if (!$('btn-best')) { const b = document.createElement('button'); b.id = 'btn-best'; b.title = 'Bestiário (L)'; b.textContent = '📖'; b.onclick = () => bestiary(); $('menu').insertBefore(b, $('btn-chat')); }
+    migrateEquip();
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, get stall() { return st.stall; } };
+  return { init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

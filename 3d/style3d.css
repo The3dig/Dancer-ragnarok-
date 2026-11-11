@@ -345,3 +345,27 @@ body.touch #statwin { width: min(560px, 70vw); overflow-y: auto; }
 #menu button.badge { position: relative; box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgba(242,200,106,.7); }
 #menu button.badge::after { content: '!'; position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: #e03a3a; color: #fff; font: 800 11px/16px sans-serif; text-align: center; }
 #quest .qd { color: var(--gold); font-weight: 700; }
+#skillwin .stier { margin: 8px 12px 2px; padding: 4px 10px; border-radius: 8px; background: rgba(242,200,106,.14); color: var(--gold); font-size: 12px; }
+#skillwin .stier.off { background: rgba(255,255,255,.05); color: var(--mut); }
+/* mochila: 8 espaços de equipamento em 2 colunas, cores de raridade, conjuntos */
+.doll { width: 230px; }
+.doll .eslots { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.eslot.r1 { border-color: #4a90ff; } .eslot.r2 { border-color: #a050ff; } .eslot.r3 { border-color: #ffa020; box-shadow: 0 0 8px rgba(255,160,32,.4); }
+.icell.r1 { border-color: #4a90ff; background: rgba(74,144,255,.12); } .icell.r2 { border-color: #a050ff; background: rgba(160,80,255,.14); } .icell.r3 { border-color: #ffa020; background: rgba(255,160,32,.16); }
+.dset { font-size: 10px; color: var(--mut); text-align: center; } .dset.on { color: #7dff9a; }
+/* bestiário */
+#bestwin { position: absolute; left: 50%; top: calc(52px + env(safe-area-inset-top)); transform: translateX(-50%); width: min(680px, 94vw); max-height: calc(100% - 60px); display: flex; flex-direction: column; z-index: 6; font-size: 12px; }
+#bestwin .wt { display: flex; align-items: center; gap: 6px; }
+#bestwin .x { margin-left: auto; background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); border-radius: 8px; width: 34px; height: 30px; font-size: 20px; cursor: pointer; }
+#bestwin .bb { display: flex; gap: 8px; padding: 8px; min-height: 0; overflow: hidden; }
+#bestwin .blist { width: 42%; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+#bestwin .bl { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+#bestwin .bl.on { border-color: var(--gold); background: rgba(242,200,106,.12); }
+#bestwin .bl img, #bestwin .bh img { width: 34px; height: 34px; object-fit: contain; image-rendering: pixelated; }
+#bestwin .bl span { line-height: 1.1; } #bestwin .bl small { display: block; color: var(--mut); font-size: 10px; }
+#bestwin .bdet { flex: 1; overflow-y: auto; }
+#bestwin .bh { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; } #bestwin .bh img { width: 64px; height: 64px; }
+#bestwin .bd { display: flex; gap: 6px; align-items: center; padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+#bestwin .bd b { flex: 1; font-weight: 700; } #bestwin .bd em { font-style: normal; color: var(--gold); }
+#bestwin .bq { color: var(--mut); }
+@media (max-height: 470px) { #bestwin { top: calc(46px + env(safe-area-inset-top)); max-height: calc(100% - 52px); font-size: 11px; } .doll { width: 210px; } }

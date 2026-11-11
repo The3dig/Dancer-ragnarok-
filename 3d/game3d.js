@@ -902,6 +902,7 @@ function npcMark(n) {
   let k = '';
   if (n.id === 'master') { const q = QUESTS[P.quest]; k = !q ? '' : P.qcount >= q.n ? '?:#ffcf40' : P.qSeen === P.quest ? '!:#9a9aa8' : '!:#ffe040'; }
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
+  else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
   if (n.markK === k) return; n.markK = k;
   n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.needsUpdate = true; }
 }
@@ -941,7 +942,9 @@ const P = {
 };
 const CLS = () => CLASSES[P.cls] || CLASSES.dancarina;
 let SKILLS = [];
-function refreshSkills() { SKILLS = CLS().skills.map((s, i) => ({ ...s, key: String(i + 1) })); }
+function refreshSkills() { SKILLS = [...CLS().skills, ...((typeof TIER_SKILLS !== 'undefined' && TIER_SKILLS[P.cls]) || [])].map((s, i) => ({ ...s, key: String(i + 1) })); }
+const tierOk = s => (s.tier || 0) <= (P.tier || 0);
+const tierName = () => (typeof TIERS !== 'undefined' && TIERS[P.cls] ? TIERS[P.cls][P.tier || 0] : className(P.cls, P.gender));
 refreshSkills();
 // bônus de buffs: multiplicativos (atk, matk, aspd, speed) e aditivos (def, crit, poison, regen)
 function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
@@ -951,10 +954,10 @@ const stats = {
   atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk')); },
   matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk')),
   def: () => Math.floor(P.vit * 0.6) + badd('def') + gearB('def'),
-  maxHp: () => Math.round((80 + P.vit * 13 + P.lv * 11) * CLS().hp + gearB('hp')),
+  maxHp: () => Math.round((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')),
   maxSp: () => Math.round((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
-  speed: () => 6.2 * bmul('speed'),
+  speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')),
   flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003),
   crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit') + gearB('crit')),
 };
@@ -971,6 +974,7 @@ const QUESTS = [
 
 // ---------------------------------------------------------------- estado
 let mobs = [], drops = [], fx = [], floaters = [], respawnQ = [], corpses = [];
+let ambAcc = 0, stepAcc = 0;
 let time = 0, running = false, zone = null, nearNpc = null, nearUse = null, dialogOpen = false;
 const keys = {};
 const camS = { yaw: Math.PI, pitch: 0.42, dist: 9, x: 0, y: 0, z: 0 };
@@ -1104,6 +1108,8 @@ function killMob(m) {
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
   const xp = Math.round(m.d.xp * mult);
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP`, 'xp');
+  if (typeof Vida !== 'undefined') Vida.onKill(m);
+  if (typeof Evo !== 'undefined') Evo.onKill(m);
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
@@ -1116,8 +1122,8 @@ const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: n
 dropGeo.mat = new THREE.BoxGeometry(0.26, 0.26, 0.26);
 const dropMat = { mat: new THREE.MeshLambertMaterial({ color: 0xc8b070, emissive: 0x302810 }), zeny: new THREE.MeshLambertMaterial({ color: 0xf5c518, emissive: 0x604000 }), red: new THREE.MeshLambertMaterial({ color: 0xe8312f, emissive: 0x400000 }), blue: new THREE.MeshLambertMaterial({ color: 0x2f7ae8, emissive: 0x001840 }) };
 function makeDrop(id, n, x, z) {
-  const m = new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
-  if (id === 'zeny') m.rotation.x = Math.PI / 2;
+  const m = typeof Vida !== 'undefined' && Vida.dropMesh ? Vida.dropMesh(id) : new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
+  if (id === 'zeny' && m.isMesh) m.rotation.x = Math.PI / 2;
   m.position.set(x, groundY(x, z) + 0.4, z); scene.add(m);
   return { id, n, x, z, m, t: 0 };
 }
@@ -1410,6 +1416,8 @@ function update(dt) {
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
   if (typeof Vida !== 'undefined') Vida.update(dt);
+  if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', dayCycle().night > 0.5); }
+  if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
   updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
@@ -1508,7 +1516,7 @@ function updatePlayer(dt) {
   for (const d of drops) if (d.t > 0.4 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
     d.taken = true; scene.remove(d.m);
     if (d.id === 'zeny') { P.zeny += d.n; Audio8.sfx('coin'); floater(d.x, P.y + 1.5, d.z, `+${d.n}z`, 'zeny'); }
-    else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
+    else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
   }
   drops = drops.filter(d => !d.taken);
 
@@ -1696,7 +1704,7 @@ function updateHUD() {
   $('btn-stat').classList.toggle('badge', P.statPts > 0); $('btn-skill').classList.toggle('badge', P.skillPts > 0);
   const mh = stats.maxHp(), ms = stats.maxSp(), need = xpNeed(P.lv);
   $('st-name').textContent = P.name;
-  $('st-lv').textContent = `${className(P.cls, P.gender)} · Nv ${P.lv}`;
+  $('st-lv').textContent = `${tierName()} · Nv ${P.lv}`;
   $('hpbar').style.width = (P.hp / mh * 100) + '%'; $('spbar').style.width = (P.sp / ms * 100) + '%'; $('xpbar').style.width = (P.xp / need * 100) + '%';
   $('hptxt').textContent = `${Math.ceil(P.hp)} / ${mh}`; $('sptxt').textContent = `${Math.floor(P.sp)} / ${ms}`; $('xptxt').textContent = `${(P.xp / need * 100).toFixed(1)}%`;
   $('zeny').textContent = P.zeny.toLocaleString('pt-BR');
@@ -1716,7 +1724,7 @@ function updateHUD() {
   const q = QUESTS[P.quest];
   const qt = questTarget(), qd = qt ? Math.round(Math.hypot(qt.x - P.x, qt.z - P.z)) : 0;
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
-  const qh2 = qh || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
+  const qh2 = (typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + qh || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
   if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
@@ -1814,6 +1822,7 @@ function drawMinimap() {
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = '';
   SKILLS.forEach((s, i) => {
+    if (!tierOk(s)) return;
     const el = document.createElement('div'); el.className = 'slot'; el.dataset.skill = i;
     el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP)\n${s.desc}`;
     const lv = P.skillLv[s.id] || 0;
@@ -1846,7 +1855,7 @@ function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').cla
 // ---------------------------------------------------------------- árvore de habilidades
 const SK_MAX = 5;
 // estrutura igual para todas as classes: [inicial] → [ramo A, ramo B] → [final]
-const SK_REQ = [[], [[0, 2]], [[0, 3]], [[1, 3], [2, 2]]];
+const SK_REQ = [[], [[0, 2]], [[0, 3]], [[1, 3], [2, 2]], [[3, 1]], [[4, 2]], [[5, 2]], [[6, 3]]];
 function scaleSkill(s, L) {
   const k = L - 1, o = { ...s };
   if (s.mult) o.mult = s.mult * (1 + 0.2 * k);
@@ -1860,7 +1869,7 @@ function scaleSkill(s, L) {
   o.sp = Math.round(s.sp * (1 + 0.12 * k));
   return o;
 }
-function reqMet(i) { return SK_REQ[i].every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
+function reqMet(i) { return tierOk(SKILLS[i]) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
 function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
 function learn(i) {
   if (!canLearn(i)) return;
@@ -1886,7 +1895,8 @@ function renderSkills() {
     const s = SKILLS[i], L = P.skillLv[s.id] || 0;
     const reqs = [];
     if (P.lv < s.lv) reqs.push(`nível ${s.lv}`);
-    for (const [j, lv] of SK_REQ[i]) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
+    if (!tierOk(s)) reqs.push(`${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
+    for (const [j, lv] of (SK_REQ[i] || [])) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
     return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''}">
       <span class="si2">${s.icon}</span>
       <div class="sb"><div class="sn">${s.name}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
@@ -1896,7 +1906,12 @@ function renderSkills() {
   };
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
     <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(ganhe 1 por nível)</small></div>
-    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>`;
+    <div class="stier">1ª classe — <b>${TIERS[P.cls] ? TIERS[P.cls][0] : ''}</b></div>
+    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>
+    ${SKILLS.length > 4 ? `<div class="stier ${(P.tier || 0) >= 1 ? '' : 'off'}">2ª classe — <b>${TIERS[P.cls][1]}</b> ${(P.tier || 0) >= 1 ? '✅' : '<small>🔒 provação a partir do nível 20 (fale com o Vigia Morvan, na Cidadela)</small>'}</div>
+    <div class="stree">${node(4, '')}${node(5, '')}</div>
+    <div class="stier ${(P.tier || 0) >= 2 ? '' : 'off'}">3ª classe — <b>${TIERS[P.cls][2]}</b> ${(P.tier || 0) >= 2 ? '✅' : '<small>🔒 provação a partir do nível 40</small>'}</div>
+    <div class="stree">${node(6, '')}${node(7, 'ult')}</div>` : ''}`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
 $('skillwin').addEventListener('click', e => {
@@ -1955,7 +1970,7 @@ function talk(n) {
       break;
     }
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
-    case 'watch': dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
+    case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
     case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor. Volte quando estiver acima do nível 15.`); break;
   }
@@ -1993,7 +2008,7 @@ addEventListener('keydown', e => {
   if (dialogOpen) return;
   keys[k] = true;
   if (e.repeat) return;
-  const si = SKILLS.findIndex(s => s.key === k); if (si >= 0) useSkill(si);
+  const si = SKILLS.findIndex(s => s.key === k); if (si >= 0 && tierOk(SKILLS[si])) useSkill(si);
   if (k === 'j' || k === 'k') attack();
   if (k === 'q') usePotion('red'); if (k === 'e') usePotion('blue');
   if (k === ' ') doJump();
@@ -2061,7 +2076,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 const SAVE_KEY = 'lyra3d-save-v1';
 function save() {
   if (!running) return;
-  const keep = ['equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

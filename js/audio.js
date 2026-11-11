@@ -333,5 +333,34 @@ const Audio8 = (() => {
     return { bpm, beat: b, phase: ph, offset: Math.min(ph, 1 - ph) * 60 / bpm };
   }
 
-  return { init, play, stop, toggleMusic, sfx, beat, get musicOn() { return musicOn; } };
+  // ---------- sons de ambiente: vento, pássaros (dia), grilos (noite), passos ----------
+  let ambBus = null, wind = null, ambMode = '', ambT = 0, ambOn = true;
+  function ambient(mode, night) {
+    if (!ctx) return;
+    if (!ambBus) {
+      ambBus = ctx.createGain(); ambBus.gain.value = 0.35; ambBus.connect(master);
+      const src = ctx.createBufferSource(), len = ctx.sampleRate * 4, b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+      let last = 0; for (let i = 0; i < len; i++) { last = last * 0.985 + (Math.random() * 2 - 1) * 0.015; d[i] = last * 6; }   // ruído marrom (vento)
+      src.buffer = b; src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 520;
+      wind = ctx.createGain(); wind.gain.value = 0;
+      src.connect(f); f.connect(wind); wind.connect(ambBus); src.start();
+    }
+    const want = { campo: 0.10, deserto: 0.22, torre: 0.14, vila: 0.06 }[mode] ?? 0.08;
+    wind.gain.setTargetAtTime(ambOn && musicOn ? want * (0.7 + 0.3 * Math.sin(ctx.currentTime * 0.3)) : 0, ctx.currentTime, 0.8);
+    ambT -= 0.25;
+    if (ambT > 0 || !ambOn || !musicOn) return;
+    const t = ctx.currentTime;
+    if (night && (mode === 'campo' || mode === 'vila')) {                    // grilos
+      ambT = 0.6 + Math.random() * 1.2;
+      for (let k = 0; k < 3; k++) tone(ambBus, 'sine', 4300 + Math.random() * 300, t + k * 0.07, 0.035, 0.035);
+    } else if (!night && (mode === 'campo' || mode === 'vila')) {            // pássaros
+      ambT = 2 + Math.random() * 5;
+      const f0 = 2200 + Math.random() * 1600, n = 2 + Math.floor(Math.random() * 4);
+      for (let k = 0; k < n; k++) tone(ambBus, 'sine', f0 * (1 + Math.random() * 0.2), t + k * 0.12, 0.08, 0.03, { slide: f0 * 1.35 });
+    } else ambT = 3;
+  }
+  function footstep(sand) { if (!ctx || !ambOn) return; noise(sfxBus, ctx.currentTime, 0.06, sand ? 0.08 : 0.05, 'bandpass', sand ? 900 : 500); }
+
+  return { init, play, stop, toggleMusic, sfx, beat, ambient, step: footstep, get musicOn() { return musicOn; } };
 })();
