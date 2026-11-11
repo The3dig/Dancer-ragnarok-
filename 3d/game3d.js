@@ -135,7 +135,7 @@ function watchFps(dt) {
   QUAL.acc += dt; QUAL.frames++;
   if (QUAL.acc < 2) return;
   const fps = QUAL.frames / QUAL.acc; QUAL.acc = 0; QUAL.frames = 0;
-  if (fps < 40 && QUAL.level > 0) { if (++QUAL.slow >= 2) { QUAL.level--; QUAL.slow = 0; applyQuality(); log(`⚙️ Gráficos ajustados para o seu aparelho (nível ${QUAL.level}).`, 'sys'); } }
+  if (fps < (FRAME_MS ? 24 : 40) && QUAL.level > 0) { if (++QUAL.slow >= 2) { QUAL.level--; QUAL.slow = 0; applyQuality(); log(`⚙️ Gráficos ajustados para o seu aparelho (nível ${QUAL.level}).`, 'sys'); } }
   else QUAL.slow = 0;
 }
 // ---------------------------------------------------------------- dia e noite
@@ -2256,7 +2256,13 @@ $('name-in').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-ne
 // ---------------------------------------------------------------- loop
 let last = performance.now();
 P.y = groundY(P.x, P.z);
+// no celular, 30 quadros por segundo: metade do trabalho da placa de vídeo, bem menos calor e bateria
+const FRAME_MS = TOUCH ? 1000 / 30 : 0; let lastFrame = 0;
 function loop(now) {
+  requestAnimationFrame(loop);
+  if (document.hidden) return;
+  if (FRAME_MS && now - lastFrame < FRAME_MS - 3) return;
+  lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
     update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
@@ -2281,6 +2287,5 @@ function loop(now) {
     sun.position.set(P.x + SUN_OFF.x, P.y + SUN_OFF.y, P.z + SUN_OFF.z); sun.target.position.set(P.x, P.y, P.z);
     sky.position.copy(camera.position); draw();
   }
-  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

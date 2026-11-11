@@ -108,8 +108,10 @@ const Vida = (() => {
     SAVE = 'reino-vida-v1-' + n;
     st = { plots: Array(8).fill(null), animals: [], stall: null, pend: [] };
     try { const s = JSON.parse(localStorage.getItem(SAVE)); if (s) st = { ...st, ...s }; } catch (e) { }
+    loaded = true;
   }
-  const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(st)); } catch (e) { } };
+  let loaded = false;   // só salva depois de escolher a vaga (antes disso apagaria o Sítio da vaga 1)
+  const save = () => { if (!loaded) return; try { localStorage.setItem(SAVE, JSON.stringify(st)); } catch (e) { } };
   setInterval(save, 8000); addEventListener('beforeunload', save);
 
   const F = FARM;
@@ -117,21 +119,68 @@ const Vida = (() => {
   for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) PLOTS.push({ x: F.x - 8 + c * 4.4, z: F.z - 11 + r * 4.4 });
   const PEN = { x0: F.x - 12, x1: F.x + 2, z0: F.z + 4, z1: F.z + 13 };
 
-  // construção do Sítio
-  const soilM = new THREE.MeshLambertMaterial({ color: 0x6a4a2c }), woodM = new THREE.MeshLambertMaterial({ color: 0x8a6238 });
+  // construção do Sítio: canteiros de terra com borda de tábuas e plantas em cartões desenhados
+  const woodM = PM('madeira.jpg', [1, 0.2], new THREE.Color(1.25, 1.1, 0.95));
+  const soilM = PM('terra.jpg', [1, 1], new THREE.Color(1.75, 1.55, 1.4)), wetM = PM('terra.jpg', [1, 1], new THREE.Color(1.05, 0.9, 0.8));
+  // textura de cada planta em cada fase (0 broto, 1 crescendo, 2 madura)
+  function cropTex(crop, stage) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    let sd = 11 + stage * 7 + crop.length * 13; const rn = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    const leaf = (x, y, len, ang, w, col) => { g.save(); g.translate(x, y); g.rotate(ang); g.fillStyle = col; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(w, -len * 0.5, 0, -len); g.quadraticCurveTo(-w, -len * 0.5, 0, 0); g.fill(); g.restore(); };
+    const greens = ['#4f7a2a', '#5e8a32', '#6b9a3a', '#3f6a22'];
+    const H = stage === 0 ? 34 : stage === 1 ? 70 : 100;
+    if (crop === 'trigo' && stage === 2) {
+      for (let k = 0; k < 14; k++) {
+        const x0 = 14 + rn() * 100, top = 128 - H + rn() * 20, lean = (rn() - 0.5) * 16, hue = 40 + rn() * 8;
+        g.strokeStyle = `hsl(${hue},45%,42%)`; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, 128); g.quadraticCurveTo(x0, 80, x0 + lean, top + 26); g.stroke();
+        for (let j = 0; j < 7; j++) { g.fillStyle = `hsl(${hue},${62 + rn() * 12}%,${54 + rn() * 10}%)`; g.beginPath(); g.ellipse(x0 + lean + (j % 2 ? 2.5 : -2.5), top + 26 - j * 4.5, 2.2, 4.2, j % 2 ? 0.5 : -0.5, 0, 6.3); g.fill(); }
+      }
+    } else {
+      const n = stage === 0 ? 5 : 9;
+      for (let k = 0; k < n; k++) leaf(64 + (rn() - 0.5) * (stage ? 80 : 40), 128, H * (0.6 + rn() * 0.4), (rn() - 0.5) * 1.1, crop === 'cenoura' ? 4 : 7, greens[k % 4]);
+      if (crop === 'cenoura' && stage >= 1) {                     // folhagem rendada da cenoura
+        g.strokeStyle = '#5f9a34'; g.lineWidth = 1.2;
+        for (let k = 0; k < 18; k++) { const x0 = 40 + rn() * 48, a = (rn() - 0.5) * 1.4, l = H * (0.5 + rn() * 0.5); g.beginPath(); g.moveTo(x0, 124); g.lineTo(x0 + Math.sin(a) * l, 124 - Math.cos(a) * l); g.stroke(); }
+        if (stage === 2) for (let k = 0; k < 4; k++) { const x0 = 34 + k * 20 + rn() * 6; g.fillStyle = '#e07a24'; g.beginPath(); g.moveTo(x0 - 7, 116); g.lineTo(x0 + 7, 116); g.lineTo(x0, 128); g.fill(); g.fillStyle = '#f39a3c'; g.fillRect(x0 - 6, 115, 12, 3); }
+      }
+      if (crop === 'flor' && stage === 2) for (let k = 0; k < 6; k++) {   // flores rosadas abertas
+        const x = 24 + rn() * 80, y = 128 - H + 10 + rn() * 36;
+        g.strokeStyle = '#4f7a2a'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rn() - 0.5) * 10, 128); g.stroke();
+        for (let pt = 0; pt < 5; pt++) { const a = pt / 5 * 6.28; g.fillStyle = pt % 2 ? '#f08ac8' : '#e46fb6'; g.beginPath(); g.ellipse(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 5, 3.2, a, 0, 6.3); g.fill(); }
+        g.fillStyle = '#ffe070'; g.beginPath(); g.arc(x, y, 2.6, 0, 6.3); g.fill();
+      }
+      if (crop === 'trigo' && stage === 1) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(190,170,60,.25)'; g.fillRect(0, 0, 128, 128); }
+    }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+  }
+  const cropMats = {};
+  const cropMat = (crop, stage) => {
+    const k = crop + stage; if (cropMats[k]) return cropMats[k];
+    const m = new THREE.MeshLambertMaterial({ map: cropTex(crop, stage), alphaTest: 0.4, side: THREE.DoubleSide });
+    m.onBeforeCompile = sh => {
+      sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', 'float faceDirection = 1.0; vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;');
+      sh.uniforms.uTime = windU;
+      sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position; float h = max(position.y, 0.0); vec4 wp = modelMatrix * vec4(0.0, 0.0, 0.0, 1.0); transformed.x += sin(uTime * 2.0 + wp.x * 0.7 + wp.z * 0.5) * 0.12 * h * h;');
+    };
+    return (cropMats[k] = m);
+  };
+  const cropGeo = cardGeo([[0, 0.5, 0, 0, 0, 1.1, 1, -0.55, true], [0, 0.5, 0, Math.PI / 2, 0, 1.1, 1, -0.55, true]]);
+  const board = new THREE.BoxGeometry(3.7, 0.3, 0.16), ridge = new THREE.BoxGeometry(3.1, 0.12, 0.42);
   for (const p of PLOTS) {
-    const s = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.25, 3.4), soilM); s.position.set(p.x, groundY(p.x, p.z) + 0.05, p.z); s.receiveShadow = true; scene.add(s);
-    p.g = new THREE.Group(); p.g.position.set(p.x, groundY(p.x, p.z) + 0.18, p.z); scene.add(p.g);
+    const y = groundY(p.x, p.z);
+    p.soil = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.22, 3.4), soilM); p.soil.position.set(p.x, y + 0.05, p.z); p.soil.receiveShadow = true; scene.add(p.soil);
+    p.ridges = [-1, 0, 1].map(k => { const r = new THREE.Mesh(ridge, soilM); r.position.set(p.x, y + 0.18, p.z + k * 1.05); r.receiveShadow = true; scene.add(r); return r; });   // sulcos
+    for (const [dx, dz, ry] of [[0, -1.78, 0], [0, 1.78, 0], [-1.78, 0, Math.PI / 2], [1.78, 0, Math.PI / 2]]) { const b = new THREE.Mesh(board, woodM); b.position.set(p.x + dx, y + 0.12, p.z + dz); b.rotation.y = ry; b.castShadow = b.receiveShadow = true; scene.add(b); }
+    p.g = new THREE.Group(); p.g.position.set(p.x, y + 0.2, p.z); scene.add(p.g);
     p.stalks = [];
     for (let i = 0; i < 9; i++) {
-      const m = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.9, 5), new THREE.MeshLambertMaterial({ color: 0x4caf50 }));
-      m.position.set((i % 3 - 1) * 1.0, 0.45, (Math.floor(i / 3) - 1) * 1.0); m.castShadow = true; p.g.add(m); p.stalks.push(m);
-      const top = new THREE.Mesh(new THREE.SphereGeometry(0.17, 7, 5), new THREE.MeshLambertMaterial({ color: 0xffffff }));
-      top.position.y = 0.5; m.add(top); m.top = top;
+      const m = new THREE.Mesh(cropGeo, cropMat('trigo', 0));
+      m.position.set((i % 3 - 1) * 1.0 + Math.sin(i * 7.1) * 0.12, 0, (Math.floor(i / 3) - 1) * 1.05); m.rotation.y = i * 1.3; p.g.add(m); p.stalks.push(m);
     }
+    p.mark = null; p.markT = '';
   }
   // cerca do curral (visual) e celeiro
-  const post = new THREE.BoxGeometry(0.18, 1.0, 0.18), rail = new THREE.BoxGeometry(1, 0.1, 0.08);
+  const post = new THREE.BoxGeometry(0.2, 1.1, 0.2), rail = new THREE.BoxGeometry(1, 0.14, 0.07);
   const fenceLine = (ax, az, bx, bz, gap) => {
     const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 1.6);
     for (let i = 0; i <= n; i++) {
@@ -146,6 +195,24 @@ const Vida = (() => {
   };
   fenceLine(PEN.x0, PEN.z0, PEN.x1, PEN.z0, true); fenceLine(PEN.x1, PEN.z0, PEN.x1, PEN.z1); fenceLine(PEN.x1, PEN.z1, PEN.x0, PEN.z1); fenceLine(PEN.x0, PEN.z1, PEN.x0, PEN.z0);
   house(F.x - 17, F.z - 1, Math.PI / 2, 6, 5, '#a0402a', 'wood');
+  // fardos de feno, bebedouro, espantalho e caminho de terra
+  {
+    const hay = PM('palha.jpg', [2, 1], new THREE.Color(1.7, 1.5, 1.1)), hayEnd = PM('palha.jpg', [1, 1], new THREE.Color(1.5, 1.3, 0.95));
+    const bale = (x, z, ry) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.3, 16), [hay, hayEnd, hayEnd]); m.rotation.z = Math.PI / 2; m.rotation.y = ry; m.position.set(x, groundY(x, z) + 0.72, z); m.castShadow = m.receiveShadow = true; scene.add(m); addOb(x, z, 0.9); };
+    bale(F.x - 13.5, F.z + 1.8, 0.2); bale(F.x - 11.8, F.z + 2.2, -0.3); bale(F.x + 4.5, F.z + 15.2, 1.4);
+    const tx = F.x - 5, tz = F.z + 12.2, ty = groundY(tx, tz);                                   // bebedouro no curral
+    const tr = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 0.8), woodM); tr.position.set(tx, ty + 0.3, tz); tr.castShadow = true; scene.add(tr);
+    const wt = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.05, 0.62), new THREE.MeshPhongMaterial({ color: 0x3a5a66, shininess: 60, specular: 0x406070 })); wt.position.set(tx, ty + 0.53, tz); scene.add(wt);
+    const sx = F.x - 3, sz = F.z - 6.6, sy = groundY(sx, sz), sg = new THREE.Group(); sg.position.set(sx, sy, sz); sg.rotation.y = 0.4; scene.add(sg);   // espantalho
+    const stick = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), woodM); m.position.set(x, y, z); m.castShadow = true; sg.add(m); };
+    stick(0.12, 2.4, 0.12, 0, 1.2, 0); stick(1.8, 0.1, 0.1, 0, 1.75, 0);
+    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.8, 0.32), new THREE.MeshLambertMaterial({ color: 0x6a4a3a })); shirt.position.y = 1.55; shirt.castShadow = true; sg.add(shirt);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), hay); head.position.y = 2.25; sg.add(head);
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.42, 12), hay); hat.position.y = 2.6; sg.add(hat);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.04, 14), hay); brim.position.y = 2.42; sg.add(brim);
+    addOb(sx, sz, 0.4);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 26), PM('terra.jpg', [1, 8], new THREE.Color(1.9, 1.7, 1.5))); path.rotation.x = -Math.PI / 2; path.position.set(F.x + 4.2, groundY(F.x + 4.2, F.z) + 0.04, F.z - 1); path.receiveShadow = true; scene.add(path);
+  }
   // Fazendeira (NPC)
   {
     const n = { id: 'farm', name: 'Fazendeira Dália', x: F.x + 7, z: F.z - 4 };
@@ -176,7 +243,7 @@ const Vida = (() => {
   }
   function iconSprite(txt) {
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
-    x.font = '44px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 32, 34);
+    x.font = '44px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 32, 34);
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.setScalar(0.7); s.renderOrder = 9; return s;
   }
   const ICONS = {};
@@ -204,11 +271,19 @@ const Vida = (() => {
     Audio8.sfx('pick'); burst(new THREE.Vector3(PLOTS[i].x, groundY(PLOTS[i].x, PLOTS[i].z) + 0.5, PLOTS[i].z), 0x8a6238, 12, 2, 0.6);
     log(`🌱 Plantou <b>${it(crop).name}</b>. Fica pronto em ${C.min} min (cresce mesmo com o jogo fechado).`, 'item');
   }
+  function water(i) {
+    const p = st.plots[i]; if (!p || p.w || cropLeft(p) <= 0) return;
+    p.t -= cropLeft(p) * 0.35; p.w = 1; save();
+    Audio8.sfx('pick'); burst(new THREE.Vector3(PLOTS[i].x, groundY(PLOTS[i].x, PLOTS[i].z) + 0.6, PLOTS[i].z), 0x6ab0ff, 16, 2, 0.6);
+    log(`💧 Regou o canteiro. ${it(p.c).name} cresce mais rápido: falta ${fmtT(cropLeft(p))}.`, 'item');
+  }
   function harvest(i) {
     const p = st.plots[i]; if (!p || cropLeft(p) > 0) return;
     const C = CROPS[p.c], n = irand(C.n[0], C.n[1]); add(p.c, n); st.plots[i] = null; save();
     Audio8.sfx('coin'); floater(PLOTS[i].x, groundY(PLOTS[i].x, PLOTS[i].z) + 1.5, PLOTS[i].z, `+${n} ${it(p.c).ic}`, 'zeny');
     log(`Colheu ${n}× <b>${it(p.c).name}</b>.`, 'item');
+    if (Math.random() < 0.3) { add(C.seed, 1); log(`🌱 Sobrou uma <b>${it(C.seed).name}</b>.`, 'item'); }
+    gainXp(4 + C.min);
   }
   function feed(o) {
     const food = has('racao') ? 'racao' : has('trigo') ? 'trigo' : null;
@@ -243,11 +318,20 @@ const Vida = (() => {
     const c = price * n; if (P.zeny < c) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); return false; }
     P.zeny -= c; add(id, n); Audio8.sfx('coin'); return true;
   }
+  // encomenda do dia: a Fazendeira pede uma produção do Sítio e paga bem
+  const ORDERS = [['trigo', 6], ['cenoura', 4], ['ovo', 4], ['leite', 3], ['la', 2], ['pao', 2], ['flor', 2]];
+  function order() {
+    const d = new Date().toDateString();
+    if (!st.order || st.order.d !== d) { let h = 0; for (const ch of d) h = (h * 31 + ch.charCodeAt(0)) % 9973; const [id, n] = ORDERS[h % ORDERS.length]; st.order = { d, id, n, done: false }; }
+    const o = st.order, pay = Math.round(it(o.id).sell * o.n * 2.5 + 40);
+    return { ...o, pay, xp: 25 + o.n * 6 };
+  }
   function talkFarm(eu) {
     const menu = () => dialog('Fazendeira Dália', `Olá, <b>${eu}</b>! Este é o Sítio de Solmira. Os canteiros e o curral são seus: plante, crie e venda o que quiser.<br><small>Zeny: <b>${P.zeny}z</b> · Animais: ${st.animals.length}/${MAX_ANIMALS}</small>`, [
       { label: '🌱 Sementes e ração', fn: () => { seeds(); return true; } },
       { label: '🐔 Comprar animais', fn: () => { animals(); return true; } },
       { label: '🍳 Fazer receitas', fn: () => { recipes(); return true; } },
+      { label: (o => o.done ? '📦 Encomenda do dia (entregue ✅)' : `📦 Encomenda do dia: ${o.n} ${it(o.id).ic} ${it(o.id).name}`)(order()), fn: () => { orderMenu(); return true; } },
       { label: '💰 Vender colheita', fn: () => { sellAll(['colheita']); menu(); return true; } },
       { label: 'Tchau' }]);
     const seeds = () => dialog('Sementes e ração', `<small>Zeny: <b>${P.zeny}z</b></small>`, [
@@ -261,6 +345,15 @@ const Vida = (() => {
         else { log('Zeny insuficiente!', 'bad'); }
         animals(); return true; } })),
       { label: '← Voltar', fn: () => { menu(); return true; } }]);
+    const orderMenu = () => {
+      const o = order();
+      if (o.done) return dialog('Encomenda do dia', 'Já entregou a de hoje. Volte amanhã: cada dia é um pedido diferente.', [{ label: '← Voltar', fn: () => { menu(); return true; } }]);
+      dialog('Encomenda do dia', `Preciso de <b>${o.n}× ${it(o.id).ic} ${it(o.id).name}</b> para a cidade. Pago <b>${o.pay}z</b> e ensino um pouco do ofício (+${o.xp} XP).<br><small>Você tem ${P.inv[o.id] || 0}.</small>`, [
+        { label: `Entregar ${o.n} ${it(o.id).ic}`, fn: () => {
+          if (!has(o.id, o.n)) { log(`Falta ${it(o.id).name}.`, 'bad'); Audio8.sfx('miss'); orderMenu(); return true; }
+          add(o.id, -o.n); P.zeny += o.pay; st.order.done = true; save(); gainXp(o.xp); Audio8.sfx('level'); banner('Encomenda entregue!'); log(`📦 Encomenda entregue: <b>+${o.pay}z</b>, +${o.xp} XP.`, 'gold'); menu(); return true; } },
+        { label: '← Voltar', fn: () => { menu(); return true; } }]);
+    };
     const recipes = () => dialog('Receitas', 'A Fazendeira transforma a produção do Sítio.', [
       ...RECIPES.map(r => ({ label: r.label, fn: () => { craft(r); recipes(); return true; } })),
       { label: '← Voltar', fn: () => { menu(); return true; } }]);
@@ -526,6 +619,7 @@ const Vida = (() => {
         const d = Math.hypot(p.x - P.x, p.z - P.z); if (d > 2.4) return;
         const s = st.plots[i];
         if (!s) consider(d, `Plantar no canteiro ${i + 1}`, () => plantMenu(i));
+        else if (cropLeft(s) > 0 && !s.w) consider(d, `💧 Regar ${it(s.c).name} (${fmtT(cropLeft(s))})`, () => water(i));
         else if (cropLeft(s) > 0) consider(d, `${it(s.c).name} crescendo (${fmtT(cropLeft(s))})`, () => log(`${it(s.c).ic} ${it(s.c).name}: falta ${fmtT(cropLeft(s))}.`, 'sys'));
         else consider(d, `Colher ${it(s.c).name}`, () => harvest(i));
       });
@@ -548,12 +642,15 @@ const Vida = (() => {
       tAcc = 0;
       PLOTS.forEach((p, i) => {
         const s = st.plots[i];
+        const wet = !!(s && s.w && cropLeft(s) > 0), sm = wet ? wetM : soilM;
+        if (p.soil.material !== sm) { p.soil.material = sm; p.ridges.forEach(r => r.material = sm); }
+        const ready = !!s && cropLeft(s) <= 0, want = ready ? it(s.c).ic : '';
+        if (want !== p.markT) { if (p.mark) p.g.remove(p.mark); p.mark = want ? icon(want) : null; if (p.mark) p.g.add(p.mark); p.markT = want; }
+        if (p.mark) p.mark.position.y = 1.9 + Math.sin(time * 3 + i) * 0.1;
         if (!s) { p.stalks.forEach(m => m.visible = false); return; }
-        const C = CROPS[s.c], k = 1 - cropLeft(s) / (C.min * MIN), ready = k >= 1;
+        const C = CROPS[s.c], k = Math.min(1, 1 - cropLeft(s) / (C.min * MIN)), stage = ready ? 2 : k < 0.4 ? 0 : 1, mat = cropMat(s.c, stage);
         p.stalks.forEach((m, j) => {
-          m.visible = true; m.scale.setScalar(0.25 + Math.min(1, k) * 0.85);
-          m.material.color.setHex(ready && s.c === 'trigo' ? 0xd8b040 : 0x4caf50);
-          m.top.visible = ready; m.top.material.color.setHex(C.color);
+          m.visible = true; m.material = mat; m.scale.setScalar((stage === 0 ? 0.55 : 0.7) + k * 0.45 + Math.sin(j * 3.7) * 0.06);
         });
       });
     }
