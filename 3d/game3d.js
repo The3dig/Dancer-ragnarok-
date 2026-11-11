@@ -288,14 +288,12 @@ function groundMix(x, z, y) {
   if (rq > 0) {
     w[3] = Math.max(w[3], rq); t[0] = lerp(t[0], 0.86, rq); t[1] = lerp(t[1], 0.78, rq); t[2] = lerp(t[2], 0.98, rq);
     const vein = Math.abs(Math.sin(x * 0.55 + Math.sin(z * 0.3) * 2.2) + Math.cos(z * 0.5 + Math.sin(x * 0.2)));
-    if (vein < 0.09) { t[0] = 1.6; t[1] = 0.5; t[2] = 2.4; }
     if (Math.hypot(x - CIT.x, z - CIT.z) < 22 && rd > 3.4) { w[2] = Math.max(w[2], rq); }
   }
   const lair = Math.hypot(x - LAIR.x, z - LAIR.z);
   if (lair < 20) {
     const k = 1 - smooth(14, 20, lair); w[3] = Math.max(w[3], k); t[0] = lerp(t[0], 0.6, k); t[1] = lerp(t[1], 0.42, k); t[2] = lerp(t[2], 0.62, k);
     const crack = Math.abs(Math.sin(x * 0.9 + Math.sin(z * 0.4) * 2) + Math.cos(z * 0.8 + Math.sin(x * 0.3)));
-    if (crack < 0.12 && lair < 17) { t[0] = 3; t[1] = 0.6; t[2] = 0.4; }
   }
   if (Math.hypot(x - RUIN.x, z - RUIN.z) < 13) { w[3] = Math.max(w[3], 0.6); }
   return { t, w };
@@ -1700,20 +1698,28 @@ function questTarget() {
   const sp = SPAWNS.find(s => s.type === q.mob); if (!sp) return null;
   return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 };
 }
-const qArrow = new THREE.Group(); scene.add(qArrow);
-{
-  const m = new THREE.MeshBasicMaterial({ color: 0xffcf40, transparent: true, opacity: 0.9, depthWrite: false });
-  const head = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.7, 4), m); head.rotation.x = Math.PI / 2; head.position.z = 0.35; qArrow.add(head);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.5), m); tail.position.z = -0.2; qArrow.add(tail);
-  qArrow.renderOrder = 4; qArrow.scale.setScalar(1.6);
-}
+const qArrow = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
+  for (let k = 0; k < 3; k++) {                       // três setas (›››), com brilho
+    const x = 40 + k * 66, a = 0.45 + k * 0.27;
+    g.save(); g.shadowColor = 'rgba(255,200,90,1)'; g.shadowBlur = 18; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = `rgba(255,214,120,${a})`; g.lineWidth = 16;
+    g.beginPath(); g.moveTo(x, 26); g.lineTo(x + 38, 64); g.lineTo(x, 102); g.stroke(); g.restore();
+  }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.3), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }));
+  m.geometry.rotateX(-Math.PI / 2); m.geometry.rotateY(-Math.PI / 2);   // seta aponta para +z
+  m.renderOrder = 6; scene.add(m); return m;
+})();
 function updateQuestArrow() {
   const t = running && !P.dead ? questTarget() : null, d = t ? Math.hypot(t.x - P.x, t.z - P.z) : 0;
   qArrow.visible = !!t && d > 5;
   if (!qArrow.visible) return;
-  const a = Math.atan2(t.x - P.x, t.z - P.z);
-  qArrow.position.set(P.x + Math.sin(a) * 2.2, P.y + 0.35 + Math.sin(time * 4) * 0.06, P.z + Math.cos(a) * 2.2);
+  const a = Math.atan2(t.x - P.x, t.z - P.z), slide = (time * 1.2) % 1;
+  const r = 2.0 + slide * 0.5, x = P.x + Math.sin(a) * r, z = P.z + Math.cos(a) * r;
+  qArrow.position.set(x, (inTower(P.z) ? P.y : groundY(x, z)) + 0.12, z);
   qArrow.rotation.y = a;
+  qArrow.material.opacity = 0.55 + 0.45 * Math.sin(slide * Math.PI);
 }
 function drawMinimap() {
   const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
