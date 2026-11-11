@@ -6,7 +6,7 @@
 // =====================================================================
 'use strict';
 const Vida = (() => {
-  const SAVE = 'reino-vida-v1', MIN = 60000;
+  let SAVE = 'reino-vida-v1-0'; const MIN = 60000;
 
   // ---------------------------------------------------------------- itens
   Object.assign(ITEMS.red, { ic: '🧪', sell: 12, use: 'pot' });
@@ -104,7 +104,11 @@ const Vida = (() => {
   };
   const MAX_ANIMALS = 8;
   let st = { plots: Array(8).fill(null), animals: [], stall: null, pend: [] };
-  try { const s = JSON.parse(localStorage.getItem(SAVE)); if (s) st = { ...st, ...s }; } catch (e) { }
+  function useSlot(n) {      // cada vaga de personagem tem o próprio Sítio
+    SAVE = 'reino-vida-v1-' + n;
+    st = { plots: Array(8).fill(null), animals: [], stall: null, pend: [] };
+    try { const s = JSON.parse(localStorage.getItem(SAVE)); if (s) st = { ...st, ...s }; } catch (e) { }
+  }
   const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(st)); } catch (e) { } };
   setInterval(save, 8000); addEventListener('beforeunload', save);
 
@@ -587,5 +591,5 @@ const Vida = (() => {
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

@@ -369,3 +369,34 @@ body.touch #statwin { width: min(560px, 70vw); overflow-y: auto; }
 #bestwin .bd b { flex: 1; font-weight: 700; } #bestwin .bd em { font-style: normal; color: var(--gold); }
 #bestwin .bq { color: var(--mut); }
 @media (max-height: 470px) { #bestwin { top: calc(46px + env(safe-area-inset-top)); max-height: calc(100% - 52px); font-size: 11px; } .doll { width: 210px; } }
+#quest .qi { margin-bottom: 4px; } #quest .qi:last-child { margin-bottom: 0; }
+@media (max-height: 470px) { body.touch #quest { width: 170px; } }
+/* abertura e escolha de personagem */
+#intro { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; cursor: pointer;
+  background: radial-gradient(ellipse at 50% 55%, rgba(10,8,20,0) 30%, rgba(6,4,12,.75) 100%); color: #f0e6d0; text-align: center; animation: inFade 2.2s ease both; }
+#intro .in-logo { animation: inRise 2.6s ease both .3s; }
+#intro .in-small { font-family: 'Cinzel', serif; letter-spacing: 6px; font-size: 13px; color: #c8b890; }
+#intro h1 { font-family: 'Cinzel', serif; font-weight: 800; font-size: clamp(34px, 7vw, 64px); margin: 4px 0; color: #f2c86a; letter-spacing: 3px;
+  text-shadow: 0 0 18px rgba(242,200,106,.35), 0 3px 0 #3a2a10, 0 6px 18px rgba(0,0,0,.8); }
+#intro .in-on { font-family: 'Cinzel', serif; letter-spacing: 14px; color: #e8dcc0; font-size: 14px; }
+#intro .in-quote { font-style: italic; max-width: 520px; color: #d8ccb4; opacity: 0; animation: inFade 2s ease both 2.2s; text-shadow: 0 2px 6px #000; padding: 0 16px; }
+#intro .in-go { opacity: 0; animation: inFade 1s ease both 3.2s, inPulse 1.6s ease-in-out infinite 4.2s; font: 800 15px 'Nunito', sans-serif; color: #1a1020;
+  background: linear-gradient(135deg, #f2c86a, #c98a2c); border: 0; border-radius: 30px; padding: 12px 34px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+@keyframes inFade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes inRise { from { opacity: 0; transform: translateY(16px) scale(.96); letter-spacing: 8px } to { opacity: 1; transform: none } }
+@keyframes inPulse { 50% { transform: scale(1.05); box-shadow: 0 0 26px rgba(242,200,106,.55) } }
+#slots { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(6,4,12,.55); }
+#slots .sl-wrap { text-align: center; padding: 16px; }
+#slots h2 { font-family: 'Cinzel', serif; color: #f2c86a; margin: 0 0 14px; font-size: 20px; text-shadow: 0 2px 8px #000; }
+#slots .sl-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+#slots .sl-card { width: 170px; padding: 14px 10px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line); color: var(--txt); display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-family: 'Nunito', sans-serif; }
+#slots .sl-card img { width: 72px; height: 72px; image-rendering: pixelated; border-radius: 12px; background: rgba(0,0,0,.35); border: 1px solid var(--line); }
+#slots .sl-card b { font-size: 15px; } #slots .sl-card small { color: var(--mut); font-size: 11px; }
+#slots .sl-card.empty { cursor: pointer; border-style: dashed; opacity: .85; } #slots .sl-card.empty:hover { opacity: 1; }
+#slots .sl-plus { width: 72px; height: 72px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--gold); background: rgba(0,0,0,.25); }
+#slots button { font: 800 12px 'Nunito', sans-serif; border-radius: 10px; padding: 7px 12px; cursor: pointer; width: 100%; }
+#slots .sl-play { background: linear-gradient(135deg, #f2c86a, #c98a2c); border: 0; color: #1a1020; }
+#slots .sl-del { background: transparent; border: 1px solid rgba(255,120,120,.4); color: #ffb0b0; font-weight: 700; }
+#slots .sl-back { margin-top: 14px; width: auto; background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); }
+#btn-voltar { margin-top: 8px; background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); border-radius: 10px; padding: 8px; font: 700 13px 'Nunito', sans-serif; width: 100%; }
+@media (max-height: 470px) { #intro h1 { font-size: 38px; } #slots .sl-card { width: 150px; padding: 10px 8px; } #slots .sl-card img, #slots .sl-plus { width: 54px; height: 54px; } #slots h2 { font-size: 16px; margin-bottom: 8px; } }

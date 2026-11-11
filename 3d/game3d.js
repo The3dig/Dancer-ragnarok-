@@ -920,7 +920,10 @@ function markTex(k) {
 }
 function npcMark(n) {
   let k = '';
-  if (n.id === 'master') { const q = QUESTS[P.quest]; k = !q ? '' : P.qcount >= q.n ? '?:#ffcf40' : P.qSeen === P.quest ? '!:#9a9aa8' : '!:#ffe040'; }
+  if (n.hidden && Math.hypot(n.x - P.x, n.z - P.z) > 14) { if (n.markK !== 'h') { n.markK = 'h'; n.bang.visible = false; } return; }
+  const qm = typeof Quests !== 'undefined' ? Quests.mark(n) : null;
+  if (qm) k = qm; else
+  if (false) { }
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
   else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
   if (n.markK === k) return; n.markK = k;
@@ -1130,6 +1133,7 @@ function killMob(m) {
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
+  if (typeof Quests !== 'undefined') Quests.onKill(m);
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
@@ -1436,6 +1440,7 @@ function update(dt) {
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
   if (typeof Vida !== 'undefined') Vida.update(dt);
+  if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
   updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
@@ -1543,7 +1548,7 @@ function updatePlayer(dt) {
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
   const pr = $('prompt');
-  nearUse = !nearNpc && typeof Vida !== 'undefined' ? Vida.nearest() : null;
+  nearUse = !nearNpc ? ((typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -1744,7 +1749,7 @@ function updateHUD() {
   const q = QUESTS[P.quest];
   const qt = questTarget(), qd = qt ? Math.round(Math.hypot(qt.x - P.x, qt.z - P.z)) : 0;
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
-  const qh2 = (typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + qh || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
+  const qh2 = (typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html() : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
   if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
@@ -1787,6 +1792,7 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
   }
 }
 function questTarget() {
+  if (typeof Quests !== 'undefined') return inTower(P.z) ? null : Quests.target();
   const q = QUESTS[P.quest]; if (!q || inTower(P.z)) return null;
   if (P.qcount >= q.n) { const n = NPCS.find(n => n.id === 'master'); return { x: n.x, z: n.z }; }
   let best = null, bd = 1e9;
@@ -1956,6 +1962,10 @@ function dialog(title, text, opts) {
 function closeDialog() { $('dialog').classList.add('hidden'); dialogOpen = false; }
 function talk(n) {
   P.face = Math.atan2(n.x - P.x, n.z - P.z);
+  if (typeof Quests !== 'undefined' && Quests.talk(n, () => talkBase(n))) return;
+  talkBase(n);
+}
+function talkBase(n) {
   const nm = `💬 ${n.name}`, eu = P.name, bv = P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda', heroi = P.gender === 'm' ? 'herói' : 'heroína';
   switch (n.id) {
     case 'healer':
@@ -1972,24 +1982,9 @@ function talk(n) {
         { label: 'Sair' }]);
       shop(); break;
     }
-    case 'master': {
-      const q = QUESTS[P.quest]; P.qSeen = P.quest;
-      if (!q) { dialog(nm, `Você completou todas as minhas lições, <b>${P.name}</b>! Estou tão orgulhosa.<br>Seu melhor combo foi <b>${P.best}</b>. Consegue superar?`); break; }
-      if (P.qcount >= q.n) {
-        dialog(nm, `Maravilhoso, <b>${eu}</b>! Você está ficando cada vez mais forte.<br><br>Recompensa: <b>${q.xp} XP</b>, <b>${q.zeny}z</b>${q.red ? `, ${q.red}× Poção Vermelha` : ''}${q.blue ? `, ${q.blue}× Poção Azul` : ''}.`, [
-          { label: '🎁 Receber recompensa', fn: () => {
-            P.zeny += q.zeny; P.inv.red += q.red || 0; P.inv.blue += q.blue || 0; Audio8.sfx('coin'); gainXp(q.xp);
-            P.quest++; P.qcount = 0; buildHotbar(); save();
-            const nq = QUESTS[P.quest]; if (nq) log(`📜 Nova missão: <b>${nq.txt}</b>`, 'gold');
-          } }]);
-      } else if (P.quest === 0 && P.qcount === 0) {
-        dialog(nm, `<b>${P.name}</b>, algo terrível aconteceu: a <b>Essência está vazando pelas rachaduras do Reino</b>, e as criaturas ficaram agitadas.<br><br>
-          Precisamos de heróis para proteger as vilas, e você é ${P.gender === 'm' ? 'o' : 'a'} ${heroi} que eu esperava. Mostre do que um(a) ${className(P.cls, P.gender)} é capaz!<br><br>
-          Primeira lição: <b>${q.txt}</b>.`, [{ label: P.gender === 'm' ? 'Estou pronto!' : 'Estou pronta!' }]);
-      } else dialog(nm, `Continue praticando: <b>${q.txt}</b> (${P.qcount}/${q.n}).<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`);
-      break;
-    }
+    case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
+    default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
     case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
     case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor. Volte quando estiver acima do nível 15.`); break;
@@ -2068,20 +2063,21 @@ const joy = { x: 0, y: 0, id: null };
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
+const HELP_OPTS = () => [{ label: 'Fechar' }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }];
 function showHelp() {
-  const extra = `📜 <b>Missões:</b> a Mestra Odete mostra <b style="color:#e0b000">!</b> amarelo quando tem missão nova, <b style="color:#888">!</b> cinza enquanto você cumpre e <b style="color:#e0a000">?</b> dourado na hora de entregar. A missão atual aparece no canto direito.<br>
+  const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   🎒 <b>Mochila:</b> itens, equipamentos (arma, armadura, acessório), troca e banca.<br>
   🌾 <b>Sítio:</b> a oeste da vila: plante, crie animais e fale com a Fazendeira.`;
   if (TOUCH) return dialog('📜 Como jogar', `
   🕹️ <b>Joystick</b> (esquerda) para andar · <b>arraste a tela</b> para girar a câmera<br>
   ⚔️ ataque · ⤴ pular · 💨 esquivar · 💬 falar / usar<br>
-  Toque nos ícones de baixo para as habilidades e poções.<br><br>${extra}`);
+  Toque nos ícones de baixo para as habilidades e poções.<br><br>${extra}`, HELP_OPTS());
   dialog('📜 Como jogar', `
   <b>WASD</b> andar · <b>Arrastar o mouse</b> gira a câmera · <b>Roda</b> zoom<br>
   <b>Clique</b> ou <b>J</b> — ataque básico · <b>Espaço</b> pular · <b>Shift</b> esquiva<br>
   <b>1–4</b> habilidades · <b>Q</b> Poção Vermelha · <b>E</b> Poção Azul · <b>B</b> mochila<br>
   <b>F</b> falar / usar · <b>C</b> atributos · <b>K</b> habilidades · <b>X</b> sentar · <b>M</b> música<br><br>${extra}<br><br>
-  Caminho: Solmira → Campos Dourados → Areias Rubras → Cidadela do Cisma. O jogo salva sozinho.`);
+  Caminho: Solmira → Campos Dourados → Areias Rubras → Cidadela do Cisma. O jogo salva sozinho.`, HELP_OPTS());
 }
 function openChat() { $('chatbox').classList.remove('hidden'); $('chat-in').focus(); for (const k in keys) keys[k] = false; }
 function sendChat() { const i = $('chat-in'); Net.say(i.value); i.value = ''; $('chatbox').classList.add('hidden'); i.blur(); setTimeout(fitScreen, 400); }
@@ -2093,10 +2089,10 @@ $('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('b
 $('btn-sit').onclick = () => { P.sit = !P.sit; };
 
 // ---------------------------------------------------------------- salvar
-const SAVE_KEY = 'lyra3d-save-v1';
+let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2128,6 +2124,7 @@ function start(fromSave) {
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
+  if (typeof Quests !== 'undefined') Quests.migrate();
   applyQuality(); running = true; Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
@@ -2183,7 +2180,7 @@ async function nameFree(v) {
 }
 let checking = false;
 $('btn-new').onclick = async () => {
-  if (checking || !nameOk()) return; if (loadSave() && !armNew()) return;
+  if (checking || !nameOk()) return;
   const v = $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16), btn = $('btn-new'), label = btn.textContent;
   checking = true; btn.textContent = '⏳ Conferindo o nome…';
   const ok = await nameFree(v);
@@ -2202,7 +2199,7 @@ renderCreate();
     renderCreate();
   });
 })();
-if (!loadSave()) $('btn-cont').style.display = 'none';
+$('btn-cont').style.display = 'none';
 $('name-in').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-new').click(); });
 
 // ---------------------------------------------------------------- loop
@@ -2220,9 +2217,16 @@ function loop(now) {
     if (CLS().rhythm) P.dance = ph < 1.2 ? 1 - ph / 1.2 : 0; else { P.dance = 0; P.cast = ph < 0.6 ? 1 - ph / 0.6 : 0; }
     P.moving = false; P.onGround = true;
     animateLyra(dt);
-    camera.position.set(P.x + Math.sin(time * 0.2) * 5, P.y + 1.8, P.z + Math.cos(time * 0.2) * 5);
-    camera.lookAt(P.x, P.y + 1.1, P.z);
-    camera.setViewOffset(VW, VH, VW * 0.2, 0, VW, VH);
+    if (window.INTRO) {                    // abertura: a câmera sobrevoa o mundo
+      const t = time * 0.035, cx = -40 + Math.sin(t) * 95, cz = Math.sin(t * 1.7) * 45;
+      camera.position.set(cx, height(cx, cz) + 16 + Math.sin(t * 2) * 3, cz);
+      camera.lookAt(-40 + Math.sin(t + 0.25) * 95, height(cx, cz) + 6, Math.sin((t + 0.25) * 1.7) * 45);
+      camera.clearViewOffset();
+    } else {
+      camera.position.set(P.x + Math.sin(time * 0.2) * 5, P.y + 1.8, P.z + Math.cos(time * 0.2) * 5);
+      camera.lookAt(P.x, P.y + 1.1, P.z);
+      camera.setViewOffset(VW, VH, VW * 0.2, 0, VW, VH);
+    }
     sun.position.set(P.x + SUN_OFF.x, P.y + SUN_OFF.y, P.z + SUN_OFF.z); sun.target.position.set(P.x, P.y, P.z);
     sky.position.copy(camera.position); draw();
   }
