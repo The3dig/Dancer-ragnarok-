@@ -90,6 +90,22 @@ const Vida = (() => {
     kravenox: [['marca', 0.5], ['arma_cisma', 0.3], ['coroa_espinhos', 0.25], ['manto_cisma', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.15]],
   };
   for (const [t, l] of Object.entries(GEAR_DROP)) if (MOBDEF[t]) MOBDEF[t].drops.push(...l);
+  // ---------------- cartas de monstro (Ragnarok): caem muito raramente; encaixe num espaço de equipamento
+  const CARD_MOD = {
+    pompom: { hp: 40 }, zunzum: { sp: 25 }, fungolino: { def: 3 }, besouro: { crit: 0.03 }, serpe: { spd: 0.05 },
+    larva: { hp: 80, def: 2 }, verme: { def: 6 }, esfera: { sp: 50, pow: 3 }, sentinela: { pow: 8 }, guardiao: { pow: 12, def: 6 },
+    kravenox: { pow: 20, crit: 0.05, hp: 200 },
+  };
+  for (const [t, mods] of Object.entries(CARD_MOD)) {
+    if (!MOBDEF[t]) continue;
+    const id = 'carta_' + t, D = MOBDEF[t];
+    ITEMS[id] = { name: 'Carta ' + (D.name.startsWith('Kravenox') ? 'de ' : 'da ') + D.name, ic: '🃏', kind: 'carta', mods, sell: D.boss ? 900 : 300, price: 0 };
+    D.drops.push([id, t === 'kravenox' ? 0.2 : D.boss || t === 'guardiao' ? 0.04 : 0.004]);
+  }
+  // refino (+1 a +7): cada nível soma 10% do dano/defesa/HP da peça; falhar só volta um nível, nunca quebra
+  const REF = [[100, 1], [200, 1], [400, 1], [800, 1], [1500, 0.6], [2500, 0.4], [4000, 0.25]];
+  const refOf = id => (P.refine && P.refine[id]) || 0;
+  const nameOf = id => (refOf(id) ? '+' + refOf(id) + ' ' : '') + it(id).name;
 
   // ---------------------------------------------------------------- Sítio
   const CROPS = {
@@ -362,8 +378,28 @@ const Vida = (() => {
   function gearShop() {
     const sh = () => dialog('⚔️ Equipamentos', `Equipe pela 🎒 mochila. <small>Zeny: <b>${P.zeny}z</b></small>`, [
       ...Object.keys(GEAR).filter(id => GEAR[id][3]).map(id => ({ label: `${it(id).ic} ${it(id).name} — ${it(id).price}z (${modTxt(it(id).mods)})`, fn: () => { if (buyIt(id, 1, it(id).price)) log(`Comprou <b>${it(id).name}</b>. Equipe pela mochila 🎒.`, 'item'); sh(); return true; } })),
+      { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
       { label: 'Sair' }]);
     sh();
+  }
+  function refine() {
+    P.refine = P.refine || {};
+    const eq = Object.keys(SLOTS).map(sl => P.equip && P.equip[sl]).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+    const opts = eq.map(id => {
+      const r = refOf(id);
+      if (r >= 7) return { label: `${it(id).ic} +7 ${it(id).name} — refino máximo`, fn: () => { refine(); return true; } };
+      const [z, ch] = REF[r], lasca = r >= 4;
+      return { label: `${it(id).ic} ${nameOf(id)} → +${r + 1} — ${z}z${lasca ? ' + 1 🛡️ Lasca' : ''} · ${Math.round(ch * 100)}%`, fn: () => {
+        if (P.zeny < z) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); refine(); return true; }
+        if (lasca && !has('lasca')) { log('Falta 🛡️ <b>Lasca de Armadura</b> (cai das criaturas da Torre).', 'bad'); Audio8.sfx('miss'); refine(); return true; }
+        P.zeny -= z; if (lasca) add('lasca', -1);
+        if (Math.random() < ch) { P.refine[id] = r + 1; Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); log(`🔨 Sucesso! <b>${nameOf(id)}</b>.`, 'gold'); if (r + 1 >= 5) banner(`Refino +${r + 1}!`); }
+        else { P.refine[id] = Math.max(4, r - 1); Audio8.sfx('miss'); log(`🔨 O refino falhou... a peça voltou para +${P.refine[id]} (ela nunca quebra).`, 'bad'); }
+        refine(); return true; } };
+    });
+    if (!opts.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { gearShop(); return true; } });
+    opts.push({ label: '← Voltar', fn: () => { gearShop(); return true; } });
+    dialog('🔨 Refinar', `Até +4 sempre dá certo. Do +5 ao +7 pode falhar, mas a peça só perde um nível — <b>nunca quebra</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Zeny: <b>${P.zeny}z</b> · Lascas: ${P.inv.lasca || 0}</small>`, opts);
   }
   // vende ao NPC (materiais e colheita)
   function sellAll(kinds = ['mat', 'colheita']) {
@@ -376,7 +412,9 @@ const Vida = (() => {
   // ---------------------------------------------------------------- mochila (inventário com o personagem)
   function setCount() { const c = {}; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set) c[I.set] = (c[I.set] || 0) + 1; } return c; }
   const gear = k => {
-    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += ITEMS[id].mods[k] || 0; }
+    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1); }
+    for (const sl in (P.cards || {})) { const c = P.cards[sl]; if (c && P.equip && P.equip[sl] && ITEMS[c]) v += ITEMS[c].mods[k] || 0; }   // carta só vale com peça no espaço
+    if (k === 'pow' || k === 'def' || k === 'hp' || k === 'sp') v = Math.round(v);
     const sc = setCount(); for (const st in sc) if (sc[st] >= 4) v += SETS[st].bonus[k] || 0;
     return v;
   };
@@ -396,18 +434,20 @@ const Vida = (() => {
     P.equip = P.equip || {};
     const C = CLASSES[P.cls], spr = C.sprite ? (C.sprite.kind === 'dir' ? C.sprite.base + '_down_0' : C.sprite.base + '_down_0') : null;
     const img = spr && window.SPR && SPR[spr] ? `<img class="doll-img" src="data:image/png;base64,${SPR[spr]}">` : '';
-    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on r' + (it(id).rar || 0) : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}</small><br>${id ? it(id).name : '<i>vazio</i>'}</span></div>`; }).join('');
+    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on r' + (it(id).rar || 0) : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}${P.cards && P.cards[sl] ? ' 🃏' : ''}</small><br>${id ? nameOf(id) : '<i>vazio</i>'}</span></div>`; }).join('');
     const ids = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
     const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || '<i class="empty">Vazia. Derrote monstros para juntar materiais.</i>';
     let det = '<small>Toque num item para ver o que dá para fazer.</small>';
     if (sel && sel.startsWith('eq:')) {
       const sl = sel.slice(3), id = P.equip[sl];
-      det = id ? `<b style="color:${RARITY[it(id).rar || 0].c}">${it(id).ic} ${it(id).name}</b> <small>${modTxt(it(id).mods)}${it(id).set ? ' · ' + SETS[it(id).set].name : ''}</small><div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button></div>` : `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
+      const cd = P.cards && P.cards[sl];
+      det = id ? `<b style="color:${RARITY[it(id).rar || 0].c}">${it(id).ic} ${nameOf(id)}</b> <small>${modTxt(it(id).mods)}${refOf(id) ? ' · refino +' + refOf(id) * 10 + '%' : ''}${it(id).set ? ' · ' + SETS[it(id).set].name : ''}${cd ? '<br>🃏 ' + it(cd).name + ': ' + modTxt(it(cd).mods) : ''}</small><div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}</div>` : `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
     } else if (sel && P.inv[sel] > 0) {
       const I = ITEMS[sel], btns = [];
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
       if (I.use || I.heal) btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`);
-      det = `<b style="color:${I.kind === 'equip' ? RARITY[I.rar].c : 'inherit'}">${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? RARITY[I.rar].n + ' · ' + (I.slot === 'anel' ? 'Anel' : SLOTS[I.slot]) + ' · ' + modTxt(I.mods) + (I.set ? ' · ' + SETS[I.set].name : '') : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : 'Vende por ' + I.sell + 'z no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
+      if (I.kind === 'carta') for (const sl in SLOTS) if (P.equip[sl]) btns.push(`<button data-a="card" data-v="${sl}">Encaixar: ${SLOTS[sl]}</button>`);
+      det = `<b style="color:${I.kind === 'equip' ? RARITY[I.rar].c : 'inherit'}">${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? RARITY[I.rar].n + ' · ' + (I.slot === 'anel' ? 'Anel' : SLOTS[I.slot]) + ' · ' + modTxt(I.mods) + (I.set ? ' · ' + SETS[I.set].name : '') : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : I.kind === 'carta' ? modTxt(I.mods) + ' · encaixe num espaço com peça equipada' : 'Vende por ' + I.sell + 'z no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
     }
     const mag = CLASSES[P.cls].magic;
     invWin().innerHTML = `<div class="wt">🎒 Mochila <small>· ${P.zeny}z</small><span class="x" data-a="close">×</span></div>
@@ -426,6 +466,8 @@ const Vida = (() => {
     if (a === 'equip') { let sl = ITEMS[v].slot; P.equip = P.equip || {}; if (sl === 'anel') sl = !P.equip.anel1 ? 'anel1' : !P.equip.anel2 ? 'anel2' : 'anel1'; if (P.equip[sl]) add(P.equip[sl], 1); add(v, -1); P.equip[sl] = v; Audio8.sfx('buff'); log(`Equipou <b>${it(v).name}</b>.`, 'item'); sel = 'eq:' + sl; }
     if (a === 'unequip') { const id = P.equip[v]; if (id) { add(id, 1); P.equip[v] = null; log(`Tirou <b>${it(id).name}</b>.`, 'sys'); } }
     if (a === 'use') { use(v); if (!P.inv[v]) sel = null; }
+    if (a === 'card' && sel && ITEMS[sel] && ITEMS[sel].kind === 'carta') { P.cards = P.cards || {}; if (P.cards[v]) add(P.cards[v], 1); P.cards[v] = sel; log(`🃏 Encaixou <b>${it(sel).name}</b> em ${SLOTS[v]}.`, 'gold'); Audio8.sfx('buff'); add(sel, -1); sel = 'eq:' + v; }
+    if (a === 'uncard') { const c = P.cards && P.cards[v]; if (c) { add(c, 1); P.cards[v] = null; log(`Tirou <b>${it(c).name}</b>.`, 'sys'); } }
     if (a === 'trade') { closeInv(); return tradePick(); }
     if (a === 'stall') { closeInv(); return st.stall ? closeStall() : stallSetup(); }
     P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
@@ -565,7 +607,7 @@ const Vida = (() => {
     const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
     spr.scale.setScalar(id === 'zeny' ? 0.7 : 1.05); spr.position.y = 0.15; grp.add(spr);
     const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = -0.37; grp.add(sh);   // sombrinha no chão
-    const rar = I.kind === 'equip' ? I.rar : -1;
+    const rar = I.kind === 'equip' ? I.rar : I.kind === 'carta' ? 3 : -1;
     if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade
       const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7][Math.max(0, rar)];
       const mk = (o, fog) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog });
@@ -578,6 +620,7 @@ const Vida = (() => {
   }
   function pickMsg(id, n) {
     const I = it(id);
+    if (I.kind === 'carta') { log(`🎉🃏 Você pegou a <b style="color:#ffb640">${I.name}</b>! (${modTxt(I.mods)}) Encaixe pela mochila.`, 'item'); banner('🃏 ' + I.name); Audio8.sfx('level'); return true; }
     if (I.kind === 'equip') {
       log(`${I.rar >= 2 ? '🎉 ' : ''}Você pegou <b style="color:${RARITY[I.rar].c}">[${RARITY[I.rar].n}] ${I.ic} ${I.name}</b>!`, 'item');
       if (I.rar >= 2) { banner(`${RARITY[I.rar].n}: ${I.name}`); Audio8.sfx('level'); }
@@ -601,7 +644,7 @@ const Vida = (() => {
     const seen = P.bestiary || {}, d = MOBDEF[sel];
     const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : '❔'); };
     const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}</small></span></div>`).join('');
-    const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.1 ? 1 : 0) + '%'}</em></div>`; }).join('');
+    const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.01 ? 2 : ch < 0.1 ? 1 : 0).replace('.', ',') + '%'}</em></div>`; }).join('');
     w.innerHTML = `<div class="wt">📖 Bestiário <small>· ${Object.keys(seen).length}/${types.length} conhecidos</small><button class="x" data-b="x">×</button></div>
       <div class="bb"><div class="blist">${list}</div>
       <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${REGION[sel]}</small><br><small>Abatidos: ${seen[sel]}</small></div></div><div class="bdl">${drops}</div>`

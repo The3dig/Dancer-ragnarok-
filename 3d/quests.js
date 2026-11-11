@@ -113,8 +113,21 @@ const Quests = (() => {
       else if (S().act[q.id]) opts.push({ label: `⏳ ${q.title} (${prog(q, 0)}/${q.steps[0].n})`, fn: () => true });
       else opts.push({ label: `🟢 ${q.title} — ${rewardTxt(q)}`, fn: () => { accept(q); setTimeout(() => boardTalk(city), 50); } });
     }
+    P.warps = P.warps || {}; P.warps[city] = 1;            // memória de viagem: só leva a cidades já visitadas
+    opts.push({ label: '🧭 Viagem rápida', fn: () => { travel(city); return true; } });
     opts.push({ label: 'Fechar' });
     dialog('📋 Quadro de Caça', 'Contratos de caça da cidade. Pode repetir quantas vezes quiser.', opts);
+  }
+  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma' };
+  function travel(from) {
+    const opts = Object.keys(BOARDS).filter(c => c !== from).map(c => P.warps[c]
+      ? { label: `🧭 ${CITY_N[c]} — 50z`, fn: () => {
+          if (P.zeny < 50) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); return; }
+          P.zeny -= 50; const b = BOARDS[c]; P.x = b.x + 2.5; P.z = b.z + 2.5; P.y = groundY(P.x, P.z); P.vy = 0;
+          Audio8.sfx('buff'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x80c0ff, 30, 4, 0.9); log(`🧭 Você viajou para <b>${CITY_N[c]}</b>.`, 'sys'); } }
+      : { label: `🔒 ${CITY_N[c]} — visite o Quadro de lá uma vez`, fn: () => { travel(from); return true; } });
+    opts.push({ label: '← Voltar', fn: () => { boardTalk(from); return true; } });
+    dialog('🧭 Viagem rápida', 'A guilda de caçadores leva você até outra cidade cujo Quadro você já conhece.', opts);
   }
   function mark(n) {
     const toHere = Object.keys(S().act).map(id => byId[id]).filter(q => q && (q.to || q.giver) === n.name);
@@ -217,6 +230,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { talk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();
