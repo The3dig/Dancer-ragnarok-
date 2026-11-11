@@ -138,6 +138,46 @@ function watchFps(dt) {
   if (fps < (FRAME_MS ? 24 : 40) && QUAL.level > 0) { if (++QUAL.slow >= 2) { QUAL.level--; QUAL.slow = 0; applyQuality(); log(`⚙️ Gráficos ajustados para o seu aparelho (nível ${QUAL.level}).`, 'sys'); } }
   else QUAL.slow = 0;
 }
+// ---------------------------------------------------------------- andar sozinho até a missão (toque na missão do quadro)
+const AUTO = { on: false, t: 0, side: 1, chk: 0, cx: 0, cz: 0, hp: 0, tg: null, tgT: 0 };
+function autoStart() {
+  if (!questTarget()) { log('Essa missão não tem um lugar para ir agora.', 'sys'); return; }
+  Object.assign(AUTO, { on: true, chk: 0, cx: P.x, cz: P.z, hp: P.hp, tgT: 0 }); document.body.classList.add('walking');
+  log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
+}
+function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.classList.remove('walking'); if (msg) log(msg, 'sys'); $('quest').dataset.h = ''; }
+// próximo ponto do caminho: se o rio estiver no meio, passa pela ponte mais perto
+function autoWaypoint(T) {
+  const sp = Math.sign(P.x - riverX(P.z)), st = Math.sign(T.x - riverX(T.z));
+  if (sp === st || sp === 0 || inTower(P.z) || inTower(T.z)) return { x: T.x, z: T.z, end: true };
+  const bz = BRIDGES.reduce((a, b) => Math.abs(b - (P.z + T.z) / 2) + Math.abs(b - P.z) * 0.5 < Math.abs(a - (P.z + T.z) / 2) + Math.abs(a - P.z) * 0.5 ? b : a), bx = riverX(bz);
+  if (Math.abs(P.z - bz) > 1.4 || Math.abs(P.x - bx) > 8) return { x: bx + sp * 7.5, z: bz };
+  return { x: bx - sp * 8, z: bz };
+}
+function autoDir(dt) {
+  if ((AUTO.tgT -= dt) <= 0) { AUTO.tgT = 0.4; AUTO.tg = questTarget(); }
+  const T = AUTO.tg;
+  if (!T) { autoStop('🚶 Objetivo concluído.'); return null; }
+  if (P.hp < AUTO.hp - 1) { autoStop('⚠️ Você foi atacado: parou de andar sozinho.'); return null; }
+  AUTO.hp = Math.max(AUTO.hp, P.hp);
+  const W = autoWaypoint(T), dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
+  if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
+  let a = Math.atan2(dx, dz);
+  // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
+  const free = ang => !blocked(P.x + Math.sin(ang) * 1.3, P.z + Math.cos(ang) * 1.3) && !blocked(P.x + Math.sin(ang) * 0.6, P.z + Math.cos(ang) * 0.6);
+  if (!free(a)) {
+    let ok = false;
+    for (const k of [1, 2, 3, 4, 5]) for (const s of [AUTO.side, -AUTO.side]) { const b = a + s * k * 0.45; if (!ok && free(b)) { a = b; ok = true; AUTO.side = s; } }
+    if (!ok) a += Math.PI;
+  }
+  if ((AUTO.chk += dt) > 2.5) {                                    // preso: tenta o outro lado; se não sair, desiste
+    const moved = Math.hypot(P.x - AUTO.cx, P.z - AUTO.cz);
+    if (moved < 0.8) { AUTO.side = -AUTO.side; AUTO.stuck = (AUTO.stuck || 0) + 1; if (AUTO.stuck > 3) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
+    else AUTO.stuck = 0;
+    AUTO.chk = 0; AUTO.cx = P.x; AUTO.cz = P.z;
+  }
+  return { x: Math.sin(a), z: Math.cos(a) };
+}
 // ---------------------------------------------------------------- dia e noite
 const SUN_OFF = new THREE.Vector3(40, 34, 22);
 let LASTDAY = null;
@@ -1570,6 +1610,16 @@ function updatePlayer(dt) {
   }
   P.moving = false;
   let vx = 0, vz = 0;
+  if ((ix || iz) && AUTO.on) autoStop('');
+  if (!ix && !iz && AUTO.on && !dialogOpen) {                      // andando sozinho até o objetivo da missão
+    const d = autoDir(dt);
+    if (d) {
+      P.sit = false;
+      let df = ((Math.atan2(d.x, d.z) - P.face + Math.PI) % TAU + TAU) % TAU - Math.PI;
+      if (P.attackAnim <= 0.3) P.face += df * Math.min(1, dt * 10);
+      const sp = stats.speed(); vx = d.x * sp; vz = d.z * sp; P.moving = true;
+    }
+  }
   if (ix || iz) {
     P.sit = false;
     const l = Math.hypot(ix, iz); ix /= l; iz /= l;
@@ -1803,7 +1853,7 @@ function updateHUD() {
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
   const qh2 = (typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html() : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
   if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
-  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('click', e => { const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { Quests.follow(t.dataset.q); $('quest').dataset.h = ''; } }); }
+  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('click', e => { const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo

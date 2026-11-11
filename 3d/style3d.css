@@ -407,3 +407,4 @@ body.touch #statwin { width: min(560px, 70vw); overflow-y: auto; }
 #quest .qi.focus { background: rgba(242,200,106,.16); border-color: rgba(242,200,106,.55); }
 #quest .qi.focus::before { content: '🧭 '; }
 #quest .wt small { opacity: .6; font-family: Nunito, sans-serif; font-size: .8em; }
+body.walking #quest .qi.focus::before { content: '🚶 '; }
