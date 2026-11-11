@@ -256,8 +256,37 @@ const Audio8 = (() => {
     }
   }
 
+  // ---------- trilha orquestral gravada (musica/*.m4a) ----------
+  const FILES = ['solmira', 'campos', 'areias', 'kharum', 'kravenox'];
+  const MUSIC_BASE = (() => { try { return new URL('../musica/', document.currentScript.src).href; } catch (e) { return 'musica/'; } })();
+  const bufs = {}, loading = {};
+  let fileBus = null, fileSrc = null, fileName = null, fileGain = null;
+  function loadFile(name) {
+    if (bufs[name]) return Promise.resolve(bufs[name]);
+    if (!loading[name]) loading[name] = fetch(MUSIC_BASE + name + '.m4a').then(r => r.arrayBuffer())
+      .then(ab => new Promise((ok, no) => ctx.decodeAudioData(ab, ok, no))).then(b => (bufs[name] = b)).catch(() => null);
+    return loading[name];
+  }
+  function playFile(name) {
+    if (!fileBus) { fileBus = ctx.createGain(); fileBus.gain.value = musicOn ? 0.9 : 0; fileBus.connect(master); }
+    if (fileName === name) return;
+    fileName = name;
+    const old = fileSrc, oldG = fileGain;
+    if (old) { oldG.gain.setTargetAtTime(0, ctx.currentTime, 0.6); setTimeout(() => { try { old.stop(); } catch (e) { } }, 3000); }
+    fileSrc = null;
+    loadFile(name).then(b => {
+      if (!b || fileName !== name) return;
+      const src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = b; src.loop = true; src.loopStart = 0.05; src.loopEnd = b.duration;
+      g.gain.value = 0; g.gain.setTargetAtTime(1, ctx.currentTime, 0.8);
+      src.connect(g); g.connect(fileBus); src.start(ctx.currentTime + 0.05, 0.05);
+      fileSrc = src; fileGain = g;
+    });
+  }
+
   function play(name) {
     if (!ctx) return;
+    if (FILES.includes(name)) { current = null; return playFile(name); }
     if (current === name) return;
     current = name; step = 0; nextTime = ctx.currentTime + 0.1; startTime = nextTime;
     if (!timer) timer = setInterval(scheduler, 25);
@@ -266,6 +295,7 @@ const Audio8 = (() => {
   function toggleMusic() {
     musicOn = !musicOn;
     if (musicBus) musicBus.gain.setTargetAtTime(musicOn ? 0.55 : 0, ctx.currentTime, 0.1);
+    if (fileBus) fileBus.gain.setTargetAtTime(musicOn ? 0.9 : 0, ctx.currentTime, 0.1);
     return musicOn;
   }
 
