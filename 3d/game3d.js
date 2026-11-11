@@ -21,7 +21,7 @@ const rr = (a, b) => a + R() * (b - a);
 THREE.ColorManagement.legacyMode = false;
 { const setHSL0 = THREE.Color.prototype.setHSL; THREE.Color.prototype.setHSL = function (h, s, l) { setHSL0.call(this, h, s, l); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.25 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.0 : 2));
 // tamanho real da área visível: no iPhone (Safari e app do Claude) a moldura pode
 // crescer para caber num canvas antigo após girar a tela; por isso o canvas segue
 // sempre 100% do elemento e o tamanho é medido nele, nunca imposto.
@@ -92,7 +92,7 @@ scene.add(sun, sun.target);
 const POST = (() => {
   if (!renderer.capabilities.isWebGL2) return null;
   const half = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
-  const rt = new THREE.WebGLRenderTarget(4, 4, { type: half ? THREE.HalfFloatType : THREE.UnsignedByteType, samples: TOUCH ? 2 : 4 });
+  const rt = new THREE.WebGLRenderTarget(4, 4, { type: half ? THREE.HalfFloatType : THREE.UnsignedByteType, samples: TOUCH ? 0 : 4 });
   const mat = new THREE.ShaderMaterial({
     uniforms: { tD: { value: rt.texture } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
@@ -119,11 +119,30 @@ const POST = (() => {
     renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(ps, pc);
   } };
 })();
-const draw = () => POST ? POST.render() : renderer.render(scene, camera);
+const QUAL = { level: TOUCH ? 1 : 2, acc: 0, frames: 0, slow: 0 };
+const draw = () => (POST && QUAL.level >= 1) ? POST.render() : renderer.render(scene, camera);
+function applyQuality() {
+  const lv = QUAL.level;
+  FOLIAGE.forEach(im => im.castShadow = lv >= 2);
+  if (lv === 0) {
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 0.8)); lastFit = ''; fitScreen();
+    sun.shadow.mapSize.set(512, 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+    if (window.grassIM) window.grassIM.visible = false;
+  }
+}
+function watchFps(dt) {
+  QUAL.acc += dt; QUAL.frames++;
+  if (QUAL.acc < 2) return;
+  const fps = QUAL.frames / QUAL.acc; QUAL.acc = 0; QUAL.frames = 0;
+  if (fps < 40 && QUAL.level > 0) { if (++QUAL.slow >= 2) { QUAL.level--; QUAL.slow = 0; applyQuality(); log(`⚙️ Gráficos ajustados para o seu aparelho (nível ${QUAL.level}).`, 'sys'); } }
+  else QUAL.slow = 0;
+}
 // ---------------------------------------------------------------- dia e noite
 const SUN_OFF = new THREE.Vector3(40, 34, 22);
+let LASTDAY = null;
 const DAYC = { horizon: new THREE.Color(), top: new THREE.Color(), sunC: new THREE.Color(), hemiC: new THREE.Color(), sunDir: new THREE.Vector3() };
 const C_ = h => new THREE.Color(h);
+const DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
   const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : null;
@@ -388,7 +407,7 @@ function updateFireflies(dt, k) {
   if (!zoneOk || k <= 0.02) return;
   fireflies.seeds.forEach(([ox, oz, ph, sp], i) => {
     const x = P.x + ox + Math.sin(time * 0.4 * sp + ph) * 2, z = P.z + oz + Math.cos(time * 0.33 * sp + ph) * 2;
-    fireflies.pos.set([x, groundY(x, z) + 0.6 + Math.sin(time * sp + ph) * 0.5, z], i * 3);
+    const fp = fireflies.pos; fp[i * 3] = x; fp[i * 3 + 1] = groundY(x, z) + 0.6 + Math.sin(time * sp + ph) * 0.5; fp[i * 3 + 2] = z;
   });
   fireflies.pts.geometry.attributes.position.needsUpdate = true;
 }
@@ -477,6 +496,7 @@ for (let i = 0; i < 12; i++) { const x = rr(60, 140), z = rr(-80, 80); if (freeS
 palms.forEach(p => addOb(p.x, p.z, 0.5));
 
 // árvores de cartões (como nos MMOs clássicos): tronco com casca real + galhos e folhas fotográficos
+const FOLIAGE = [];
 const isPine = o => (Math.sin(o.x * 12.9898 + o.z * 78.233) * 43758.5453 % 1 + 1) % 1 < 0.6;
 function cardGeo(quads) {
   // cada quad: [cx, cy, cz, yaw, pitch, w, h, ox, vertical]; u vai de ox a ox+w; normais para cima (luz uniforme, como folhagem de MMO)
@@ -516,10 +536,10 @@ const upNormals = m => { m.onBeforeCompile = sh => { sh.fragmentShader = sh.frag
 const cardMat = (n) => upNormals(new THREE.MeshLambertMaterial({ map: photo(n), alphaTest: 0.45, side: THREE.DoubleSide, emissive: 0x0c120a }));
 const pineMat = cardMat('pinheiro.png'), leafMat = cardMat('folhas.png');
 instanced(new THREE.CylinderGeometry(0.16, 0.32, 1, 7), PM('casca.jpg', [1, 3]), trees, (o, p, q, s, c) => { const pine = isPine(o), h = pine ? 8.0 : 3.6; p.set(o.x, height(o.x, o.z) + h * o.s / 2, o.z); s.set(o.s, h * o.s, o.s); c.setHSL(0.08, 0.1, pine ? 0.55 : 0.7); });
-instanced(PINE_G, pineMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? o.s : 0); q.setFromEuler(new THREE.Euler(0, o.x * 3.1, 0)); c.setHSL(0.28, 0.2, 0.78 + Math.sin(o.z * 1.3) * 0.08); });
+FOLIAGE.push(instanced(PINE_G, pineMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? o.s : 0); q.setFromEuler(new THREE.Euler(0, o.x * 3.1, 0)); c.setHSL(0.28, 0.2, 0.78 + Math.sin(o.z * 1.3) * 0.08); }));
 const pineSilMat = cardMat('pinheiro_silhueta.png');
-instanced(PINE_SIL, pineSilMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? o.s : 0); q.setFromEuler(new THREE.Euler(0, o.z * 1.7, 0)); c.setHSL(0.28, 0.2, 0.8 + Math.sin(o.x * 1.1) * 0.08); });
-instanced(LEAF_G, leafMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? 0 : o.s * 1.1); q.setFromEuler(new THREE.Euler(0, o.z * 2.3, 0)); c.setHSL(0.2 + Math.sin(o.x) * 0.03, 0.3, 0.8 + Math.sin(o.z * 2) * 0.06); });
+FOLIAGE.push(instanced(PINE_SIL, pineSilMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? o.s : 0); q.setFromEuler(new THREE.Euler(0, o.z * 1.7, 0)); c.setHSL(0.28, 0.2, 0.8 + Math.sin(o.x * 1.1) * 0.08); }));
+FOLIAGE.push(instanced(LEAF_G, leafMat, trees, (o, p, q, s, c) => { const pine = isPine(o); p.set(o.x, height(o.x, o.z), o.z); s.setScalar(pine ? 0 : o.s * 1.1); q.setFromEuler(new THREE.Euler(0, o.z * 2.3, 0)); c.setHSL(0.2 + Math.sin(o.x) * 0.03, 0.3, 0.8 + Math.sin(o.z * 2) * 0.06); }));
 const treeIM = scene.children.filter(o => o.isInstancedMesh && o.count === trees.length);
 const treeOrig = treeIM.map(im => trees.map((t, i) => { const m4 = new THREE.Matrix4(); im.getMatrixAt(i, m4); return m4; }));
 const treeGrid = new Map();
@@ -570,10 +590,10 @@ const windU = { value: 0 };
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
       'vec3 transformed = position; float ph = instanceMatrix[3].x * 0.35 + instanceMatrix[3].z * 0.27; transformed.x += sin(uTime * 2.2 + ph) * position.y * 0.25; transformed.z += cos(uTime * 1.7 + ph) * position.y * 0.15;');
   };
-  const N = TOUCH ? 3500 : 9000, list = [];
+  const N = TOUCH ? 2200 : 9000, list = [];
   for (let i = 0; i < N * 3 && list.length < N; i++) { const x = rr(-WX + 6, 44), z = rr(-WZ + 6, WZ - 6); if (grassOk(x, z)) list.push({ x, z, s: rr(0.45, 0.85), r: rr(0, TAU) }); }
   const grass = instanced(gg, gm, list, (o, p, q, s, c) => { p.set(o.x, height(o.x, o.z), o.z); s.set(o.s, o.s * rr(0.8, 1.3), o.s); q.setFromEuler(new THREE.Euler(0, o.r, 0)); c.setHSL(0.2 + rr(0, 0.05), 0.2, 0.85 + rr(-0.08, 0.08)); });
-  grass.castShadow = false;
+  grass.castShadow = false; window.grassIM = grass;
   const fl = [];
   for (let i = 0; i < 6000 && fl.length < (TOUCH ? 260 : 600); i++) { const x = rr(-WX + 6, 44), z = rr(-WZ + 6, WZ - 6); if (grassOk(x, z)) fl.push({ x, z }); }
   const FLC = [0xcfc8b8, 0xb89a48, 0x8a6a8a, 0xa8503a];
@@ -1416,7 +1436,7 @@ function update(dt) {
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
   if (typeof Vida !== 'undefined') Vida.update(dt);
-  if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', dayCycle().night > 0.5); }
+  if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
   updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
@@ -1445,15 +1465,15 @@ function update(dt) {
   }
   if (P.combo && (P.comboT -= dt) <= 0) { if (P.combo >= 3) log(`Combo final: ${P.combo}`, 'sys'); P.combo = 0; }
   // ciclo de dia e noite (30 min por dia; dia mais longo que a noite)
-  const DAY = dayCycle();
+  const DAY = LASTDAY = dayCycle();
   sky.material.uniforms.sunDir.value.copy(DAY.sunDir); sky.material.uniforms.night.value = DAY.night;
   sun.intensity = DAY.sunI; sun.color.copy(DAY.sunC); hemi.intensity = DAY.hemiI; hemi.color.copy(DAY.hemiC);
   const des = inTower(P.z) ? 0 : smooth(40, 70, P.x);
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
   skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
-  if (dark > 0) { skyMat.uniforms.horizon.value.lerp(new THREE.Color(0x4a1830), dark); skyMat.uniforms.top.value.lerp(new THREE.Color(0x12081c), dark); }
+  if (dark > 0) { skyMat.uniforms.horizon.value.lerp(DARK_H, dark); skyMat.uniforms.top.value.lerp(DARK_T, dark); }
   if (typeof Props !== 'undefined' && Props.setNight) Props.setNight(DAY.night);
-  mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(new THREE.Color(0x2a3440), 0.25);
+  mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(MOUNT_C, 0.25);
   updateFireflies(dt, DAY.night * (1 - dark));
   scene.fog.color.copy(skyMat.uniforms.horizon.value);
   if (typeof SpriteKit !== 'undefined') SpriteKit.setLight((1 - 0.3 * dark) * (0.62 + 0.38 * DAY.light));
@@ -2108,7 +2128,7 @@ function start(fromSave) {
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
-  running = true; Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
@@ -2191,7 +2211,7 @@ P.y = groundY(P.x, P.z);
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow();
+    update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {
