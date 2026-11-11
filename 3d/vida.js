@@ -331,7 +331,7 @@ const Vida = (() => {
     add(r.out, r.n); Audio8.sfx('buff'); log(`Fez ${r.n}× <b>${it(r.out).name}</b>.`, 'gold');
   }
   function buyIt(id, n, price) {
-    const c = price * n; if (P.zeny < c) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); return false; }
+    const c = price * n; if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return false; }
     P.zeny -= c; add(id, n); Audio8.sfx('coin'); return true;
   }
   // encomenda do dia: a Fazendeira pede uma produção do Sítio e paga bem
@@ -343,31 +343,31 @@ const Vida = (() => {
     return { ...o, pay, xp: 25 + o.n * 6 };
   }
   function talkFarm(eu) {
-    const menu = () => dialog('Fazendeira Dália', `Olá, <b>${eu}</b>! Este é o Sítio de Solmira. Os canteiros e o curral são seus: plante, crie e venda o que quiser.<br><small>Zeny: <b>${P.zeny}z</b> · Animais: ${st.animals.length}/${MAX_ANIMALS}</small>`, [
+    const menu = () => dialog('Fazendeira Dália', `Olá, <b>${eu}</b>! Este é o Sítio de Solmira. Os canteiros e o curral são seus: plante, crie e venda o que quiser.<br><small>Coroas: <b>${P.zeny} cr</b> · Animais: ${st.animals.length}/${MAX_ANIMALS}</small>`, [
       { label: '🌱 Sementes e ração', fn: () => { seeds(); return true; } },
       { label: '🐔 Comprar animais', fn: () => { animals(); return true; } },
       { label: '🍳 Fazer receitas', fn: () => { recipes(); return true; } },
       { label: (o => o.done ? '📦 Encomenda do dia (entregue ✅)' : `📦 Encomenda do dia: ${o.n} ${it(o.id).ic} ${it(o.id).name}`)(order()), fn: () => { orderMenu(); return true; } },
       { label: '💰 Vender colheita', fn: () => { sellAll(['colheita']); menu(); return true; } },
       { label: 'Tchau' }]);
-    const seeds = () => dialog('Sementes e ração', `<small>Zeny: <b>${P.zeny}z</b></small>`, [
-      ...['s_trigo', 's_cenoura', 's_flor'].map(id => ({ label: `${it(id).name} ×5 — ${it(id).price * 5}z (tem ${P.inv[id] || 0})`, fn: () => { buyIt(id, 5, it(id).price); seeds(); return true; } })),
-      { label: `🌾 Ração ×10 — ${it('racao').price * 10}z (tem ${P.inv.racao || 0})`, fn: () => { buyIt('racao', 10, it('racao').price); seeds(); return true; } },
+    const seeds = () => dialog('Sementes e ração', `<small>Coroas: <b>${P.zeny} cr</b></small>`, [
+      ...['s_trigo', 's_cenoura', 's_flor'].map(id => ({ label: `${it(id).name} ×5 — ${it(id).price * 5} cr (tem ${P.inv[id] || 0})`, fn: () => { buyIt(id, 5, it(id).price); seeds(); return true; } })),
+      { label: `🌾 Ração ×10 — ${it('racao').price * 10} cr (tem ${P.inv.racao || 0})`, fn: () => { buyIt('racao', 10, it('racao').price); seeds(); return true; } },
       { label: '← Voltar', fn: () => { menu(); return true; } }]);
-    const animals = () => dialog('Comprar animais', `Cada animal, alimentado, produz sozinho. <small>Zeny: <b>${P.zeny}z</b></small>`, [
-      ...Object.entries(ANIMALS).map(([k, A]) => ({ label: `${A.name} — ${A.price}z (dá ${it(A.prod).ic} ${it(A.prod).name})`, fn: () => {
+    const animals = () => dialog('Comprar animais', `Cada animal, alimentado, produz sozinho. <small>Coroas: <b>${P.zeny} cr</b></small>`, [
+      ...Object.entries(ANIMALS).map(([k, A]) => ({ label: `${A.name} — ${A.price} cr (dá ${it(A.prod).ic} ${it(A.prod).name})`, fn: () => {
         if (st.animals.length >= MAX_ANIMALS) { log('O curral está cheio.', 'bad'); }
         else if (P.zeny >= A.price) { P.zeny -= A.price; const a = { k, fed: 0 }; st.animals.push(a); spawnAnimal(a); save(); Audio8.sfx('coin'); log(`Comprou uma <b>${A.name}</b>. Ela está no curral.`, 'gold'); }
-        else { log('Zeny insuficiente!', 'bad'); }
+        else { log('Coroas insuficientes!', 'bad'); }
         animals(); return true; } })),
       { label: '← Voltar', fn: () => { menu(); return true; } }]);
     const orderMenu = () => {
       const o = order();
       if (o.done) return dialog('Encomenda do dia', 'Já entregou a de hoje. Volte amanhã: cada dia é um pedido diferente.', [{ label: '← Voltar', fn: () => { menu(); return true; } }]);
-      dialog('Encomenda do dia', `Preciso de <b>${o.n}× ${it(o.id).ic} ${it(o.id).name}</b> para a cidade. Pago <b>${o.pay}z</b> e ensino um pouco do ofício (+${o.xp} XP).<br><small>Você tem ${P.inv[o.id] || 0}.</small>`, [
+      dialog('Encomenda do dia', `Preciso de <b>${o.n}× ${it(o.id).ic} ${it(o.id).name}</b> para a cidade. Pago <b>${o.pay} cr</b> e ensino um pouco do ofício (+${o.xp} XP).<br><small>Você tem ${P.inv[o.id] || 0}.</small>`, [
         { label: `Entregar ${o.n} ${it(o.id).ic}`, fn: () => {
           if (!has(o.id, o.n)) { log(`Falta ${it(o.id).name}.`, 'bad'); Audio8.sfx('miss'); orderMenu(); return true; }
-          add(o.id, -o.n); P.zeny += o.pay; st.order.done = true; save(); gainXp(o.xp); Audio8.sfx('level'); banner('Encomenda entregue!'); log(`📦 Encomenda entregue: <b>+${o.pay}z</b>, +${o.xp} XP.`, 'gold'); menu(); return true; } },
+          add(o.id, -o.n); P.zeny += o.pay; st.order.done = true; save(); gainXp(o.xp); Audio8.sfx('level'); banner('Encomenda entregue!'); log(`📦 Encomenda entregue: <b>+${o.pay} cr</b>, +${o.xp} XP.`, 'gold'); menu(); return true; } },
         { label: '← Voltar', fn: () => { menu(); return true; } }]);
     };
     const recipes = () => dialog('Receitas', 'A Fazendeira transforma a produção do Sítio.', [
@@ -376,8 +376,8 @@ const Vida = (() => {
     menu();
   }
   function gearShop() {
-    const sh = () => dialog('⚔️ Equipamentos', `Equipe pela 🎒 mochila. <small>Zeny: <b>${P.zeny}z</b></small>`, [
-      ...Object.keys(GEAR).filter(id => GEAR[id][3]).map(id => ({ label: `${it(id).ic} ${it(id).name} — ${it(id).price}z (${modTxt(it(id).mods)})`, fn: () => { if (buyIt(id, 1, it(id).price)) log(`Comprou <b>${it(id).name}</b>. Equipe pela mochila 🎒.`, 'item'); sh(); return true; } })),
+    const sh = () => dialog('⚔️ Equipamentos', `Equipe pela 🎒 mochila. <small>Coroas: <b>${P.zeny} cr</b></small>`, [
+      ...Object.keys(GEAR).filter(id => GEAR[id][3]).map(id => ({ label: `${it(id).ic} ${it(id).name} — ${it(id).price} cr (${modTxt(it(id).mods)})`, fn: () => { if (buyIt(id, 1, it(id).price)) log(`Comprou <b>${it(id).name}</b>. Equipe pela mochila 🎒.`, 'item'); sh(); return true; } })),
       { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
       { label: 'Sair' }]);
     sh();
@@ -390,7 +390,7 @@ const Vida = (() => {
       if (r >= 7) return { label: `${it(id).ic} +7 ${it(id).name} — refino máximo`, fn: () => { refine(); return true; } };
       const [z, ch] = REF[r], lasca = r >= 4;
       return { label: `${it(id).ic} ${nameOf(id)} → +${r + 1} — ${z}z${lasca ? ' + 1 🛡️ Lasca' : ''} · ${Math.round(ch * 100)}%`, fn: () => {
-        if (P.zeny < z) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); refine(); return true; }
+        if (P.zeny < z) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); refine(); return true; }
         if (lasca && !has('lasca')) { log('Falta 🛡️ <b>Lasca de Armadura</b> (cai das criaturas da Torre).', 'bad'); Audio8.sfx('miss'); refine(); return true; }
         P.zeny -= z; if (lasca) add('lasca', -1);
         if (Math.random() < ch) { P.refine[id] = r + 1; Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); log(`🔨 Sucesso! <b>${nameOf(id)}</b>.`, 'gold'); if (r + 1 >= 5) banner(`Refino +${r + 1}!`); }
@@ -399,14 +399,14 @@ const Vida = (() => {
     });
     if (!opts.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { gearShop(); return true; } });
     opts.push({ label: '← Voltar', fn: () => { gearShop(); return true; } });
-    dialog('🔨 Refinar', `Até +4 sempre dá certo. Do +5 ao +7 pode falhar, mas a peça só perde um nível — <b>nunca quebra</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Zeny: <b>${P.zeny}z</b> · Lascas: ${P.inv.lasca || 0}</small>`, opts);
+    dialog('🔨 Refinar', `Até +4 sempre dá certo. Do +5 ao +7 pode falhar, mas a peça só perde um nível — <b>nunca quebra</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Coroas: <b>${P.zeny} cr</b> · Lascas: ${P.inv.lasca || 0}</small>`, opts);
   }
   // vende ao NPC (materiais e colheita)
   function sellAll(kinds = ['mat', 'colheita']) {
     let z = 0, parts = [];
     for (const id in P.inv) { const I = ITEMS[id]; if (!I || !kinds.includes(I.kind) || !P.inv[id]) continue; z += I.sell * P.inv[id]; parts.push(`${P.inv[id]} ${I.ic}`); P.inv[id] = 0; }
     if (!z) { log('Nada para vender.', 'sys'); return; }
-    P.zeny += z; Audio8.sfx('coin'); log(`Vendeu ${parts.join(', ')} por <b>${z}z</b>.`, 'gold');
+    P.zeny += z; Audio8.sfx('coin'); log(`Vendeu ${parts.join(', ')} por <b>${z} cr</b>.`, 'gold');
   }
 
   // ---------------------------------------------------------------- mochila (inventário com o personagem)
@@ -447,10 +447,10 @@ const Vida = (() => {
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
       if (I.use || I.heal) btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`);
       if (I.kind === 'carta') for (const sl in SLOTS) if (P.equip[sl]) btns.push(`<button data-a="card" data-v="${sl}">Encaixar: ${SLOTS[sl]}</button>`);
-      det = `<b style="color:${I.kind === 'equip' ? RARITY[I.rar].c : 'inherit'}">${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? RARITY[I.rar].n + ' · ' + (I.slot === 'anel' ? 'Anel' : SLOTS[I.slot]) + ' · ' + modTxt(I.mods) + (I.set ? ' · ' + SETS[I.set].name : '') : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : I.kind === 'carta' ? modTxt(I.mods) + ' · encaixe num espaço com peça equipada' : 'Vende por ' + I.sell + 'z no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
+      det = `<b style="color:${I.kind === 'equip' ? RARITY[I.rar].c : 'inherit'}">${I.ic} ${I.name}</b> ×${P.inv[sel]} <small>${I.kind === 'equip' ? RARITY[I.rar].n + ' · ' + (I.slot === 'anel' ? 'Anel' : SLOTS[I.slot]) + ' · ' + modTxt(I.mods) + (I.set ? ' · ' + SETS[I.set].name : '') : I.heal ? 'Cura ' + Math.round(I.heal * 100) + '% do HP' : I.use ? 'Poção' : I.kind === 'carta' ? modTxt(I.mods) + ' · encaixe num espaço com peça equipada' : 'Vende por ' + I.sell + ' cr no mercador'}</small><div class="ibtn">${btns.join('')}</div>`;
     }
     const mag = CLASSES[P.cls].magic;
-    invWin().innerHTML = `<div class="wt">🎒 Mochila <small>· ${P.zeny}z</small><span class="x" data-a="close">×</span></div>
+    invWin().innerHTML = `<div class="wt">🎒 Mochila <small>· ${P.zeny} cr</small><span class="x" data-a="close">×</span></div>
       <div class="invb">
         <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div><div class="eslots">${slots}</div>
           <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div>
@@ -485,7 +485,7 @@ const Vida = (() => {
   const soloMsg = () => log('Troca e banca funcionam pelo link do Claude, com os amigos online no mesmo mundo.', 'sys');
   const near = (r, d) => Math.hypot(r.x - P.x, r.z - P.z) < d;
   const keyOf = (a, b) => JSON.stringify([a || {}, b || {}]);
-  const offerTxt = g => { const e = Object.entries(g || {}).filter(([k, n]) => n > 0); return e.length ? e.map(([k, n]) => k === 'z' ? `<b>${n}z</b>` : `${it(k).ic} ${it(k).name} ×${n}`).join('<br>') : '<i>nada ainda</i>'; };
+  const offerTxt = g => { const e = Object.entries(g || {}).filter(([k, n]) => n > 0); return e.length ? e.map(([k, n]) => k === 'z' ? `<b>${n} cr</b>` : `${it(k).ic} ${it(k).name} ×${n}`).join('<br>') : '<i>nada ainda</i>'; };
 
   function tradePick() {
     if (!online()) return soloMsg();
@@ -500,7 +500,7 @@ const Vida = (() => {
     const their = (pr.s.tr && pr.s.tr.to === Net.me && pr.s.tr.id === tr.id) ? pr.s.tr : null;
     const opts = [];
     for (const id of Object.keys(P.inv).filter(id => P.inv[id] > (tr.give[id] || 0) && ITEMS[id])) opts.push({ label: `+1 ${it(id).ic} ${it(id).name}`, fn: () => { tr.give[id] = (tr.give[id] || 0) + 1; tr.ok = false; tradeWin(); return true; } });
-    if (P.zeny >= (tr.give.z || 0) + 50) opts.push({ label: '+50z', fn: () => { tr.give.z = (tr.give.z || 0) + 50; tr.ok = false; tradeWin(); return true; } });
+    if (P.zeny >= (tr.give.z || 0) + 50) opts.push({ label: '+50 cr', fn: () => { tr.give.z = (tr.give.z || 0) + 50; tr.ok = false; tradeWin(); return true; } });
     opts.push({ label: 'Limpar minha oferta', fn: () => { tr.give = {}; tr.ok = false; tradeWin(); return true; } });
     opts.push({ label: tr.ok ? '⏳ Esperando o outro confirmar…' : '✅ Confirmar troca', fn: () => { if (their) tr.ok = keyOf(tr.give, their.give); tradeWin(); return true; } });
     opts.push({ label: '✖ Cancelar troca', fn: () => { tr = null; log('Troca cancelada.', 'sys'); } });
@@ -542,7 +542,7 @@ const Vida = (() => {
   function stallSetup(sel = {}) {
     if (!online()) return soloMsg();
     const mult = [0.8, 1, 1.5][stallMode], price = id => Math.max(1, Math.round(it(id).price * mult));
-    const opts = Object.keys(P.inv).filter(id => P.inv[id] > (sel[id] || 0) && ITEMS[id]).map(id => ({ label: `+1 ${it(id).ic} ${it(id).name} (${price(id)}z)`, fn: () => { sel[id] = (sel[id] || 0) + 1; stallSetup(sel); return true; } }));
+    const opts = Object.keys(P.inv).filter(id => P.inv[id] > (sel[id] || 0) && ITEMS[id]).map(id => ({ label: `+1 ${it(id).ic} ${it(id).name} (${price(id)} cr)`, fn: () => { sel[id] = (sel[id] || 0) + 1; stallSetup(sel); return true; } }));
     opts.push({ label: `Preço: ${['barato (80%)', 'normal', 'caro (150%)'][stallMode]} — mudar`, fn: () => { stallMode = (stallMode + 1) % 3; stallSetup(sel); return true; } });
     opts.push({ label: '🏪 Abrir banca', fn: () => {
       const items = Object.entries(sel).filter(([, n]) => n > 0).map(([id, n]) => [id, n, price(id)]);
@@ -561,9 +561,9 @@ const Vida = (() => {
   }
   function viewStall(r) {
     const bk = r.s.bk; if (!bk) return;
-    dialog(`🏪 ${bk.t}`, `<small>Seu zeny: <b>${P.zeny}z</b></small>`, [
-      ...bk.it.filter(([, n]) => n > 0).map(([id, n, p], i) => ({ label: `${it(id).ic} ${it(id).name} (${n}) — ${p}z`, fn: () => {
-        if (P.zeny < p) { log('Zeny insuficiente!', 'bad'); return true; }
+    dialog(`🏪 ${bk.t}`, `<small>Suas coroas: <b>${P.zeny} cr</b></small>`, [
+      ...bk.it.filter(([, n]) => n > 0).map(([id, n, p], i) => ({ label: `${it(id).ic} ${it(id).name} (${n}) — ${p} cr`, fn: () => {
+        if (P.zeny < p) { log('Coroas insuficientes!', 'bad'); return true; }
         P.zeny -= p; const q = { to: r.peer, id: Math.random().toString(36).slice(2, 9), it: id, p, at: now() };
         st.pend.push(q); buyReq.push(q); buyReq = buyReq.slice(-6); save();
         log(`Pedido de compra enviado a <b>${r.n}</b>…`, 'sys'); return false; } })),
@@ -576,7 +576,7 @@ const Vida = (() => {
       else for (const r of peers) for (const q of (r.s.by || [])) {
         if (q.to !== Net.me || stallSold.includes(q.id) || stallRej.includes(q.id)) continue;
         const e = st.stall.it.find(([id, n, p]) => id === q.it && n > 0 && p === q.p);
-        if (e) { e[1]--; P.zeny += q.p; stallSold.push(q.id); Audio8.sfx('coin'); log(`🏪 <b>${r.n}</b> comprou ${it(q.it).ic} ${it(q.it).name} por ${q.p}z.`, 'gold'); save(); }
+        if (e) { e[1]--; P.zeny += q.p; stallSold.push(q.id); Audio8.sfx('coin'); log(`🏪 <b>${r.n}</b> comprou ${it(q.it).ic} ${it(q.it).name} por ${q.p} cr.`, 'gold'); save(); }
         else stallRej.push(q.id);
         stallSold = stallSold.slice(-20); stallRej = stallRej.slice(-20);
       }
@@ -586,7 +586,7 @@ const Vida = (() => {
       const r = peers.find(p => p.peer === q.to);
       const ok = r && (r.s.sd || []).includes(q.id), no = !r || (r.s.rj || []).includes(q.id) || now() - q.at > 60000;
       if (ok) { add(q.it, 1); log(`Recebeu ${it(q.it).ic} <b>${it(q.it).name}</b>.`, 'item'); Audio8.sfx('pick'); }
-      else if (no) { P.zeny += q.p; log(`Compra de ${it(q.it).name} não concluída: ${q.p}z devolvidos.`, 'sys'); }
+      else if (no) { P.zeny += q.p; log(`Compra de ${it(q.it).name} não concluída: ${q.p} cr devolvidos.`, 'sys'); }
       if (ok || no) { st.pend = st.pend.filter(o => o !== q); buyReq = buyReq.filter(o => o.id !== q.id); save(); }
     }
   }

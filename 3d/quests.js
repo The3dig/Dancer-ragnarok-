@@ -80,7 +80,7 @@ const Quests = (() => {
     const got = [];
     for (const [id, n] of Object.entries(r.items || {})) { P.inv[id] = (P.inv[id] || 0) + n; got.push(`${n}× ${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id}`); }
     Audio8.sfx('coin'); buildHotbar();
-    log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b> concluída! ${r.xp ? '+' + r.xp + ' XP' : ''} ${r.zeny ? '+' + r.zeny + 'z' : ''}${got.length ? ' · ' + got.join(', ') : ''}`, 'gold');
+    log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b> concluída! ${r.xp ? '+' + r.xp + ' XP' : ''} ${r.zeny ? '+' + r.zeny + ' cr' : ''}${got.length ? ' · ' + got.join(', ') : ''}`, 'gold');
     if (r.xp) gainXp(r.xp);
     if (q.lore) setTimeout(() => dialog('🟣 Segredo', q.lore), 300);
     // a principal seguinte já fica disponível no mesmo NPC
@@ -88,7 +88,7 @@ const Quests = (() => {
     if (nx && available(nx) && nx.giver === (q.to || q.giver)) accept(nx);
     save();
   }
-  function rewardTxt(q) { const r = q.rw || {}; return [r.xp ? r.xp + ' XP' : '', r.zeny ? r.zeny + 'z' : '', ...Object.entries(r.items || {}).map(([id, n]) => `${n}× ${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id}`)].filter(Boolean).join(' · '); }
+  function rewardTxt(q) { const r = q.rw || {}; return [r.xp ? r.xp + ' XP' : '', r.zeny ? r.zeny + ' cr' : '', ...Object.entries(r.items || {}).map(([id, n]) => `${n}× ${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id}`)].filter(Boolean).join(' · '); }
   function questCard(q) { return `<b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b> <small>(${TYPE[q.type].n})</small><br>${q.txt}<br>${q.steps.map((st, i) => '▫️ ' + stepTxt(st, i, q)).join('<br>')}<br><small>Recompensa: ${rewardTxt(q)}</small>`; }
 
   // conversa: entrega e oferece missões; "Outros assuntos" volta ao diálogo normal do NPC
@@ -121,8 +121,8 @@ const Quests = (() => {
   const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma' };
   function travel(from) {
     const opts = Object.keys(BOARDS).filter(c => c !== from).map(c => P.warps[c]
-      ? { label: `🧭 ${CITY_N[c]} — 50z`, fn: () => {
-          if (P.zeny < 50) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); return; }
+      ? { label: `🧭 ${CITY_N[c]} — 50 cr`, fn: () => {
+          if (P.zeny < 50) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
           P.zeny -= 50; const b = BOARDS[c]; P.x = b.x + 2.5; P.z = b.z + 2.5; P.y = groundY(P.x, P.z); P.vy = 0;
           Audio8.sfx('buff'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x80c0ff, 30, 4, 0.9); log(`🧭 Você viajou para <b>${CITY_N[c]}</b>.`, 'sys'); } }
       : { label: `🔒 ${CITY_N[c]} — visite o Quadro de lá uma vez`, fn: () => { travel(from); return true; } });
@@ -211,7 +211,7 @@ const Quests = (() => {
     Audio8.sfx('level'); burst(new THREE.Vector3(s.x, groundY(s.x, s.z) + 1, s.z), 0xffe8a0, 40, 4, 1.1); buildHotbar();
     if (s.glint) s.glint.visible = false;
     banner('🟣 Tesouro encontrado!');
-    dialog(`🟣 ${s.name}`, `${s.msg}<br><br>Você encontrou: <b>${r.zeny}z</b>${got.length ? ', ' + got.join(', ') : ''}.`);
+    dialog(`🟣 ${s.name}`, `${s.msg}<br><br>Você encontrou: <b>${r.zeny} cr</b>${got.length ? ', ' + got.join(', ') : ''}.`);
     save();
   }
   let tAcc = 0;

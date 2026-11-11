@@ -120,12 +120,12 @@ const CLASSES = {
     ],
   },
   arruaceiro: {
-    name: { f: 'Arruaceira', m: 'Arruaceiro' }, role: 'Lutador de rua. Truques sujos, atordoamento e roubo de zeny.',
+    name: { f: 'Arruaceira', m: 'Arruaceiro' }, role: 'Lutador de rua. Truques sujos, atordoamento e roubo de coroas.',
     weapon: 'club', outfit: 'leather', hat: 'bandana', colors: { cloth: 0x6a4a2a, trim: 0xc0392b, accent: 0x303030 },
     range: 3.0, dmg: 'str', aspd: 0.65, hp: 1.1, sp: 0.9, crit: 0.08, bonus: { str: 2, luk: 2, agi: 1 },
     skills: [
       { id: 'dirty', name: 'Soco Sujo', icon: '👊', lv: 1, sp: 6, cd: 2, type: 'strike', mult: 1.8, stun: 1, color: 0xffaa40, desc: '180% de dano e 1s de atordoamento.' },
-      { id: 'pilfer', name: 'Afanar', icon: '💰', lv: 4, sp: 8, cd: 4, type: 'strike', mult: 1.0, steal: true, color: 0xffcf40, desc: 'Golpe que rouba zeny do alvo.' },
+      { id: 'pilfer', name: 'Afanar', icon: '💰', lv: 4, sp: 8, cd: 4, type: 'strike', mult: 1.0, steal: true, color: 0xffcf40, desc: 'Golpe que rouba coroas do alvo.' },
       { id: 'sand', name: 'Areia nos Olhos', icon: '🌫️', lv: 8, sp: 16, cd: 10, type: 'nova', r: 5, mult: 0.4, stun: 2.5, color: 0xe0c080, desc: 'Cega os inimigos próximos por 2,5s.' },
       { id: 'brawl', name: 'Pancadaria', icon: '💥', lv: 12, sp: 28, cd: 8, type: 'nova', r: 4, mult: 2.4, hits: 2, color: 0xff6040, desc: 'Uma briga generalizada: 2 golpes de 240% ao redor.' },
     ],

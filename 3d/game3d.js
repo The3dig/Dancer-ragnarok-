@@ -1322,7 +1322,7 @@ function useSkill(i) {
       slash(s.color); Audio8.sfx('whip'); hitOne(tgt, base);
       if (s.heal) healP(stats.maxHp() * s.heal);
       if (s.plunder) tgt.plundered = time;
-      if (s.steal) { const z = irand(5, 12) + tgt.d.lv * 2; P.zeny += z; Audio8.sfx('coin'); floater(P.x, P.y + 2, P.z, `+${z}z`, 'zeny'); }
+      if (s.steal) { const z = irand(5, 12) + tgt.d.lv * 2; P.zeny += z; Audio8.sfx('coin'); floater(P.x, P.y + 2, P.z, `+${z} cr`, 'zeny'); }
       break;
     case 'nova':
       Audio8.sfx(s.mult >= 3 ? 'boom' : 'skill');
@@ -1591,7 +1591,7 @@ function updatePlayer(dt) {
 
   for (const d of drops) if (d.t > 0.4 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
     d.taken = true; scene.remove(d.m);
-    if (d.id === 'zeny') { P.zeny += d.n; Audio8.sfx('coin'); floater(d.x, P.y + 1.5, d.z, `+${d.n}z`, 'zeny'); }
+    if (d.id === 'zeny') { P.zeny += d.n; Audio8.sfx('coin'); floater(d.x, P.y + 1.5, d.z, `+${d.n} cr`, 'zeny'); }
     else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
   }
   drops = drops.filter(d => !d.taken);
@@ -2024,10 +2024,10 @@ function talkBase(n) {
         { label: '✚ Curar (grátis)', fn: () => { P.hp = stats.maxHp(); P.sp = stats.maxSp(); Audio8.sfx('heal'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xcfe8ff, 25, 3, 1); log(`${n.name} restaurou seu HP e SP.`, 'item'); } },
         { label: 'Até logo' }]); break;
     case 'shop': {
-      const shop = () => dialog(nm, `${bv}, <b>${eu}</b>! Poções fresquinhas.<br><small>Zeny: <b>${P.zeny}z</b> · 🧪 ${P.inv.red} · 💧 ${P.inv.blue}</small>`, [
-        { label: `🧪 Poção Vermelha — 25z`, fn: () => { buy('red', 1); shop(); return true; } },
-        { label: `🧪×10 — 250z`, fn: () => { buy('red', 10); shop(); return true; } },
-        { label: `💧 Poção Azul — 90z`, fn: () => { buy('blue', 1); shop(); return true; } },
+      const shop = () => dialog(nm, `${bv}, <b>${eu}</b>! Poções fresquinhas.<br><small>Coroas: <b>${P.zeny} cr</b> · 🧪 ${P.inv.red} · 💧 ${P.inv.blue}</small>`, [
+        { label: `🧪 Poção Vermelha — 25 cr`, fn: () => { buy('red', 1); shop(); return true; } },
+        { label: `🧪×10 — 250 cr`, fn: () => { buy('red', 10); shop(); return true; } },
+        { label: `💧 Poção Azul — 90 cr`, fn: () => { buy('blue', 1); shop(); return true; } },
         { label: '⚔️ Equipamentos', fn: () => { Vida.gearShop(); return true; } },
         { label: '💰 Vender materiais e colheita', fn: () => { Vida.sellAll(); shop(); return true; } },
         { label: 'Sair' }]);
@@ -2043,7 +2043,7 @@ function talkBase(n) {
 }
 function buy(id, n) {
   const c = ITEMS[id].price * n;
-  if (P.zeny < c) { log('Zeny insuficiente!', 'bad'); Audio8.sfx('miss'); return; }
+  if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
   P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item'); buildHotbar();
 }
 
