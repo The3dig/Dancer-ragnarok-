@@ -376,11 +376,56 @@ const Vida = (() => {
     menu();
   }
   function gearShop() {
-    const sh = () => dialog('⚔️ Equipamentos', `Equipe pela 🎒 mochila. <small>Coroas: <b>${P.zeny} cr</b></small>`, [
+    const sh = () => dialog('⚔️ Equipamentos', `Equipe pela 🎒 mochila. Refino e forja: <b>Ferreiro Doran</b>, perto da praça. <small>Coroas: <b>${P.zeny} cr</b></small>`, [
       ...Object.keys(GEAR).filter(id => GEAR[id][3]).map(id => ({ label: `${it(id).ic} ${it(id).name} — ${it(id).price} cr (${modTxt(it(id).mods)})`, fn: () => { if (buyIt(id, 1, it(id).price)) log(`Comprou <b>${it(id).name}</b>. Equipe pela mochila 🎒.`, 'item'); sh(); return true; } })),
-      { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
       { label: 'Sair' }]);
     sh();
+  }
+  // ---------------- Ferreiro: refino e forja (crafting estilo Lineage 2: materiais dos monstros viram equipamento)
+  const FORGE = [
+    { out: 'capuz_couro', need: { gosma: 5, po_eco: 3 }, z: 60 },
+    { out: 'gibao_couro', need: { gosma: 6, raiz: 4 }, z: 80 },
+    { out: 'luvas_couro', need: { gosma: 4, raiz: 3 }, z: 60 },
+    { out: 'botas_couro', need: { po_eco: 5, raiz: 3 }, z: 60 },
+    { out: 'arma_cristal', need: { cristal: 8, raiz: 4 }, z: 300 },
+    { out: 'anel_cristal', need: { cristal: 6, fio: 2 }, z: 400 },
+    { out: 'manto_areias', need: { fio: 8, cristal: 6 }, z: 600 },
+    { out: 'couraca_sentinela', need: { lasca: 10, essencia: 2 }, z: 2000 },
+    { out: 'arma_essencia', need: { lasca: 8, essencia: 3 }, z: 3000 },
+  ];
+  const needTxt = r => Object.entries(r.need).map(([id, n]) => `${n} ${it(id).ic}`).join(' + ') + ` + ${r.z} cr`;
+  function forge() {
+    const opts = FORGE.map(r => {
+      const ok = P.zeny >= r.z && Object.entries(r.need).every(([id, n]) => has(id, n));
+      return { label: `${ok ? '✅' : '▫️'} ${it(r.out).ic} ${it(r.out).name} — ${needTxt(r)}`, fn: () => {
+        if (!ok) { const falta = Object.entries(r.need).filter(([id, n]) => !has(id, n)).map(([id, n]) => `${n - (P.inv[id] || 0)} ${it(id).ic} ${it(id).name}`); log(falta.length ? `Falta: ${falta.join(', ')}.` : 'Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); forge(); return true; }
+        for (const [id, n] of Object.entries(r.need)) add(id, -n);
+        P.zeny -= r.z; add(r.out, 1); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1.2, P.z), 0xff9040, 30, 4, 0.8);
+        log(`⚒️ Doran forjou <b style="color:${RARITY[it(r.out).rar].c}">${it(r.out).ic} ${it(r.out).name}</b>! Equipe pela mochila.`, 'gold'); forge(); return true; } };
+    });
+    opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
+    dialog('⚒️ Forjar', `Traga os materiais que os monstros soltam e eu faço a peça. <small>(✅ = você já tem tudo)</small><br><small>Coroas: <b>${P.zeny} cr</b></small>`, opts);
+  }
+  function smith(eu) {
+    dialog('💬 Ferreiro Doran', `${eu ? `Ah, <b>${eu}</b>. ` : ''}O fogo desta forja nunca apagou, nem no dia do Cisma. Trago o aço de volta à vida: refino suas peças e forjo novas com o que você trouxer das caçadas.`, [
+      { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
+      { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
+      { label: 'Até mais' }]);
+  }
+  // forja e bigorna ao lado do Ferreiro
+  {
+    const fx = VIL.x - 14.6, fz = VIL.z - 9.6, fy = groundY(fx, fz), g = new THREE.Group(); g.position.set(fx, fy, fz); scene.add(g);
+    const stone = PM('pedra.jpg', [1, 1], new THREE.Color(1.1, 1.05, 1)), metal = new THREE.MeshPhongMaterial({ color: 0x2a2a2e, shininess: 50, specular: 0x555560 });
+    const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; g.add(b); return b; };
+    box(2.2, 1.1, 1.6, stone, 0, 0.55, 0);                                   // fornalha
+    box(0.9, 2.6, 0.9, stone, -0.5, 2.4, -0.25);                             // chaminé
+    const ember = box(1.2, 0.35, 0.05, new THREE.MeshBasicMaterial({ color: 0xff6a20, toneMapped: false }), 0, 0.75, 0.81);   // boca acesa
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,170,80,.9)'); gr.addColorStop(1, 'rgba(255,90,20,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.position.set(0, 0.8, 1.0); glow.scale.setScalar(2.4); g.add(glow);
+    glow.onBeforeRender = () => { const k = 0.75 + 0.25 * Math.sin(time * 7) * Math.sin(time * 3.1); glow.material.opacity = k; ember.material.color.setRGB(1, 0.35 + 0.15 * k, 0.1); };
+    box(0.5, 0.6, 0.5, PM('madeira.jpg', [0.4, 0.4], 0x8a6a50), 2.2, 0.3, 1.2);   // cepo
+    box(0.9, 0.22, 0.35, metal, 2.2, 0.71, 1.2); box(0.35, 0.14, 0.22, metal, 2.75, 0.75, 1.2);   // bigorna
+    addOb(fx, fz, 1.6); addOb(fx + 2.2, fz + 1.2, 0.6);
   }
   function refine() {
     P.refine = P.refine || {};
@@ -393,12 +438,13 @@ const Vida = (() => {
         if (P.zeny < z) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); refine(); return true; }
         if (lasca && !has('lasca')) { log('Falta 🛡️ <b>Lasca de Armadura</b> (cai das criaturas da Torre).', 'bad'); Audio8.sfx('miss'); refine(); return true; }
         P.zeny -= z; if (lasca) add('lasca', -1);
-        if (Math.random() < ch) { P.refine[id] = r + 1; Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); log(`🔨 Sucesso! <b>${nameOf(id)}</b>.`, 'gold'); if (r + 1 >= 5) banner(`Refino +${r + 1}!`); }
+        Audio8.sfx('anvil');
+        if (Math.random() < ch) { P.refine[id] = r + 1; setTimeout(() => Audio8.sfx('level'), 600); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); log(`🔨 Sucesso! <b>${nameOf(id)}</b>.`, 'gold'); if (r + 1 >= 5) banner(`Refino +${r + 1}!`); }
         else { P.refine[id] = Math.max(4, r - 1); Audio8.sfx('miss'); log(`🔨 O refino falhou... a peça voltou para +${P.refine[id]} (ela nunca quebra).`, 'bad'); }
         refine(); return true; } };
     });
-    if (!opts.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { gearShop(); return true; } });
-    opts.push({ label: '← Voltar', fn: () => { gearShop(); return true; } });
+    if (!opts.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { refine(); return true; } });
+    opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
     dialog('🔨 Refinar', `Até +4 sempre dá certo. Do +5 ao +7 pode falhar, mas a peça só perde um nível — <b>nunca quebra</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Coroas: <b>${P.zeny} cr</b> · Lascas: ${P.inv.lasca || 0}</small>`, opts);
   }
   // vende ao NPC (materiais e colheita)
@@ -735,5 +781,5 @@ const Vida = (() => {
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

@@ -939,9 +939,10 @@ const NPCS = [
   { id: 'watch', name: 'Vigia Morvan', x: CIT.x + 2, z: CIT.z - 16, look: [0x2a2430, 0x1a1a1a, 'helm'] },
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
+  { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -2035,6 +2036,7 @@ function talkBase(n) {
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
+    case 'smith': Vida.smith(eu); break;
     default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
     case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;

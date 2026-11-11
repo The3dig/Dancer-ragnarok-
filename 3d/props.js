@@ -98,6 +98,8 @@ const Props = (() => {
     place('stone_fire_pit', VIL.x + 30, VIL.z - 9, 0.6, 0, 1.2);
     // Mercador e curandeira: caixotes e barris
     place('wooden_crate_01', VIL.x + 8.5, VIL.z - 8.5, 0.7, 0.4, 0.6); place('wine_barrel_01', VIL.x + 9.5, VIL.z - 6.5, 1.0, 0, 0.6);
+    // Forja do Ferreiro Doran
+    place('wooden_barrels_01', VIL.x - 13.1, VIL.z - 11.2, 1.0, 0.3, 0.8); place('wooden_crate_01', VIL.x - 16.4, VIL.z - 8, 0.6, 0.5, 0.5);
     // Sítio
     place('wooden_crate_01', FARM.x - 12, FARM.z - 5, 0.7, 0.2, 0.6); place('wooden_bucket_01', FARM.x - 3, FARM.z + 3.3, 0.45, 0, 0);
     place('wooden_barrels_01', FARM.x - 14, FARM.z + 4, 1.1, 1.2, 0.9);

@@ -323,6 +323,7 @@ const Audio8 = (() => {
       case 'die': tone(sfxBus, 'square', 300, t, 0.25, 0.1, { slide: 60 }); break;
       case 'warp': tone(sfxBus, 'sine', 300, t, 0.4, 0.15, { slide: 1200, vib: 20 }); break;
       case 'click': tone(sfxBus, 'triangle', 1200, t, 0.03, 0.06); break;
+      case 'anvil': [0, 0.32].forEach(d => { noise(sfxBus, t + d, 0.05, 0.4, 'highpass', 4000); [1760, 2637, 3520].forEach((f, i) => tone(sfxBus, 'sine', f, t + d, 0.5 - i * 0.12, 0.09 - i * 0.02)); }); break;
       case 'boom': noise(sfxBus, t, 0.5, 0.5, 'lowpass', 600); tone(sfxBus, 'sine', 120, t, 0.4, 0.4, { slide: 30 }); break;
     }
   }
