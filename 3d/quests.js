@@ -137,6 +137,8 @@ const Quests = (() => {
     return null;
   }
 
+  // itens pedidos pelas missões aceitas (aba 📜 da mochila)
+  function needItems() { const o = {}; for (const id of Object.keys(S().act)) { const q = byId[id]; if (q) q.steps.forEach(st => { if (st.item) o[st.item] = 1; }); } return o; }
   function onKill(m) {
     for (const id in S().act) { const q = byId[id]; if (!q) continue; const st = q.steps.find(s => s.kill === m.type); if (st) { const a = S().act[id]; a.k[m.type] = (a.k[m.type] || 0) + 1; if (ready(q) && !a.avisou) { a.avisou = 1; log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b>: objetivo cumprido! ${q.board ? 'Volte ao Quadro de Caça.' : 'Volte a ' + (q.to || q.giver) + '.'}`, 'gold'); } } }
   }
@@ -238,6 +240,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();

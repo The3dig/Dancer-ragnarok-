@@ -519,7 +519,17 @@ const Vida = (() => {
     const sc = setCount(); for (const st in sc) if (sc[st] >= 4) v += SETS[st].bonus[k] || 0;
     return v;
   };
-  let sel = null;
+  let sel = null, tab = 'tudo';
+  // abas da mochila (do lado direito)
+  const TABS = [
+    ['tudo', '🎒', 'Tudo', () => true],
+    ['equip', '⚔️', 'Equip.', I => I.kind === 'equip'],
+    ['mat', '🪨', 'Material', I => I.kind === 'mat'],
+    ['carta', '🃏', 'Cartas', I => I.kind === 'carta'],
+    ['uso', '🧪', 'Usáveis', I => !!(I.use || I.heal)],
+    ['sitio', '🌾', 'Sítio', I => ['semente', 'colheita', 'racao', 'comida'].includes(I.kind)],
+    ['missao', '📜', 'Missão', (I, id) => typeof Quests !== 'undefined' && Quests.needItems && !!Quests.needItems()[id]],
+  ];
   function invWin() {
     let w = $('invwin');
     if (!w) {
@@ -536,8 +546,10 @@ const Vida = (() => {
     const C = CLASSES[P.cls], spr = C.sprite ? (C.sprite.kind === 'dir' ? C.sprite.base + '_down_0' : C.sprite.base + '_down_0') : null;
     const img = spr && window.SPR && SPR[spr] ? `<img class="doll-img" src="data:image/png;base64,${SPR[spr]}">` : '';
     const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on r' + (it(id).rar || 0) : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}${P.cards && P.cards[sl] ? ' 🃏' : ''}</small><br>${id ? nameOf(id) : '<i>vazio</i>'}</span></div>`; }).join('');
-    const ids = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
-    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || '<i class="empty">Vazia. Derrote monstros para juntar materiais.</i>';
+    const allIds = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
+    const tabF = (TABS.find(t => t[0] === tab) || TABS[0])[3], ids = allIds.filter(id => tabF(ITEMS[id], id));
+    const tabsHtml = `<div class="itabs">${TABS.map(([k, ic, nm, f]) => { const n = allIds.filter(id => f(ITEMS[id], id)).length; return `<div class="itab${tab === k ? ' on' : ''}" data-a="tab" data-v="${k}"><span>${ic}</span><small>${nm}</small>${k !== 'tudo' && n ? `<b>${n}</b>` : ''}</div>`; }).join('')}</div>`;
+    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
     let det = '<small>Toque num item para ver de perto.</small>', view = '';
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl];
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : '<span class="nopic">❔</span>'; };
@@ -575,14 +587,15 @@ const Vida = (() => {
         <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div><div class="eslots">${slots}</div>
           <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div>
           ${Object.entries(setCount()).map(([st, n]) => `<div class="dset ${n >= 4 ? 'on' : ''}">${SETS[st].name}: ${n}/4${n >= 4 ? ' ✅ ' + modTxt(SETS[st].bonus) : ''}</div>`).join('')}</div>
-        <div class="invr"><div class="igrid">${cells}</div><div class="idet">${det}</div>${view}
-          <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>
+        <div class="invr"><div class="invc"><div class="igrid">${cells}</div><div class="idet">${det}</div>
+          <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>${tabsHtml}</div>${view}
       </div>`;
   }
   function act(a, v) {
     if (a === 'close') return closeInv();
     if (a === 'sel') sel = sel === v ? null : v;
     if (a === 'unsel') sel = null;
+    if (a === 'tab') { tab = v; sel = null; }
     if (a === 'eq') sel = 'eq:' + v;
     if (a === 'equip') { let sl = ITEMS[v].slot; P.equip = P.equip || {}; if (sl === 'anel') sl = !P.equip.anel1 ? 'anel1' : !P.equip.anel2 ? 'anel2' : 'anel1'; if (P.equip[sl]) add(P.equip[sl], 1); add(v, -1); P.equip[sl] = v; Audio8.sfx('buff'); log(`Equipou <b>${it(v).name}</b>.`, 'item'); sel = 'eq:' + sl; }
     if (a === 'unequip') { const id = P.equip[v]; if (id) { add(id, 1); P.equip[v] = null; log(`Tirou <b>${it(id).name}</b>.`, 'sys'); } }
