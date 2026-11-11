@@ -12,17 +12,18 @@ const Tower = (() => {
   // ---------------- Cidadela do Cisma
   [[CIT.x - 16, CIT.z - 8, 0.6], [CIT.x - 18, CIT.z + 14, 0.2], [CIT.x + 16, CIT.z + 14, -0.3], [CIT.x + 18, CIT.z - 6, -0.6], [CIT.x - 2, CIT.z + 20, 0]].forEach(([x, z, rot]) => {
     const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = Math.atan2(CIT.x - x, CIT.z - z) + rot * 0; scene.add(g);
-    mesh(new THREE.BoxGeometry(5.5, 3.4, 5), lam(0x3a3442), 0, 1.7, 0, g);
-    const roof = mesh(new THREE.ConeGeometry(4.6, 3.2, 4), lam(0x5a1a24), 0, 5, 0, g); roof.rotation.y = Math.PI / 4;
+    mesh(new THREE.BoxGeometry(5.5, 3.4, 5), TM(TEX.darkstone, [2.2, 1.4], 0xb0a8b8), 0, 1.7, 0, g);
+    [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.4, 3.6, 0.4), TM(TEX.wood, [0.3, 1], 0x806a70), a * 2.75, 1.8, b * 2.5, g)));
+    const roof = mesh(new THREE.ConeGeometry(4.6, 3.2, 4), TM(TEX.plank, [3, 2], 0x9a6a6e), 0, 5, 0, g); roof.rotation.y = Math.PI / 4;
     mesh(new THREE.BoxGeometry(1.1, 1.9, 0.12), lam(0x1a1018), 0, 0.95, 2.53, g);
-    [-1.6, 1.6].forEach(wx => mesh(new THREE.BoxGeometry(0.7, 0.8, 0.1), glow(0xff5a3a), wx, 2.2, 2.53, g, false));
+    [-1.6, 1.6].forEach(wx => mesh(new THREE.BoxGeometry(0.7, 0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0x8a3a20 }), wx, 2.2, 2.53, g, false));
     addOb(x, z, 3.6);
   });
   // cristais roxos e tochas pela cidade
   for (let i = 0; i < 14; i++) {
     const a = i / 14 * TAU, r = 25 + (i % 3) * 3, x = CIT.x + Math.cos(a) * r, z = CIT.z + Math.sin(a) * r;
     if (Math.hypot(x - TOWER.x, z - TOWER.z) < 14 || Math.abs(z) < 4) continue;
-    const c = mesh(new THREE.OctahedronGeometry(0.9), glow(PURPLE), x, groundY(x, z) + 1.3, z); c.scale.y = 2.2; c.rotation.y = a;
+    const c = mesh(new THREE.OctahedronGeometry(0.9), new THREE.MeshLambertMaterial({ color: 0x3a2050, emissive: 0x5a1a8a, emissiveIntensity: 0.55, flatShading: true }), x, groundY(x, z) + 1.3, z); c.scale.y = 2.2; c.rotation.y = a;
     addOb(x, z, 0.8);
   }
 
@@ -67,7 +68,7 @@ const Tower = (() => {
     for (let k = 0; k < n; k++) {
       const a = k / n * TAU, x = Math.sin(a) * (f.r + 0.4), z = Math.cos(a) * (f.r + 0.4);
       if (!top && Math.abs(z - f.r) < 3 && Math.abs(x) < 3) continue;                 // vão da chegada
-      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.6, wallH, 1.2), lam(k % 2 ? STONE : STONE_D), x, wallH / 2, z, g); b.rotation.y = a;
+      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.6, wallH, 1.2), TM(TEX.darkstone, [1.4, wallH / 3], k % 2 ? 0xa098a8 : 0x807888), x, wallH / 2, z, g); b.rotation.y = a;
       if (!top && k % 3 === 0) {                                                       // tochas
         const t = mesh(new THREE.BoxGeometry(0.3, 0.6, 0.3), glow(k % 2 ? PURPLE : RED), x * 0.93, 2.8, z * 0.93, g, false);
       }
