@@ -541,6 +541,25 @@ const Vida = (() => {
   function migrateEquip() { P.equip = P.equip || {}; if (P.equip.acessorio) { const id = P.equip.acessorio; delete P.equip.acessorio; (ITEMS[id] && ITEMS[id].slot === 'anel' ? (P.equip.anel1 = id) : (P.equip.colar = id)); } }
   function bag() { migrateEquip(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); if (dialogOpen) closeDialog(); sel = null; renderInv(); invWin().classList.remove('hidden'); }
   function closeInv() { invWin().classList.add('hidden'); }
+  // ---------------- comparar equipamento com o que está em uso
+  const W = { pow: 1, def: 1.3, hp: 0.12, sp: 0.08, crit: 250, spd: 180 };
+  const effMods = id => { const I = it(id), r = refOf(id), o = {}; for (const k in I.mods || {}) o[k] = (I.mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * r : 1); return o; };
+  const score = id => { if (!id) return 0; const m = effMods(id); let v = 0; for (const k in m) v += m[k] * (W[k] || 0); return v; };
+  // peça em uso que seria trocada (anel: o pior dos dois, ou um espaço vazio)
+  function rival(id) {
+    const I = it(id); P.equip = P.equip || {};
+    if (I.slot === 'anel') { const a = P.equip.anel1, b = P.equip.anel2; if (!a || !b) return null; return score(a) <= score(b) ? a : b; }
+    return P.equip[I.slot] || null;
+  }
+  const better = id => ITEMS[id] && ITEMS[id].kind === 'equip' && score(id) > score(rival(id)) + 0.01;
+  function compareHtml(id) {
+    const cur = rival(id), a = effMods(id), b = cur ? effMods(cur) : {}, keys = [...new Set([...Object.keys(a), ...Object.keys(b)])];
+    const fmt = (k, v) => ['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : Math.round(v);
+    const rows = keys.map(k => { const d = (a[k] || 0) - (b[k] || 0), dv = ['crit', 'spd'].includes(k) ? Math.round(d * 100) : Math.round(d);
+      return `<tr><td>${MODN[k]}</td><td>${b[k] ? fmt(k, b[k]) : '—'}</td><td>${a[k] ? fmt(k, a[k]) : '—'}</td><td class="${dv > 0 ? 'up' : dv < 0 ? 'down' : ''}">${dv > 0 ? '▲ +' + dv : dv < 0 ? '▼ ' + dv : '='}${dv && ['crit', 'spd'].includes(k) ? '%' : ''}</td></tr>`; }).join('');
+    const sa = score(id), sb = score(cur), verdict = !cur ? '<b class="up">Espaço vazio: equipe!</b>' : sa > sb + 0.01 ? '<b class="up">▲ Melhor que a sua</b>' : sa < sb - 0.01 ? '<b class="down">▼ Pior que a sua</b>' : '<b>= Igual à sua</b>';
+    return `<div class="cmp">${verdict}<table><tr><th></th><th>${cur ? it(cur).ic + ' Em uso' : 'Em uso'}</th><th>${it(id).ic} Esta</th><th></th></tr>${rows}</table>${cur ? `<small>Comparando com: ${nameOf(cur)}</small>` : ''}</div>`;
+  }
   function renderInv() {
     P.equip = P.equip || {};
     const C = CLASSES[P.cls], spr = C.sprite ? (C.sprite.kind === 'dir' ? C.sprite.base + '_down_0' : C.sprite.base + '_down_0') : null;
@@ -549,7 +568,7 @@ const Vida = (() => {
     const allIds = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
     const tabF = (TABS.find(t => t[0] === tab) || TABS[0])[3], ids = allIds.filter(id => tabF(ITEMS[id], id));
     const tabsHtml = `<div class="itabs">${TABS.map(([k, ic, nm, f]) => { const n = allIds.filter(id => f(ITEMS[id], id)).length; return `<div class="itab${tab === k ? ' on' : ''}" data-a="tab" data-v="${k}"><span>${ic}</span><small>${nm}</small>${k !== 'tudo' && n ? `<b>${n}</b>` : ''}</div>`; }).join('')}</div>`;
-    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b></div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
+    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b>${better(id) ? '<em class="better">▲</em>' : ''}</div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
     let det = '<small>Toque num item para ver de perto.</small>', view = '';
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl];
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : '<span class="nopic">❔</span>'; };
@@ -575,7 +594,7 @@ const Vida = (() => {
         ok.forEach(sl => btns.push(`<button data-a="card" data-v="${sl}">🃏 Encaixar em ${it(P.equip[sl]).name}</button>`));
         if (!ok.length) extra = `<br><small>Equipe ${I.cslot === 'arma' ? 'uma arma' : I.cslot === 'anel' ? 'um anel' : I.cslot === 'botas' ? 'botas' : I.cslot === 'luvas' ? 'luvas' : 'um ' + slotName(I.cslot).toLowerCase()} para encaixar esta carta.</small>`;
       }
-      const txt = I.kind === 'equip' ? `${RARITY[I.rar].n} · ${slotName(I.slot)}<p>${modTxt(I.mods)}${I.set ? `<br>🔗 ${SETS[I.set].name} (4 peças: ${modTxt(SETS[I.set].bonus)})` : ''}<br><small>Vende por ${I.sell} cr</small></p>`
+      const txt = I.kind === 'equip' ? `${RARITY[I.rar].n} · ${slotName(I.slot)}${I.set ? ` · 🔗 ${SETS[I.set].name}` : ''} · vende por ${I.sell} cr${compareHtml(sel)}`
         : I.kind === 'carta' ? `Carta de monstro · rara<p>${modTxt(I.mods)}<br>Encaixa em: <b>${slotName(I.cslot)}</b>${extra}<br><small>A carta vale enquanto houver uma peça no espaço.</small></p>`
         : I.heal ? `Comida<p>Cura ${Math.round(I.heal * 100)}% do HP</p>` : I.use ? `Poção<p>Recupera ${sel === 'blue' ? 'SP' : 'HP'}</p>` : `${I.kind === 'semente' ? 'Semente: plante no Sítio' : I.kind === 'colheita' ? 'Produção do Sítio' : 'Material de monstro: o Ferreiro Doran usa para forjar'}<p><small>Vende por ${I.sell} cr</small></p>`;
       view = `<div class="iview"><div class="iv-art">${bigArt(I, sel)}</div><div class="iv-txt"><b class="iv-n" style="color:${I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#f0e6d0'}">${I.name}</b> <small>×${P.inv[sel]}</small><small>${txt}</small>
