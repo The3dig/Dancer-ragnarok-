@@ -756,10 +756,36 @@ const Vida = (() => {
     g.shadowColor = 'rgba(0,0,0,.95)'; g.shadowBlur = 10; g.fillText(ic, 64, 70); g.shadowBlur = 3; g.fillText(ic, 64, 70);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return (iconTex[ic] = t);
   }
-  function dropMesh(id) {
+  // moedas e poções em 3D; o resto mostra o próprio item
+  const goldM = new THREE.MeshPhongMaterial({ color: 0xe8b828, emissive: 0x5a3800, specular: 0xfff0b0, shininess: 120 });
+  const coinG = new THREE.CylinderGeometry(0.17, 0.17, 0.045, 18);
+  const glintTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.15, 'rgba(255,240,180,.8)'); r.addColorStop(1, 'rgba(255,220,120,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); g.fillStyle = 'rgba(255,255,255,.9)'; g.fillRect(31, 4, 2, 56); g.fillRect(4, 31, 56, 2); return new THREE.CanvasTexture(c); })();
+  const glassG = new THREE.SphereGeometry(0.2, 16, 12), neckG = new THREE.CylinderGeometry(0.07, 0.09, 0.16, 12), corkG = new THREE.CylinderGeometry(0.075, 0.065, 0.08, 10), liqG = new THREE.SphereGeometry(0.17, 14, 10, 0, TAU, Math.PI * 0.35, Math.PI * 0.65);
+  const corkM = new THREE.MeshLambertMaterial({ color: 0x8a6238 });
+  function potion(col) {
+    const g = new THREE.Group();
+    const glass = new THREE.Mesh(glassG, new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.32, shininess: 140, specular: 0xffffff, depthWrite: false }));
+    const liq = new THREE.Mesh(liqG, new THREE.MeshPhongMaterial({ color: col, emissive: new THREE.Color(col).multiplyScalar(0.45), shininess: 60 }));
+    const neck = new THREE.Mesh(neckG, glass.material); neck.position.y = 0.24; const cork = new THREE.Mesh(corkG, corkM); cork.position.y = 0.35;
+    g.add(liq, glass, neck, cork); g.scale.setScalar(1.25); g.position.y = 0.05; return g;
+  }
+  function dropMesh(id, n = 1) {
     const I = id === 'zeny' ? { ic: '🪙' } : it(id), grp = new THREE.Group();
-    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
-    spr.scale.setScalar(id === 'zeny' ? 0.7 : 1.05); spr.position.y = 0.15; grp.add(spr);
+    if (id === 'zeny') {
+      const k = Math.min(9, 3 + Math.floor(Math.log2(Math.max(1, n))));
+      for (let i = 0; i < k; i++) {
+        const c = new THREE.Mesh(coinG, goldM), a = i * 2.4, r = i < 3 ? 0.06 : 0.18 + (i % 2) * 0.06;
+        c.position.set(Math.cos(a) * r, -0.3 + (i < 3 ? i * 0.05 : 0.02), Math.sin(a) * r); c.rotation.set(i < 3 ? 0 : rand(0.2, 0.7), 0, i < 3 ? 0 : rand(-0.5, 0.5)); c.castShadow = true; grp.add(c);
+      }
+      const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: glintTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); gl.scale.setScalar(0.5); gl.position.y = -0.1; grp.add(gl);
+      gl.onBeforeRender = () => { const k = Math.max(0, Math.sin(time * 2.5 + grp.id)); gl.material.opacity = k * k; gl.material.rotation = time; };
+      grp.userData.flat = true;
+    } else if (id === 'red' || id === 'blue') {
+      grp.add(potion(id === 'red' ? 0xe02a2a : 0x2a6ae8));
+    } else {
+      const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
+      spr.scale.setScalar(1.05); spr.position.y = 0.15; grp.add(spr);
+    }
     const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = -0.37; grp.add(sh);   // sombrinha no chão
     const rar = I.kind === 'equip' ? I.rar : I.kind === 'carta' ? 3 : -1;
     if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade

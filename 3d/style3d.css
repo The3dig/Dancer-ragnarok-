@@ -461,3 +461,5 @@ body.walking #quest .qi.focus::before { content: '🚶 '; }
 #bigmap canvas { display: block; border-radius: 6px; border: 1px solid rgba(255,255,255,.15); }
 #bigmap .bm-leg { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; font: 700 10px Nunito, sans-serif; color: #d8cfb8; }
 #bigmap .bm-leg i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; vertical-align: middle; border: 1px solid #000; }
+
+#hurtfx { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity .25s ease-out; box-shadow: inset 0 0 120px 40px rgba(200,0,0,.75); }

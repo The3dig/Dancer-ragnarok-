@@ -184,7 +184,7 @@ const Quests = (() => {
   }
   // destino da seta: missão principal ativa (ou a primeira)
   function target() {
-    if (P.qGo) { if (Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < 4) { log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); P.qGo = null; } else return P.qGo; }
+    if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < 4) { log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); P.qGo = null; } else return P.qGo; }
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const q = byId[focusId()]; if (!q) return null;
     if (ready(q) || !q.steps.length) { if (q.board) return BOARDS[q.board]; const n = npcByName(q.to || q.giver); return n ? { x: n.x, z: n.z } : null; }

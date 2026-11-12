@@ -1242,7 +1242,7 @@ const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: n
 dropGeo.mat = new THREE.BoxGeometry(0.26, 0.26, 0.26);
 const dropMat = { mat: new THREE.MeshLambertMaterial({ color: 0xc8b070, emissive: 0x302810 }), zeny: new THREE.MeshLambertMaterial({ color: 0xf5c518, emissive: 0x604000 }), red: new THREE.MeshLambertMaterial({ color: 0xe8312f, emissive: 0x400000 }), blue: new THREE.MeshLambertMaterial({ color: 0x2f7ae8, emissive: 0x001840 }) };
 function makeDrop(id, n, x, z) {
-  const m = typeof Vida !== 'undefined' && Vida.dropMesh ? Vida.dropMesh(id) : new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
+  const m = typeof Vida !== 'undefined' && Vida.dropMesh ? Vida.dropMesh(id, n) : new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
   if (id === 'zeny' && m.isMesh) m.rotation.x = Math.PI / 2;
   m.position.set(x, groundY(x, z) + 0.4, z); scene.add(m);
   return { id, n, x, z, m, t: 0 };
@@ -1268,8 +1268,47 @@ function hurtPlayer(m, mult = 1) {
   if (Math.random() < stats.flee()) { floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
   const dmg = Math.max(1, Math.round(m.d.atk * mult * rand(0.85, 1.15) - stats.def()));
   P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
-  floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('hurt');
-  if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; log('💔 Você desmaiou... voltando para a cidade.', 'bad'); }
+  floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp());
+  if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; onDeath(); }
+}
+function hurtFlash(k) {
+  let el = $('hurtfx'); if (!el) { el = document.createElement('div'); el.id = 'hurtfx'; document.body.appendChild(el); }
+  el.style.opacity = Math.min(0.85, 0.35 + k * 3); clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = 0; }, 90);
+}
+// morrer: perde 5% da XP do nível e, com 10% de chance, deixa uma peça no túmulo (busque lá para recuperar)
+function onDeath() {
+  const lost = Math.min(P.xp, Math.floor(xpNeed(P.lv) * 0.05));
+  P.xp -= lost; P.deathXp = lost;
+  Audio8.sfx('die');
+  log(`💔 Você desmaiou e perdeu <b>${lost} XP</b>... voltando para a cidade.`, 'bad');
+  if (P.grave || Math.random() >= 0.10) return;
+  const eq = Object.entries(P.equip || {}).filter(([, id]) => id), bag = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && ['equip', 'mat', 'carta'].includes(ITEMS[id].kind));
+  let g = null;
+  if (eq.length && Math.random() < 0.5) { const [sl, id] = eq[Math.floor(Math.random() * eq.length)]; P.equip[sl] = null; g = { id, n: 1 }; }
+  else if (bag.length) { const id = bag[Math.floor(Math.random() * bag.length)], n = ITEMS[id].kind === 'equip' || ITEMS[id].kind === 'carta' ? 1 : Math.max(1, Math.ceil(P.inv[id] / 2)); P.inv[id] -= n; g = { id, n }; }
+  if (!g) return;
+  const at = inTower(P.z) ? { x: Tower.door.x + 3, z: Tower.door.z + 2 } : { x: P.x, z: P.z };
+  P.grave = { ...g, x: at.x, z: at.z }; buildGrave();
+  log(`⚰️ Você deixou <b>${g.n > 1 ? g.n + '× ' : ''}${ITEMS[g.id].ic} ${ITEMS[g.id].name}</b> no seu túmulo! A seta mostra onde: vá buscar.`, 'bad');
+}
+let graveObj = null;
+function buildGrave() {
+  if (graveObj) { scene.remove(graveObj); graveObj = null; }
+  const gv = P.grave; if (!gv) return;
+  const g = new THREE.Group(), stone = PM('pedra.jpg', [1, 1], new THREE.Color(1.2, 1.15, 1.25)); g.position.set(gv.x, groundY(gv.x, gv.z), gv.z);
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.22), stone); slab.position.y = 0.6; slab.castShadow = true; g.add(slab);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.22, 16, 1, false, 0, Math.PI), stone); top.rotation.set(Math.PI / 2, 0, Math.PI / 2); top.position.y = 1.2; g.add(top);
+  const mound = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 6, 0, TAU, 0, Math.PI / 2), PM('terra.jpg', [1, 1], new THREE.Color(1.4, 1.25, 1.1))); mound.scale.set(0.9, 0.35, 1.5); mound.position.z = 0.9; g.add(mound);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, 6, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xb070ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false })); beam.position.y = 3; g.add(beam);
+  beam.onBeforeRender = () => { beam.material.opacity = 0.35 + 0.2 * Math.sin(time * 3); };
+  scene.add(g); graveObj = g;
+  P.qGo = { x: gv.x, z: gv.z, name: 'seu túmulo', grave: true };
+}
+function checkGrave() {
+  const gv = P.grave; if (!gv || P.dead || Math.hypot(P.x - gv.x, P.z - gv.z) > 2.2) return;
+  P.inv[gv.id] = (P.inv[gv.id] || 0) + gv.n; P.grave = null; P.qGo = null; buildGrave();
+  Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xb070ff, 30, 4, 0.8);
+  log(`⚰️ Você recuperou <b>${gv.n > 1 ? gv.n + '× ' : ''}${ITEMS[gv.id].ic} ${ITEMS[gv.id].name}</b> do túmulo (está na mochila).`, 'gold');
 }
 function nearestMob(r, cone = true) {
   let best = null, bs = 1e9;
@@ -1533,7 +1572,7 @@ function update(dt) {
   for (const m of mobs) updateMob(m, dt);
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
-  for (const d of drops) { d.t += dt; d.m.rotation.y += dt * 3; d.m.position.y = groundY(d.x, d.z) + 0.4 + Math.sin(d.t * 4) * 0.1; }
+  for (const d of drops) { d.t += dt; d.m.rotation.y += dt * (d.m.userData.flat ? 0.6 : 3); d.m.position.y = groundY(d.x, d.z) + 0.4 + (d.m.userData.flat ? 0 : Math.sin(d.t * 4) * 0.1); }
   if (typeof Vida !== 'undefined') Vida.update(dt);
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
@@ -1584,7 +1623,6 @@ function updatePlayer(dt) {
     P.deadT -= dt;
     if (P.deadT <= 0) {
       P.dead = false; P.hp = Math.round(stats.maxHp() * 0.5); P.sp = Math.round(stats.maxSp() * 0.5);
-      P.xp = Math.max(0, P.xp - Math.floor(xpNeed(P.lv) * 0.03));
       const h = P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : { x: VIL.x, z: VIL.z + 10 };
       P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z);
     }
@@ -1649,6 +1687,7 @@ function updatePlayer(dt) {
     else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
   }
   drops = drops.filter(d => !d.taken);
+  checkGrave();
 
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
@@ -2257,7 +2296,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'qGo', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'qGo', 'grave', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2290,7 +2329,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (P.grave) buildGrave(); Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }

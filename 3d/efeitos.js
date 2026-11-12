@@ -311,5 +311,18 @@ const VFX = (() => {
   }
   // ataque básico à distância: flecha (arqueiros) ou orbe de magia com rastro
   function basic(c, from, tgt, onHit) { projectile(from, tgt, c.proj || 0xffffff, c.magic ? 'orbe' : 'flecha', onHit, c.magic ? 24 : 34); }
-  return { basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
+  // prepara todos os tipos de efeito uma vez (o iPhone engasga na 1ª vez que monta cada um)
+  function warm() {
+    const g = new THREE.Group(); g.position.set(P.x, P.y - 40, P.z);
+    const parts2 = [
+      new THREE.Sprite(smat(T.glow, 0xffffff)), new THREE.Sprite(smat(T.spark, 0xffffff)), new THREE.Sprite(smat(T.smoke, 0xffffff)), new THREE.Sprite(smat(T.plus, 0xffffff)), new THREE.Sprite(smat(T.note, 0xffffff)), new THREE.Sprite(smat(T.feather, 0xffffff)),
+      new THREE.Mesh(G.plane, mat(T.wave, 0xffffff)), new THREE.Mesh(G.plane, mat(T.rune, 0xffffff)), new THREE.Mesh(G.plane, mat(T.swirl, 0xffffff)), new THREE.Mesh(G.pillar, mat(T.beam, 0xffffff)), new THREE.Mesh(G.tornado, mat(T.beam, 0xffffff)),
+      new THREE.Mesh(ARC, mat(T.slash, 0xffffff)), new THREE.Mesh(G.seg, mat(null, 0xffffff)), new THREE.Mesh(G.cone, new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x333333, shininess: 80, transparent: true, opacity: 0.92 })),
+      new THREE.Mesh(G.rock, PM('rocha_clara.jpg', [1, 1], 0xffffff)), new THREE.Mesh(G.arrow, new THREE.MeshBasicMaterial({ color: 0xe8dcc0 })), new THREE.Mesh(G.shard, new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x333333, shininess: 100 })),
+    ];
+    parts2.forEach(o => g.add(o)); scene.add(g);
+    try { renderer.compile(scene, camera); } catch (e) { }
+    scene.remove(g);
+  }
+  return { warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
 })();
