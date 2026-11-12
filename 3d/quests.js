@@ -126,10 +126,12 @@ const Quests = (() => {
           if (P.zeny < 50) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
           P.zeny -= 50; const b = BOARDS[c]; P.x = b.x + 2.5; P.z = b.z + 2.5; P.y = groundY(P.x, P.z); P.vy = 0;
           Audio8.sfx('buff'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x80c0ff, 30, 4, 0.9); log(`🧭 Você viajou para <b>${CITY_N[c]}</b>.`, 'sys'); } }
-      : { label: `🔒 ${CITY_N[c]} — visite o Quadro de lá uma vez`, fn: () => { travel(from); return true; } });
-    opts.push({ label: '← Voltar', fn: () => { boardTalk(from); return true; } });
-    dialog('🧭 Viagem rápida', 'A guilda de caçadores leva você até outra cidade cujo Quadro você já conhece.', opts);
+      : { label: `🔒 ${CITY_N[c]} — fale com o Guia de lá uma vez`, fn: () => { travel(from); return true; } });
+    opts.push({ label: 'Fechar' });
+    dialog('🧭 Viagem rápida', 'Leva você até outra cidade que você já visitou. <small>(Cidade nova: fale com o Guia de Viagem de lá uma vez.)</small>', opts);
   }
+  // NPC de viagem em cada cidade (como a Kafra): registra a cidade e abre a viagem
+  function warp(city) { P.warps = P.warps || {}; P.warps[city] = 1; travel(city); }
   function mark(n) {
     const toHere = Object.keys(S().act).map(id => byId[id]).filter(q => q && (q.to || q.giver) === n.name);
     const r = toHere.find(ready); if (r) return '?:' + colorOf(r);
@@ -265,6 +267,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { readyCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { warp, readyCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();

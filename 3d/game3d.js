@@ -34,7 +34,8 @@ function measure() {
 measure();
 renderer.setSize(VW, VH, false);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = TOUCH ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+if (TOUCH) renderer.shadowMap.autoUpdate = false;               // no celular a sombra é refeita a cada 2 quadros
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -120,7 +121,8 @@ const POST = (() => {
   } };
 })();
 const QUAL = { level: TOUCH ? 1 : 2, acc: 0, frames: 0, slow: 0 };
-const draw = () => (POST && QUAL.level >= 1) ? POST.render() : renderer.render(scene, camera);
+let drawN = 0;
+const draw = () => { if (TOUCH && (drawN++ % 2 === 0)) renderer.shadowMap.needsUpdate = true; return (POST && QUAL.level >= 1) ? POST.render() : renderer.render(scene, camera); };
 function applyQuality() {
   const lv = QUAL.level;
   FOLIAGE.forEach(im => im.castShadow = lv >= 2);
@@ -530,7 +532,7 @@ trees.forEach(t => addOb(t.x, t.z, 0.7));
 for (let i = 0; i < 1500 && cacti.length < 70; i++) {
   const x = rr(56, WX - 5), z = rr(-WZ + 5, WZ - 5);
   if (x > 150 || Math.hypot(x - OAS.x, z - OAS.z) < 36 || Math.hypot(x - RUIN.x, z - RUIN.z) < 18 || !freeSpot(x, z)) continue;
-  cacti.push({ x, z, s: rr(0.8, 1.3), r: rr(0, TAU) }); addOb(x, z, 0.5);
+  cacti.push({ x, z, s: rr(0.8, 1.3), r: rr(0, TAU) });   // capim seco: dá para atravessar
 }
 for (let i = 0; i < 1500 && rocks.length < 90; i++) {
   const x = rr(-60, WX - 5), z = rr(-WZ + 5, WZ - 5);
@@ -982,9 +984,12 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
+  { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 6, z: VIL.z + 10, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
+  { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 15, z: OAS.z - 17, look: [0xb5651d, 0x1a1a1a, 'veil'] },
+  { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 7, z: CIT.z - 4, look: [0x3a3442, 0x1a1a1a, 'helm'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1306,7 +1311,8 @@ function railTick(dt) {
     r = document.createElement('div'); r.id = 'rail'; $('hud').appendChild(r);
     r.innerHTML = '<button data-p="quest" title="Missões">📜<b></b></button><button data-p="evo" title="Evolução de classe">⭐<b></b></button><button data-p="kvx" title="Kravenox">☠️<b></b></button>';
     r.addEventListener('pointerdown', e => { const b = e.target.closest('[data-p]'); if (!b) return; e.preventDefault(); e.stopPropagation(); Audio8.sfx('click');
-      const k = b.dataset.p; const was = P.ui[k]; P.ui.kvx = P.ui.evo = false; if (k !== 'quest') P.ui[k] = !was; else P.ui.quest = !P.ui.quest;
+      const k = b.dataset.p; if (k === 'quest') { if (typeof Quests !== 'undefined') Quests.journal(); return; }
+      const was = P.ui[k]; P.ui.kvx = P.ui.evo = false; P.ui[k] = !was;
       if (k === 'evo' && P.ui.evo && typeof Evo !== 'undefined') { const c = Evo.card(); if (c) P.evoMini = c.k; }
       $('quest').dataset.h = ''; evoT = 0; railT = 0; });
   }
@@ -1314,7 +1320,7 @@ function railTick(dt) {
   r.style.top = (st.bottom + 6) + 'px'; r.style.left = st.left + 'px';
   const set = (k, txt) => { const b = r.querySelector(`[data-p="${k}"]`); b.classList.toggle('on', !!P.ui[k]); const d = b.querySelector('b'); d.textContent = txt || ''; d.style.display = txt ? '' : 'none'; };
   const ready = typeof Quests !== 'undefined' && Quests.readyCount ? Quests.readyCount() : 0;
-  set('quest', ready ? String(ready) : '');
+  set('quest', ready ? String(ready) : ''); r.querySelector('[data-p="quest"]').classList.remove('on');
   const c = typeof Evo !== 'undefined' && Evo.card ? Evo.card() : null;
   r.querySelector('[data-p="evo"]').style.display = c ? '' : 'none';
   set('evo', c && c.k !== 'hunt' ? '!' : '');
@@ -1809,7 +1815,7 @@ function updateMob(m, dt) {
     }
   }
   const g = m.model.g;
-  const far = Math.hypot(m.x - P.x, m.z - P.z) > (m.d.boss ? 140 : 70);
+  const far = Math.hypot(m.x - P.x, m.z - P.z) > (m.d.boss ? (TOUCH ? 90 : 140) : (TOUCH ? 48 : 70));
   g.visible = !far;
   if (far) return;
   g.position.set(m.x, groundY(m.x, m.z), m.z);
@@ -1976,7 +1982,7 @@ function updateHUD() {
   const ui = P.ui || {};
   const qh2 = (ui.quest && typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html(!ui.quest) : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
   if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
-  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('click', e => { if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
+  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo
@@ -2311,6 +2317,7 @@ function talkBase(n) {
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
     case 'smith': Vida.smith(eu); break;
+    case 'warp': if (typeof Quests !== 'undefined') Quests.warp(n.city); break;
     default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
     case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;

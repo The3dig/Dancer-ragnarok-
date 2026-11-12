@@ -79,24 +79,43 @@ const Casa = (() => {
   const sole = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffd890, transparent: true, opacity: 0.5, toneMapped: false })); sole.position.set(OUT_DOOR.x + 0.5, groundY(OUT_DOOR.x, OUT_DOOR.z) + 0.05, OUT_DOOR.z); scene.add(sole);
 
   // ---------------- baú
-  function bauMenu(page = 0) {
-    const b = S().bau, ids = Object.keys(b).filter(id => b[id] > 0);
-    const n = ids.reduce((a, id) => a + b[id], 0);
-    const loot = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && LOOT_KINDS.includes(ITEMS[id].kind));
-    dialog('📦 Seu Baú', `O que está no baú <b>não cai</b> quando você morre.<br><small>No baú: ${ids.length} tipos · ${n} itens · na mochila para guardar: ${loot.length} tipos</small>`, [
-      { label: `⬇️ Guardar toda a pilhagem (${loot.length})`, fn: () => { for (const id of loot) { b[id] = (b[id] || 0) + P.inv[id]; P.inv[id] = 0; } Audio8.sfx('coin'); log(`📦 Guardou ${loot.length} tipos de item no baú.`, 'item'); save(); bauMenu(); return true; } },
-      { label: '⬇️ Guardar um item…', fn: () => { guardar(); return true; } },
-      { label: `⬆️ Retirar (${ids.length})`, fn: () => { retirar(); return true; } },
-      { label: 'Fechar' }]);
+  // janela do baú: o que está guardado (esquerda) e a sua mochila (direita); toque num item para escolher quanto mover
+  let bsel = null;
+  function bauWin() {
+    let w = $('bauwin');
+    if (!w) {
+      w = document.createElement('div'); w.id = 'bauwin'; w.className = 'win hidden'; $('hud').appendChild(w);
+      w.addEventListener('click', e => {
+        const t = e.target.closest('[data-a]'); if (!t) return; Audio8.sfx('click');
+        const a = t.dataset.a, v = t.dataset.v, b = S().bau;
+        if (a === 'x') { w.classList.add('hidden'); tampa.rotation.x = 0; tampa.position.set(0, 0.95, 0); return; }
+        if (a === 'sel') bsel = bsel === v ? null : v;
+        const mv = (from, to, id, n) => { n = Math.min(n, from[id] || 0); if (n <= 0) return; from[id] -= n; to[id] = (to[id] || 0) + n; Audio8.sfx('pick'); };
+        if (bsel) { const [side, id] = bsel.split(':');
+          if (a === 'one') side === 'b' ? mv(b, P.inv, id, 1) : mv(P.inv, b, id, 1);
+          if (a === 'ten') side === 'b' ? mv(b, P.inv, id, 10) : mv(P.inv, b, id, 10);
+          if (a === 'all') side === 'b' ? mv(b, P.inv, id, b[id]) : mv(P.inv, b, id, P.inv[id]);
+          if ((side === 'b' ? b[id] : P.inv[id]) <= 0) bsel = null; }
+        if (a === 'loot') { for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id] && LOOT_KINDS.includes(ITEMS[id].kind)) mv(P.inv, b, id, P.inv[id]); bsel = null; }
+        buildHotbar(); save(); renderBau();
+      });
+    }
+    return w;
   }
-  function guardar() {
-    const ids = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
-    dialog('⬇️ Guardar no baú', 'Toque num item para guardar a pilha inteira.', [...ids.slice(0, 30).map(id => ({ label: `${it(id).ic} ${it(id).name} ×${P.inv[id]}`, fn: () => { S().bau[id] = (S().bau[id] || 0) + P.inv[id]; P.inv[id] = 0; Audio8.sfx('pick'); buildHotbar(); save(); guardar(); return true; } })), { label: '← Voltar', fn: () => { bauMenu(); return true; } }]);
+  function renderBau() {
+    const b = S().bau;
+    const cell = (side, id, n) => `<div class="icell${bsel === side + ':' + id ? ' sel' : ''}${ITEMS[id] && ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${side}:${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${n}</b></div>`;
+    const bi = Object.keys(b).filter(id => b[id] > 0 && ITEMS[id]), mi = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
+    let det = '<small>Toque num item para escolher quanto mover.</small>';
+    if (bsel) { const [side, id] = bsel.split(':'), n = side === 'b' ? b[id] : P.inv[id], verb = side === 'b' ? 'Pegar' : 'Guardar';
+      det = `<b>${it(id).ic} ${it(id).name}</b> ×${n}<div class="ibtn"><button data-a="one">${verb} 1</button>${n > 10 ? `<button data-a="ten">${verb} 10</button>` : ''}<button data-a="all">${verb} tudo</button></div>`; }
+    bauWin().innerHTML = `<div class="wt">📦 Baú da Casa<span class="x" data-a="x">×</span></div>
+      <div class="bau-b"><div class="bau-c"><h4>📦 No baú (${bi.length})</h4><div class="igrid">${bi.map(id => cell('b', id, b[id])).join('') || '<i class="empty">Vazio.</i>'}</div></div>
+      <div class="bau-c"><h4>🎒 Na mochila (${mi.length})</h4><div class="igrid">${mi.map(id => cell('m', id, P.inv[id])).join('') || '<i class="empty">Vazia.</i>'}</div></div></div>
+      <div class="idet">${det}</div><div class="ibtn foot"><button data-a="loot">⬇️ Guardar toda a pilhagem</button></div>
+      <div class="bau-n">O que está no baú não cai quando você morre.</div>`;
   }
-  function retirar() {
-    const b = S().bau, ids = Object.keys(b).filter(id => b[id] > 0);
-    dialog('⬆️ Retirar do baú', 'Toque num item para levar a pilha para a mochila.', [...ids.slice(0, 30).map(id => ({ label: `${it(id).ic} ${it(id).name} ×${b[id]}`, fn: () => { P.inv[id] = (P.inv[id] || 0) + b[id]; b[id] = 0; Audio8.sfx('pick'); buildHotbar(); save(); retirar(); return true; } })), { label: '← Voltar', fn: () => { bauMenu(); return true; } }]);
-  }
+  function bauMenu() { bsel = null; renderBau(); bauWin().classList.remove('hidden'); tampa.rotation.x = -1.1; tampa.position.set(0, 1.25, -0.35); Audio8.sfx('pick'); }
   // ---------------- reformas
   function reformas() {
     const opts = Object.entries(MOVEIS).map(([k, [nome, ic, preco, need]]) => {

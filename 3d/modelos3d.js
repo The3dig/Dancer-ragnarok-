@@ -109,6 +109,12 @@ const Modelos3D = (() => {
     }
     LIT.set(key, out); return out;
   }
+  const LITM = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  LITM.onBeforeCompile = sh => {
+    sh.vertexShader = 'attribute vec3 aEm; varying vec3 vEm;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vEm = aEm;');
+    sh.fragmentShader = 'varying vec3 vEm;\n' + sh.fragmentShader.replace('vec3 totalEmissiveRadiance = emissive;', 'vec3 totalEmissiveRadiance = emissive + vEm;');
+  };
+  const GLOWM = new THREE.MeshBasicMaterial({ vertexColors: true });
   // ---------------- achatar: junta as peças por material (posição + normal)
   const cache = {};
   function bake(t) {
@@ -125,14 +131,26 @@ const Modelos3D = (() => {
       if (!groups.has(mt)) groups.set(mt, []);
       groups.get(mt).push(g);
     });
+    // tudo vira no máximo 2 malhas por monstro (cor por vértice): iluminada e brilhante → poucos desenhos por quadro
+    const buckets = { lit: [], glow: [] };
+    for (const [mat, list] of groups) for (const g of list) (mat.isMeshBasicMaterial ? buckets.glow : buckets.lit).push({ g, mat });
     const parts = []; const box = new THREE.Box3();
-    for (const [mat, list] of groups) {
-      let len = 0; for (const g of list) len += g.attributes.position.count * 3;
-      const pos = new Float32Array(len), nor = new Float32Array(len); let off = 0;
-      for (const g of list) { pos.set(g.attributes.position.array, off); nor.set(g.attributes.normal.array, off); off += g.attributes.position.count * 3; g.dispose(); }
-      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    for (const kind of ['lit', 'glow']) {
+      const list = buckets[kind]; if (!list.length) continue;
+      let n = 0; for (const { g } of list) n += g.attributes.position.count;
+      const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), em = new Float32Array(n * 3); let off = 0;
+      for (const { g, mat } of list) {
+        const c = g.attributes.position.count;
+        pos.set(g.attributes.position.array, off * 3); nor.set(g.attributes.normal.array, off * 3);
+        const e = mat.emissive || new THREE.Color(0);
+        for (let i = 0; i < c; i++) { col.set([mat.color.r, mat.color.g, mat.color.b], (off + i) * 3); em.set([e.r, e.g, e.b], (off + i) * 3); }
+        off += c; g.dispose();
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      if (kind === 'lit') geo.setAttribute('aEm', new THREE.BufferAttribute(em, 3));
       geo.computeBoundingBox(); geo.computeBoundingSphere(); box.union(geo.boundingBox);
-      parts.push({ geo, mat });
+      parts.push({ geo, mat: kind === 'lit' ? LITM : GLOWM });
     }
     return (cache[t] = { parts, h: box.max.y - Math.min(0, box.min.y), minY: box.min.y, len: box.max.z - box.min.z });
   }
