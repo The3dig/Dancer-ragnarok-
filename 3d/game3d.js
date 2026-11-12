@@ -1200,6 +1200,7 @@ function dmgMob(m, base, crit, magic, color) {
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
   if (m.type === 'kravenox') Kvx.addDmg(dmg);
+  if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
   Audio8.sfx(crit ? 'crit' : 'hit');
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
@@ -2175,7 +2176,7 @@ function showHelp() {
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
   ⚒️ <b>Ferreiro Doran</b> (praça de Solmira): refino +1 a +7 (nunca quebra) e forja com materiais.<br>
-  👹 <b>Chefes de campo:</b> a cada ~12 min um chefe forte aparece no mapa (ponto vermelho grande). Agora: ${typeof Chefes !== 'undefined' ? Chefes.status() : '—'}.<br>
+  👹 <b>Chefes de campo:</b> a cada 20 min um chefe aparece para todos os jogadores (ponto vermelho grande). Sozinho não dá: chame um grupo. Agora: ${typeof Chefes !== 'undefined' ? Chefes.status() : '—'}.<br>
   🧭 <b>Viagem rápida:</b> nos Quadros de Caça, para cidades já visitadas (50 cr).<br>
   🌾 <b>Sítio:</b> a oeste da vila: plante, regue, crie animais e faça a encomenda do dia da Fazendeira.`;
   if (TOUCH) return dialog('📜 Como jogar', `
@@ -2202,7 +2203,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

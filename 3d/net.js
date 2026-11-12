@@ -74,7 +74,7 @@ const Net = (() => {
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
-        kd: P.kvxDmg || null, title: P.title || null, say: P.say || null,
+        kd: P.kvxDmg || null, fb: P.fb || null, title: P.title || null, say: P.say || null,
         ...(typeof Vida !== 'undefined' ? Vida.pres() : {}),
       };
       const j = JSON.stringify(pres);
@@ -123,6 +123,12 @@ const Net = (() => {
     for (const r of remotes.values()) { const kd = r.s && r.s.kd; if (kd && kd.w === week && typeof kd.d === 'number') t += Math.max(0, Math.min(1e6, kd.d)); }
     return t;
   }
+  // dano que os outros jogadores já causaram no chefe de campo desta janela
+  function fbOthers(slot) {
+    let t = 0;
+    for (const r of remotes.values()) { const fb = r.s && r.s.fb; if (fb && fb.s === slot && typeof fb.d === 'number') t += Math.max(0, Math.min(1e7, fb.d)); }
+    return t;
+  }
   function say(text) {
     text = String(text || '').trim().slice(0, 80); if (!text) return;
     P.say = { t: text, at: Date.now() };
@@ -139,5 +145,5 @@ const Net = (() => {
   // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
   function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
   return { peers, get me() { return myPeer; },
-    init, update, kvxOthers, say, tickMyBubble, get connected() { return !!room; }, get count() { return remotes.size + 1; } };
+    init, update, kvxOthers, fbOthers, say, tickMyBubble, get connected() { return !!room; }, get count() { return remotes.size + 1; } };
 })();
