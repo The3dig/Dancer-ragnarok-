@@ -309,5 +309,7 @@ const VFX = (() => {
       if (over) { scene.remove(f.obj); if (f.obj.material && f.obj.material.dispose && !f.keepMat) f.obj.material.dispose(); f.done && f.done(); live.splice(i, 1); }
     }
   }
-  return { strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
+  // ataque básico à distância: flecha (arqueiros) ou orbe de magia com rastro
+  function basic(c, from, tgt, onHit) { projectile(from, tgt, c.proj || 0xffffff, c.magic ? 'orbe' : 'flecha', onHit, c.magic ? 24 : 34); }
+  return { basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
 })();

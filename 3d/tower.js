@@ -140,25 +140,31 @@ const Tower = (() => {
 
   // ---------------- monstros dos andares
   const WAVES = [
-    [['larva', 4]],
-    [['larva', 3], ['verme', 2]],
-    [['sentinela', 2], ['esfera', 2]],
-    [['sentinela', 2], ['verme', 2], ['larva', 2]],
-    [['sentinela', 4], ['esfera', 1]],
+    [['larva', 5]],
+    [['larva', 3], ['verme', 3]],
+    [['sentinela', 3], ['esfera', 3]],
+    [['sentinela', 3], ['verme', 2], ['larva', 3]],
+    [['sentinela', 5], ['esfera', 2]],
   ];
+  const FLOOR_LV = [18, 21, 24, 27, 30];      // nível dos monstros em cada andar (a Torre é o fim do jogo)
+  const RESPAWN = 60;                          // segundos até o andar se encher de novo
   let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1;
   function clearFloorMobs() {
     for (const m of mobs.filter(m => m.towerFloor !== undefined)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
     mobs = mobs.filter(m => m.towerFloor === undefined);
   }
   function spawnFloor(i) {
-    if (i >= 5 || (clearedAt[i] && time - clearedAt[i] < 300)) return;
+    if (i >= 5 || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
     const f = FLOORS[i]; let k = 0;
     for (const [type, n] of WAVES[i]) for (let j = 0; j < n; j++) {
       const a = (k++ / 6) * TAU + i, r = f.r * (0.25 + (k % 2) * 0.2);
       const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r - 2 });
       m.towerFloor = i; m.noRespawn = true;
+      const d0 = m.d, L = FLOOR_LV[i], kf = L / d0.lv;           // fica mais forte conforme o andar
+      m.d = { ...d0, lv: L, hp: Math.round(d0.hp * kf * kf * 1.4), atk: Math.round(d0.atk * kf * 1.3), def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * 1.8), zeny: [Math.round(d0.zeny[0] * kf), Math.round(d0.zeny[1] * kf * 1.3)], aggro: Math.max(d0.aggro, 18) };
+      m.hp = m.maxHp = m.d.hp; const sm = m.lab.querySelector('small'); if (sm) sm.textContent = 'Nv ' + L;
     }
+    clearedAt[i] = 0;
   }
   function enter(i, fromAbove) {
     clearFloorMobs();
@@ -166,7 +172,7 @@ const Tower = (() => {
       cur = -1; P.x = DOOR.x; P.z = DOOR.z + 1.5; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI;
       Audio8.sfx('warp'); log('Você saiu da Torre do Cisma.', 'sys'); return;
     }
-    cur = i; const f = FLOORS[i];
+    cur = i; const f = FLOORS[i]; if (stairs[i]) stairs[i].cleared = false;
     if (fromAbove && stairs[i]) { P.x = stairs[i].x; P.z = stairs[i].z + 3; P.face = 0; }
     else { P.x = f.x; P.z = f.z + f.r - 4; P.face = Math.PI; }
     P.y = f.y; camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y;
@@ -198,8 +204,11 @@ const Tower = (() => {
     const left = mobs.filter(m => m.towerFloor === cur).length;
     const st = stairs[cur];
     if (st) {
-      const open = left === 0;
-      if (open && !st.open) { st.open = true; clearedAt[cur] = time; Audio8.sfx('level'); log(`✨ Andar limpo! A escada para o <b>${cur + 2 === 6 ? 'topo' : (cur + 2) + 'º andar'}</b> foi liberada.`, 'gold'); }
+      if (left === 0 && !st.cleared) st.cleared = true;
+      const open = left === 0 || st.cleared;                       // depois de limpo, a escada fica aberta
+      if (left === 0 && !clearedAt[cur]) clearedAt[cur] = time;
+      if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN) { spawnFloor(cur); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
+      if (open && !st.open) { st.open = true; Audio8.sfx('level'); log(`✨ Andar limpo! A escada para o <b>${cur + 2 === 6 ? 'topo' : (cur + 2) + 'º andar'}</b> foi liberada.`, 'gold'); }
       if (!open) st.open = false;
       st.mat.color.set(open ? 0xff3a3a : 0x555060); st.mat.opacity = open ? 0.6 + Math.sin(time * 4) * 0.2 : 0.4;
       if (Math.hypot(P.x - st.x, P.z - st.z) < 2.4) {

@@ -70,6 +70,7 @@ const Quests = (() => {
   const npcByName = n => NPCS.find(o => o.name === n);
 
   function accept(q) {
+    P.qGo = null;
     S().act[q.id] = { k: {} }; Audio8.sfx('buff');
     log(`${TYPE[q.type].dot} Missão aceita: <b style="color:${colorOf(q)}">${q.title}</b>`, 'gold'); save();
   }
@@ -157,22 +158,45 @@ const Quests = (() => {
     const m = act.map(id => byId[id]).filter(Boolean); const q = m.find(q => q.type === 'principal') || m[0];
     return q ? q.id : null;
   }
+  // diário: ativas (seguir), disponíveis (a seta leva até quem dá a missão) e quantas já concluiu
+  const placeOf = (x, z) => { try { return ZONES[zoneOf(x, z)].name; } catch (e) { return ''; } };
+  function giverPos(q) {
+    if (q.board) { const b = BOARDS[q.board]; return { x: b.x, z: b.z, name: 'Quadro de Caça · ' + placeOf(b.x, b.z) }; }
+    const n = npcByName(q.giver); return n ? { x: n.x, z: n.z, name: n.name + ' · ' + placeOf(n.x, n.z) } : null;
+  }
+  function journal() {
+    const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
+    const avail = Q.filter(q => q.type !== 'oculta' && available(q));
+    const done = Object.keys(S().done).length;
+    const opts = [];
+    for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; } });
+    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = g; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; } }); }
+    opts.push({ label: 'Fechar' });
+    dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
+  }
   function follow(id) { if (!byId[id]) return; P.qFocus = id; Audio8.sfx('click'); log(`🧭 Seguindo <b style="color:${colorOf(byId[id])}">${byId[id].title}</b>.`, 'sys'); }
   function html() {
     // principal primeiro, depois as mais novas (a última aceita aparece sempre); o resto vira "+N"
     const all = Object.keys(S().act).map(id => byId[id]).filter(Boolean), main = all.filter(q => q.type === 'principal'), rest = all.filter(q => q.type !== 'principal').reverse();
     const ord = main.concat(rest), fq = ord.find(q => q.id === focusId()), act = (fq ? [fq, ...ord.filter(q => q !== fq)] : ord).slice(0, 4), more = all.length - act.length;
-    if (!act.length) return '';
-    return `<div class="wt">📜 Missões${typeof AUTO !== 'undefined' && AUTO.on ? ' <small>🚶 andando</small>' : ' <small>toque p/ ir</small>'}</div><div class="wb">` + act.map(q => q !== fq && act.length > 2 ? compact(q) : `<div class="qi${q.id === focusId() ? ' focus' : ''}" data-q="${q.id}"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + (more > 0 ? `<div class="qi qmore">+${more} ${more > 1 ? 'missões' : 'missão'} </div>` : '') + `</div>`;
+    if (!act.length) return `<div class="wt">📜 Missões</div><div class="wb"><div class="qi qmore">Nenhuma ativa · toque para ver as disponíveis</div></div>`;
+    return `<div class="wt">📜 Missões${typeof AUTO !== 'undefined' && AUTO.on ? ' <small>🚶 andando</small>' : ' <small>📖 diário</small>'}</div><div class="wb">` + act.map(q => q !== fq && act.length > 2 ? compact(q) : `<div class="qi${q.id === focusId() ? ' focus' : ''}" data-q="${q.id}"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + (more > 0 ? `<div class="qi qmore">+${more} ${more > 1 ? 'missões' : 'missão'} </div>` : '') + `</div>`;
   }
   // destino da seta: missão principal ativa (ou a primeira)
   function target() {
+    if (P.qGo) { if (Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < 4) { log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); P.qGo = null; } else return P.qGo; }
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const q = byId[focusId()]; if (!q) return null;
     if (ready(q) || !q.steps.length) { if (q.board) return BOARDS[q.board]; const n = npcByName(q.to || q.giver); return n ? { x: n.x, z: n.z } : null; }
     const st = q.steps.find((s, i) => prog(q, i) < need(s));
     if (st && st.kill) { let best = null, bd = 1e9; for (const m of mobs) if (m.type === st.kill) { const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < bd) { bd = d; best = m; } } if (best) return { x: best.x, z: best.z }; const sp = SPAWNS.find(s => s.type === st.kill); if (sp) return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; if (['larva', 'verme', 'esfera', 'sentinela'].includes(st.kill)) return { x: Tower.door.x, z: Tower.door.z }; }
-    if (st && st.item) { const src = Object.keys(MOBDEF).find(t => MOBDEF[t].drops.some(([id]) => id === st.item)); const m = src && mobs.find(o => o.type === src); if (m) return { x: m.x, z: m.z }; }
+    if (st && st.item) {                                   // quem solta o item: monstro vivo perto, senão onde ele nasce
+      const srcs = Object.keys(MOBDEF).filter(t => !MOBDEF[t].alfa && !MOBDEF[t].field && MOBDEF[t].drops.some(([id]) => id === st.item));
+      let best = null, bd = 1e9; for (const m of mobs) if (srcs.includes(m.type)) { const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < bd) { bd = d; best = m; } }
+      if (best) return { x: best.x, z: best.z };
+      for (const t of srcs) { const sp = SPAWNS.find(s => s.type === t); if (sp) return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; }
+      if (srcs.some(t => ['larva', 'verme', 'esfera', 'sentinela'].includes(t))) return { x: Tower.door.x, z: Tower.door.z };
+    }
     if (st && st.reach === 'topo') return { x: Tower.door.x, z: Tower.door.z };
     return null;
   }
@@ -240,6 +264,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();
