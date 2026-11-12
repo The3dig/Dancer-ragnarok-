@@ -278,7 +278,8 @@ const CIT = { x: 188, z: 4 }, TOWER = { x: 196, z: -30 };
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
 const FLOORS = [0, 1, 2, 3, 4, 5].map(i => ({ i, x: -250 + i * 100, z: TZ, y: 40 + i * 14, r: i === 5 ? 34 : 17 }));
 const inTower = z => z > 300;
-const floorAt = (x, z) => { for (const f of FLOORS) if (Math.hypot(x - f.x, z - f.z) < f.r + 6) return f; return null; };
+const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
+const floorAt = (x, z) => { for (const f of FLOORS) if (Math.hypot(x - f.x, z - f.z) < f.r + 6) return f; if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null; };
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
 const FARM = { x: -176, z: 0 };   // Sítio de Solmira (vida.js)
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
@@ -289,7 +290,7 @@ function dRoad(x, z) {
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
-  if (inTower(z)) { const f = floorAt(x, z); return f && f.i === 5 ? 'topo' : 'torre'; }
+  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === 5 ? 'topo' : 'torre'; }
   if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
   if (Math.hypot(x - FARM.x, z - FARM.z) < 22) return 'sitio';
@@ -1275,40 +1276,57 @@ function hurtFlash(k) {
   let el = $('hurtfx'); if (!el) { el = document.createElement('div'); el.id = 'hurtfx'; document.body.appendChild(el); }
   el.style.opacity = Math.min(0.85, 0.35 + k * 3); clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = 0; }, 90);
 }
-// morrer: perde 5% da XP do nível e, com 10% de chance, deixa uma peça no túmulo (busque lá para recuperar)
+// morrer: perde 5% da XP do nível e a SACOLA cai no chão com toda a pilhagem (materiais, cartas,
+// colheita e equipamentos que não estavam no corpo); 10% de chance de uma peça equipada ir junto.
+// Guarde as coisas no baú da sua casa para não perder. Até 3 sacolas; a mais velha some.
+const LOOT_KINDS = ['mat', 'carta', 'colheita', 'equip'];
 function onDeath() {
   const lost = Math.min(P.xp, Math.floor(xpNeed(P.lv) * 0.05));
   P.xp -= lost; P.deathXp = lost;
   Audio8.sfx('die');
   log(`💔 Você desmaiou e perdeu <b>${lost} XP</b>... voltando para a cidade.`, 'bad');
-  if (P.grave || Math.random() >= 0.10) return;
-  const eq = Object.entries(P.equip || {}).filter(([, id]) => id), bag = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && ['equip', 'mat', 'carta'].includes(ITEMS[id].kind));
-  let g = null;
-  if (eq.length && Math.random() < 0.5) { const [sl, id] = eq[Math.floor(Math.random() * eq.length)]; P.equip[sl] = null; g = { id, n: 1 }; }
-  else if (bag.length) { const id = bag[Math.floor(Math.random() * bag.length)], n = ITEMS[id].kind === 'equip' || ITEMS[id].kind === 'carta' ? 1 : Math.max(1, Math.ceil(P.inv[id] / 2)); P.inv[id] -= n; g = { id, n }; }
-  if (!g) return;
-  const at = inTower(P.z) ? { x: Tower.door.x + 3, z: Tower.door.z + 2 } : { x: P.x, z: P.z };
-  P.grave = { ...g, x: at.x, z: at.z }; buildGrave();
-  log(`⚰️ Você deixou <b>${g.n > 1 ? g.n + '× ' : ''}${ITEMS[g.id].ic} ${ITEMS[g.id].name}</b> no seu túmulo! A seta mostra onde: vá buscar.`, 'bad');
+  const items = {};
+  for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id] && LOOT_KINDS.includes(ITEMS[id].kind)) { items[id] = P.inv[id]; P.inv[id] = 0; }
+  const eq = Object.entries(P.equip || {}).filter(([, id]) => id);
+  let eqLost = null;
+  if (eq.length && Math.random() < 0.10) { const [sl, id] = eq[Math.floor(Math.random() * eq.length)]; P.equip[sl] = null; items[id] = (items[id] || 0) + 1; eqLost = id; }
+  if (!Object.keys(items).length) return;
+  const zn = zoneOf(P.x, P.z), at = zn === 'casa' ? { x: FARM.x - 11, z: FARM.z + 1 } : inTower(P.z) ? { x: Tower.door.x + rand(-3, 3), z: Tower.door.z + 2 } : { x: P.x, z: P.z };
+  P.graves = P.graves || []; if (P.grave) { P.graves.push({ x: P.grave.x, z: P.grave.z, items: { [P.grave.id]: P.grave.n } }); P.grave = null; }
+  P.graves.push({ x: at.x, z: at.z, items, t: Date.now() });
+  while (P.graves.length > 3) { P.graves.shift(); log('💨 Sua sacola mais antiga foi saqueada e sumiu.', 'bad'); }
+  buildGraves(); buildHotbar();
+  const n = Object.values(items).reduce((a, b) => a + b, 0);
+  log(`🎒 Sua <b>sacola</b> caiu com <b>${n} itens</b> da pilhagem!${eqLost ? ` Junto foi <b>${ITEMS[eqLost].ic} ${ITEMS[eqLost].name}</b> que estava equipado.` : ''} A seta mostra onde: volte para buscar. <small>Dica: guarde no baú da sua casa no Sítio.</small>`, 'bad');
 }
-let graveObj = null;
-function buildGrave() {
-  if (graveObj) { scene.remove(graveObj); graveObj = null; }
-  const gv = P.grave; if (!gv) return;
-  const g = new THREE.Group(), stone = PM('pedra.jpg', [1, 1], new THREE.Color(1.2, 1.15, 1.25)); g.position.set(gv.x, groundY(gv.x, gv.z), gv.z);
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.22), stone); slab.position.y = 0.6; slab.castShadow = true; g.add(slab);
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.22, 16, 1, false, 0, Math.PI), stone); top.rotation.set(Math.PI / 2, 0, Math.PI / 2); top.position.y = 1.2; g.add(top);
-  const mound = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 6, 0, TAU, 0, Math.PI / 2), PM('terra.jpg', [1, 1], new THREE.Color(1.4, 1.25, 1.1))); mound.scale.set(0.9, 0.35, 1.5); mound.position.z = 0.9; g.add(mound);
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, 6, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xb070ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false })); beam.position.y = 3; g.add(beam);
-  beam.onBeforeRender = () => { beam.material.opacity = 0.35 + 0.2 * Math.sin(time * 3); };
-  scene.add(g); graveObj = g;
-  P.qGo = { x: gv.x, z: gv.z, name: 'seu túmulo', grave: true };
+let graveObjs = [];
+const sackGeo = new THREE.SphereGeometry(0.55, 14, 10), knotGeo = new THREE.ConeGeometry(0.22, 0.4, 10);
+function buildGraves() {
+  graveObjs.forEach(o => scene.remove(o)); graveObjs = [];
+  if (P.grave) { P.graves = P.graves || []; P.graves.push({ x: P.grave.x, z: P.grave.z, items: { [P.grave.id]: P.grave.n } }); P.grave = null; }
+  for (const gv of (P.graves || [])) {
+    const g = new THREE.Group(); g.position.set(gv.x, groundY(gv.x, gv.z), gv.z);
+    const cloth = PM('palha.jpg', [2, 2], new THREE.Color(1.15, 0.85, 0.55));
+    const sack = new THREE.Mesh(sackGeo, cloth); sack.scale.set(1, 0.85, 1); sack.position.y = 0.45; sack.castShadow = true; g.add(sack);
+    const knot = new THREE.Mesh(knotGeo, cloth); knot.position.y = 1.05; knot.rotation.x = Math.PI; g.add(knot);
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.04, 6, 14), new THREE.MeshLambertMaterial({ color: 0x6a4a2a })); rope.rotation.x = Math.PI / 2; rope.position.y = 0.88; g.add(rope);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, 6, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb040, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false })); beam.position.y = 3; g.add(beam);
+    beam.onBeforeRender = () => { beam.material.opacity = 0.35 + 0.2 * Math.sin(time * 3); };
+    scene.add(g); graveObjs.push(g);
+  }
+  const last = (P.graves || [])[P.graves ? P.graves.length - 1 : 0];
+  if (last) P.qGo = { x: last.x, z: last.z, name: 'sua sacola', grave: true };
+  else if (P.qGo && P.qGo.grave) P.qGo = null;
 }
+const buildGrave = buildGraves;
 function checkGrave() {
-  const gv = P.grave; if (!gv || P.dead || Math.hypot(P.x - gv.x, P.z - gv.z) > 2.2) return;
-  P.inv[gv.id] = (P.inv[gv.id] || 0) + gv.n; P.grave = null; P.qGo = null; buildGrave();
-  Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xb070ff, 30, 4, 0.8);
-  log(`⚰️ Você recuperou <b>${gv.n > 1 ? gv.n + '× ' : ''}${ITEMS[gv.id].ic} ${ITEMS[gv.id].name}</b> do túmulo (está na mochila).`, 'gold');
+  if (P.dead || !P.graves || !P.graves.length) return;
+  const i = P.graves.findIndex(gv => Math.hypot(P.x - gv.x, P.z - gv.z) < 2.2); if (i < 0) return;
+  const gv = P.graves.splice(i, 1)[0], got = [];
+  for (const [id, n] of Object.entries(gv.items)) { P.inv[id] = (P.inv[id] || 0) + n; got.push(`${n > 1 ? n + '× ' : ''}${ITEMS[id] ? ITEMS[id].ic : ''}`); }
+  P.qGo = null; buildGraves(); buildHotbar();
+  Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffb040, 30, 4, 0.8);
+  log(`🎒 Você recuperou a sacola: ${got.join(' ')} (está na mochila).`, 'gold');
 }
 function nearestMob(r, cone = true) {
   let best = null, bs = 1e9;
@@ -1564,6 +1582,7 @@ const ZONES = {
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
   torre: { name: 'Torre do Cisma', music: 'masmorra' },
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
+  casa: { name: 'Sua Casa', music: 'vila' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
 };
 function update(dt) {
@@ -1692,7 +1711,7 @@ function updatePlayer(dt) {
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -2025,7 +2044,7 @@ function drawMinimap() {
   const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
   mg.drawImage(mmBase, 0, 0);
   for (const m of mobs) { const k = m.d.boss ? 4 : m.d.alfa ? 3 : 2; mg.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, k, k); }
-  if (inTower(P.z)) { Tower.minimap(mg); return; }
+  if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } Tower.minimap(mg); return; }
   Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { mg.fillStyle = '#ffcf40'; mg.fillRect((n.x + WX) * sx - 1.5, (n.z + WZ) * sz - 1.5, 3, 3); }
   const px = (P.x + WX) * sx, pz = (P.z + WZ) * sz;
@@ -2296,7 +2315,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'qGo', 'grave', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'qGo', 'grave', 'graves', 'casa', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2309,7 +2328,7 @@ function start(fromSave) {
     const s = loadSave();
     Object.assign(P, { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, dex: 3, luk: 3 }, s, { inv: { red: 0, blue: 0, ...s.inv } });
     if (!CLASSES[P.cls] || !CLASSES[P.cls].hero) { P.cls = OLD_TO_HERO[P.cls] || 'kravenox'; P.gender = CLASSES[P.cls].gender; P.race = 'humano'; }
-    if (inTower(P.z)) { P.x = CIT.x; P.z = CIT.z + 8; }
+    if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { P.x = FARM.x - 11; P.z = FARM.z - 1; } else { P.x = CIT.x; P.z = CIT.z + 8; } }
     if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; }
   } else {
     Object.assign(P, CREATE, { name: $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16) });
@@ -2329,7 +2348,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (P.grave) buildGrave(); Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); buildGraves(); Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
@@ -2418,7 +2437,7 @@ function loop(now) {
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

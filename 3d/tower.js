@@ -238,7 +238,7 @@ const Tower = (() => {
     if (!inTower(P.z) && Math.hypot(P.x - DOOR.x, P.z - DOOR.z) < 3.2) { leaveT = 1; enter(0); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); } return; }
     if (cur >= 0) animFloor(cur, dt);
-    const f = floorAt(P.x, P.z); if (!f) return;
+    const f = floorAt(P.x, P.z); if (!f || f.casa) return;
     if (f.i !== cur) { cur = f.i; }
     // escada: abre quando o andar está limpo
     const left = mobs.filter(m => m.towerFloor === cur).length;
