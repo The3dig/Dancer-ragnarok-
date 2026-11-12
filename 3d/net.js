@@ -74,7 +74,7 @@ const Net = (() => {
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
-        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), title: P.title || null, say: P.say || null,
+        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null,
         ...(typeof Vida !== 'undefined' ? Vida.pres() : {}),
       };
       const j = JSON.stringify(pres);
@@ -109,7 +109,8 @@ const Net = (() => {
       r.g.visible = !priv; if (priv) { r.lab.style.display = 'none'; continue; }
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;
-      const html = `<span style="${/^#[0-9a-f]{6}$/i.test(s.cn || '') ? 'color:' + s.cn : ''}">${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
+      const pvc = typeof PvP !== 'undefined' && (s.fl === 'r' || s.fl === 'p') ? PvP.color(s.fl, (s.pk || 0) - Date.now()) : null;
+      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : /^#[0-9a-f]{6}$/i.test(s.cn || '') ? 'color:' + s.cn : ''}">${s.fl === 'r' ? '☠️ ' : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
       if (r.lab.dataset.h !== html) { r.lab.innerHTML = html; r.lab.dataset.h = html; }
       if (r.bubT > 0) {
         r.bubT -= dt; r.bub.classList.remove('hidden');

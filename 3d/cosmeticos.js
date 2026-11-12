@@ -95,7 +95,7 @@ const Cos = (() => {
   function apply() {
     const st = S(), cor = pal('cor', st.eq.cor), tit = st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : '';
     const t = P.title ? `« ${P.title} »` : tit;
-    $('pname').innerHTML = `<span style="${cor ? 'color:' + cor.css : ''}">${P.name}</span>${t ? `<small>${t}</small>` : ''}`;
+    $('pname').innerHTML = `<span data-c="${cor ? cor.css : ''}" style="${cor ? 'color:' + cor.css : ''}">${P.name}</span>${t ? `<small>${t}</small>` : ''}`;
     $('pname').dataset.h = '';
   }
   function update(dt) {

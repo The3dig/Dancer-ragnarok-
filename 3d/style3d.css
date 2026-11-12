@@ -484,3 +484,5 @@ body.walking #quest .qi.focus::before { content: '🚶 '; }
 .cs-note { padding: 0 10px 8px; opacity: .65; font-size: 10.5px; }
 #pname small { display: block; font-size: .7em; opacity: .85; }
 @media (max-height: 470px) { #evocard { font-size: 10.5px; padding: 4px 10px; top: calc(56px + env(safe-area-inset-top)); max-width: 46vw; } }
+
+#btn-pvp.on { background: rgba(200,30,30,.55) !important; box-shadow: 0 0 12px rgba(255,60,60,.7); }
