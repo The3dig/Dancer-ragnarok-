@@ -171,9 +171,9 @@ const Quests = (() => {
     const q = byId[focusId()]; if (!q) return null;
     if (ready(q) || !q.steps.length) { if (q.board) return BOARDS[q.board]; const n = npcByName(q.to || q.giver); return n ? { x: n.x, z: n.z } : null; }
     const st = q.steps.find((s, i) => prog(q, i) < need(s));
-    if (st && st.kill) { let best = null, bd = 1e9; for (const m of mobs) if (m.type === st.kill) { const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < bd) { bd = d; best = m; } } if (best) return { x: best.x, z: best.z }; const sp = SPAWNS.find(s => s.type === st.kill); if (sp) return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; if (['larva', 'verme', 'esfera', 'sentinela'].includes(st.kill)) return { x: TOWER.x, z: TOWER.z + 12 }; }
+    if (st && st.kill) { let best = null, bd = 1e9; for (const m of mobs) if (m.type === st.kill) { const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < bd) { bd = d; best = m; } } if (best) return { x: best.x, z: best.z }; const sp = SPAWNS.find(s => s.type === st.kill); if (sp) return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; if (['larva', 'verme', 'esfera', 'sentinela'].includes(st.kill)) return { x: Tower.door.x, z: Tower.door.z }; }
     if (st && st.item) { const src = Object.keys(MOBDEF).find(t => MOBDEF[t].drops.some(([id]) => id === st.item)); const m = src && mobs.find(o => o.type === src); if (m) return { x: m.x, z: m.z }; }
-    if (st && st.reach === 'topo') return { x: TOWER.x, z: TOWER.z + 12 };
+    if (st && st.reach === 'topo') return { x: Tower.door.x, z: Tower.door.z };
     return null;
   }
 

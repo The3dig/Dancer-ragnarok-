@@ -38,7 +38,7 @@ const Tower = (() => {
   for (let i = 0; i < 6; i++) {
     const r0 = 9.5 - i * 0.9, r1 = r0 - 0.6, h = 9;
     mesh(new THREE.CylinderGeometry(r1, r0, h, 20), PM('pedra.jpg', [8, 3.5], i % 2 ? 0x7a7088 : 0x625a70), 0, ty + h / 2, 0, ext);
-    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + i * 0.2; const b = mesh(new THREE.BoxGeometry(1.1, h * 0.9, 1.4), PM('pedra.jpg', [0.5, 3], 0x6a6278), Math.sin(a) * (r0 - 0.1), ty + h * 0.45, Math.cos(a) * (r0 - 0.1), ext); b.rotation.y = a; }
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + i * 0.2; if (i === 0 && Math.abs(Math.sin(a)) < 0.3 && Math.cos(a) > 0) continue; const b = mesh(new THREE.BoxGeometry(1.1, h * 0.9, 1.4), PM('pedra.jpg', [0.5, 3], 0x6a6278), Math.sin(a) * (r0 - 0.1), ty + h * 0.45, Math.cos(a) * (r0 - 0.1), ext); b.rotation.y = a; }
     mesh(new THREE.CylinderGeometry(r1 + 0.6, r1 + 0.6, 0.7, 20), PM('pedra.jpg', [8, 0.3], 0x585068), 0, ty + h, 0, ext);
     for (let k = 0; k < 6; k++) {                               // janelas vermelhas
       const a = k / 6 * TAU + i * 0.3, wr = (r0 + r1) / 2;
@@ -54,10 +54,29 @@ const Tower = (() => {
   const beacon = mesh(new THREE.OctahedronGeometry(1.6), glow(RED), 0, ty + 4, 0, ext, false);
   // porta com portal (de frente para a cidade)
   const doorZ = TOWER.z + 9.6, doorX = TOWER.x;
-  mesh(new THREE.BoxGeometry(4.6, 6.2, 1.2), PM('pedra.jpg', [2, 3], 0x6a6278), 0, 3.1, 9.3, ext);
-  const doorGlow = mesh(new THREE.PlaneGeometry(3, 4.6), new THREE.MeshBasicMaterial({ color: 0xb050ff, transparent: true, opacity: 0.75 }), 0, 2.4, 9.85, ext, false);
-  addOb(TOWER.x, TOWER.z, 9.6);
-  const DOOR = { x: doorX, z: doorZ + 1.4 };
+  // entrada: arco de pedra com portal girando, degraus, braseiros e placa
+  const stoneD = PM('pedra.jpg', [1, 3], 0x8a8098), dz = 10.2;
+  mesh(new THREE.BoxGeometry(1.2, 7, 1.6), stoneD, -2.6, 3.5, dz, ext); mesh(new THREE.BoxGeometry(1.2, 7, 1.6), stoneD, 2.6, 3.5, dz, ext);   // colunas
+  mesh(new THREE.BoxGeometry(6.6, 1.3, 1.8), stoneD, 0, 7.3, dz, ext);                                                                       // verga
+  mesh(new THREE.ConeGeometry(0.8, 1.6, 4), stoneD, 0, 8.7, dz, ext);
+  for (let k = 0; k < 3; k++) mesh(new THREE.BoxGeometry(6.2 - k * 0.6, 0.3, 1.2), stoneD, 0, 0.15 + k * 0.3, dz + 2.4 - k * 0.9, ext);   // degraus
+  const swirlTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.translate(64, 64);
+    const r = g.createRadialGradient(0, 0, 0, 0, 0, 64); r.addColorStop(0, 'rgba(255,220,255,1)'); r.addColorStop(0.35, 'rgba(176,80,255,.9)'); r.addColorStop(1, 'rgba(60,0,110,.0)'); g.fillStyle = r; g.fillRect(-64, -64, 128, 128);
+    for (let k = 0; k < 5; k++) { g.rotate(TAU / 5); g.beginPath(); for (let t = 0; t < 1; t += 0.02) g.lineTo(Math.cos(t * 5) * t * 60, Math.sin(t * 5) * t * 60); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4; g.stroke(); }
+    return new THREE.CanvasTexture(c); })();
+  const portalM = new THREE.MeshBasicMaterial({ map: swirlTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
+  const doorGlow = mesh(new THREE.CircleGeometry(1.75, 32), portalM, 0, 3.3, dz + 0.3, ext, false); doorGlow.scale.y = 1.6;
+  const doorBack = mesh(new THREE.PlaneGeometry(4, 6.4), new THREE.MeshBasicMaterial({ color: 0x0a0010 }), 0, 3.2, dz - 0.3, ext, false);
+  const fires = [];
+  for (const sx of [-4.2, 4.2]) {                                                    // braseiros
+    mesh(new THREE.CylinderGeometry(0.5, 0.3, 1.4, 8), stoneD, sx, 0.7, dz + 1.6, ext);
+    const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: swirlTex, color: 0xff8030, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); f.position.set(sx, 1.9, dz + 1.6); f.scale.set(1.4, 2, 1); ext.add(f); fires.push(f);
+  }
+  const sign = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d'); g.fillStyle = 'rgba(16,8,24,.75)'; g.fillRect(0, 0, 512, 96); g.strokeStyle = '#b070ff'; g.lineWidth = 4; g.strokeRect(2, 2, 508, 92);
+    g.fillStyle = '#f2d8ff'; g.font = 'bold 44px Georgia'; g.textAlign = 'center'; g.fillText('Entrada da Torre', 256, 64);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(5, 0.95, 1); sp.position.set(0, 9.4, dz + 1); ext.add(sp); return sp; })();
+  addOb(TOWER.x, TOWER.z, 9.6); addOb(TOWER.x - 2.6, TOWER.z + dz, 0.9); addOb(TOWER.x + 2.6, TOWER.z + dz, 0.9);
+  const DOOR = { x: doorX, z: TOWER.z + dz + 1.2 };
 
   // ---------------- andares (fora do mapa, em z ≈ 420)
   const stairs = [], downs = [];
@@ -162,7 +181,7 @@ const Tower = (() => {
 
   function update(dt) {
     beacon.rotation.y += dt; beacon.position.y = ty + 4 + Math.sin(time * 2) * 0.4;
-    doorGlow.material.opacity = 0.55 + Math.sin(time * 3) * 0.2;
+    doorGlow.rotation.z -= 0.03; doorGlow.material.opacity = 0.8 + Math.sin(time * 3) * 0.2; for (const f of fires) { f.material.rotation += 0.05; f.scale.set(1.3 + Math.sin(time * 9 + f.position.x) * 0.15, 1.9 + Math.sin(time * 7) * 0.2, 1); }
     if (!sleeperR && typeof kravenoxModel === 'function' && (typeof SpriteKit === 'undefined' || SpriteKit.ready || running)) buildSleeper();
     sleeper.visible = !Kvx.active;
     if (sleeperR && sleeper.visible) {                                  // respiração lenta, olhos apagados
@@ -171,7 +190,7 @@ const Tower = (() => {
     leaveT -= dt;
     if (P.dead || leaveT > 0) return;
     // entrar pela porta
-    if (!inTower(P.z) && Math.hypot(P.x - DOOR.x, P.z - DOOR.z) < 2.2) { leaveT = 1; enter(0); return; }
+    if (!inTower(P.z) && Math.hypot(P.x - DOOR.x, P.z - DOOR.z) < 3.2) { leaveT = 1; enter(0); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); } return; }
     const f = floorAt(P.x, P.z); if (!f) return;
     if (f.i !== cur) { cur = f.i; }
