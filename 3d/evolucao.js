@@ -59,14 +59,14 @@ const Evo = (() => {
   function card() {
     const t = next(), q = Q[t]; if (!q) return null;
     const names = TIERS[P.cls] || [], cl = `${t + 1}ª classe: ${names[t] || ''}`;
-    if (!P.evo) return P.lv >= q.lv ? { txt: `⭐ Você pode evoluir para a <b>${cl}</b>! Toque para ir até o Vigia Morvan`, k: 'go' } : null;
-    if (done()) return { txt: `✨ Provação completa! Toque para voltar ao Vigia Morvan e virar <b>${names[t]}</b>`, k: 'go' };
+    if (!P.evo) return P.lv >= q.lv ? { txt: `⭐ Você pode evoluir para a <b>${cl}</b>! Toque para ir até o Vigia Morvan`, mini: `Fale com o Vigia Morvan para virar <b>${names[t]}</b>`, k: 'go' } : null;
+    if (done()) return { txt: `✨ Provação completa! Toque para voltar ao Vigia Morvan e virar <b>${names[t]}</b>`, mini: `Provação completa! Volte ao Vigia Morvan`, k: 'done' };
     const r = q.need.find(r => prog(r) < r.n);
-    return { txt: `⚔️ ${q.title}: ${r.txt} <b>${prog(r)}/${r.n}</b> · toque para ir`, k: 'hunt', r };
+    return { txt: `⚔️ ${q.title}: ${r.txt} <b>${prog(r)}/${r.n}</b> · toque para ir`, mini: `${r.txt} <b>${prog(r)}/${r.n}</b>`, k: 'hunt', r };
   }
   function target() {
     const c = card(); if (!c) return null;
-    if (c.k === 'go') { const n = NPCS.find(n => n.id === 'watch'); return { x: n.x, z: n.z, name: 'Vigia Morvan' }; }
+    if (c.k === 'go' || c.k === 'done') { const n = NPCS.find(n => n.id === 'watch'); return { x: n.x, z: n.z, name: 'Vigia Morvan' }; }
     const r = c.r;
     if (r.kill === 'guardiao') return { x: RUIN.x, z: RUIN.z + 6, name: 'Ruínas das Areias' };
     return { x: Tower.door.x, z: Tower.door.z, name: 'Torre do Cisma' };

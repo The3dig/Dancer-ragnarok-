@@ -90,7 +90,61 @@ const Chefes = (() => {
     const next = t < START ? START - t : SLOT - t + START;
     return `próximo em ${Math.max(1, Math.ceil(next / 60e3))} min`;
   }
-  return { update, onKill, status, addDmg, BOSSES };
+  // ---------------- visual da Larva-Mãe: larva alongada recolorida (a original tinha ovos espalhados)
+  (function recolor() {
+    if (typeof SPR === 'undefined' || !SPR.e_larvaLonga) return;
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+      const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+      for (let i = 0; i < p.length; i += 4) { if (!p[i + 3]) continue; const r = p[i], g = p[i + 1], b = p[i + 2];
+        if (r > 150 && g < 90) continue;                                            // boca vermelha fica
+        p[i] = Math.min(255, g * 0.95 + 20); p[i + 1] = r * 0.55; p[i + 2] = Math.min(255, g * 1.05 + 25); }
+      x.putImageData(d, 0, 0);
+      if (typeof SpriteKit !== 'undefined' && SpriteKit.addCanvas) SpriteKit.addCanvas('e_larvaMaeX', c);
+      SPR.e_larvaMaeX = c.toDataURL('image/png').split(',')[1];
+      SPR_MOBS.larvaMae.img = 'e_larvaMaeX';
+    };
+    im.src = 'data:image/png;base64,' + SPR.e_larvaLonga;
+  })();
+  // ---------------- ataques especiais com aviso no chão (círculo vermelho) para dar tempo de fugir
+  const warnTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,40,30,.15)'); r.addColorStop(0.85, 'rgba(255,40,30,.45)'); r.addColorStop(0.93, 'rgba(255,90,60,1)'); r.addColorStop(1, 'rgba(255,40,30,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+  const warnGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  function warn(x, z, rad, t) {
+    const m = new THREE.Mesh(warnGeo, new THREE.MeshBasicMaterial({ map: warnTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    m.position.set(x, groundY(x, z) + 0.1, z); m.scale.setScalar(rad * 2); scene.add(m);
+    const fill = new THREE.Mesh(warnGeo, new THREE.MeshBasicMaterial({ color: 0xff3020, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); fill.position.copy(m.position); fill.position.y += 0.01; scene.add(fill);
+    return { m, fill, x, z, rad, t, max: t };
+  }
+  const warns = [];
+  function ai(m, dt) {
+    for (let i = warns.length - 1; i >= 0; i--) {                        // avisos em andamento
+      const w = warns[i]; w.t -= dt; const k = 1 - w.t / w.max;
+      w.fill.scale.setScalar(Math.max(0.01, w.rad * 2 * k)); w.m.material.opacity = 0.6 + Math.sin(time * 18) * 0.4;
+      if (w.t <= 0) { scene.remove(w.m); scene.remove(w.fill); warns.splice(i, 1); w.boom(); }
+    }
+    if (m.dead || m.state !== 'chase' || P.dead) return false;
+    m.spT = (m.spT ?? 4) - dt;
+    if (m.busy > 0) { m.busy -= dt; m.moving = false; return true; }   // parado preparando o golpe
+    if (m.spT > 0) return false;
+    m.spT = rand(4.5, 7);
+    const dP = Math.hypot(P.x - m.x, P.z - m.z);
+    if (dP > 7 && dP < 26) {                                             // salto: cai em cima de onde você estava
+      const tx = P.x, tz = P.z, w = warn(tx, tz, 4, 1.2); m.busy = 1.25; m.face = Math.atan2(tx - m.x, tz - m.z);
+      w.boom = () => { if (m.dead) return; if (!blocked(tx, tz, 0.45)) { m.x = tx; m.z = tz; } Audio8.sfx('boom'); ring(tx, tz, 4, 0xff6a30, 0.5);
+        if (typeof VFX !== 'undefined') { VFX.wave(tx, tz, 4.5, 0xff8a40, 0.5); VFX.flash(new THREE.Vector3(tx, groundY(tx, tz) + 1, tz), 0xff8a40, 4); }
+        if (Math.hypot(P.x - tx, P.z - tz) < 4) hurtPlayer(m, 1.8); };
+      warns.push(w); log(`⚠️ <b>${m.d.name}</b> vai saltar! Saia do círculo vermelho!`, 'bad');
+    } else {                                                             // pancada em volta
+      const w = warn(m.x, m.z, 6.5, 1.1); m.busy = 1.15;
+      w.boom = () => { if (m.dead) return; Audio8.sfx('boom'); ring(m.x, m.z, 6.5, 0xe0a050, 0.6);
+        if (typeof VFX !== 'undefined') { VFX.wave(m.x, m.z, 7, 0xffa040, 0.55); VFX.flash(new THREE.Vector3(m.x, groundY(m.x, m.z) + 1, m.z), 0xffa040, 4); }
+        if (Math.hypot(P.x - m.x, P.z - m.z) < 6.5) hurtPlayer(m, 2.2); };
+      warns.push(w);
+    }
+    return true;
+  }
+  return { ai, update, onKill, status, addDmg, BOSSES };
 })();
 
 // =====================================================================

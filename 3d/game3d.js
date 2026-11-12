@@ -1273,18 +1273,24 @@ function hurtPlayer(m, mult = 1) {
   floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp());
   if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; onDeath(); }
 }
-// aviso clicável de evolução de classe (aparece sozinho quando chega o nível)
+// aviso de evolução de classe: grande no topo quando aparece; depois do toque vira um quadrinho
+// embaixo do quadro do Kravenox (e volta a ficar grande quando muda de fase: provação pronta etc.)
 let evoT = 0, evoSeen = '';
 function evoCard(dt) {
-  if ((evoT -= dt) > 0 || typeof Evo === 'undefined' || !Evo.card) return; evoT = 0.5;
+  if ((evoT -= dt) > 0 || typeof Evo === 'undefined' || !Evo.card) return; evoT = 0.4;
   let el = $('evocard');
   if (!el) {
     el = document.createElement('div'); el.id = 'evocard'; $('hud').appendChild(el);
-    el.addEventListener('click', () => { const t = Evo.target(); if (!t) return; Audio8.sfx('click'); P.qGo = { ...t }; log(`🧭 A seta leva até <b>${t.name}</b>.`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) autoStart(); $('quest').dataset.h = ''; });
+    el.addEventListener('click', () => { const t = Evo.target(); if (!t) return; Audio8.sfx('click'); const c = Evo.card(); if (c) P.evoMini = c.k; P.qGo = { ...t }; log(`🧭 A seta leva até <b>${t.name}</b>.`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) autoStart(); $('quest').dataset.h = ''; evoT = 0; });
   }
   const c = Evo.card();
   if (!c) { el.classList.add('hidden'); return; }
-  if (el.dataset.h !== c.txt) { el.innerHTML = c.txt; el.dataset.h = c.txt; if (c.k === 'go' && evoSeen !== c.txt) { evoSeen = c.txt; Audio8.sfx('buff'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); } }
+  const mini = P.evoMini === c.k;
+  const html = mini ? `<div class="wt">⭐ Evolução</div><div class="wb">${c.mini}<br><small>toque para ir</small></div>` : c.txt;
+  if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; if (!mini && c.k !== 'hunt' && evoSeen !== c.txt) { evoSeen = c.txt; Audio8.sfx('buff'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); } }
+  el.classList.toggle('mini', mini); el.classList.toggle('win', mini);
+  if (mini) { const k = $('kvx'), r = k && k.getBoundingClientRect(); if (r && r.height) { el.style.top = (r.bottom + 6) + 'px'; el.style.left = r.left + 'px'; el.style.width = r.width + 'px'; } }
+  else { el.style.top = el.style.left = el.style.width = ''; }
   el.classList.remove('hidden');
 }
 function hurtFlash(k) {
@@ -1434,7 +1440,7 @@ function useSkill(i) {
   const crit = () => Math.random() < stats.crit() + (s.critBonus || 0);
   const hitOne = (m, b) => {
     for (let h = 0; h < (s.hits || 1); h++) dmgMob(m, b, crit(), s.magic, s.color);
-    if (s.stun && !m.dead) m.stun = Math.max(m.stun, s.stun);
+    if (s.stun && !m.dead && !m.d.boss) m.stun = Math.max(m.stun, s.stun);   // chefes não ficam atordoados
     if (s.poison) poison(m, stats.matk() * 0.35 * s.poison, 6);
   };
   const center = new THREE.Vector3(P.x, P.y + 1, P.z);
@@ -1746,13 +1752,14 @@ function updateMob(m, dt) {
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
   if (m.type === 'kravenox') Kvx.ai(m, dt);
+  if (m.d.field && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
     if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
-      if (P.dead || Math.hypot(m.x - m.sx, m.z - m.sz) > 32) { m.state = 'return'; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); }
+      if (P.dead || Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32)) { m.state = 'return'; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
         m.face = Math.atan2(P.x - m.x, P.z - m.z);
@@ -1786,10 +1793,14 @@ function updateMob(m, dt) {
 function stepMob(m, tx, tz, sp, dt) {
   const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
   if (d < 0.01) return;
-  const vx = dx / d * sp * dt, vz = dz / d * sp * dt, r = m.d.rad ? m.d.rad * 0.6 : m.d.boss ? 1.2 : 0.5;
+  const vx = dx / d * sp * dt, vz = dz / d * sp * dt, r = (m.d.field || m.d.alfa) ? 0.45 : m.d.rad ? m.d.rad * 0.6 : m.d.boss ? 1.2 : 0.5;
   let moved = false;
   if (!blocked(m.x + vx, m.z, r)) { m.x += vx; moved = true; }
   if (!blocked(m.x, m.z + vz, r)) { m.z += vz; moved = true; }
+  if (!moved && (m.d.field || m.d.alfa)) {                          // chefes contornam árvores e pedras
+    const a0 = Math.atan2(dx, dz), st = sp * dt;
+    for (const k of [0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) { const a = a0 + k, nx = m.x + Math.sin(a) * st, nz = m.z + Math.cos(a) * st; if (!blocked(nx, nz, r)) { m.x = nx; m.z = nz; moved = true; break; } }
+  }
   if (!moved) { m.tx = m.x; m.tz = m.z; m.timer = 0; }
   m.face = Math.atan2(dx, dz); m.moving = moved;
 }
@@ -2335,7 +2346,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'evoMini', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
