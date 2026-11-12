@@ -79,47 +79,86 @@ const Tower = (() => {
   const DOOR = { x: doorX, z: TOWER.z + dz + 1.2 };
 
   // ---------------- andares (fora do mapa, em z ≈ 420)
+  const ctex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+  const RUNE = ctex(256, 256, g => { g.translate(128, 128); g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 120, 0, 6.29); g.stroke(); g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 100, 0, 6.29); g.stroke(); g.beginPath(); g.arc(0, 0, 46, 0, 6.29); g.stroke();
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; g.beginPath(); g.moveTo(Math.cos(a) * 46, Math.sin(a) * 46); g.lineTo(Math.cos(a + 2.36) * 100, Math.sin(a + 2.36) * 100); g.stroke(); }
+    g.font = 'bold 16px serif'; g.textAlign = 'center'; const R = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗ'; for (let i = 0; i < 20; i++) { g.save(); g.rotate(i / 20 * 6.283); g.fillText(R[i], 0, -105); g.restore(); } });
+  const SWIRL = ctex(128, 128, g => { g.translate(64, 64); const r = g.createRadialGradient(0, 0, 0, 0, 0, 64); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.4, 'rgba(255,255,255,.6)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(-64, -64, 128, 128);
+    for (let k = 0; k < 5; k++) { g.rotate(6.283 / 5); g.beginPath(); for (let t = 0; t < 1; t += 0.02) g.lineTo(Math.cos(t * 5) * t * 60, Math.sin(t * 5) * t * 60); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 5; g.stroke(); } });
+  const FIRE = ctex(64, 128, g => { const r = g.createRadialGradient(32, 92, 2, 32, 80, 50); r.addColorStop(0, 'rgba(255,250,210,1)'); r.addColorStop(0.25, 'rgba(255,180,60,.95)'); r.addColorStop(0.6, 'rgba(255,70,20,.5)'); r.addColorStop(1, 'rgba(120,0,0,0)'); g.fillStyle = r; g.beginPath(); g.moveTo(32, 4); g.quadraticCurveTo(62, 70, 32, 124); g.quadraticCurveTo(2, 70, 32, 4); g.fill(); });
+  const WINDOW = ctex(64, 128, g => { g.fillStyle = '#000'; g.fillRect(0, 0, 64, 128); const l = g.createLinearGradient(0, 0, 0, 128); l.addColorStop(0, '#ff6a40'); l.addColorStop(1, '#6a0010'); g.fillStyle = l; g.beginPath(); g.moveTo(8, 124); g.lineTo(8, 40); g.arc(32, 40, 24, Math.PI, 0); g.lineTo(56, 124); g.fill(); g.fillStyle = '#1a0a0a'; g.fillRect(30, 16, 4, 108); g.fillRect(8, 70, 48, 4); });
+  const BANNER = ctex(64, 160, g => { g.fillStyle = '#4a0a14'; g.beginPath(); g.moveTo(0, 0); g.lineTo(64, 0); g.lineTo(64, 140); g.lineTo(32, 160); g.lineTo(0, 140); g.fill(); g.fillStyle = '#b08a3a'; g.fillRect(0, 0, 64, 6); g.fillStyle = '#120608';
+    g.beginPath(); g.arc(32, 66, 14, 0, 6.29); g.fill(); for (let k = 0; k < 7; k++) { const a = -Math.PI + k / 6 * Math.PI; g.beginPath(); g.moveTo(32 + Math.cos(a - 0.15) * 12, 66 + Math.sin(a - 0.15) * 12); g.lineTo(32 + Math.cos(a) * 28, 66 + Math.sin(a) * 28); g.lineTo(32 + Math.cos(a + 0.15) * 12, 66 + Math.sin(a + 0.15) * 12); g.fill(); }
+    g.fillStyle = '#ff3a3a'; g.fillRect(26, 62, 4, 3); g.fillRect(34, 62, 4, 3); });
+  const add_ = (map, color, o = {}) => new THREE.MeshBasicMaterial({ map, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, ...o });
+  const FX = [];                                          // peças animadas por andar (runas, fogo, portais, brasas)
   const stairs = [], downs = [];
+  const C3 = (r, g, b) => new THREE.Color(r, g, b), floorM = PM('calcada.jpg', [7, 7], C3(1.5, 1.42, 1.65)), wallM = PM('pedra.jpg', [1.4, 2.4], C3(1.45, 1.38, 1.6)), wallM2 = PM('pedra.jpg', [1.4, 2.4], C3(1.25, 1.18, 1.4)), colM = PM('pedra.jpg', [1, 3], C3(1.6, 1.52, 1.75)), trimM = PM('pedra.jpg', [3, 0.3], C3(1.0, 0.95, 1.12));
   for (const f of FLOORS) {
     const g = new THREE.Group(); g.position.set(f.x, f.y, f.z); scene.add(g); f.g = g;
-    const top = f.i === 5;
-    const floorMat = new THREE.MeshLambertMaterial({ color: top ? 0x2a2026 : 0x2c2834 });
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(f.r + 1, f.r + 1, 1.2, 40), floorMat); disc.position.y = -0.6; disc.receiveShadow = true; g.add(disc);
-    // desenho do piso: anel e veios
-    const ring = new THREE.Mesh(new THREE.RingGeometry(f.r * 0.45, f.r * 0.48, 48), glow(top ? RED : PURPLE)); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; g.add(ring);
-    // paredes / ameias
-    const wallH = top ? 1.6 : 4.5;
+    const top = f.i === 5, fx = { f, runes: [], fires: [], embers: [] }; FX[f.i] = fx;
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(f.r + 1, f.r + 1, 1.2, 48), [PM('pedra.jpg', [8, 0.4], 0x4a4458), top ? PM('calcada.jpg', [9, 9], 0x6a5a62) : floorM, floorM]); disc.position.y = -0.6; disc.receiveShadow = true; g.add(disc);
+    // círculo de runas no centro, girando
+    const rn = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), add_(RUNE, top ? RED : PURPLE, { opacity: 0.75 })); rn.scale.setScalar(f.r * 1.05); rn.position.y = 0.03; g.add(rn); fx.runes.push(rn);
+    const rn2 = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), add_(RUNE, top ? 0xff8a40 : 0xc890ff, { opacity: 0.35 })); rn2.scale.setScalar(f.r * 0.5); rn2.position.y = 0.04; g.add(rn2); fx.runes.push(rn2);
+    // paredes altas de pedra, colunas góticas, janelas acesas, ameias, tochas e estandartes
+    const wallH = top ? 1.6 : 7;
     const n = top ? 28 : 18;
     for (let k = 0; k < n; k++) {
-      const a = k / n * TAU, x = Math.sin(a) * (f.r + 0.4), z = Math.cos(a) * (f.r + 0.4);
+      const a = k / n * TAU, ca = Math.cos(a), sa = Math.sin(a), R = f.r + 0.6, x = sa * R, z = ca * R;
       if (!top && Math.abs(z - f.r) < 3 && Math.abs(x) < 3) continue;                 // vão da chegada
-      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.6, wallH, 1.2), PM('pedra.jpg', [1.6, wallH / 2.5], k % 2 ? 0x8a8298 : 0x6e6880), x, wallH / 2, z, g); b.rotation.y = a;
-      if (!top && k % 3 === 0) {                                                       // tochas
-        const t = mesh(new THREE.BoxGeometry(0.3, 0.6, 0.3), glow(k % 2 ? PURPLE : RED), x * 0.93, 2.8, z * 0.93, g, false);
+      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.9, wallH, 1.2), top ? wallM : (k % 2 ? wallM : wallM2), x, wallH / 2, z, g); b.rotation.y = a;
+      if (top) continue;
+      const a2 = a + Math.PI / n, cx = Math.sin(a2) * (R - 0.4), cz = Math.cos(a2) * (R - 0.4);       // coluna entre blocos
+      mesh(new THREE.CylinderGeometry(0.55, 0.65, wallH + 0.6, 10), colM, cx, (wallH + 0.6) / 2, cz, g);
+      mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), trimM, cx, 0.25, cz, g); mesh(new THREE.BoxGeometry(1.4, 0.45, 1.4), trimM, cx, wallH + 0.4, cz, g);
+      for (const o of [-1, 1]) { const m2 = mesh(new THREE.BoxGeometry(0.9, 0.9, 1.0), wallM2, x + Math.cos(a) * o * 1.2, wallH + 0.45, z - Math.sin(a) * o * 1.2, g); m2.rotation.y = a; }   // ameias
+      if (k % 2 === 0) {                                                                 // janela em arco, acesa
+        const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.8), new THREE.MeshBasicMaterial({ map: WINDOW, toneMapped: false })); w.position.set(sa * (R - 0.62), 4.2, ca * (R - 0.62)); w.rotation.y = a + Math.PI; g.add(w);
+      } else if (k % 4 === 1) {                                                          // estandarte do Soberano
+        const bn = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 3.4), new THREE.MeshLambertMaterial({ map: BANNER, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide })); bn.position.set(sa * (R - 0.64), 4.3, ca * (R - 0.64)); bn.rotation.y = a + Math.PI; g.add(bn);
+      }
+      if (k % 3 === 0) {                                                                 // tocha com fogo
+        const tx = Math.sin(a2) * (R - 1.05), tz = Math.cos(a2) * (R - 1.05);
+        mesh(new THREE.CylinderGeometry(0.16, 0.08, 0.7, 6), lam(0x2a2026), tx, 3.2, tz, g, false);
+        const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: k % 2 ? 0xc080ff : 0xffffff })); fl.position.set(tx, 3.95, tz); fl.scale.set(0.8, 1.4, 1); g.add(fl); fx.fires.push(fl);
+        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: SWIRL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.35, color: k % 2 ? 0x9a4dff : 0xff7a30 })); gl.position.set(tx, 3.9, tz); gl.scale.setScalar(3.4); g.add(gl); fx.fires.push(gl);
       }
     }
     if (top) for (let k = 0; k < 8; k++) {                                            // espinhos gigantes no topo
       const a = k / 8 * TAU + 0.2, sp = mesh(new THREE.ConeGeometry(1.2, 9, 6), lam(0x120e16), Math.sin(a) * (f.r + 1), 4, Math.cos(a) * (f.r + 1), g);
       sp.rotation.x = Math.cos(a) * 0.25; sp.rotation.z = -Math.sin(a) * 0.25;
     }
-    // pilares internos (obstáculos)
+    // pilares internos com base, capitel e cristais roxos da Essência
     if (!top) for (let k = 0; k < 4; k++) {
       const a = k / 4 * TAU + Math.PI / 4, x = Math.sin(a) * f.r * 0.62, z = Math.cos(a) * f.r * 0.62;
-      mesh(new THREE.CylinderGeometry(0.9, 1.1, 4.5, 10), lam(STONE_D), x, 2.25, z, g);
-      addOb(f.x + x, f.z + z, 1.1);
+      mesh(new THREE.CylinderGeometry(0.85, 1.0, 6, 12), colM, x, 3, z, g);
+      mesh(new THREE.BoxGeometry(2.3, 0.6, 2.3), trimM, x, 0.3, z, g); mesh(new THREE.BoxGeometry(2.1, 0.5, 2.1), trimM, x, 6.1, z, g);
+      for (let j = 0; j < 3; j++) { const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.35 + j * 0.12, 0), new THREE.MeshPhongMaterial({ color: 0x8a40ff, emissive: 0x4a10a0, shininess: 90 })); const ang = a + j * 2.1; cr.position.set(x + Math.sin(ang) * 1.2, 0.35 + j * 0.15, z + Math.cos(ang) * 1.2); cr.scale.y = 2.2; cr.rotation.set(rand(-0.4, 0.4), ang, rand(-0.4, 0.4)); g.add(cr); }
+      addOb(f.x + x, f.z + z, 1.15);
     }
-    // escada para cima (fundo da sala) e portal de descida (chegada)
+    // brasas da Essência subindo pelo salão
+    for (let k = 0; k < (top ? 26 : 16); k++) { const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: SWIRL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: k % 3 ? 0xb070ff : 0xff5a3a })); e.scale.setScalar(rand(0.15, 0.3)); e.userData = { a: rand(0, TAU), r: rand(2, f.r - 1), y: rand(0, 8), v: rand(0.4, 1) }; g.add(e); fx.embers.push(e); }
+    // escada para cima: degraus de pedra, arco e portal em espiral
     if (!top) {
       const sg = new THREE.Group(); sg.position.set(0, 0, -f.r + 3); g.add(sg);
-      for (let k = 0; k < 6; k++) mesh(new THREE.BoxGeometry(4, 0.4, 1), lam(0x3a3442), 0, 0.2 + k * 0.4, 1.8 - k * 0.6, sg);
-      const arch = mesh(new THREE.TorusGeometry(1.8, 0.25, 6, 18, Math.PI), lam(0x120e16), 0, 2.4, -1.6, sg);
-      const pm = new THREE.MeshBasicMaterial({ color: 0x555060, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
-      const portal = new THREE.Mesh(new THREE.CircleGeometry(1.6, 24, 0, Math.PI), pm); portal.position.set(0, 2.4, -1.6); sg.add(portal);
+      for (let k = 0; k < 6; k++) mesh(new THREE.BoxGeometry(4, 0.4, 1), PM('pedra.jpg', [2, 0.2], 0x8a8298), 0, 0.2 + k * 0.4, 1.8 - k * 0.6, sg);
+      for (const sx of [-2.2, 2.2]) mesh(new THREE.CylinderGeometry(0.4, 0.5, 5.4, 10), colM, sx, 2.7, -1.6, sg);
+      mesh(new THREE.TorusGeometry(2.2, 0.35, 8, 20, Math.PI), colM, 0, 5.2, -1.6, sg);
+      const pm = add_(SWIRL, 0x555060, { opacity: 0.5 });
+      const portal = new THREE.Mesh(new THREE.CircleGeometry(1.9, 32), pm); portal.position.set(0, 3.0, -1.55); portal.scale.y = 1.35; sg.add(portal); fx.runes.push(portal);
       stairs[f.i] = { f, x: f.x, z: f.z - f.r + 2.2, mat: pm, open: false };
     }
-    const dm = new THREE.MeshBasicMaterial({ color: 0x4fd1ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
-    const dp = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.4, 24), dm); dp.rotation.x = -Math.PI / 2; dp.position.set(0, 0.05, f.r - 2.2); g.add(dp);
+    // saída (descer): círculo de runas azul
+    const dm = add_(RUNE, 0x4fd1ff, { opacity: 0.6 });
+    const dp = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2).rotateX(-Math.PI / 2), dm); dp.position.set(0, 0.06, f.r - 2.2); g.add(dp); fx.runes.push(dp);
     downs[f.i] = { f, x: f.x, z: f.z + f.r - 2.2, mesh: dp };
+  }
+  function animFloor(i, dt) {
+    const fx = FX[i]; if (!fx) return;
+    fx.runes.forEach((r, k) => { r.rotation[r.geometry.type === 'CircleGeometry' ? 'z' : 'y'] += dt * (k % 2 ? -0.6 : 0.35) * (r.geometry.type === 'CircleGeometry' ? 4 : 1); });
+    fx.fires.forEach((s2, k) => { if (k % 2 === 0) s2.scale.set(0.75 + Math.sin(time * 13 + k) * 0.08, 1.35 + Math.sin(time * 9 + k * 2) * 0.18, 1); else s2.material.opacity = 0.3 + Math.sin(time * 7 + k) * 0.08; });
+    for (const e of fx.embers) { const u = e.userData; u.y += u.v * dt; u.a += dt * 0.2; if (u.y > 9) u.y = 0; e.position.set(Math.sin(u.a) * u.r, u.y, Math.cos(u.a) * u.r); e.material.opacity = Math.min(1, u.y) * (1 - u.y / 9); }
   }
 
   // Kravenox adormecido no topo (quando não é o horário do evento)
@@ -198,6 +237,7 @@ const Tower = (() => {
     // entrar pela porta
     if (!inTower(P.z) && Math.hypot(P.x - DOOR.x, P.z - DOOR.z) < 3.2) { leaveT = 1; enter(0); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); } return; }
+    if (cur >= 0) animFloor(cur, dt);
     const f = floorAt(P.x, P.z); if (!f) return;
     if (f.i !== cur) { cur = f.i; }
     // escada: abre quando o andar está limpo
