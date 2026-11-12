@@ -1887,6 +1887,7 @@ function drawBeat() {
 }
 // minimapa
 const mm = $('minimap'), mg = mm.getContext('2d');
+mm.addEventListener('click', e => { e.stopPropagation(); Audio8.sfx('click'); BigMap.show(); });
 const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase.height = mm.height;
 {
   const x = mmBase.getContext('2d'), c = new THREE.Color();
@@ -1897,6 +1898,57 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
     x.fillStyle = '#' + c.getHexString(); x.fillRect(i, j, 1, 1);
   }
 }
+// ---------------------------------------------------------------- mapa grande (toque no minimapa)
+const BigMap = (() => {
+  let open = false, base = null, box = null, cv = null, g = null;
+  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma'], [RUIN, 'Ruínas']];
+  function build() {
+    if (base) return;
+    const W = WX * 2, H = WZ * 2; base = document.createElement('canvas'); base.width = W; base.height = H;
+    const x = base.getContext('2d'), img = x.createImageData(W, H), c = new THREE.Color();
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const wx = i - WX + 0.5, wz = j - WZ + 0.5; groundColor(wx, wz, height(wx, wz), c); if (isWater(wx, wz)) c.set(0x3f94e0);
+      if (onBridge(wx, wz)) c.set(0x8a6a48);
+      const o = (j * W + i) * 4; img.data[o] = c.r * 255; img.data[o + 1] = c.g * 255; img.data[o + 2] = c.b * 255; img.data[o + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+  }
+  function show() {
+    if (inTower(P.z)) { log('Dentro da Torre o mapa grande não funciona.', 'sys'); return; }
+    build();
+    if (!box) {
+      box = document.createElement('div'); box.id = 'bigmap'; box.innerHTML = '<div class="bm-in"><div class="bm-t">🗺️ Mapa do Reino<button class="bm-x" title="Fechar">✕</button></div><canvas></canvas><div class="bm-leg"><span><i style="background:#fff"></i>você</span><span><i style="background:#ffcf40"></i>NPC / cidade</span><span><i style="background:#ff8080"></i>monstro</span><span><i style="background:#ffcf40;border-radius:50%"></i>Alfa</span><span><i style="background:#ff3030"></i>chefe</span><span><i style="background:#6ab0ff"></i>jogador</span><span>⭐ missão</span></div></div>';
+      $('hud').appendChild(box); cv = box.querySelector('canvas'); g = cv.getContext('2d');
+      box.addEventListener('click', e => { if (e.target.closest('.bm-x') || e.target === box) { Audio8.sfx('click'); hide(); } });
+    }
+    const r = Math.min((innerWidth - 40) / (WX * 2), (innerHeight - 90) / (WZ * 2));
+    cv.width = Math.round(WX * 2 * Math.min(2, r) * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * WZ / WX);
+    cv.style.width = Math.round(WX * 2 * r) + 'px'; cv.style.height = Math.round(WZ * 2 * r) + 'px';
+    box.classList.remove('hidden'); open = true; draw();
+  }
+  function hide() { if (box) box.classList.add('hidden'); open = false; }
+  function draw() {
+    if (!open) return;
+    const k = cv.width / (WX * 2), X = x => (x + WX) * k, Z = z => (z + WZ) * k;
+    g.imageSmoothingEnabled = true; g.drawImage(base, 0, 0, cv.width, cv.height);
+    g.textAlign = 'center'; g.font = `800 ${Math.round(9 * k)}px Nunito, sans-serif`;
+    for (const [p, n] of PLACES) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
+    for (const m of mobs) { const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k; g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); if (m.d.boss || m.d.alfa) { g.strokeStyle = '#000'; g.lineWidth = 1; g.stroke(); } }
+    for (const n of NPCS) { if (n.hidden) continue; g.fillStyle = '#ffcf40'; g.fillRect(X(n.x) - 1.5 * k, Z(n.z) - 1.5 * k, 3 * k, 3 * k); }
+    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k, 0, TAU); g.fill(); g.font = `700 ${Math.round(6 * k)}px Nunito, sans-serif`; g.fillText(r.n || '', X(r.x), Z(r.z) - 4 * k); }
+    const qt = questTarget(), px = X(P.x), pz = Z(P.z);
+    if (qt) {
+      const tx = X(qt.x), tz = Z(qt.z);
+      g.save(); g.setLineDash([4 * k, 3 * k]); g.strokeStyle = 'rgba(255,207,64,.9)'; g.lineWidth = 1.5 * k; g.beginPath(); g.moveTo(px, pz); g.lineTo(tx, tz); g.stroke();
+      g.setLineDash([]); g.fillStyle = '#ffcf40'; g.strokeStyle = '#000'; g.lineWidth = 1; g.beginPath();
+      for (let i = 0; i < 10; i++) { const r = (i % 2 ? 2.2 : 5.5) * k, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(tx + Math.cos(a) * r, tz + Math.sin(a) * r); }
+      g.closePath(); g.fill(); g.stroke(); g.restore();
+    }
+    g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k, k);
+    g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
+  }
+  return { show, hide, draw, get open() { return open; } };
+})();
 function questTarget() {
   if (typeof Quests !== 'undefined') return inTower(P.z) ? null : Quests.target();
   const q = QUESTS[P.quest]; if (!q || inTower(P.z)) return null;
@@ -2329,7 +2381,7 @@ function loop(now) {
   if (running) {
     update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
-    updateLabels(); updateHUD(); drawBeat(); drawMinimap();
+    updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {
     // vitrine na tela de título
     time += dt; const ph = time % 4;

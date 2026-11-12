@@ -450,3 +450,14 @@ body.walking #quest .qi.focus::before { content: '🚶 '; }
 .icell { position: relative; }
 .icell .better { position: absolute; top: 1px; left: 3px; color: #6ee07a; font-style: normal; font-size: 12px; font-weight: 900; text-shadow: 0 1px 2px #000; }
 @media (max-height: 470px) { .cmp { font-size: 10.5px; } .cmp td, .cmp th { padding: 1px 8px 1px 0; } }
+
+/* mapa grande: toque no minimapa */
+#mapbox #minimap { pointer-events: auto; cursor: pointer; }
+#bigmap { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(6,4,12,.72); pointer-events: auto; }
+#bigmap.hidden { display: none; }
+#bigmap .bm-in { background: #16121e; border: 1px solid rgba(242,200,106,.55); border-radius: 12px; padding: 6px 10px 8px; box-shadow: 0 10px 40px rgba(0,0,0,.7); }
+#bigmap .bm-t { display: flex; align-items: center; justify-content: space-between; font: 800 14px Cinzel, serif; color: #f2c86a; margin-bottom: 4px; }
+#bigmap .bm-x { font-size: 18px; width: 36px; height: 30px; border-radius: 8px; border: 1px solid rgba(242,200,106,.6); background: rgba(242,200,106,.12); color: #f7e2a8; cursor: pointer; }
+#bigmap canvas { display: block; border-radius: 6px; border: 1px solid rgba(255,255,255,.15); }
+#bigmap .bm-leg { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; font: 700 10px Nunito, sans-serif; color: #d8cfb8; }
+#bigmap .bm-leg i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; vertical-align: middle; border: 1px solid #000; }
