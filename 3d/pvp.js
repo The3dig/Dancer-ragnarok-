@@ -72,7 +72,7 @@ const PvP = (() => {
         if (P.dead || safe(P.x, P.z)) continue;
         const dmg = Math.max(1, Math.round(h.d - stats.def() * 0.6));
         P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
-        floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp());
+        floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp()); breakCast();
         if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; diedTo(r, s); }
       }
       // alguém me matou? então eu venci: se a vítima era branca, viro PK

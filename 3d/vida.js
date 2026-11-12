@@ -21,6 +21,8 @@ const Vida = (() => {
     trigo: ['Trigo', '🌾', 9, 0, 'colheita'], cenoura: ['Cenoura', '🥕', 15, 0, 'colheita'], flor: ['Flor-da-Fonte', '🌸', 40, 0, 'colheita'],
     ovo: ['Ovo', '🥚', 8, 0, 'colheita'], la: ['Lã', '🧶', 20, 0, 'colheita'], leite: ['Leite', '🥛', 14, 0, 'colheita'],
     pao: ['Pão de Trigo', '🍞', 10, 0, 'comida', { heal: 0.3 }],
+    asa_mosca: ['Asa de Mosca', '🪰', 60, 300, 'tp', { use: 'tp' }],
+    asa_borboleta: ['Asa de Borboleta', '🦋', 200, 900, 'tp', { use: 'tp' }],
   };
   // ---------------- equipamentos (estilo Priston/Lineage): 8 espaços, raridade e conjuntos
   // mods: pow = dano (físico ou mágico, conforme o herói), def, hp, sp, crit, spd (velocidade)
@@ -629,6 +631,7 @@ const Vida = (() => {
   }
   function use(id) {
     if (ITEMS[id].use === 'pot') return usePotion(id);
+    if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
     if (!has(id)) return;
     add(id, -1); healP(stats.maxHp() * ITEMS[id].heal); Audio8.sfx('heal');
   }

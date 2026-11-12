@@ -1272,7 +1272,7 @@ function hurtPlayer(m, mult = 1) {
   if (Math.random() < stats.flee()) { floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
   const dmg = Math.max(1, Math.round(m.d.atk * mult * rand(0.85, 1.15) - stats.def()));
   P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
-  floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp());
+  floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp()); breakCast();
   if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; onDeath(); }
 }
 // aviso de evolução de classe: grande no topo quando aparece; depois do toque vira um quadrinho
@@ -1287,13 +1287,41 @@ function evoCard(dt) {
   }
   const c = Evo.card();
   if (!c) { el.classList.add('hidden'); return; }
-  const mini = P.evoMini === c.k;
+  const mini = c.k === 'hunt' || P.evoMini === c.k;
+  if (mini && !(P.ui && P.ui.evo)) { el.classList.add('hidden'); return; }
   const html = mini ? `<div class="wt">⭐ Evolução</div><div class="wb">${c.mini}<br><small>toque para ir</small></div>` : c.txt;
   if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; if (!mini && c.k !== 'hunt' && evoSeen !== c.txt) { evoSeen = c.txt; Audio8.sfx('buff'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); } }
   el.classList.toggle('mini', mini); el.classList.toggle('win', mini);
-  if (mini) { const k = $('kvx'), r = k && k.getBoundingClientRect(); if (r && r.height) { el.style.top = (r.bottom + 6) + 'px'; el.style.left = r.left + 'px'; el.style.width = r.width + 'px'; } }
+  if (mini) { const k = $('rail'), r = k && k.getBoundingClientRect(); if (r && r.height) { el.style.top = (r.bottom + 6) + 'px'; el.style.left = r.left + 'px'; el.style.width = '190px'; } }
   else { el.style.top = el.style.left = el.style.width = ''; }
   el.classList.remove('hidden');
+}
+// ---------------- barra de ícones (estilo Ragnarok): os quadros ficam fechados; bolinha vermelha avisa novidade
+let railT = 0;
+function railTick(dt) {
+  if ((railT -= dt) > 0) return; railT = 0.4;
+  P.ui = P.ui || { kvx: false, evo: false, quest: false };
+  let r = $('rail');
+  if (!r) {
+    r = document.createElement('div'); r.id = 'rail'; $('hud').appendChild(r);
+    r.innerHTML = '<button data-p="quest" title="Missões">📜<b></b></button><button data-p="evo" title="Evolução de classe">⭐<b></b></button><button data-p="kvx" title="Kravenox">☠️<b></b></button>';
+    r.addEventListener('pointerdown', e => { const b = e.target.closest('[data-p]'); if (!b) return; e.preventDefault(); e.stopPropagation(); Audio8.sfx('click');
+      const k = b.dataset.p; const was = P.ui[k]; P.ui.kvx = P.ui.evo = false; if (k !== 'quest') P.ui[k] = !was; else P.ui.quest = !P.ui.quest;
+      if (k === 'evo' && P.ui.evo && typeof Evo !== 'undefined') { const c = Evo.card(); if (c) P.evoMini = c.k; }
+      $('quest').dataset.h = ''; evoT = 0; railT = 0; });
+  }
+  const st = $('status').getBoundingClientRect();
+  r.style.top = (st.bottom + 6) + 'px'; r.style.left = st.left + 'px';
+  const set = (k, txt) => { const b = r.querySelector(`[data-p="${k}"]`); b.classList.toggle('on', !!P.ui[k]); const d = b.querySelector('b'); d.textContent = txt || ''; d.style.display = txt ? '' : 'none'; };
+  const ready = typeof Quests !== 'undefined' && Quests.readyCount ? Quests.readyCount() : 0;
+  set('quest', ready ? String(ready) : '');
+  const c = typeof Evo !== 'undefined' && Evo.card ? Evo.card() : null;
+  r.querySelector('[data-p="evo"]').style.display = c ? '' : 'none';
+  set('evo', c && c.k !== 'hunt' ? '!' : '');
+  const live = typeof Kvx !== 'undefined' && Kvx.active;
+  set('kvx', live ? '!' : '');
+  const kv = $('kvx');
+  if (kv) { const show = P.ui.kvx || live; kv.style.display = show ? '' : 'none'; if (show) { const rr = r.getBoundingClientRect(); kv.style.top = (rr.bottom + 6) + 'px'; kv.style.left = rr.left + 'px'; kv.style.transform = 'none'; kv.style.width = '190px'; } }
 }
 function hurtFlash(k) {
   let el = $('hurtfx'); if (!el) { el = document.createElement('div'); el.id = 'hurtfx'; document.body.appendChild(el); }
@@ -1945,7 +1973,8 @@ function updateHUD() {
   const q = QUESTS[P.quest];
   const qt = questTarget(), qd = qt ? Math.round(Math.hypot(qt.x - P.x, qt.z - P.z)) : 0;
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
-  const qh2 = (typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html() : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
+  const ui = P.ui || {};
+  const qh2 = (ui.quest && typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html(!ui.quest) : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
   if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
   if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('click', e => { if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
@@ -2094,6 +2123,43 @@ function drawMinimap() {
   mg.beginPath(); mg.moveTo(0, -6); mg.lineTo(4, 4); mg.lineTo(-4, 4); mg.closePath(); mg.fill(); mg.stroke();
   mg.restore();
 }
+// toque que funciona mesmo com outro dedo no joystick (o 'click' do iPhone falha com dois dedos)
+function tapOn(el, fn) { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); Audio8.init(); fn(); }); }
+// ---------------- Asas (estilo Ragnarok): Mosca = salto aleatório no mesmo mapa/andar; Borboleta = volta para a cidade (3 s, quebra se apanhar)
+function useWing(id) {
+  if (P.dead || dialogOpen) return;
+  if (!(P.inv[id] > 0)) { log(`Sem ${ITEMS[id].name}. O Mercador vende.`, 'bad'); return; }
+  const zn = zoneOf(P.x, P.z);
+  if (zn === 'casa') { log('Aqui dentro não dá para usar asas.', 'sys'); return; }
+  if (id === 'asa_mosca') {
+    let tx = null, tz = null;
+    if (inTower(P.z)) { const f = floorAt(P.x, P.z); for (let i = 0; i < 40 && f; i++) { const a = rand(0, TAU), r = rand(2, f.r - 3), x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r; if (!blocked(x, z)) { tx = x; tz = z; break; } } }
+    else for (let i = 0; i < 60; i++) { const a = rand(0, TAU), r = rand(15, 55), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if (Math.abs(x) < WX - 8 && Math.abs(z) < WZ - 8 && !blocked(x, z) && !isWater(x, z) && zoneOf(x, z) === zn) { tx = x; tz = z; break; } }
+    if (tx === null) { log('A Asa de Mosca não achou lugar para pousar. Tente de novo.', 'sys'); return; }
+    P.inv[id]--; burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x9ad0ff, 24, 3, 0.6);
+    P.x = tx; P.z = tz; P.y = groundY(tx, tz); P.vy = 0; camS.x = P.x; camS.z = P.z;
+    Audio8.sfx('warp'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x9ad0ff, 24, 3, 0.6); if (typeof autoStop === 'function') autoStop('');
+    buildHotbar(); return;
+  }
+  if (P.wingT > 0) return;
+  P.wingT = 3; P.wingMax = 3; Audio8.sfx('buff'); log('🦋 Asa de Borboleta: conjurando… não leve golpes por 3 segundos!', 'sys');
+}
+function wingTick(dt) {
+  let bar = $('castbar');
+  if (!(P.wingT > 0)) { if (bar) bar.classList.add('hidden'); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'castbar'; bar.innerHTML = '<span>🦋 Voltando para a cidade…</span><i><b></b></i>'; $('hud').appendChild(bar); }
+  bar.classList.remove('hidden'); P.wingT -= dt; bar.querySelector('b').style.width = Math.min(100, (1 - P.wingT / P.wingMax) * 100) + '%';
+  if (Math.random() < 0.3) burst(new THREE.Vector3(P.x + rand(-0.6, 0.6), P.y + rand(0.2, 1.8), P.z + rand(-0.6, 0.6)), 0xffc0f0, 1, 1, 0.6);
+  if (P.wingT <= 0) {
+    P.wingT = 0; if (!(P.inv.asa_borboleta > 0) || P.dead) return;
+    P.inv.asa_borboleta--;
+    const h = P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : { x: VIL.x, z: VIL.z + 10 };
+    P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z); P.vy = 0; camS.x = P.x; camS.z = P.z;
+    Audio8.sfx('warp'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffc0f0, 40, 4, 0.9); log('🦋 Você voltou para a cidade.', 'gold');
+    if (typeof autoStop === 'function') autoStop(''); buildHotbar();
+  }
+}
+function breakCast() { if (P.wingT > 0) { P.wingT = 0; log('🦋 A conjuração da Asa de Borboleta foi interrompida!', 'bad'); Audio8.sfx('miss'); } }
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = '';
   SKILLS.forEach((s, i) => {
@@ -2102,12 +2168,13 @@ function buildHotbar() {
     el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP)\n${s.desc}`;
     const lv = P.skillLv[s.id] || 0;
     el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span>${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
-    el.onclick = () => useSkill(i); hb.appendChild(el);
+    tapOn(el, () => useSkill(i)); hb.appendChild(el);
   });
-  [['red', 'Q', '🧪'], ['blue', 'E', '💧']].forEach(([id, k, ic]) => {
+  [['red', 'Q', '🧪'], ['blue', 'E', '💧'], ['asa_mosca', 'R', '🪰'], ['asa_borboleta', 'T', '🦋']].forEach(([id, k, ic]) => {
+    if (id.startsWith('asa') && !(P.inv[id] > 0)) return;            // asas só aparecem quando você tem
     const el = document.createElement('div'); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
     el.innerHTML = `<span class="ic">${ic}</span><span class="k">${k}</span><span class="cost">x${P.inv[id] || 0}</span>`;
-    el.onclick = () => usePotion(id); hb.appendChild(el);
+    tapOn(el, () => id.startsWith('asa') ? useWing(id) : usePotion(id)); hb.appendChild(el);
   });
 }
 function renderStats() {
@@ -2226,6 +2293,8 @@ function talkBase(n) {
         { label: `🧪 Poção Vermelha — 25 cr`, fn: () => { buy('red', 1); shop(); return true; } },
         { label: `🧪×10 — 250 cr`, fn: () => { buy('red', 10); shop(); return true; } },
         { label: `💧 Poção Azul — 90 cr`, fn: () => { buy('blue', 1); shop(); return true; } },
+        { label: `🪰 Asa de Mosca — 300 cr (salto no mesmo mapa) · tem ${P.inv.asa_mosca || 0}`, fn: () => { buy('asa_mosca', 1); shop(); return true; } },
+        { label: `🦋 Asa de Borboleta — 900 cr (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { buy('asa_borboleta', 1); shop(); return true; } },
         { label: '⚔️ Equipamentos', fn: () => { Vida.gearShop(); return true; } },
         { label: '💰 Vender materiais e colheita', fn: () => { Vida.sellAll(); shop(); return true; } },
         { label: 'Sair' }]);
@@ -2275,7 +2344,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   const si = SKILLS.findIndex(s => s.key === k); if (si >= 0 && tierOk(SKILLS[si])) useSkill(si);
   if (k === 'j' || k === 'k') attack();
-  if (k === 'q') usePotion('red'); if (k === 'e') usePotion('blue');
+  if (k === 'q') usePotion('red'); if (k === 'e') usePotion('blue'); if (k === 'r') useWing('asa_mosca'); if (k === 't') useWing('asa_borboleta');
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
@@ -2348,7 +2417,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'evoMini', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'evoMini', 'ui', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2470,7 +2539,7 @@ function loop(now) {
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

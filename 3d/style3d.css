@@ -492,3 +492,17 @@ body.walking #quest .qi.focus::before { content: '🚶 '; }
 #evocard.mini .wb { padding: 4px 8px 6px; line-height: 1.3; }
 #evocard.mini small { opacity: .6; }
 body.touch #evocard.mini { font-size: 9px; } body.touch #evocard.mini .wt { font-size: 9px; padding: 2px 6px; } body.touch #evocard.mini .wb { padding: 3px 6px 4px; }
+
+/* barra de ícones com bolinhas (estilo Ragnarok) */
+#rail { position: absolute; display: flex; gap: 6px; z-index: 5; pointer-events: auto; }
+#rail button { position: relative; width: 38px; height: 38px; border-radius: 10px; font-size: 19px; line-height: 1; padding: 0; background: rgba(18,12,28,.82); border: 1px solid rgba(242,200,106,.45); color: #fff; }
+#rail button.on { background: rgba(242,200,106,.28); border-color: #f2c86a; }
+#rail button b { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: #d0302a; color: #fff; font: 800 10px/16px Nunito, sans-serif; padding: 0 3px; box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+body.touch #rail button { width: 32px; height: 32px; font-size: 16px; }
+#kvx { transform-origin: top left; }
+body.touch #kvx { font-size: 10px; }
+/* conjuração da Asa de Borboleta */
+#castbar { position: absolute; left: 50%; bottom: calc(118px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: 220px; text-align: center; font: 800 11px Nunito, sans-serif; color: #ffd8f4; text-shadow: 0 1px 2px #000; pointer-events: none; z-index: 8; }
+#castbar i { display: block; height: 8px; margin-top: 3px; border-radius: 4px; background: rgba(0,0,0,.6); border: 1px solid #ffc0f0; overflow: hidden; }
+#castbar b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff9ae0, #fff); }
+#castbar.hidden { display: none; }
