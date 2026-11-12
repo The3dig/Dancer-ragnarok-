@@ -2026,8 +2026,10 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
 }
 // ---------------------------------------------------------------- mapa grande (toque no minimapa)
 const BigMap = (() => {
-  let open = false, base = null, box = null, cv = null, g = null;
+  let open = false, base = null, box = null, cv = null, g = null, view = null;   // view: null = reino inteiro; senão a cidade aberta
   const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma'], [RUIN, 'Ruínas']];
+  const CITIES = [{ c: VIL, z: 'solmira', n: 'Vila de Solmira', R: 32 }, { c: OAS, z: 'kharum', n: 'Oásis de Kharum', R: 36 }, { c: CIT, z: 'cidadela', n: 'Cidadela do Cisma', R: 34 }, { c: FARM, z: 'sitio', n: 'Sítio de Solmira', R: 24 }];
+  const ICON = { master: '📘', healer: '✚', shop: '🛒', guard: '🛡️', watch: '👁️', elder: '🧓', farm: '🌾', smith: '⚒️', warp: '🧭' };
   function build() {
     if (base) return;
     const W = WX * 2, H = WZ * 2; base = document.createElement('canvas'); base.width = W; base.height = H;
@@ -2039,41 +2041,77 @@ const BigMap = (() => {
     }
     x.putImageData(img, 0, 0);
   }
-  function show() {
+  // área mostrada (em coordenadas do mundo)
+  const area = () => view ? { x0: view.c.x - view.R * 1.6, z0: view.c.z - view.R, w: view.R * 3.2, h: view.R * 2 } : { x0: -WX, z0: -WZ, w: WX * 2, h: WZ * 2 };
+  const npcsOf = v => NPCS.filter(n => !n.hidden && Math.hypot(n.x - v.c.x, n.z - v.c.z) < v.R * 1.5);
+  function show(city) {
     if (inTower(P.z)) { log('Dentro da Torre o mapa grande não funciona.', 'sys'); return; }
     build();
     if (!box) {
-      box = document.createElement('div'); box.id = 'bigmap'; box.innerHTML = '<div class="bm-in"><div class="bm-t">🗺️ Mapa do Reino<button class="bm-x" title="Fechar">✕</button></div><canvas></canvas><div class="bm-leg"><span><i style="background:#fff"></i>você</span><span><i style="background:#ffcf40"></i>NPC / cidade</span><span><i style="background:#ff8080"></i>monstro</span><span><i style="background:#ffcf40;border-radius:50%"></i>Alfa</span><span><i style="background:#ff3030"></i>chefe</span><span><i style="background:#6ab0ff"></i>jogador</span><span>⭐ missão</span></div></div>';
+      box = document.createElement('div'); box.id = 'bigmap';
+      box.innerHTML = '<div class="bm-in"><div class="bm-t"><button class="bm-back">← Reino</button><span class="bm-n">🗺️ Mapa do Reino</span><button class="bm-x" title="Fechar">✕</button></div><div class="bm-body"><canvas></canvas><div class="bm-list"></div></div><div class="bm-leg"></div></div>';
       $('hud').appendChild(box); cv = box.querySelector('canvas'); g = cv.getContext('2d');
-      box.addEventListener('click', e => { if (e.target.closest('.bm-x') || e.target === box) { Audio8.sfx('click'); hide(); } });
+      box.addEventListener('click', e => {
+        if (e.target.closest('.bm-x') || e.target === box) { Audio8.sfx('click'); hide(); return; }
+        if (e.target.closest('.bm-back')) { Audio8.sfx('click'); show(null); return; }
+        const it = e.target.closest('[data-npc]'); if (it) { const n = NPCS[+it.dataset.npc]; go(n.x, n.z, n.name); return; }
+      });
+      cv.addEventListener('click', e => {
+        const r = cv.getBoundingClientRect(), A = area(), wx = A.x0 + (e.clientX - r.left) / r.width * A.w, wz = A.z0 + (e.clientY - r.top) / r.height * A.h;
+        if (!view) { const c = CITIES.find(c => Math.hypot(wx - c.c.x, wz - c.c.z) < 14); if (c) { Audio8.sfx('click'); show(c); return; } }
+        if (view) { const n = npcsOf(view).find(n => Math.hypot(n.x - wx, n.z - wz) < 2.5); if (n) { go(n.x, n.z, n.name); return; } }
+        if (blocked(wx, wz) && !inTower(wz)) { let ok = false; for (let i = 1; i < 8 && !ok; i++) for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, x = wx + Math.cos(a) * i, z = wz + Math.sin(a) * i; if (!blocked(x, z)) { go(x, z, 'o ponto marcado'); ok = true; break; } } if (!ok) log('Não dá para chegar aí.', 'bad'); return; }
+        go(wx, wz, 'o ponto marcado');
+      });
     }
-    const r = Math.min((innerWidth - 40) / (WX * 2), (innerHeight - 90) / (WZ * 2));
-    cv.width = Math.round(WX * 2 * Math.min(2, r) * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * WZ / WX);
-    cv.style.width = Math.round(WX * 2 * r) + 'px'; cv.style.height = Math.round(WZ * 2 * r) + 'px';
+    view = city || null;
+    box.querySelector('.bm-back').style.display = view ? '' : 'none';
+    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : '🗺️ Mapa do Reino';
+    const list = box.querySelector('.bm-list');
+    if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
+    else list.style.display = 'none';
+    box.querySelector('.bm-leg').innerHTML = view ? '<span>Toque num morador (lista ou mapa) e o personagem vai sozinho até ele.</span>' : '<span>👆 toque num ponto: o personagem vai sozinho · toque numa cidade: abre o mapa dela</span><span><i style="background:#ffcf40"></i>NPC</span><span><i style="background:#ff8080"></i>monstro</span><span><i style="background:#ff3030"></i>chefe</span><span><i style="background:#6ab0ff"></i>jogador</span>';
+    const A = area(), listW = view ? Math.min(220, innerWidth * 0.3) : 0;
+    const r = Math.min((innerWidth - 40 - listW) / A.w, (innerHeight - 100) / A.h);
+    cv.width = Math.round(A.w * r * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * A.h / A.w);
+    cv.style.width = Math.round(A.w * r) + 'px'; cv.style.height = Math.round(A.h * r) + 'px';
     box.classList.remove('hidden'); open = true; draw();
+  }
+  function go(x, z, name) {
+    Audio8.sfx('click'); hide();
+    P.qGo = { x, z, name }; log(`🧭 Indo até <b>${name}</b>. Mexa o joystick para parar.`, 'sys');
+    if (typeof autoStart === 'function') autoStart(); $('quest').dataset.h = '';
   }
   function hide() { if (box) box.classList.add('hidden'); open = false; }
   function draw() {
     if (!open) return;
-    const k = cv.width / (WX * 2), X = x => (x + WX) * k, Z = z => (z + WZ) * k;
-    g.imageSmoothingEnabled = true; g.drawImage(base, 0, 0, cv.width, cv.height);
-    g.textAlign = 'center'; g.font = `800 ${Math.round(9 * k)}px Nunito, sans-serif`;
-    for (const [p, n] of PLACES) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
-    for (const m of mobs) { const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k; g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); if (m.d.boss || m.d.alfa) { g.strokeStyle = '#000'; g.lineWidth = 1; g.stroke(); } }
-    for (const n of NPCS) { if (n.hidden) continue; g.fillStyle = '#ffcf40'; g.fillRect(X(n.x) - 1.5 * k, Z(n.z) - 1.5 * k, 3 * k, 3 * k); }
-    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k, 0, TAU); g.fill(); g.font = `700 ${Math.round(6 * k)}px Nunito, sans-serif`; g.fillText(r.n || '', X(r.x), Z(r.z) - 4 * k); }
+    const A = area(), k = cv.width / A.w, X = x => (x - A.x0) * k, Z = z => (z - A.z0) * k, u = view ? 3 : 1;
+    g.imageSmoothingEnabled = true; g.drawImage(base, A.x0 + WX, A.z0 + WZ, A.w, A.h, 0, 0, cv.width, cv.height);
+    g.textAlign = 'center';
+    if (!view) {
+      g.font = `800 ${Math.round(9 * k)}px Nunito, sans-serif`;
+      for (const [p, n] of PLACES) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
+      for (const c of CITIES) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
+    }
+    for (const m of mobs) { if (m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue; const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k / u * (view ? 1.6 : 1); g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); }
+    for (const n of NPCS) {
+      if (n.hidden) continue;
+      if (view) { const x = X(n.x), z = Z(n.z); g.font = `${Math.round(13 * k / 2.2)}px sans-serif`; g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.arc(x, z, 7 * k / 2.2, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.fillText(ICON[n.id] || '•', x, z + 4 * k / 2.2); }
+      else { g.fillStyle = '#ffcf40'; g.fillRect(X(n.x) - 1.5 * k, Z(n.z) - 1.5 * k, 3 * k, 3 * k); }
+    }
+    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k / u, 0, TAU); g.fill(); }
     const qt = questTarget(), px = X(P.x), pz = Z(P.z);
     if (qt) {
-      const tx = X(qt.x), tz = Z(qt.z);
-      g.save(); g.setLineDash([4 * k, 3 * k]); g.strokeStyle = 'rgba(255,207,64,.9)'; g.lineWidth = 1.5 * k; g.beginPath(); g.moveTo(px, pz); g.lineTo(tx, tz); g.stroke();
+      const tx = X(qt.x), tz = Z(qt.z), q = k / u;
+      g.save(); g.setLineDash([4 * q, 3 * q]); g.strokeStyle = 'rgba(255,207,64,.9)'; g.lineWidth = 1.5 * q; g.beginPath(); g.moveTo(px, pz); g.lineTo(tx, tz); g.stroke();
       g.setLineDash([]); g.fillStyle = '#ffcf40'; g.strokeStyle = '#000'; g.lineWidth = 1; g.beginPath();
-      for (let i = 0; i < 10; i++) { const r = (i % 2 ? 2.2 : 5.5) * k, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(tx + Math.cos(a) * r, tz + Math.sin(a) * r); }
+      for (let i = 0; i < 10; i++) { const r = (i % 2 ? 2.2 : 5.5) * q, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(tx + Math.cos(a) * r, tz + Math.sin(a) * r); }
       g.closePath(); g.fill(); g.stroke(); g.restore();
     }
-    g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k, k);
+    g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k / u * (view ? 1.8 : 1), k / u * (view ? 1.8 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
-  return { show, hide, draw, get open() { return open; } };
+  return { show: () => show(null), hide, draw, get open() { return open; } };
 })();
 function questTarget() {
   if (typeof Quests !== 'undefined') return inTower(P.z) ? null : Quests.target();

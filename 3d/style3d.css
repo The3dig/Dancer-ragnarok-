@@ -515,3 +515,12 @@ body.touch #kvx { font-size: 10px; }
 #bauwin .igrid { max-height: 140px; } #bauwin .idet { padding: 0 8px; } #bauwin .foot { padding: 4px 8px; }
 .bau-n { padding: 0 10px 6px; opacity: .6; font-size: 10.5px; }
 @media (max-height: 470px) { #bauwin .igrid { max-height: 92px; } }
+
+#bigmap .bm-back { font: 800 12px Nunito, sans-serif; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(242,200,106,.6); background: rgba(242,200,106,.12); color: #f7e2a8; }
+#bigmap .bm-n { flex: 1; text-align: center; }
+#bigmap .bm-body { display: flex; gap: 8px; align-items: flex-start; }
+#bigmap canvas { cursor: crosshair; }
+#bigmap .bm-list { width: min(220px, 30vw); max-height: calc(100vh - 110px); overflow-y: auto; font: 700 12px Nunito, sans-serif; color: #e8e0cc; }
+#bigmap .bm-list h4 { margin: 0 0 4px; color: #f2c86a; font-size: 12px; }
+#bigmap .bm-npc { display: flex; align-items: center; gap: 6px; padding: 5px 6px; margin-bottom: 4px; border-radius: 8px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); cursor: pointer; }
+#bigmap .bm-npc b { flex: 1; font-weight: 700; } #bigmap .bm-npc em { font-style: normal; color: #ffcf40; font-size: 11px; }
