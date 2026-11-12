@@ -324,5 +324,5 @@ const VFX = (() => {
     try { renderer.compile(scene, camera); } catch (e) { }
     scene.remove(g);
   }
-  return { warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
+  return { particle, T, warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
 })();

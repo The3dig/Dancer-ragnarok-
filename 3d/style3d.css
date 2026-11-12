@@ -463,3 +463,24 @@ body.walking #quest .qi.focus::before { content: '🚶 '; }
 #bigmap .bm-leg i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; vertical-align: middle; border: 1px solid #000; }
 
 #hurtfx { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity .25s ease-out; box-shadow: inset 0 0 120px 40px rgba(200,0,0,.75); }
+
+/* aviso de evolução de classe */
+#evocard { position: absolute; top: calc(66px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); max-width: min(520px, 60vw); padding: 7px 14px; border-radius: 10px; cursor: pointer; pointer-events: auto; z-index: 7;
+  background: linear-gradient(90deg, rgba(60,20,90,.92), rgba(30,14,46,.92)); border: 1px solid #c890ff; color: #f2e6ff; font: 700 12px Nunito, sans-serif; text-align: center; box-shadow: 0 0 18px rgba(170,90,255,.45); }
+#evocard.hidden { display: none; }
+#evocard.pulse { animation: evoPulse 1.4s ease 3; }
+@keyframes evoPulse { 50% { transform: translateX(-50%) scale(1.07); box-shadow: 0 0 34px rgba(200,130,255,.9); } }
+/* loja de visuais */
+#coswin { position: absolute; left: 50%; top: calc(52px + env(safe-area-inset-top)); transform: translateX(-50%); width: min(640px, 92vw); max-height: calc(100% - 60px); display: flex; flex-direction: column; z-index: 6; font-size: 12px; }
+#coswin .wt { display: flex; align-items: center; gap: 6px; } #coswin .x { margin-left: auto; cursor: pointer; font-size: 20px; padding: 0 6px; }
+.cs-tabs { display: flex; gap: 4px; padding: 6px 8px 0; flex-wrap: wrap; }
+.cs-tab { padding: 4px 9px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); font-weight: 700; }
+.cs-tab.on { background: rgba(242,200,106,.2); border-color: rgba(242,200,106,.7); }
+.cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; padding: 8px; overflow-y: auto; }
+.cs-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); text-align: center; }
+.cs-card.on { border-color: #7dffb0; box-shadow: 0 0 10px rgba(125,255,176,.3) inset; }
+.cs-prev { height: 34px; display: flex; align-items: center; justify-content: center; } .cs-ic { font-size: 28px; }
+.cs-card button { font-size: 11px; padding: 3px 8px; } .cs-card button.off { opacity: .5; }
+.cs-note { padding: 0 10px 8px; opacity: .65; font-size: 10.5px; }
+#pname small { display: block; font-size: .7em; opacity: .85; }
+@media (max-height: 470px) { #evocard { font-size: 10.5px; padding: 4px 10px; top: calc(56px + env(safe-area-inset-top)); max-width: 46vw; } }

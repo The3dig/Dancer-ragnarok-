@@ -1272,6 +1272,20 @@ function hurtPlayer(m, mult = 1) {
   floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp());
   if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; onDeath(); }
 }
+// aviso clicável de evolução de classe (aparece sozinho quando chega o nível)
+let evoT = 0, evoSeen = '';
+function evoCard(dt) {
+  if ((evoT -= dt) > 0 || typeof Evo === 'undefined' || !Evo.card) return; evoT = 0.5;
+  let el = $('evocard');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'evocard'; $('hud').appendChild(el);
+    el.addEventListener('click', () => { const t = Evo.target(); if (!t) return; Audio8.sfx('click'); P.qGo = { ...t }; log(`🧭 A seta leva até <b>${t.name}</b>.`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) autoStart(); $('quest').dataset.h = ''; });
+  }
+  const c = Evo.card();
+  if (!c) { el.classList.add('hidden'); return; }
+  if (el.dataset.h !== c.txt) { el.innerHTML = c.txt; el.dataset.h = c.txt; if (c.k === 'go' && evoSeen !== c.txt) { evoSeen = c.txt; Audio8.sfx('buff'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); } }
+  el.classList.remove('hidden');
+}
 function hurtFlash(k) {
   let el = $('hurtfx'); if (!el) { el = document.createElement('div'); el.id = 'hurtfx'; document.body.appendChild(el); }
   el.style.opacity = Math.min(0.85, 0.35 + k * 3); clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = 0; }, 90);
@@ -2315,7 +2329,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'qGo', 'grave', 'graves', 'casa', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'qGo', 'grave', 'graves', 'casa', 'cos', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2348,7 +2362,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); buildGraves(); Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); buildGraves(); Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
@@ -2437,7 +2451,7 @@ function loop(now) {
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); evoCard(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

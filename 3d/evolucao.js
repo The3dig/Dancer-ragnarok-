@@ -55,5 +55,21 @@ const Evo = (() => {
     log(`🌟 <b>${P.name}</b> evoluiu para <b>${names[t]}</b>! +5 pontos de atributo, +2 de habilidade e 2 habilidades novas na árvore (📜).`, 'gold');
     save();
   }
-  return { onKill, html, mark, talk, get active() { return !!P.evo; } };
+  // aviso clicável na tela: evolução disponível / provação em andamento / pronta para entregar
+  function card() {
+    const t = next(), q = Q[t]; if (!q) return null;
+    const names = TIERS[P.cls] || [], cl = `${t + 1}ª classe: ${names[t] || ''}`;
+    if (!P.evo) return P.lv >= q.lv ? { txt: `⭐ Você pode evoluir para a <b>${cl}</b>! Toque para ir até o Vigia Morvan`, k: 'go' } : null;
+    if (done()) return { txt: `✨ Provação completa! Toque para voltar ao Vigia Morvan e virar <b>${names[t]}</b>`, k: 'go' };
+    const r = q.need.find(r => prog(r) < r.n);
+    return { txt: `⚔️ ${q.title}: ${r.txt} <b>${prog(r)}/${r.n}</b> · toque para ir`, k: 'hunt', r };
+  }
+  function target() {
+    const c = card(); if (!c) return null;
+    if (c.k === 'go') { const n = NPCS.find(n => n.id === 'watch'); return { x: n.x, z: n.z, name: 'Vigia Morvan' }; }
+    const r = c.r;
+    if (r.kill === 'guardiao') return { x: RUIN.x, z: RUIN.z + 6, name: 'Ruínas das Areias' };
+    return { x: Tower.door.x, z: Tower.door.z, name: 'Torre do Cisma' };
+  }
+  return { card, target, onKill, html, mark, talk, get active() { return !!P.evo; } };
 })();
