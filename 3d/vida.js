@@ -589,7 +589,7 @@ const Vida = (() => {
     } else if (sel && P.inv[sel] > 0) {
       const I = ITEMS[sel], btns = [];
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
-      if (I.use || I.heal) btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`);
+      if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = (P.hot || ['red', 'blue']).includes(sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
       let extra = '';
       if (I.kind === 'carta') {
         const ok = Object.keys(SLOTS).filter(sl => P.equip[sl] && (sl === I.cslot || (I.cslot === 'anel' && sl.startsWith('anel'))));
@@ -616,6 +616,12 @@ const Vida = (() => {
     if (a === 'close') return closeInv();
     if (a === 'sel') sel = sel === v ? null : v;
     if (a === 'unsel') sel = null;
+    if (a === 'hot') {                                   // atalhos de itens: até 4 na barra
+      P.hot = P.hot || ['red', 'blue'];
+      if (P.hot.includes(v)) P.hot = P.hot.filter(x => x !== v);
+      else { if (P.hot.length >= 4) { log('A barra de atalhos de itens está cheia (4). Tire um primeiro.', 'bad'); Audio8.sfx('miss'); renderInv(); return; } P.hot.push(v); log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); }
+      buildHotbar();
+    }
     if (a === 'tab') { tab = v; sel = null; }
     if (a === 'eq') sel = 'eq:' + v;
     if (a === 'equip') { let sl = ITEMS[v].slot; P.equip = P.equip || {}; if (sl === 'anel') sl = !P.equip.anel1 ? 'anel1' : !P.equip.anel2 ? 'anel2' : 'anel1'; if (P.equip[sl]) add(P.equip[sl], 1); add(v, -1); P.equip[sl] = v; Audio8.sfx('buff'); log(`Equipou <b>${it(v).name}</b>.`, 'item'); sel = 'eq:' + sl; }
@@ -919,5 +925,5 @@ const Vida = (() => {
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

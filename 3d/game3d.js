@@ -2123,6 +2123,12 @@ function drawMinimap() {
   mg.beginPath(); mg.moveTo(0, -6); mg.lineTo(4, 4); mg.lineTo(-4, 4); mg.closePath(); mg.fill(); mg.stroke();
   mg.restore();
 }
+function useHot(id) {
+  if (!(P.inv[id] > 0)) { log(`Sem ${ITEMS[id].name}.`, 'bad'); return; }
+  if (ITEMS[id].use === 'tp') return useWing(id);
+  if (ITEMS[id].use === 'pot') return usePotion(id);
+  if (typeof Vida !== 'undefined' && Vida.use) { Vida.use(id); buildHotbar(); }
+}
 // toque que funciona mesmo com outro dedo no joystick (o 'click' do iPhone falha com dois dedos)
 function tapOn(el, fn) { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); Audio8.init(); fn(); }); }
 // ---------------- Asas (estilo Ragnarok): Mosca = salto aleatório no mesmo mapa/andar; Borboleta = volta para a cidade (3 s, quebra se apanhar)
@@ -2170,11 +2176,13 @@ function buildHotbar() {
     el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span>${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
     tapOn(el, () => useSkill(i)); hb.appendChild(el);
   });
-  [['red', 'Q', '🧪'], ['blue', 'E', '💧'], ['asa_mosca', 'R', '🪰'], ['asa_borboleta', 'T', '🦋']].forEach(([id, k, ic]) => {
-    if (id.startsWith('asa') && !(P.inv[id] > 0)) return;            // asas só aparecem quando você tem
+  // itens no atalho: escolhidos pela mochila (📌 Pôr no atalho), até 4
+  const KEYS = ['Q', 'E', 'R', 'T'];
+  (P.hot || ['red', 'blue']).filter(id => ITEMS[id]).slice(0, 4).forEach((id, j) => {
     const el = document.createElement('div'); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
-    el.innerHTML = `<span class="ic">${ic}</span><span class="k">${k}</span><span class="cost">x${P.inv[id] || 0}</span>`;
-    tapOn(el, () => id.startsWith('asa') ? useWing(id) : usePotion(id)); hb.appendChild(el);
+    el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span><span class="k">${KEYS[j]}</span><span class="cost">x${P.inv[id] || 0}</span>`;
+    if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
+    tapOn(el, () => useHot(id)); hb.appendChild(el);
   });
 }
 function renderStats() {
@@ -2344,7 +2352,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   const si = SKILLS.findIndex(s => s.key === k); if (si >= 0 && tierOk(SKILLS[si])) useSkill(si);
   if (k === 'j' || k === 'k') attack();
-  if (k === 'q') usePotion('red'); if (k === 'e') usePotion('blue'); if (k === 'r') useWing('asa_mosca'); if (k === 't') useWing('asa_borboleta');
+  { const hk = ['q', 'e', 'r', 't'].indexOf(k), hot = P.hot || ['red', 'blue']; if (hk >= 0 && hot[hk]) useHot(hot[hk]); }
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
@@ -2417,7 +2425,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'evoMini', 'ui', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
