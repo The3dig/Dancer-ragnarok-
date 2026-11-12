@@ -1130,6 +1130,7 @@ function ring(x, z, r, color, life = 0.5, y) {
   fx.push({ m, life, max: life, kind: 'ring', r });
 }
 function slash(color) {
+  if (typeof VFX !== 'undefined') return VFX.arc(color, false);
   const geo = new THREE.RingGeometry(1.0, 2.6, 24, 1, -Math.PI * 0.45, Math.PI * 0.9);
   geo.rotateX(-Math.PI / 2);
   const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, side: THREE.DoubleSide, depthWrite: false, opacity: 0.8 }));
@@ -1363,23 +1364,21 @@ function useSkill(i) {
   if (s.fury && typeof SpriteKit !== 'undefined' && SpriteKit.ready) SpriteKit.fx('fx_explosao', { x: P.x, y: P.y + 1, z: P.z, h: 3, life: 0.5, grow: 2 });
   switch (s.type) {
     case 'strike':
-      slash(s.color); Audio8.sfx('whip'); hitOne(tgt, base);
+      VFX.strike(s, tgt); Audio8.sfx('whip'); hitOne(tgt, base);
       if (s.heal) healP(stats.maxHp() * s.heal);
       if (s.plunder) tgt.plundered = time;
       if (s.steal) { const z = irand(5, 12) + tgt.d.lv * 2; P.zeny += z; Audio8.sfx('coin'); floater(P.x, P.y + 2, P.z, `+${z} cr`, 'zeny'); }
       break;
     case 'nova':
       Audio8.sfx(s.mult >= 3 ? 'boom' : 'skill');
-      ring(P.x, P.z, s.r, s.color, 0.5); ring(P.x, P.z, s.r * 0.65, 0xffffff, 0.35); burst(center, s.color, 30, s.r * 1.2, 0.8);
+      VFX.nova(s);
       nearAt(P.x, P.z, s.r).forEach(m => hitOne(m, base));
       if (s.heal) healP(stats.maxHp() * s.heal);
       if (s.regen) addBuff(s.id + '_regen', s.regen, { regen: 0.03 }, '💚');
       break;
     case 'blast': {
       const x = tgt.x, z = tgt.z, gy = groundY(x, z);
-      Audio8.sfx('boom'); ring(x, z, s.r, s.color, 0.6); ring(x, z, s.r * 0.5, 0xffffff, 0.4);
-      burst(new THREE.Vector3(x, gy + 1, z), s.color, 36, s.r * 1.3, 1);
-      for (let j = 0; j < 8; j++) burst(new THREE.Vector3(x + rand(-s.r, s.r) * 0.7, gy + 4, z + rand(-s.r, s.r) * 0.7), s.color, 2, 1, 0.5);
+      Audio8.sfx('boom'); VFX.blast(s, tgt);
       nearAt(x, z, s.r).forEach(m => hitOne(m, base));
       break;
     }
@@ -1387,39 +1386,39 @@ function useSkill(i) {
       Audio8.sfx('skill');
       if (instant) { hitOne(tgt, base); break; }
       const list = s.spread ? nearestN(range, s.shots) : Array(s.shots || 1).fill(tgt);
-      list.forEach((t, j) => setTimeout(() => { if (!P.dead && !t.dead) shoot(handPos(), t, s.color, s.big, m => hitOne(m, base)); }, j * 130));
+      list.forEach((t, j) => setTimeout(() => { if (!P.dead && !t.dead) VFX.shoot(s, handPos(), t, m => hitOne(m, base)); }, j * 130));
       break;
     }
     case 'drain':
       Audio8.sfx('skill');
-      shoot(handPos(), tgt, s.color, true, m => { const d = dmgMob(m, base, crit(), true, s.color); healP(d * s.steal); });
+      VFX.shoot(s, handPos(), tgt, m => { const d = dmgMob(m, base, crit(), true, s.color); healP(d * s.steal); VFX.drain(s, m); });
       break;
     case 'step': {
       const a = Math.atan2(tgt.x - P.x, tgt.z - P.z);
       const nx = tgt.x + Math.sin(a) * 1.3, nz = tgt.z + Math.cos(a) * 1.3;
-      burst(center, s.color, 20, 3, 0.5);
+      const x0 = P.x, z0 = P.z;
       if (!blocked(nx, nz)) { P.x = nx; P.z = nz; P.y = groundY(nx, nz); }
-      P.face = a + Math.PI; Audio8.sfx('whip'); slash(s.color);
-      burst(new THREE.Vector3(P.x, P.y + 1, P.z), s.color, 20, 3, 0.5);
+      P.face = a + Math.PI; Audio8.sfx('whip'); VFX.dash(s, x0, z0);
       dmgMob(tgt, base, true, false, s.color);
       break;
     }
     case 'charge': {
       const a = Math.atan2(tgt.x - P.x, tgt.z - P.z), d = Math.hypot(tgt.x - P.x, tgt.z - P.z) - 1.4;
-      for (let t = 0; t < d; t += 0.7) { const x = P.x + Math.sin(a) * t, z = P.z + Math.cos(a) * t; if (blocked(x, z)) break; burst(new THREE.Vector3(x, groundY(x, z) + 0.4, z), s.color, 2, 1.5, 0.4); P.x = x; P.z = z; }
-      P.y = groundY(P.x, P.z); Audio8.sfx('boom'); ring(tgt.x, tgt.z, 2.5, s.color, 0.4); hitOne(tgt, base);
+      const x0 = P.x, z0 = P.z, sx = P.x, sz = P.z;
+      for (let t = 0; t < d; t += 0.7) { const x = sx + Math.sin(a) * t, z = sz + Math.cos(a) * t; if (blocked(x, z)) break; P.x = x; P.z = z; }
+      P.y = groundY(P.x, P.z); Audio8.sfx('boom'); VFX.dash(s, x0, z0); VFX.wave(tgt.x, tgt.z, 2.8, s.color, 0.45); VFX.flash(new THREE.Vector3(tgt.x, groundY(tgt.x, tgt.z) + 1, tgt.z), s.color, 3); hitOne(tgt, base);
       break;
     }
     case 'buff':
-      addBuff(s.id, s.dur, s.mods, s.icon); Audio8.sfx('buff'); burst(center, s.color, 30, 5, 0.9); ring(P.x, P.z, 2.5, s.color, 0.6);
+      addBuff(s.id, s.dur, s.mods, s.icon); Audio8.sfx('buff'); VFX.buff(s);
       if (s.heal) healP(stats.maxHp() * s.heal);
       log(`${s.icon} <b>${s.name}</b> ativo por ${s.dur}s.`, 'gold');
       break;
     case 'heal':
-      Audio8.sfx('heal'); healP(stats.maxHp() * s.pct); ring(P.x, P.z, 2.5, s.color, 0.8); burst(center, s.color, 25, 3, 1.2);
+      Audio8.sfx('heal'); healP(stats.maxHp() * s.pct); VFX.heal(s);
       break;
     case 'summon':
-      Audio8.sfx('skill'); summon(s.minion, s.life);
+      Audio8.sfx('skill'); VFX.summon(s); summon(s.minion, s.life);
       break;
   }
 }
@@ -2379,7 +2378,7 @@ function loop(now) {
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {
