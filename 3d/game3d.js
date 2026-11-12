@@ -1226,6 +1226,7 @@ function killMob(m) {
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
   if (typeof Quests !== 'undefined') Quests.onKill(m);
+  if (typeof Chefes !== 'undefined') Chefes.onKill(m);
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
@@ -2174,6 +2175,7 @@ function showHelp() {
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
   ⚒️ <b>Ferreiro Doran</b> (praça de Solmira): refino +1 a +7 (nunca quebra) e forja com materiais.<br>
+  👹 <b>Chefes de campo:</b> a cada ~12 min um chefe forte aparece no mapa (ponto vermelho grande). Agora: ${typeof Chefes !== 'undefined' ? Chefes.status() : '—'}.<br>
   🧭 <b>Viagem rápida:</b> nos Quadros de Caça, para cidades já visitadas (50 cr).<br>
   🌾 <b>Sítio:</b> a oeste da vila: plante, regue, crie animais e faça a encomenda do dia da Fazendeira.`;
   if (TOUCH) return dialog('📜 Como jogar', `
@@ -2322,7 +2324,7 @@ function loop(now) {
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') Chefes.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {

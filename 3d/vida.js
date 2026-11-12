@@ -766,7 +766,8 @@ const Vida = (() => {
 
   // ---------------------------------------------------------------- bestiário: onde fica cada monstro e o que ele solta
   const REGION = { pompom: 'Campos Dourados', zunzum: 'Campos Dourados', fungolino: 'Campos Dourados', besouro: 'Areias Rubras', serpe: 'Areias Rubras',
-    guardiao: 'Ruínas das Areias (chefe)', larva: 'Torre do Cisma', verme: 'Torre do Cisma', esfera: 'Torre do Cisma', sentinela: 'Torre do Cisma', kravenox: 'Topo da Torre · sábado 20h (chefe mundial)' };
+    guardiao: 'Ruínas das Areias (chefe)', larva: 'Torre do Cisma', verme: 'Torre do Cisma', esfera: 'Torre do Cisma', sentinela: 'Torre do Cisma', kravenox: 'Topo da Torre · sábado 20h (chefe mundial)',
+    larvaMae: 'Campos Dourados (chefe de campo)', raizPetra: 'Floresta a oeste (chefe de campo)', cristalizado: 'Areias Rubras (chefe de campo)', larvaFogo: 'Perto das ruínas (chefe de campo)' };
   function bestiary(sel) {
     let w = $('bestwin');
     if (!w) {
