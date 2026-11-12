@@ -92,3 +92,60 @@ const Chefes = (() => {
   }
   return { update, onKill, status, addDmg, BOSSES };
 })();
+
+// =====================================================================
+//  Monstros Alfa (chefes médios): versões maiores e mais fortes dos
+//  monstros comuns. De tempos em tempos um aparece perto de você, só
+//  para você: dá para vencer sozinho e solta equipamento e carta com
+//  muito mais chance. Os chefes de campo (acima) são os de grupo.
+// =====================================================================
+const Alfas = (() => {
+  const BASE = ['pompom', 'zunzum', 'fungolino', 'besouro', 'serpe'];
+  for (const t of BASE) {
+    const d = MOBDEF[t], s = SPR_MOBS[t]; if (!d || !s) continue;
+    MOBDEF['alfa_' + t] = { ...d, name: d.name + ' Alfa', lv: d.lv + 3, hp: d.hp * 9, atk: Math.round(d.atk * 1.7), def: d.def + 3, xp: d.xp * 8, zeny: [d.zeny[0] * 6, d.zeny[1] * 8],
+      speed: d.speed * 1.1, aggro: Math.max(d.aggro, 9), respawn: 1e9, rad: 0.9, alfa: true, base: t,
+      drops: d.drops.map(([id, ch]) => [id, ITEMS[id] && (ITEMS[id].kind === 'equip' || ITEMS[id].kind === 'carta') ? Math.min(1, ch * (ITEMS[id].kind === 'carta' ? 6 : 5)) : Math.min(1, ch * 2)]) };
+    SPR_MOBS['alfa_' + t] = { ...s, h: s.h * 1.6 };
+  }
+  const FIRST = 90, EVERY = 240, LIFE = 480;   // segundos
+  let wait = FIRST, cur = null, life = 0;
+  function where() {
+    for (const sp of SPAWNS) if (sp.area && BASE.includes(sp.type) && P.x > sp.area[0] && P.x < sp.area[1] && P.z > sp.area[2] && P.z < sp.area[3]) return sp;
+    return null;
+  }
+  function spawnNear() {
+    const sp = where(); if (!sp) return false;
+    const opts = SPAWNS.filter(o => o.area && BASE.includes(o.type) && o.area[0] === sp.area[0] && o.area[1] === sp.area[1]);
+    const t = opts[Math.floor(Math.random() * opts.length)].type, A = sp.area;
+    for (let i = 0; i < 40; i++) {
+      const a = rand(0, TAU), r = rand(22, 38), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r;
+      if (x < A[0] || x > A[1] || z < A[2] || z > A[3] || blocked(x, z, 1.2) || isWater(x, z)) continue;
+      const m = spawnMob('alfa_' + t, null, { x, z }); m.noRespawn = true; m.area = A; cur = m; life = LIFE;
+      Audio8.sfx('warp');
+      log(`⭐ Um monstro <b style="color:#ffcf40">${m.d.name}</b> (Nv ${m.d.lv}) apareceu por perto! Dá para vencer sozinho e ele solta coisa boa.`, 'gold');
+      return true;
+    }
+    return false;
+  }
+  function update(dt) {
+    if (!running || inTower(P.z)) return;
+    if (cur) {
+      if (cur.dead) { cur = null; wait = EVERY; return; }
+      life -= dt;
+      if (life <= 0 || Math.hypot(cur.x - P.x, cur.z - P.z) > 140) {
+        const m = cur; cur = null; wait = EVERY;
+        m.dead = true; mobs = mobs.filter(o => o !== m); scene.remove(m.model.g); m.lab.remove();
+      }
+      return;
+    }
+    if ((wait -= dt) <= 0) { if (!spawnNear()) wait = 20; }
+  }
+  function onKill(m) {
+    if (!m.d.alfa) return;
+    banner(`⭐ ${m.d.name} derrotado!`);
+    P.alfaKills = (P.alfaKills || 0) + 1;
+    if (cur === m) { cur = null; wait = EVERY; }
+  }
+  return { update, onKill, get cur() { return cur; } };
+})();

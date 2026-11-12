@@ -1107,7 +1107,7 @@ function spawnMob(type, area, at) {
   while (t < 300 && (blocked(x, z, 1) || dRoad(x, z) < 4 || Math.hypot(x - P.x, z - P.z) < 18 || Math.hypot(x - OAS.x, z - OAS.z) < 34 || (type !== 'guardiao' && Math.hypot(x - RUIN.x, z - RUIN.z) < 16) || Math.hypot(x - LAIR.x, z - LAIR.z) < 26));
   const model = mobModel(type);
   model.g.position.set(x, groundY(x, z), z); scene.add(model.g);
-  const lab = document.createElement('div'); lab.className = 'mlabel' + (d.boss ? ' boss' : '');
+  const lab = document.createElement('div'); lab.className = 'mlabel' + (d.boss ? ' boss' : d.alfa ? ' alfa' : '');
   lab.innerHTML = `<span>${d.name} <small>Nv ${d.lv}</small></span><i><b></b></i>`; $('labels').appendChild(lab);
   const m = { type, d, x, z, sx: x, sz: z, hp: d.hp, maxHp: d.hp, seed: rand(0, 10), state: 'idle', timer: rand(0, 3), tx: x, tz: z, stun: 0, atkCd: 1, flash: 0, face: rand(0, TAU), moving: false, model, lab, area, at };
   mobs.push(m); return m;
@@ -1228,6 +1228,7 @@ function killMob(m) {
   if (typeof Evo !== 'undefined') Evo.onKill(m);
   if (typeof Quests !== 'undefined') Quests.onKill(m);
   if (typeof Chefes !== 'undefined') Chefes.onKill(m);
+  if (typeof Alfas !== 'undefined') Alfas.onKill(m);
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
@@ -1810,7 +1811,7 @@ function updateCamera(dt) {
 function updateLabels() {
   for (const m of mobs) {
     const d = Math.hypot(m.x - P.x, m.z - P.z);
-    const show = d < (m.d.boss ? 45 : 22) && (m.hp < m.maxHp || d < 9 || m.d.boss);
+    const show = d < (m.d.boss ? 45 : m.d.alfa ? 35 : 22) && (m.hp < m.maxHp || d < 9 || m.d.boss || m.d.alfa);
     if (!show) { m.lab.style.display = 'none'; continue; }
     const s = toScreen(m.x, groundY(m.x, m.z) + m.model.h + 0.3, m.z);
     if (!s.vis) { m.lab.style.display = 'none'; continue; }
@@ -1932,7 +1933,7 @@ function updateQuestArrow() {
 function drawMinimap() {
   const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
   mg.drawImage(mmBase, 0, 0);
-  for (const m of mobs) { mg.fillStyle = m.d.boss ? '#ff3030' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, m.d.boss ? 4 : 2, m.d.boss ? 4 : 2); }
+  for (const m of mobs) { const k = m.d.boss ? 4 : m.d.alfa ? 3 : 2; mg.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, k, k); }
   if (inTower(P.z)) { Tower.minimap(mg); return; }
   Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { mg.fillStyle = '#ffcf40'; mg.fillRect((n.x + WX) * sx - 1.5, (n.z + WZ) * sz - 1.5, 3, 3); }
@@ -2176,6 +2177,7 @@ function showHelp() {
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
   ⚒️ <b>Ferreiro Doran</b> (praça de Solmira): refino +1 a +7 (nunca quebra) e forja com materiais.<br>
+  ⭐ <b>Monstros Alfa:</b> de vez em quando um monstro maior aparece perto de você: dá para vencer sozinho e solta equipamento e carta com mais chance.<br>
   👹 <b>Chefes de campo:</b> a cada 20 min um chefe aparece para todos os jogadores (ponto vermelho grande). Sozinho não dá: chame um grupo. Agora: ${typeof Chefes !== 'undefined' ? Chefes.status() : '—'}.<br>
   🧭 <b>Viagem rápida:</b> nos Quadros de Caça, para cidades já visitadas (50 cr).<br>
   🌾 <b>Sítio:</b> a oeste da vila: plante, regue, crie animais e faça a encomenda do dia da Fazendeira.`;
@@ -2203,7 +2205,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['qs', 'qFocus', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2325,7 +2327,7 @@ function loop(now) {
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') Chefes.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap();
   } else {

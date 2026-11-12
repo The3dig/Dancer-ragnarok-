@@ -436,3 +436,6 @@ body.walking #quest .qi.focus::before { content: '🚶 '; }
 .itab.on { background: rgba(242,200,106,.2); border-color: rgba(242,200,106,.7); }
 .itab b { position: absolute; top: -3px; right: -3px; background: #8a2a2a; color: #fff; font-size: 8px; border-radius: 7px; padding: 1px 4px; }
 @media (max-height: 470px) { .itab { width: 44px; padding: 2px 0; } .itab span { font-size: 14px; } .itab small { font-size: 7.5px; } }
+
+.mlabel.alfa span { color: #ffcf40; text-shadow: 0 0 6px rgba(255,180,40,.8), 0 1px 2px #000; }
+.mlabel.alfa span::before { content: '⭐ '; }
