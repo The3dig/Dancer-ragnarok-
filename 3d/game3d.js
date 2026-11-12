@@ -2170,8 +2170,12 @@ function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textCon
 const HELP_OPTS = () => [{ label: 'Fechar' }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }];
 function showHelp() {
   const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
-  🎒 <b>Mochila:</b> itens, equipamentos (arma, armadura, acessório), troca e banca.<br>
-  🌾 <b>Sítio:</b> a oeste da vila: plante, crie animais e fale com a Fazendeira.`;
+  📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
+  🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
+  🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
+  ⚒️ <b>Ferreiro Doran</b> (praça de Solmira): refino +1 a +7 (nunca quebra) e forja com materiais.<br>
+  🧭 <b>Viagem rápida:</b> nos Quadros de Caça, para cidades já visitadas (50 cr).<br>
+  🌾 <b>Sítio:</b> a oeste da vila: plante, regue, crie animais e faça a encomenda do dia da Fazendeira.`;
   if (TOUCH) return dialog('📜 Como jogar', `
   🕹️ <b>Joystick</b> (esquerda) para andar · <b>arraste a tela</b> para girar a câmera<br>
   ⚔️ ataque · ⤴ pular · 💨 esquivar · 💬 falar / usar<br>
