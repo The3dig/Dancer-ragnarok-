@@ -1366,6 +1366,27 @@ function evoCard(dt) {
   else { el.style.top = el.style.left = el.style.width = ''; }
   el.classList.remove('hidden');
 }
+// ---------------- barra de vida do chefe perto de você (no topo da tela): nome, nível e quanto falta
+let bossT = 0;
+function bossBar(dt) {
+  if ((bossT -= dt) > 0) return; bossT = 0.12;
+  let bar = $('bossbar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'bossbar'; bar.className = 'hidden'; bar.innerHTML = '<div class="kn"></div><div class="kt"><b></b><em></em></div>'; $('hud').appendChild(bar); }
+  let best = null, bd = 1e9;
+  for (const m of mobs) {
+    if (m.dead || m.type === 'kravenox' || !(m.d.boss || m.d.mini || m.d.field || m.d.alfa || m.towerGuard)) continue;
+    const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < 40 && d < bd) { bd = d; best = m; }
+  }
+  if (!best) { bar.classList.add('hidden'); return; }
+  const pct = Math.max(0, best.hp / best.maxHp * 100);
+  const kn = `${best.d.alfa ? '⭐' : '☠'} ${best.d.name.toUpperCase()} <small>Nv ${best.d.lv}</small>`;
+  if (bar.dataset.n !== kn) { bar.querySelector('.kn').innerHTML = kn; bar.dataset.n = kn; }
+  bar.querySelector('.kt b').style.width = pct + '%';
+  bar.querySelector('.kt em').textContent = `${Math.max(0, Math.ceil(best.hp)).toLocaleString('pt-BR')} / ${best.maxHp.toLocaleString('pt-BR')} (${pct < 1 && pct > 0 ? '<1' : Math.round(pct)}%)`;
+  bar.classList.toggle('alfa', !!best.d.alfa); bar.classList.remove('hidden');
+  const ev = $('evocard'), er = ev && !ev.classList.contains('hidden') && !ev.classList.contains('mini') ? ev.getBoundingClientRect() : null;
+  bar.style.top = er && er.height ? (er.bottom + 4) + 'px' : '';                       // não fica embaixo do aviso grande de evolução
+}
 // ---------------- barra de ícones (estilo Ragnarok): os quadros ficam fechados; bolinha vermelha avisa novidade
 let railT = 0;
 function railTick(dt) {
@@ -1413,9 +1434,10 @@ function onDeath() {
   let eqLost = null;
   if (eq.length && Math.random() < 0.10) { const [sl, id] = eq[Math.floor(Math.random() * eq.length)]; P.equip[sl] = null; items[id] = (items[id] || 0) + 1; eqLost = id; }
   if (!Object.keys(items).length) return;
-  const zn = zoneOf(P.x, P.z), at = zn === 'casa' ? { x: FARM.x - 11, z: FARM.z + 1 } : inTower(P.z) ? { x: Tower.door.x + rand(-3, 3), z: Tower.door.z + 2 } : { x: P.x, z: P.z };
+  const zn = zoneOf(P.x, P.z), fT = inTower(P.z) ? floorAt(P.x, P.z) : null;
+  const at = zn === 'casa' ? { x: FARM.x - 11, z: FARM.z + 1 } : fT && !fT.casa ? { x: P.x, z: P.z, andar: fT.i } : inTower(P.z) ? { x: Tower.door.x + rand(-3, 3), z: Tower.door.z + 2 } : { x: P.x, z: P.z };
   P.graves = P.graves || []; if (P.grave) { P.graves.push({ x: P.grave.x, z: P.grave.z, items: { [P.grave.id]: P.grave.n } }); P.grave = null; }
-  P.graves.push({ x: at.x, z: at.z, items, t: Date.now() });
+  P.graves.push({ x: at.x, z: at.z, items, t: Date.now(), andar: at.andar });
   while (P.graves.length > 3) { P.graves.shift(); log('💨 Sua sacola mais antiga foi saqueada e sumiu.', 'bad'); }
   buildGraves(); buildHotbar();
   const n = Object.values(items).reduce((a, b) => a + b, 0);
@@ -1437,7 +1459,8 @@ function buildGraves() {
     scene.add(g); graveObjs.push(g);
   }
   const last = (P.graves || [])[P.graves ? P.graves.length - 1 : 0];
-  if (last) P.qGo = { x: last.x, z: last.z, name: 'sua sacola', grave: true };
+  if (last && last.andar != null) P.qGo = { x: Tower.door.x, z: Tower.door.z, name: `sua sacola (${last.andar === TOP ? 'topo' : last.andar + 1 + 'º andar'} da Torre)`, grave: true };   // na Torre: a seta leva até a porta
+  else if (last) P.qGo = { x: last.x, z: last.z, name: 'sua sacola', grave: true };
   else if (P.qGo && P.qGo.grave) P.qGo = null;
 }
 const buildGrave = buildGraves;
@@ -1982,6 +2005,10 @@ function animateModel(dt) {
 function updateCamera(dt) {
   const big = inTower(P.z) && Tower.floor === TOP;                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
+  if (inTower(P.z)) {                                    // escadaria da Torre: a câmera se alinha com ela (de lado só veria a parede)
+    const f = floorAt(P.x, P.z);
+    if (f && !f.casa && stairRise(f, P.x, P.z) !== 0) { const alvo = Math.cos(camS.yaw) >= 0 ? 0 : Math.PI, d = ((alvo - camS.yaw + Math.PI) % TAU + TAU) % TAU - Math.PI; camS.yaw += d * Math.min(1, dt * 4); }
+  }
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
   // aproxima a câmera quando uma árvore/casa fica entre ela e o personagem
@@ -1991,8 +2018,9 @@ function updateCamera(dt) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
     if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
+    if (inTower(camS.z) && blocked(x, z, 0.35)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; }   // parede da Torre: a câmera chega perto em vez de ficar atrás dela
   }
-  camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 14 : 3)));
+  camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 20 : 2.5)));
   const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
   let cy = camS.y + dy * camS.cur;
   cy = Math.max(cy, (inTower(cz) ? groundY(camS.x, camS.z) : height(cx, cz)) + 0.6);
@@ -2713,7 +2741,7 @@ function loop(now) {
   if (running && typeof Net !== 'undefined' && Net.pausa) {      // sem conexão: o mundo para (o jogo é todo on-line)
     Net.update(dt); sky.position.copy(camera.position); draw();
   } else if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

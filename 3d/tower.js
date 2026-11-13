@@ -131,6 +131,7 @@ const Tower = (() => {
   const BANNER = ctex(64, 160, g => { g.fillStyle = '#4a0a14'; g.beginPath(); g.moveTo(0, 0); g.lineTo(64, 0); g.lineTo(64, 140); g.lineTo(32, 160); g.lineTo(0, 140); g.fill(); g.fillStyle = '#b08a3a'; g.fillRect(0, 0, 64, 6); g.fillStyle = '#120608';
     g.beginPath(); g.arc(32, 66, 14, 0, 6.29); g.fill(); for (let k = 0; k < 7; k++) { const a = -Math.PI + k / 6 * Math.PI; g.beginPath(); g.moveTo(32 + Math.cos(a - 0.15) * 12, 66 + Math.sin(a - 0.15) * 12); g.lineTo(32 + Math.cos(a) * 28, 66 + Math.sin(a) * 28); g.lineTo(32 + Math.cos(a + 0.15) * 12, 66 + Math.sin(a + 0.15) * 12); g.fill(); }
     g.fillStyle = '#ff3a3a'; g.fillRect(26, 62, 4, 3); g.fillRect(34, 62, 4, 3); });
+  const BRILHO = ctex(64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(0.25, 'rgba(255,255,255,.45)'); r.addColorStop(0.6, 'rgba(255,255,255,.12)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
   const add_ = (map, color, o = {}) => new THREE.MeshBasicMaterial({ map, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, ...o });
   const FX = [];                                          // peças animadas do andar atual (runas, fogo, barreira, brasas)
   // três "alas" com cor própria: 1–10 roxa (Essência), 11–20 brasa (Cisma), 21–30 gelo do Vazio; o topo é vermelho
@@ -173,7 +174,8 @@ const Tower = (() => {
       for (let k = 1; k < 4; k++) {                                                 // tochas nas paredes da escadaria
         const tz = z0 + dir * k * STAIR_L / 4, ty = k / 4 * STAIR_H * up + 2.6;
         const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[k % 2] })); fl.position.set(sx * (STAIR_W + 0.05), ty, tz); fl.scale.set(0.6, 1.1, 1); g.add(fl); fx.fires.push(fl);
-        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: SWIRL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.35, color: T.glow[k % 2] })); gl.position.set(sx * (STAIR_W - 0.2), ty, tz); gl.scale.setScalar(2.6); g.add(gl); fx.fires.push(gl);
+        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[k % 2] })); gl.position.set(sx * (STAIR_W - 0.15), ty, tz); gl.scale.setScalar(1.6); g.add(gl); fx.fires.push(gl);
+        const sup = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 0.5, 6), T.spikeM); sup.position.set(sx * (STAIR_W + 0.08), ty - 0.55, tz); g.add(sup);
       }
     }
     // arco e passagem escura no fim (continua subindo/descendo)
@@ -209,7 +211,7 @@ const Tower = (() => {
         const tx = Math.sin(a2) * (R - 1.05), tz = Math.cos(a2) * (R - 1.05);
         mesh(new THREE.CylinderGeometry(0.16, 0.08, 0.7, 6), T.spikeM, tx, 3.2, tz, g, false);
         const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[k % 2] })); fl.position.set(tx, 3.95, tz); fl.scale.set(0.8, 1.4, 1); g.add(fl); fx.fires.push(fl);
-        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: SWIRL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.35, color: T.glow[k % 2] })); gl.position.set(tx, 3.9, tz); gl.scale.setScalar(3.4); g.add(gl); fx.fires.push(gl);
+        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[k % 2] })); gl.position.set(tx, 3.9, tz); gl.scale.setScalar(2.2); g.add(gl); fx.fires.push(gl);
       }
     }
     if (top) for (let k = 0; k < 8; k++) {
@@ -225,7 +227,7 @@ const Tower = (() => {
       if (!f.obs) addOb(f.x + x, f.z + z, 1.15);
     }
     f.obs = true;
-    for (let k = 0; k < (top ? 26 : 14); k++) { const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: SWIRL, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: T.ember[k % 3 ? 0 : 1] })); e.scale.setScalar(rand(0.15, 0.3)); e.userData = { a: rand(0, TAU), r: rand(2, f.r - 1), y: rand(0, 8), v: rand(0.4, 1) }; g.add(e); fx.embers.push(e); }
+    for (let k = 0; k < (top ? 26 : 14); k++) { const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: T.ember[k % 3 ? 0 : 1] })); e.scale.setScalar(rand(0.15, 0.3)); e.userData = { a: rand(0, TAU), r: rand(2, f.r - 1), y: rand(0, 8), v: rand(0.4, 1) }; g.add(e); fx.embers.push(e); }
     // escadarias: a do norte sobe (selada por uma barreira até o andar ficar limpo), a do sul desce
     if (!top) {
       stairway(f, g, T, fx, -1);
@@ -243,7 +245,7 @@ const Tower = (() => {
   function animFloor(dt) {
     const fx = FX[0]; if (!fx) return;
     fx.runes.forEach((r, k) => { r.rotation.y += dt * (k % 2 ? -0.6 : 0.35); });
-    fx.fires.forEach((s2, k) => { if (k % 2 === 0) s2.scale.set(0.75 + Math.sin(time * 13 + k) * 0.08, 1.35 + Math.sin(time * 9 + k * 2) * 0.18, 1); else s2.material.opacity = 0.3 + Math.sin(time * 7 + k) * 0.08; });
+    fx.fires.forEach((s2, k) => { if (k % 2 === 0) s2.scale.set(0.75 + Math.sin(time * 13 + k) * 0.08, 1.35 + Math.sin(time * 9 + k * 2) * 0.18, 1); else s2.material.opacity = 0.24 + Math.sin(time * 7 + k) * 0.05; });
     for (const e of fx.embers) { const u = e.userData; u.y += u.v * dt; u.a += dt * 0.2; if (u.y > 9) u.y = 0; e.position.set(Math.sin(u.a) * u.r, u.y, Math.cos(u.a) * u.r); e.material.opacity = Math.min(1, u.y) * (1 - u.y / 9); }
     if (fx.barrier) { fx.barrier.visible = !opened[fx.f.i]; fx.barrier.material.rotation = time; fx.barrier.material.opacity = 0.45 + Math.sin(time * 4) * 0.15; }
   }
@@ -307,9 +309,10 @@ const Tower = (() => {
   function blackout() { fade.style.transition = 'none'; fade.style.opacity = 1; void fade.offsetWidth; fade.style.transition = 'opacity .6s'; requestAnimationFrame(() => requestAnimationFrame(() => { fade.style.opacity = 0; })); }
   // ponto de retorno: depois de vencer o chefe do 10º/20º andar, a entrada deixa começar do 11º/21º
   function enterFromDoor() {
-    const cp = P.towerCp || 0;
-    if (!cp) { enter(0); return; }
+    const cp = P.towerCp || 0, sac = (P.graves || []).filter(gv => gv.andar != null).pop();
+    if (!cp && !sac) { enter(0); return; }
     const opts = [{ label: '🗼 1º andar', fn: () => enter(0) }];
+    if (sac) opts.unshift({ label: `🎒 Voltar até a sua sacola (${sac.andar === TOP ? 'topo' : sac.andar + 1 + 'º andar'})`, fn: () => { enter(sac.andar); log('🎒 Sua sacola está neste andar, onde você caiu. Cuidado: os monstros voltaram.', 'gold'); } });
     for (const c of [10, 20]) if (cp >= c) opts.push({ label: `🗼 ${c + 1}º andar (ponto de retorno)`, fn: () => enter(c) });
     opts.push({ label: 'Agora não', fn: () => { } });
     dialog('🗼 Torre do Cisma', 'Por onde você quer começar a subida?', opts);
@@ -323,7 +326,7 @@ const Tower = (() => {
     cur = i; const f = FLOORS[i]; buildFloor(f);
     if (fromAbove) { P.x = f.x; P.z = f.z - f.r - STAIR_L + 3; P.face = 0; }            // desceu: chega no alto da escadaria norte
     else { P.x = f.x; P.z = f.z + f.r + STAIR_L - 3.5; P.face = Math.PI; }               // subiu: chega na escadaria sul
-    P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y;
+    P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.cur = 3; camS.pitch = Math.max(camS.pitch, 0.42);
     if (i === TOP) { camS.dist = Math.max(camS.dist, 24); camS.pitch = Math.max(camS.pitch, 0.32); }
     blackout();
     if (i === 10 || i === 20) if ((P.towerCp || 0) < i) { P.towerCp = i; log(`📍 <b>Ponto de retorno</b> liberado: a entrada da Torre agora deixa começar no <b>${i + 1}º andar</b>.`, 'gold'); }
