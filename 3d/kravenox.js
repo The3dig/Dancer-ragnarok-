@@ -1,6 +1,7 @@
 // =====================================================================
 //  KRAVENOX — chefe mundial semanal
-//  Desperta todo sábado, das 20h às 22h (horário do aparelho), na Fenda de Kravenox.
+//  Desperta todo sábado às 20h e fica acordado 6 horas, até as 2h de domingo (horário do aparelho).
+//  Se ninguém derrubar até lá, ele volta a dormir e só acorda no sábado seguinte.
 //  Para testar a qualquer hora: abra o jogo com #kravenox no fim do link.
 // =====================================================================
 'use strict';
@@ -97,7 +98,7 @@ function kravenoxModel(r, mt) {
 
 // ---------------------------------------------------------------- evento semanal
 const Kvx = (() => {
-  const DAY = 6, START = 20, END = 22;            // sábado, 20h–22h
+  const DAY = 6, START = 20, HORAS = 6;            // sábado 20h → domingo 2h (passa da meia-noite)
   const ALLY_NAMES = ['Bruna Ferro', 'Tião do Arco', 'Zéfiro', 'Nanda Lumen', 'Grum Pedrabarba', 'Selvyn', 'Morgana Cinza', 'Duda Faísca', 'Otávio Brasa', 'Lia Sereno'];
   const AR = () => FLOORS[TOP];                                   // topo da Torre do Cisma
   let boss = null, allies = [], teles = [], active = false, forced = false, checkT = 0, phaseT = 0, lastMsg = '';
@@ -108,14 +109,11 @@ const Kvx = (() => {
     const s = new Date(d); s.setHours(0, 0, 0, 0); s.setDate(s.getDate() + ((DAY - s.getDay() + 7) % 7) - (d.getDay() === DAY ? 0 : 7));
     return `${s.getFullYear()}-${s.getMonth() + 1}-${s.getDate()}`;
   }
-  function windowNow(d = new Date()) { return d.getDay() === DAY && d.getHours() >= START && d.getHours() < END; }
-  function nextStart(d = new Date()) {
-    const n = new Date(d); n.setHours(START, 0, 0, 0);
-    let add = (DAY - n.getDay() + 7) % 7;
-    if (add === 0 && d.getHours() >= START) add = 7;
-    n.setDate(n.getDate() + add); return n;
-  }
-  function endTime(d = new Date()) { const e = new Date(d); e.setHours(END, 0, 0, 0); return e; }
+  // último sábado às 20h que já passou (pode ser ontem, se agora for madrugada de domingo)
+  function ultimoInicio(d = new Date()) { const s = new Date(d); s.setHours(START, 0, 0, 0); s.setDate(s.getDate() - ((s.getDay() - DAY + 7) % 7)); if (s > d) s.setDate(s.getDate() - 7); return s; }
+  function windowNow(d = new Date()) { return d - ultimoInicio(d) < HORAS * 3600e3; }
+  function nextStart(d = new Date()) { const s = ultimoInicio(d); s.setDate(s.getDate() + 7); return s; }
+  function endTime(d = new Date()) { return new Date(ultimoInicio(d).getTime() + HORAS * 3600e3); }
   const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)), dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return dd ? `${dd}d ${h}h ${m}min` : h ? `${h}h ${m}min` : `${m}min ${ss}s`; };
   const killedThisWeek = () => P.kvxWeek === (forced ? 'teste' : weekId());
 
@@ -372,7 +370,7 @@ const Kvx = (() => {
     banner('🏆 KRAVENOX FOI DERROTADO! 🏆');
     if (Net.count > 1) log(`🤝 Vitória em grupo com ${Net.count - 1} amigo(s)!`, 'gold');
     log(`🏆 <b>KRAVENOX FOI DERROTADO!</b> Você recebeu o título <b>« Matador de Kravenox »</b>. Vitórias: ${P.kvxKills}.`, 'gold');
-    log('Ele volta no próximo sábado, às 20h.', 'sys');
+    log('Ele volta no próximo sábado, às 20h (fica acordado até as 2h).', 'sys');
     // prêmio à altura do pior do jogo: um Mítico garantido (às vezes dois), coroas, Essência e poções
     const MIT = ['arma_soberano', 'coroa_soberano', 'manto_soberano', 'olho_kravenox'].sort(() => Math.random() - 0.5), got = MIT.slice(0, Math.random() < 0.25 ? 2 : 1);
     for (const id of got) { P.inv[id] = (P.inv[id] || 0) + 1; log(`🔴 <b style="color:#ff4a4a">MÍTICO!</b> Você recebeu <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); }
@@ -393,7 +391,7 @@ const Kvx = (() => {
       checkT = 1;
       const should = (forced || windowNow()) && !killedThisWeek();
       if (should && !boss) wake();
-      if (!should && boss && !forced) sleep('🌑 O tempo acabou. Kravenox voltou para as profundezas... volte no próximo sábado, às 20h.');
+      if (!should && boss && !forced) sleep('🌑 Deu 2h da manhã: Kravenox voltou a dormir. Só no próximo sábado, às 20h.');
       panel();
     }
     if (boss && boss.dead) boss = null;
@@ -424,7 +422,7 @@ const Kvx = (() => {
       const onRoof = inTower(P.z) && Tower.floor === TOP;
       body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Você está no topo. Derrube o Soberano!' : '📍 Topo da Torre do Cisma — Cidadela do Cisma, extremo leste (caveira no minimapa)'}`;
     } else if (killedThisWeek()) body = `✅ Derrotado esta semana!<br>Próximo despertar em <b>${fmt(nextStart() - new Date())}</b>`;
-    else body = `Desperta todo <b>sábado às 20h</b><br>Faltam <b>${fmt(nextStart() - new Date())}</b>`;
+    else body = `Desperta todo <b>sábado às 20h</b> e fica acordado <b>6 horas</b> (até as 2h)<br>Faltam <b>${fmt(nextStart() - new Date())}</b>`;
     const html = `<div class="wt">☠ Kravenox</div><div class="wb">${body}</div>`;
     if (html !== lastMsg) { el.innerHTML = html; lastMsg = html; }
     el.classList.toggle('live', !!boss);

@@ -333,7 +333,7 @@ const Tower = (() => {
     if (i > (P.towerBest || 0)) P.towerBest = i;
     banner(i === TOP ? 'TOPO DA TORRE' : `${i + 1}º ANDAR`);
     spawnFloor(i);
-    if (i === TOP) log(Kvx.active ? '☠ <b>Kravenox está acordado!</b> Derrube o Soberano!' : '💤 Kravenox dorme aqui em cima... Ele desperta todo <b>sábado às 20h</b>.', Kvx.active ? 'bad' : 'gold');
+    if (i === TOP) log(Kvx.active ? '☠ <b>Kravenox está acordado!</b> Derrube o Soberano!' : '💤 Kravenox dorme aqui em cima... Ele desperta todo <b>sábado às 20h</b> e fica acordado <b>6 horas</b> (até as 2h de domingo).', Kvx.active ? 'bad' : 'gold');
     else log(`🗼 Torre do Cisma — <b>${i + 1}º andar</b> (monstros nível ${lvOf(i)}).${GUARD[i] ? ` ☠ <b>${GUARD[i]}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria ao norte.`, GUARD[i] ? 'bad' : 'sys');
     lastCount = -1;
   }

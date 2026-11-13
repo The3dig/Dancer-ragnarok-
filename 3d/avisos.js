@@ -8,6 +8,7 @@
 const Avisos = (() => {
   // novidades importantes, a mais nova no topo. Para avisar algo novo: põe aqui com um id novo.
   const NOVIDADES = [
+    { id: 'n11', data: '13/11', t: '☠ Kravenox acorda neste sábado às 20h', d: 'Agora ele fica acordado <b>6 horas</b>: de <b>sábado às 20h até as 2h de domingo</b> (horário do celular), no topo da Torre do Cisma. Se ninguém derrubar até lá, ele volta a dormir e só acorda no <b>sábado seguinte</b>. A vida dele é dividida entre todos que batem.' },
     { id: 'n10', data: '13/11', t: '🗼 Torre: vida do chefe, sacola no andar e câmera', d: 'Os chefes agora mostram a <b>barra de vida no topo da tela</b>. Quem morre na Torre deixa a <b>sacola no andar onde caiu</b>, e a entrada tem o botão <b>🎒 Voltar até a sua sacola</b>. A câmera não fica mais presa na parede nas escadarias, e as luzes das tochas ficaram suaves.' },
     { id: 'n9', data: '13/11', t: '🏘️ Casas novas na Cidadela do Cisma', d: 'As casas da Cidadela foram refeitas: térreo de pedra, andar de cima com vigas de madeira, telhado de duas águas e janelas acesas.' },
     { id: 'n8', data: '13/11', t: '⌨️ Barra de atalhos do seu jeito', d: 'A barra voltou a ser uma linha só, com a <b>barra 2 do lado</b> (6 + 6 espaços). Toque em <b>✏️</b> (no fim da barra) e depois num espaço para escolher a habilidade ou o item que fica nele. Também dá para usar o 📌 na árvore de habilidades e na mochila.' },
