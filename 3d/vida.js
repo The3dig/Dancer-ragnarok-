@@ -16,6 +16,7 @@ const Vida = (() => {
     gosma: ['Gosma de Larva', '🟢', 8, 0, 'mat'], po_eco: ['Pó de Eco', '🌫️', 10, 0, 'mat'], raiz: ['Raiz Seca', '🪵', 12, 0, 'mat'],
     cristal: ['Cristal Opaco', '💎', 20, 0, 'mat'], fio: ['Fio de Sombra', '🧵', 28, 0, 'mat'], lasca: ['Lasca de Armadura', '🛡️', 45, 0, 'mat'],
     essencia: ['Essência Negra', '🖤', 120, 0, 'mat'],
+    cinza: ['Cinza de Valdora', '🌫️', 55, 0, 'mat'], fibra: ['Fibra de Raiz Negra', '🪢', 50, 0, 'mat'],
     s_trigo: ['Semente de Trigo', '🌱', 2, 6, 'semente'], s_cenoura: ['Semente de Cenoura', '🌱', 4, 12, 'semente'],
     s_flor: ['Semente de Flor-da-Fonte', '🌱', 10, 30, 'semente'], racao: ['Ração', '🌾', 1, 4, 'racao'],
     trigo: ['Trigo', '🌾', 9, 0, 'colheita'], cenoura: ['Cenoura', '🥕', 15, 0, 'colheita'], flor: ['Flor-da-Fonte', '🌸', 40, 0, 'colheita'],
@@ -58,6 +59,12 @@ const Vida = (() => {
     amuleto: ['Amuleto da Fonte', '📿', 'colar', 380, { sp: 40, hp: 40 }, 0],
     colar_sombra: ['Colar de Sombra', '📿', 'colar', 0, { crit: 0.04, hp: 50 }, 1],
     marca: ['Marca dos Quatro Espinhos', '✴️', 'colar', 0, { pow: 10, crit: 0.07, hp: 120 }, 3],
+    // Valdora (Nv 24–36): o conjunto da guarda da cidade caída e a espada da estátua
+    elmo_valdora: ['Elmo da Guarda de Valdora', '⛑️', 'capacete', 0, { def: 12, hp: 110 }, 2, 'valdora'],
+    couraca_valdora: ['Couraça da Guarda de Valdora', '🛡️', 'armadura', 0, { def: 24, hp: 220 }, 2, 'valdora'],
+    luvas_valdora: ['Manoplas de Valdora', '🧤', 'luvas', 0, { def: 6, pow: 12 }, 2, 'valdora'],
+    botas_valdora: ['Botas de Valdora', '🥾', 'botas', 0, { def: 6, spd: 0.1, hp: 70 }, 2, 'valdora'],
+    arma_valdora: ['Espada de Valdora', '⚔️', 'arma', 0, { pow: 34, crit: 0.04 }, 2],
     // Míticos: só o próprio Kravenox, no topo dos 30 andares, deixa cair (um garantido por vitória)
     arma_soberano: ['Espinho do Soberano', '🗡️', 'arma', 0, { pow: 90, crit: 0.12 }, 4, 'soberano'],
     coroa_soberano: ['Coroa do Soberano', '👑', 'capacete', 0, { def: 26, hp: 350, pow: 22 }, 4, 'soberano'],
@@ -70,6 +77,7 @@ const Vida = (() => {
     areias: { name: 'Conjunto das Areias', bonus: { crit: 0.05, spd: 0.05, hp: 80 } },
     sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
+    valdora: { name: 'Conjunto da Guarda de Valdora', bonus: { pow: 18, def: 22, hp: 220 } },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
   };
   for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
@@ -82,7 +90,7 @@ const Vida = (() => {
   const add = (id, n) => { P.inv[id] = Math.max(0, (P.inv[id] || 0) + n); if (id === 'red' || id === 'blue') buildHotbar(); };
 
   // materiais que cada monstro solta
-  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia' };
+  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.45]);
   const GEAR_DROP = {
     pompom: [['capuz_couro', 0.04], ['botas_couro', 0.02]],
@@ -95,6 +103,11 @@ const Vida = (() => {
     verme: [['grevas_sentinela', 0.015], ['arma_essencia', 0.01]],
     esfera: [['anel_vazio', 0.02], ['essencia', 0.02]],
     sentinela: [['elmo_sentinela', 0.02], ['manoplas_sentinela', 0.015], ['essencia', 0.03]],
+    raizNegra: [['botas_valdora', 0.012], ['luvas_valdora', 0.01]],
+    ecoCinza: [['elmo_valdora', 0.012], ['colar_sombra', 0.02]],
+    larvaCinza: [['luvas_valdora', 0.012], ['couraca_valdora', 0.008]],
+    sentinelaMuralha: [['couraca_valdora', 0.015], ['elmo_valdora', 0.015], ['arma_essencia', 0.02], ['essencia', 0.04]],
+    carrasco: [['arma_valdora', 0.35], ['couraca_valdora', 0.25], ['elmo_valdora', 0.25], ['arm_negra', 0.2], ['anel_vazio', 0.15]],
     kravenox: [['marca', 0.5], ['arma_cisma', 0.3], ['coroa_espinhos', 0.25], ['manto_cisma', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.15]],
   };
   for (const [t, l] of Object.entries(GEAR_DROP)) if (MOBDEF[t]) MOBDEF[t].drops.push(...l);
@@ -103,9 +116,10 @@ const Vida = (() => {
     pompom: { hp: 40 }, zunzum: { sp: 25 }, fungolino: { def: 3 }, besouro: { crit: 0.03 }, serpe: { spd: 0.05 },
     larva: { hp: 80, def: 2 }, verme: { def: 6 }, esfera: { sp: 50, pow: 3 }, sentinela: { pow: 8 }, guardiao: { pow: 12, def: 6 },
     kravenox: { pow: 20, crit: 0.05, hp: 200 },
+    raizNegra: { def: 8, hp: 60 }, ecoCinza: { crit: 0.04, sp: 30 }, larvaCinza: { hp: 160 }, sentinelaMuralha: { pow: 10, def: 4 }, carrasco: { pow: 16, crit: 0.04 },
   };
   // cada carta só encaixa num tipo de peça (como no Ragnarok)
-  const CARD_SLOT = { pompom: 'armadura', zunzum: 'capacete', fungolino: 'luvas', besouro: 'arma', serpe: 'botas', larva: 'armadura', verme: 'capacete', esfera: 'colar', sentinela: 'arma', guardiao: 'luvas', kravenox: 'anel' };
+  const CARD_SLOT = { pompom: 'armadura', zunzum: 'capacete', fungolino: 'luvas', besouro: 'arma', serpe: 'botas', larva: 'armadura', verme: 'capacete', esfera: 'colar', sentinela: 'arma', guardiao: 'luvas', kravenox: 'anel', raizNegra: 'botas', ecoCinza: 'capacete', larvaCinza: 'armadura', sentinelaMuralha: 'arma', carrasco: 'luvas' };
   for (const [t, mods] of Object.entries(CARD_MOD)) {
     if (!MOBDEF[t]) continue;
     const id = 'carta_' + t, D = MOBDEF[t];

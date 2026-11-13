@@ -151,7 +151,7 @@ function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.cl
 // próximo ponto do caminho: se o rio estiver no meio, passa pela ponte mais perto
 function autoWaypoint(T) {
   const sp = Math.sign(P.x - riverX(P.z)), st = Math.sign(T.x - riverX(T.z));
-  if (sp === st || sp === 0 || inTower(P.z) || inTower(T.z)) return { x: T.x, z: T.z, end: true };
+  if (sp === st || sp === 0 || inTower(P.z) || inTower(T.z) || inVal(P.z) || inVal(T.z)) return { x: T.x, z: T.z, end: true };
   const bz = BRIDGES.reduce((a, b) => Math.abs(b - (P.z + T.z) / 2) + Math.abs(b - P.z) * 0.5 < Math.abs(a - (P.z + T.z) / 2) + Math.abs(a - P.z) * 0.5 ? b : a), bx = riverX(bz);
   if (Math.abs(P.z - bz) > 1.4 || Math.abs(P.x - bx) > 8) return { x: bx + sp * 7.5, z: bz };
   return { x: bx - sp * 8, z: bz };
@@ -185,7 +185,7 @@ const SUN_OFF = new THREE.Vector3(40, 34, 22);
 let LASTDAY = null;
 const DAYC = { horizon: new THREE.Color(), top: new THREE.Color(), sunC: new THREE.Color(), hemiC: new THREE.Color(), sunDir: new THREE.Vector3() };
 const C_ = h => new THREE.Color(h);
-const DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440);
+const DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
   const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : null;
@@ -277,6 +277,10 @@ const WX = 220, WZ = 90;
 const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 }, LAIR = { x: -20, z: -64 };
 // Reino Quebrado (extremo leste): Cidadela do Cisma e a Torre do Cisma
 const CIT = { x: 188, z: 4 }, TOWER = { x: 196, z: -30 };
+// Valdora (livro I, caps. 14–15): mapa novo ao norte, fora do Reino (z < -300), ligado pela Passagem do Norte
+const VCAMP = { x: -110, z: -668 }, VHILL = { x: -12, z: -735 }, VCITY = { x: 85, z: -795 };
+const VGATE_R = { x: 84, z: -84 }, VGATE_V = { x: -110, z: -645 };            // passagem no Reino (Areias Rubras) e chegada em Valdora
+const inVal = z => z < -300;
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
 // Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo; ao norte, uma escadaria
 // sobe 7 m até o andar de cima; ao sul, a escadaria por onde se chegou desce para o de baixo.
@@ -308,6 +312,7 @@ function dRoad(x, z) {
 }
 function zoneOf(x, z) {
   if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === TOP ? 'topo' : 'torre'; }
+  if (z < -300) { const dc = Math.hypot(x - VCITY.x, z - VCITY.z); return Math.hypot(x - VCAMP.x, z - VCAMP.z) < 18 ? 'acampamento' : dc < 40 ? 'valdora' : 'estrada'; }
   if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
   if (Math.hypot(x - FARM.x, z - FARM.z) < 22) return 'sitio';
@@ -317,6 +322,7 @@ function zoneOf(x, z) {
   return 'campos';
 }
 function height(x, z) {
+  if (z < -300) return typeof Valdora !== 'undefined' ? Valdora.h(x, z) : 0;
   let h = Math.sin(x * 0.05) * Math.cos(z * 0.06) * 1.6 + Math.sin(x * 0.13 + z * 0.09) * 0.6;
   const des = smooth(42, 58, x);
   h += des * (Math.sin(x * 0.07 + z * 0.035) * 1.6 + Math.cos(z * 0.11) * 0.7);
@@ -340,7 +346,7 @@ const onBridge = (x, z) => Math.abs(x - riverX(z)) < 6 && BRIDGES.some(bz => Mat
 const groundY = (x, z) => inTower(z) ? towerY(x, z) : onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
 const nearWater = (x, z) => Math.abs(x - riverX(z)) < 5 || Math.hypot(x - OAS.x, z - OAS.z) < 9.5;
 function towerY(x, z) { const f = floorAt(x, z) || FLOORS[0]; return f.y + stairRise(f, x, z); }
-const isWater = (x, z) => !inTower(z) && !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
+const isWater = (x, z) => z > -300 && !inTower(z) && !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
 
 function groundColor(x, z, y, c) {
   const n = Math.sin(x * 0.9) * Math.cos(z * 0.7) * 0.03 + Math.sin(x * 0.31 + z * 0.17) * 0.03;
@@ -431,7 +437,7 @@ function groundMix(x, z, y) {
       diffuseColor.rgb *= c * (0.8 + 0.4 * dA);`);
   };
   const t = new THREE.Mesh(geo, tm);
-  t.receiveShadow = true; scene.add(t);
+  t.receiveShadow = true; scene.add(t); window.TERRAIN_MAT = tm;
 })();
 
 // água
@@ -511,7 +517,8 @@ function addOb(x, z, r) {
 }
 function blocked(x, z, r = 0.45) {
   if (inTower(z)) { const f = floorAt(x, z); if (!f || (Math.hypot(x - f.x, z - f.z) > f.r - 1 - r && !(typeof Tower !== 'undefined' && Tower.corridor(f, x, z, r)))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
-  if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
+  if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
+  else if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
   const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
   if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true;
@@ -842,6 +849,12 @@ const MOBDEF = {
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
   esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
   sentinela: { name: 'Sentinela do Vazio', lv: 19, hp: 1000, atk: 52, def: 20, xp: 380, zeny: [40, 90], speed: 2.6, aggro: 16, respawn: 1e9, drops: [['red', 0.5], ['blue', 0.3]] },
+  // Valdora: Raízes Negras na estrada, Ecos das Cinzas, Larvas das Cinzas, Sentinelas do Vazio nas muralhas
+  raizNegra: { name: 'Raiz Negra', lv: 24, hp: 2000, atk: 72, def: 22, xp: 900, zeny: [60, 120], speed: 1.8, aggro: 10, respawn: 20, drops: [['red', 0.4], ['blue', 0.2]] },
+  ecoCinza:  { name: 'Eco das Cinzas', lv: 26, hp: 2100, atk: 84, def: 18, xp: 1050, zeny: [70, 140], speed: 3.0, aggro: 14, respawn: 20, drops: [['red', 0.4], ['blue', 0.25]] },
+  larvaCinza: { name: 'Larva das Cinzas', lv: 28, hp: 2800, atk: 90, def: 26, xp: 1300, zeny: [80, 160], speed: 2.4, aggro: 12, respawn: 22, drops: [['red', 0.45], ['blue', 0.25]] },
+  sentinelaMuralha: { name: 'Sentinela da Muralha', lv: 32, hp: 3800, atk: 112, def: 34, xp: 2000, zeny: [120, 240], speed: 2.8, aggro: 16, respawn: 25, drops: [['red', 0.5], ['blue', 0.35]] },
+  carrasco:  { name: 'Carrasco de Valdora', lv: 36, hp: 60000, atk: 150, def: 40, xp: 22000, zeny: [3000, 4500], speed: 2.6, aggro: 18, respawn: 300, boss: true, mini: true, drops: [['blue', 1], ['red', 1], ['red', 1], ['essencia', 1]] },
   guardiao:  { name: 'Sentinela sem Rosto', lv: 22, hp: 14000, atk: 64, def: 24, xp: 2600, zeny: [600, 900], speed: 2.4, aggro: 16, respawn: 180, boss: true, mini: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
@@ -956,6 +969,8 @@ const SPR_MOBS = {
   esfera:    { img: 'e_fragmento', h: 2.0, float: true },
   sentinela: { img: 'e_sentinela', h: 2.8 },
   kravenox:  { set: { kind: 'hero', base: 'k' }, px: 22 / 34 },        // o próprio Kravenox, gigante
+  raizNegra: { img: 'e_raizRast', h: 2.4 }, ecoCinza: { img: 'e_eco', h: 2.2, float: true }, larvaCinza: { img: 'e_larvaLonga', h: 2.0 },
+  sentinelaMuralha: { img: 'e_sentinela', h: 3.0 }, carrasco: { img: 'e_semRosto', h: 5.6 },
 };
 function spriteMob(type, r) {
   const d = SPR_MOBS[type];
@@ -1004,6 +1019,11 @@ const NPCS = [
   { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 15, z: OAS.z - 17, look: [0xb5651d, 0x1a1a1a, 'veil'] },
   { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 7, z: CIT.z - 4, look: [0x3a3442, 0x1a1a1a, 'helm'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
+  // Acampamento dos refugiados de Valdora
+  { id: 'refugee', name: 'Arlen, o Refugiado', x: VCAMP.x + 5, z: VCAMP.z - 4, look: [0x5a4a3a, 0x2a1a0a, 'cap'] },
+  { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
+  { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
+  { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
 ];
 const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho' };
 function spriteNPCs() {
@@ -1139,6 +1159,10 @@ const SPAWNS = [
   { type: 'fungolino', n: 9, area: [-40, 45, -84, 84] },
   { type: 'besouro', n: 14, area: [55, 145, -84, 84] }, { type: 'serpe', n: 10, area: [62, 145, -84, 84] },
   { type: 'guardiao', n: 1, at: RUIN },
+  // Valdora
+  { type: 'raizNegra', n: 12, area: [-125, -25, -730, -660] }, { type: 'ecoCinza', n: 10, area: [-70, 30, -790, -700] },
+  { type: 'larvaCinza', n: 10, area: [-40, 120, -720, -665] }, { type: 'ecoCinza', n: 6, area: [-140, -60, -840, -740] },
+  { type: 'sentinelaMuralha', n: 12, area: [VCITY.x - 26, VCITY.x + 26, VCITY.z - 26, VCITY.z + 26] }, { type: 'carrasco', n: 1, at: { x: VCITY.x, z: VCITY.z + 9 } },
 ];
 function spawnMob(type, area, at) {
   const d = MOBDEF[type]; let x, z, t = 0;
@@ -1679,6 +1703,9 @@ const ZONES = {
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'vila' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
+  acampamento: { name: 'Acampamento de Valdora', music: 'vila', town: true },
+  estrada: { name: 'Estrada de Valdora', music: 'abismo' },
+  valdora: { name: 'Ruínas de Valdora', music: 'fortaleza' },
 };
 function update(dt) {
   time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
@@ -1691,7 +1718,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -1725,6 +1752,7 @@ function update(dt) {
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
   skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
   if (dark > 0) { skyMat.uniforms.horizon.value.lerp(DARK_H, dark); skyMat.uniforms.top.value.lerp(DARK_T, dark); }
+  if (inVal(P.z)) { skyMat.uniforms.horizon.value.lerp(ASH_H, 0.85); skyMat.uniforms.top.value.lerp(ASH_T, 0.85); }
   if (typeof Props !== 'undefined' && Props.setNight) Props.setNight(DAY.night);
   mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(MOUNT_C, 0.25);
   updateFireflies(dt, DAY.night * (1 - dark));
@@ -1737,7 +1765,7 @@ function updatePlayer(dt) {
     P.deadT -= dt;
     if (P.deadT <= 0) {
       P.dead = false; P.hp = Math.round(stats.maxHp() * 0.5); P.sp = Math.round(stats.maxSp() * 0.5);
-      const h = P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : { x: VIL.x, z: VIL.z + 10 };
+      const h = homePos();
       P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z);
     }
     return;
@@ -2060,7 +2088,7 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
 // ---------------------------------------------------------------- mapa grande (toque no minimapa)
 const BigMap = (() => {
   let open = false, base = null, box = null, cv = null, g = null, view = null;   // view: null = reino inteiro; senão a cidade aberta
-  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma'], [RUIN, 'Ruínas']];
+  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma'], [RUIN, 'Ruínas'], [VGATE_R, 'Passagem do Norte ↑']];
   const CITIES = [{ c: VIL, z: 'solmira', n: 'Vila de Solmira', R: 32 }, { c: OAS, z: 'kharum', n: 'Oásis de Kharum', R: 36 }, { c: CIT, z: 'cidadela', n: 'Cidadela do Cisma', R: 34 }, { c: FARM, z: 'sitio', n: 'Sítio de Solmira', R: 24 }];
   const ICON = { master: '📘', healer: '✚', shop: '🛒', guard: '🛡️', watch: '👁️', elder: '🧓', farm: '🌾', smith: '⚒️', warp: '🧭' };
   function build() {
@@ -2075,7 +2103,8 @@ const BigMap = (() => {
     x.putImageData(img, 0, 0);
   }
   // área mostrada (em coordenadas do mundo)
-  const area = () => view ? { x0: view.c.x - view.R * 1.6, z0: view.c.z - view.R, w: view.R * 3.2, h: view.R * 2 } : { x0: -WX, z0: -WZ, w: WX * 2, h: WZ * 2 };
+  const area = () => { if (view) return { x0: view.c.x - view.R * 1.6, z0: view.c.z - view.R, w: view.R * 3.2, h: view.R * 2 }; const M = curMap(); return { x0: M.x0, z0: M.z0, w: M.w, h: M.h }; };
+  const places = () => curMap().places || PLACES, cities = () => curMap().cities || CITIES;
   const npcsOf = v => NPCS.filter(n => !n.hidden && Math.hypot(n.x - v.c.x, n.z - v.c.z) < v.R * 1.5);
   function show(city) {
     if (inTower(P.z)) { log('Dentro da Torre o mapa grande não funciona.', 'sys'); return; }
@@ -2091,7 +2120,7 @@ const BigMap = (() => {
       });
       cv.addEventListener('click', e => {
         const r = cv.getBoundingClientRect(), A = area(), wx = A.x0 + (e.clientX - r.left) / r.width * A.w, wz = A.z0 + (e.clientY - r.top) / r.height * A.h;
-        if (!view) { const c = CITIES.find(c => Math.hypot(wx - c.c.x, wz - c.c.z) < 14); if (c) { Audio8.sfx('click'); show(c); return; } }
+        if (!view) { const c = cities().find(c => Math.hypot(wx - c.c.x, wz - c.c.z) < 14); if (c) { Audio8.sfx('click'); show(c); return; } }
         if (view) { const n = npcsOf(view).find(n => Math.hypot(n.x - wx, n.z - wz) < 2.5); if (n) { go(n.x, n.z, n.name); return; } }
         if (blocked(wx, wz) && !inTower(wz)) { let ok = false; for (let i = 1; i < 8 && !ok; i++) for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, x = wx + Math.cos(a) * i, z = wz + Math.sin(a) * i; if (!blocked(x, z)) { go(x, z, 'o ponto marcado'); ok = true; break; } } if (!ok) log('Não dá para chegar aí.', 'bad'); return; }
         go(wx, wz, 'o ponto marcado');
@@ -2099,7 +2128,8 @@ const BigMap = (() => {
     }
     view = city || null;
     box.querySelector('.bm-back').style.display = view ? '' : 'none';
-    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : '🗺️ Mapa do Reino';
+    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
+    box.querySelector('.bm-back').textContent = inVal(P.z) ? '← Valdora' : '← Reino';
     const list = box.querySelector('.bm-list');
     if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
     else list.style.display = 'none';
@@ -2119,12 +2149,12 @@ const BigMap = (() => {
   function draw() {
     if (!open) return;
     const A = area(), k = cv.width / A.w, X = x => (x - A.x0) * k, Z = z => (z - A.z0) * k, u = view ? 3 : 1;
-    g.imageSmoothingEnabled = true; g.drawImage(base, A.x0 + WX, A.z0 + WZ, A.w, A.h, 0, 0, cv.width, cv.height);
+    const M = curMap(), B = M.base || base; g.imageSmoothingEnabled = true; g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
     g.textAlign = 'center';
     if (!view) {
       g.font = `800 ${Math.round(9 * k)}px Nunito, sans-serif`;
-      for (const [p, n] of PLACES) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
-      for (const c of CITIES) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
+      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
+      for (const c of cities()) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
     }
     for (const m of mobs) { if (m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue; const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k / u * (view ? 1.6 : 1); g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); }
     for (const n of NPCS) {
@@ -2147,7 +2177,7 @@ const BigMap = (() => {
   return { show: () => show(null), hide, draw, get open() { return open; } };
 })();
 function questTarget() {
-  if (typeof Quests !== 'undefined') return inTower(P.z) ? null : Quests.target();
+  if (typeof Quests !== 'undefined') { if (inTower(P.z)) return null; const t = Quests.target(); return t && inVal(t.z) !== inVal(P.z) ? (inVal(P.z) ? { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'Passagem do Norte' } : { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' }) : t; }
   const q = QUESTS[P.quest]; if (!q || inTower(P.z)) return null;
   if (P.qcount >= q.n) { const n = NPCS.find(n => n.id === 'master'); return { x: n.x, z: n.z }; }
   let best = null, bd = 1e9;
@@ -2179,17 +2209,19 @@ function updateQuestArrow() {
   qArrow.rotation.y = a;
   qArrow.material.opacity = 0.55 + 0.45 * Math.sin(slide * Math.PI);
 }
+const REINO_MAP = { x0: -WX, z0: -WZ, w: WX * 2, h: WZ * 2 };
+function curMap() { return inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
 function drawMinimap() {
-  const sx = mm.width / (WX * 2), sz = mm.height / (WZ * 2);
-  mg.drawImage(mmBase, 0, 0);
-  for (const m of mobs) { const k = m.d.boss ? 4 : m.d.alfa ? 3 : 2; mg.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, k, k); }
+  const M = curMap(), sx = mm.width / M.w, sz = mm.height / M.h;
+  mg.drawImage(M.mm || mmBase, 0, 0, mm.width, mm.height);
+  for (const m of mobs) { const k = m.d.boss ? 4 : m.d.alfa ? 3 : 2; mg.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; mg.fillRect((m.x - M.x0) * sx - 1, (m.z - M.z0) * sz - 1, k, k); }
   if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } Tower.minimap(mg); return; }
-  Kvx.minimap(mg, sx, sz);
-  for (const n of NPCS) { const mk = n.markK || '', nw = mk.startsWith('!'), rd = mk.startsWith('?') && !mk.endsWith('#7a7a88'), s = nw || rd ? 5 : 3; mg.fillStyle = nw ? '#7dff6a' : rd ? '#6ab0ff' : '#ffcf40'; mg.fillRect((n.x + WX) * sx - s / 2, (n.z + WZ) * sz - s / 2, s, s); }
-  const px = (P.x + WX) * sx, pz = (P.z + WZ) * sz;
+  if (!inVal(P.z)) Kvx.minimap(mg, sx, sz);
+  for (const n of NPCS) { const mk = n.markK || '', nw = mk.startsWith('!'), rd = mk.startsWith('?') && !mk.endsWith('#7a7a88'), s = nw || rd ? 5 : 3; mg.fillStyle = nw ? '#7dff6a' : rd ? '#6ab0ff' : '#ffcf40'; mg.fillRect((n.x - M.x0) * sx - s / 2, (n.z - M.z0) * sz - s / 2, s, s); }
+  const px = (P.x - M.x0) * sx, pz = (P.z - M.z0) * sz;
   const qt = questTarget();
   if (qt) {                                                     // destino da missão: linha tracejada e estrela dourada
-    const tx = (qt.x + WX) * sx, tz = (qt.z + WZ) * sz;
+    const tx = (qt.x - M.x0) * sx, tz = (qt.z - M.z0) * sz;
     mg.save(); mg.setLineDash([3, 3]); mg.strokeStyle = 'rgba(255,207,64,.85)'; mg.lineWidth = 1.5; mg.beginPath(); mg.moveTo(px, pz); mg.lineTo(tx, tz); mg.stroke();
     mg.setLineDash([]); mg.fillStyle = '#ffcf40'; mg.strokeStyle = '#000'; mg.beginPath();
     for (let k = 0; k < 10; k++) { const r = k % 2 ? 2.5 : 6, a = k * Math.PI / 5 - Math.PI / 2; mg.lineTo(tx + Math.cos(a) * r, tz + Math.sin(a) * r); }
@@ -2217,7 +2249,7 @@ function useWing(id) {
   if (id === 'asa_mosca') {
     let tx = null, tz = null;
     if (inTower(P.z)) { const f = floorAt(P.x, P.z); for (let i = 0; i < 40 && f; i++) { const a = rand(0, TAU), r = rand(2, f.r - 3), x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r; if (!blocked(x, z)) { tx = x; tz = z; break; } } }
-    else for (let i = 0; i < 60; i++) { const a = rand(0, TAU), r = rand(15, 55), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if (Math.abs(x) < WX - 8 && Math.abs(z) < WZ - 8 && !blocked(x, z) && !isWater(x, z) && zoneOf(x, z) === zn) { tx = x; tz = z; break; } }
+    else for (let i = 0; i < 60; i++) { const a = rand(0, TAU), r = rand(15, 55), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if ((inVal(P.z) ? inVal(z) : Math.abs(x) < WX - 8 && Math.abs(z) < WZ - 8) && !blocked(x, z) && !isWater(x, z) && zoneOf(x, z) === zn) { tx = x; tz = z; break; } }
     if (tx === null) { log('A Asa de Mosca não achou lugar para pousar. Tente de novo.', 'sys'); return; }
     P.inv[id]--; burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x9ad0ff, 24, 3, 0.6);
     P.x = tx; P.z = tz; P.y = groundY(tx, tz); P.vy = 0; camS.x = P.x; camS.z = P.z;
@@ -2236,11 +2268,14 @@ function wingTick(dt) {
   if (P.wingT <= 0) {
     P.wingT = 0; if (!(P.inv.asa_borboleta > 0) || P.dead) return;
     P.inv.asa_borboleta--;
-    const h = P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : { x: VIL.x, z: VIL.z + 10 };
+    const h = homePos();
     P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z); P.vy = 0; camS.x = P.x; camS.z = P.z;
     Audio8.sfx('warp'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffc0f0, 40, 4, 0.9); log('🦋 Você voltou para a cidade.', 'gold');
     if (typeof autoStop === 'function') autoStop(''); buildHotbar();
   }
+}
+function homePos() {
+  return P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : P.home === 'acampamento' ? { x: VCAMP.x, z: VCAMP.z + 4 } : { x: VIL.x, z: VIL.z + 10 };
 }
 function breakCast() { if (P.wingT > 0) { P.wingT = 0; log('🦋 A conjuração da Asa de Borboleta foi interrompida!', 'bad'); Audio8.sfx('miss'); } }
 function buildHotbar() {
@@ -2394,6 +2429,7 @@ function talkBase(n) {
       shop(); break;
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
+    case 'refugee': dialog(nm, `Você... veio da Passagem? Ninguém vem <i>para</i> cá, ${eu}. Todo mundo foge.<br>Valdora caiu. As muralhas estão no chão, as torres queimam, e as <b>Sentinelas do Vazio</b> andam pelas ruas. No meio da praça desenharam com sangue um símbolo enorme: <b>três espinhos</b>.<br>A estrada até lá está tomada pelas <b>Raízes Negras</b>. Cuidado.`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
     case 'smith': Vida.smith(eu); break;
     case 'warp': if (typeof Quests !== 'undefined') Quests.warp(n.city); break;

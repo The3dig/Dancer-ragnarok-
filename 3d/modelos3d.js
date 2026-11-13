@@ -88,9 +88,15 @@ const Modelos3D = (() => {
     fungolino: () => makeRoot({ c1: 0x1a1214, c2: 0x2a1a20, eye: 0xff3c3c, eyes: 1, n: 6 }),
     raizPetra: () => makeRoot({ c1: 0x4a3a30, c2: 0x2a201a, eye: 0xe0c060, eyes: 2, n: 8, mouth: true }),
     cristalizado: () => makeCrystalman(),
+    // Valdora
+    raizNegra: () => makeRoot({ c1: 0x120a0e, c2: 0x241418, eye: 0xff6a20, eyes: 2, n: 9, mouth: true }),
+    ecoCinza: () => makeGhost({ c1: 0x6a6266, eye: 0xff8a3a }),
+    larvaCinza: () => makeLarva({ c1: 0x4a4446, c2: 0x6e6668, core: 0xff7a3a, long: true, armor: true }),
+    sentinelaMuralha: () => makeSentinel({ c1: 0x3a3238, c2: 0x1a1418, eye: 0xff3a3a }),
+    carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
-  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo']);   // larvas olham para +x
-  const FLOAT = new Set(['zunzum', 'serpe', 'esfera']);
+  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza']);   // larvas olham para +x
+  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];

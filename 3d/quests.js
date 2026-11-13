@@ -25,6 +25,13 @@ const Quests = (() => {
     { id: 'p9', type: 'principal', giver: 'Anciã Zahra', to: 'Vigia Morvan', req: 'p8', title: 'A Cidadela do Cisma', txt: 'Vá até a Cidadela do Cisma, no extremo leste, e fale com o Vigia Morvan.', steps: [], rw: { xp: 800, zeny: 300 } },
     { id: 'p10', type: 'principal', giver: 'Vigia Morvan', req: 'p9', title: 'A Torre do Cisma', txt: 'Trinta andares tomados pela Essência. Comece limpando as Sentinelas.', steps: [{ kill: 'sentinela', n: 10 }], rw: { xp: 4000, zeny: 2000, items: { anel_vazio: 1 } } },
     { id: 'p11', type: 'principal', giver: 'Vigia Morvan', req: 'p10', title: 'O Soberano dorme', txt: 'Chegue ao topo da Torre e veja com os próprios olhos quem dorme lá.', steps: [{ reach: 'topo' }], rw: { xp: 8000, zeny: 4000, items: { elmo_sentinela: 1 } } },
+    // ---------------- principal: Valdora (livro I, caps. 14–15)
+    { id: 'v1', type: 'principal', giver: 'Vigia Morvan', to: 'Arlen, o Refugiado', req: 'p9', lv: 24, title: 'A Passagem do Norte', txt: 'Refugiados chegam pela Passagem do Norte, no alto das Areias Rubras. Atravesse e fale com eles.', steps: [], rw: { xp: 3000, zeny: 800 } },
+    { id: 'v2', type: 'principal', giver: 'Arlen, o Refugiado', req: 'v1', title: 'Raízes na estrada', txt: 'A estrada até Valdora está tomada pelas Raízes Negras. Abra caminho.', steps: [{ kill: 'raizNegra', n: 8 }], rw: { xp: 6000, zeny: 1500, items: { red: 10 } } },
+    { id: 'v3', type: 'principal', giver: 'Arlen, o Refugiado', req: 'v2', title: 'Ecos das cinzas', txt: 'Vozes sem corpo vagam entre as casas queimadas. Cale-as.', steps: [{ kill: 'ecoCinza', n: 8 }], rw: { xp: 7500, zeny: 1800, items: { blue: 5 } } },
+    { id: 'v4', type: 'principal', giver: 'Arlen, o Refugiado', req: 'v3', title: 'Do alto da colina', txt: 'Suba a colina e veja o que restou de Valdora.', steps: [{ reach: [VHILL.x, VHILL.z, 7], label: 'Suba a Colina de Valdora' }], rw: { xp: 4000, zeny: 1000 }, lore: 'Do alto da colina, Valdora aparece, irreconhecível. As muralhas estão destruídas, as torres queimam, criaturas percorrem as ruas. No centro, um símbolo gigantesco desenhado com sangue: <b>três espinhos</b>.' },
+    { id: 'v5', type: 'principal', giver: 'Arlen, o Refugiado', req: 'v4', title: 'Os portões abertos', txt: 'Os portões de Valdora estão abertos. Nenhum guarda, só fumaça e Sentinelas.', steps: [{ kill: 'sentinelaMuralha', n: 10 }], rw: { xp: 12000, zeny: 3000, items: { couraca_valdora: 1 } } },
+    { id: 'v6', type: 'principal', giver: 'Arlen, o Refugiado', req: 'v5', title: 'A estátua da praça', txt: 'Na praça há uma estátua de um homem com uma espada. O Carrasco de Valdora a guarda.', steps: [{ kill: 'carrasco', n: 1 }], rw: { xp: 30000, zeny: 8000, items: { arma_valdora: 1, essencia: 2 } }, lore: 'A estátua não estava aqui antes do Cisma. Alguém a pôs há pouco tempo. A espada de pedra tem uma rachadura fina, como se esperasse a mão certa.' },
     // ---------------- secundárias
     { id: 's1', type: 'secundaria', giver: 'Irmã Celina', title: 'Ervas para os feridos', txt: 'Preciso de Raízes Secas para os unguentos.', steps: [{ item: 'raiz', n: 4 }], rw: { xp: 120, zeny: 80, items: { blue: 3 } } },
     { id: 's2', type: 'secundaria', giver: 'Mercador Bento', title: 'Gosma para o sabão', txt: 'Gosma de Larva faz o melhor sabão da região.', steps: [{ item: 'gosma', n: 8 }], rw: { xp: 100, zeny: 150, items: { anel_raiz: 1 } } },
@@ -34,6 +41,8 @@ const Quests = (() => {
     { id: 's6', type: 'secundaria', giver: 'Curandeira Samira', title: 'Fios de sombra', txt: 'Com Fio de Sombra eu costuro amuletos de proteção.', steps: [{ item: 'fio', n: 4 }], rw: { xp: 800, zeny: 300, items: { colar_sombra: 1 } } },
     { id: 's7', type: 'secundaria', giver: 'Curandeira Ilsa', title: 'Lascas da guerra', txt: 'As Lascas de Armadura guardam memórias de quem as usou.', steps: [{ item: 'lasca', n: 6 }], rw: { xp: 2500, zeny: 800, items: { manoplas_sentinela: 1 } } },
     { id: 's8', type: 'secundaria', giver: 'Mercador Dravo', title: 'Essência para estudo', txt: 'Pago muito bem por uma Essência Negra.', steps: [{ item: 'essencia', n: 1 }], rw: { xp: 3000, zeny: 2500 } },
+    { id: 's9', type: 'secundaria', giver: 'Curandeira Wenna', title: 'Cinzas para os unguentos', txt: 'A Cinza de Valdora ainda guarda calor. Serve para cicatrizar queimaduras.', steps: [{ item: 'cinza', n: 6 }], rw: { xp: 5000, zeny: 1500, items: { blue: 6 } } },
+    { id: 's10', type: 'secundaria', giver: 'Mascate Iara', title: 'Cordas de raiz', txt: 'Fibra de Raiz Negra vira a corda mais forte que existe.', steps: [{ item: 'fibra', n: 8 }], rw: { xp: 5500, zeny: 2500, items: { botas_valdora: 1 } } },
     // ---------------- caça (quadros de caça, repetíveis)
     { id: 'c1', type: 'caca', board: 'solmira', repeat: true, title: 'Praga de larvas', txt: 'Recompensa pela limpeza dos campos.', steps: [{ kill: 'pompom', n: 15 }], rw: { xp: 150, zeny: 120 } },
     { id: 'c2', type: 'caca', board: 'solmira', repeat: true, title: 'Raízes no trigo', txt: 'As raízes estão comendo a colheita.', steps: [{ kill: 'fungolino', n: 10 }], rw: { xp: 250, zeny: 180, items: { red: 2 } } },
@@ -41,6 +50,8 @@ const Quests = (() => {
     { id: 'c4', type: 'caca', board: 'kharum', repeat: true, title: 'Caçada às sombras', txt: 'Ninguém dorme com as sombras rondando.', steps: [{ kill: 'serpe', n: 10 }], rw: { xp: 1100, zeny: 550, items: { blue: 2 } } },
     { id: 'c5', type: 'caca', board: 'cidadela', repeat: true, title: 'Larvas da Torre', txt: 'A Torre transborda de larvas.', steps: [{ kill: 'larva', n: 15 }], rw: { xp: 2000, zeny: 800 } },
     { id: 'c6', type: 'caca', board: 'cidadela', repeat: true, title: 'Sentinelas do Vazio', txt: 'Contrato da guarda da Cidadela.', steps: [{ kill: 'sentinela', n: 10 }], rw: { xp: 3500, zeny: 1400, items: { blue: 3 } } },
+    { id: 'c7', type: 'caca', board: 'acampamento', repeat: true, title: 'Estrada livre', txt: 'Os refugiados precisam passar.', steps: [{ kill: 'raizNegra', n: 15 }], rw: { xp: 9000, zeny: 2200 } },
+    { id: 'c8', type: 'caca', board: 'acampamento', repeat: true, title: 'Muralhas de Valdora', txt: 'Cada Sentinela a menos é uma casa a mais.', steps: [{ kill: 'sentinelaMuralha', n: 12 }], rw: { xp: 16000, zeny: 3500, items: { blue: 4 } } },
     // ---------------- ocultas (quem dá está escondido pelo mapa)
     { id: 'h1', type: 'oculta', giver: 'Viajante Perdido', title: 'O anel engolido', txt: '"Uma Raiz Rastejante engoliu o anel da minha mãe... por favor."', steps: [{ kill: 'fungolino', n: 8 }], rw: { xp: 600, zeny: 500, items: { anel_cristal: 1 } } },
     { id: 'h2', type: 'oculta', giver: 'Eco Sussurrante', title: 'Vozes da cratera', txt: '"Traga o pó dos meus irmãos e eu te conto um segredo."', steps: [{ item: 'po_eco', n: 5 }], rw: { xp: 900, zeny: 300, items: { colar_sombra: 1 } }, lore: 'O Eco sussurra: "Antes do Cisma, o Reino era um só. A Fonte guardava a memória de todos… e alguém quis guardá-la só para si."' },
@@ -64,6 +75,7 @@ const Quests = (() => {
     if (st.kill) return `Derrote ${st.n} ${MOBDEF[st.kill] ? MOBDEF[st.kill].name : st.kill}`;
     if (st.item) return `Traga ${st.n}× ${ITEMS[st.item] ? ITEMS[st.item].name : st.item}`;
     if (st.reach === 'topo') return 'Chegue ao topo da Torre do Cisma (30 andares)';
+    if (Array.isArray(st.reach)) return st.label || 'Chegue ao local marcado';
     return '';
   };
   const available = q => !S().act[q.id] && (q.repeat || !S().done[q.id]) && (!q.req || S().done[q.req]) && (!q.lv || P.lv >= q.lv);
@@ -83,7 +95,7 @@ const Quests = (() => {
     Audio8.sfx('coin'); buildHotbar();
     log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b> concluída! ${r.xp ? '+' + r.xp + ' XP' : ''} ${r.zeny ? '+' + r.zeny + ' cr' : ''}${got.length ? ' · ' + got.join(', ') : ''}`, 'gold');
     if (r.xp) gainXp(r.xp);
-    if (q.lore) setTimeout(() => dialog('🟣 Segredo', q.lore), 300);
+    if (q.lore) setTimeout(() => dialog(q.type === 'oculta' ? '🟣 Segredo' : '📖 ' + q.title, q.lore), 300);
     // a principal seguinte já fica disponível no mesmo NPC
     const nx = Q.find(o => o.req === q.id && o.type === 'principal');
     if (nx && available(nx) && nx.giver === (q.to || q.giver)) accept(nx);
@@ -119,7 +131,7 @@ const Quests = (() => {
     opts.push({ label: 'Fechar' });
     dialog('📋 Quadro de Caça', 'Contratos de caça da cidade. Pode repetir quantas vezes quiser.', opts);
   }
-  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma' };
+  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora' };
   function travel(from) {
     const opts = Object.keys(BOARDS).filter(c => c !== from).map(c => P.warps[c]
       ? { label: `🧭 ${CITY_N[c]} — 50 cr`, fn: () => {
@@ -201,11 +213,12 @@ const Quests = (() => {
       if (srcs.some(t => ['larva', 'verme', 'esfera', 'sentinela'].includes(t))) return { x: Tower.door.x, z: Tower.door.z };
     }
     if (st && st.reach === 'topo') return { x: Tower.door.x, z: Tower.door.z };
+    if (st && Array.isArray(st.reach)) return { x: st.reach[0], z: st.reach[1] };
     return null;
   }
 
   // ---------------- mundo: quadros de caça, tesouros e NPCs escondidos
-  const BOARDS = { solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 } };
+  const BOARDS = { solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 } };
   const opened = () => (P.secrets = P.secrets || {});
   const glintMats = [];
   function build() {
@@ -256,6 +269,7 @@ const Quests = (() => {
     tAcc += dt; if (tAcc < 0.4) return; tAcc = 0;
     for (const s of SECRETS) if (s.glint) s.glint.visible = !opened()[s.id] && Math.hypot(s.x - P.x, s.z - P.z) < 22;
     for (const id in S().act) { const q = byId[id]; if (!q) continue; if (q.steps.some(st => st.reach === 'topo') && inTower(P.z) && Tower.floor === TOP && !S().act[id].r) { S().act[id].r = 1; log(`🟡 Você chegou ao topo. Volte ao <b>${q.giver}</b>.`, 'gold'); } }
+    for (const id in S().act) { const q = byId[id]; if (!q) continue; const st = q.steps.find(t => Array.isArray(t.reach)); if (st && !S().act[id].r && Math.hypot(P.x - st.reach[0], P.z - st.reach[1]) < st.reach[2]) { S().act[id].r = 1; Audio8.sfx('level'); log(`${TYPE[q.type].dot} <b>${q.title}</b>: você chegou! Volte a ${q.to || q.giver}.`, 'gold'); } }
   }
   // saves antigos: converte a missão da Mestra Odete (P.quest) e já começa a próxima
   function migrate() {

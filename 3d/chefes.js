@@ -154,7 +154,7 @@ const Chefes = (() => {
 //  muito mais chance. Os chefes de campo (acima) são os de grupo.
 // =====================================================================
 const Alfas = (() => {
-  const BASE = ['pompom', 'zunzum', 'fungolino', 'besouro', 'serpe'];
+  const BASE = ['pompom', 'zunzum', 'fungolino', 'besouro', 'serpe', 'raizNegra', 'ecoCinza', 'larvaCinza'];
   for (const t of BASE) {
     const d = MOBDEF[t], s = SPR_MOBS[t]; if (!d || !s) continue;
     MOBDEF['alfa_' + t] = { ...d, name: d.name + ' Alfa', lv: d.lv + 3, hp: d.hp * 9, atk: Math.round(d.atk * 1.7), def: d.def + 3, xp: d.xp * 8, zeny: [d.zeny[0] * 6, d.zeny[1] * 8],
