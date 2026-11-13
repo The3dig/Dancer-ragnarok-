@@ -136,7 +136,7 @@ const Quests = (() => {
     const toHere = Object.keys(S().act).map(id => byId[id]).filter(q => q && (q.to || q.giver) === n.name);
     const r = toHere.find(ready); if (r) return '?:' + colorOf(r);
     const o = Q.find(q => q.giver === n.name && available(q)); if (o) return '!:' + colorOf(o);
-    if (toHere.length) return '!:#8a8a98';
+    if (toHere.length) return '?:#7a7a88';
     return null;
   }
 

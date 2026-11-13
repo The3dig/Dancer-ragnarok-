@@ -524,3 +524,5 @@ body.touch #kvx { font-size: 10px; }
 #bigmap .bm-list h4 { margin: 0 0 4px; color: #f2c86a; font-size: 12px; }
 #bigmap .bm-npc { display: flex; align-items: center; gap: 6px; padding: 5px 6px; margin-bottom: 4px; border-radius: 8px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); cursor: pointer; }
 #bigmap .bm-npc b { flex: 1; font-weight: 700; } #bigmap .bm-npc em { font-style: normal; color: #ffcf40; font-size: 11px; }
+
+.ibtn button.danger { background: rgba(200,40,40,.6) !important; border-color: #ff6a6a !important; }

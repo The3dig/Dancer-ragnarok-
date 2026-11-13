@@ -826,7 +826,7 @@ const MOBDEF = {
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
   esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
   sentinela: { name: 'Sentinela do Vazio', lv: 19, hp: 1000, atk: 52, def: 20, xp: 380, zeny: [40, 90], speed: 2.6, aggro: 16, respawn: 1e9, drops: [['red', 0.5], ['blue', 0.3]] },
-  guardiao:  { name: 'Sentinela sem Rosto', lv: 18, hp: 2400, atk: 42, def: 15, xp: 900, zeny: [300, 500], speed: 2.0, aggro: 14, respawn: 90, boss: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
+  guardiao:  { name: 'Sentinela sem Rosto', lv: 22, hp: 14000, atk: 64, def: 24, xp: 2600, zeny: [600, 900], speed: 2.4, aggro: 16, respawn: 180, boss: true, mini: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
 
@@ -1014,6 +1014,8 @@ const MARKS = {};
 function markTex(k) {
   if (MARKS[k]) return MARKS[k];
   const [t, col] = k.split(':'), c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const live = col !== '#7a7a88';                       // novidade brilha; em andamento fica apagado
+  if (live) { const r = x.createRadialGradient(32, 34, 2, 32, 34, 32); r.addColorStop(0, col + 'aa'); r.addColorStop(1, col + '00'); x.fillStyle = r; x.fillRect(0, 0, 64, 64); }
   x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText(t, 32, 52); x.fillStyle = col; x.fillText(t, 32, 52);
   return (MARKS[k] = new THREE.CanvasTexture(c));
 }
@@ -1026,7 +1028,7 @@ function npcMark(n) {
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
   else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
   if (n.markK === k) return; n.markK = k;
-  n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.needsUpdate = true; }
+  n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.needsUpdate = true; n.bang.scale.setScalar(k.endsWith('#7a7a88') ? 0.55 : 0.95); }
 }
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
@@ -1788,7 +1790,7 @@ function updateMob(m, dt) {
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
   if (m.type === 'kravenox') Kvx.ai(m, dt);
-  if (m.d.field && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
+  if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
@@ -2152,7 +2154,7 @@ function drawMinimap() {
   for (const m of mobs) { const k = m.d.boss ? 4 : m.d.alfa ? 3 : 2; mg.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; mg.fillRect((m.x + WX) * sx - 1, (m.z + WZ) * sz - 1, k, k); }
   if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } Tower.minimap(mg); return; }
   Kvx.minimap(mg, sx, sz);
-  for (const n of NPCS) { mg.fillStyle = '#ffcf40'; mg.fillRect((n.x + WX) * sx - 1.5, (n.z + WZ) * sz - 1.5, 3, 3); }
+  for (const n of NPCS) { const mk = n.markK || '', nw = mk.startsWith('!'), rd = mk.startsWith('?') && !mk.endsWith('#7a7a88'), s = nw || rd ? 5 : 3; mg.fillStyle = nw ? '#7dff6a' : rd ? '#6ab0ff' : '#ffcf40'; mg.fillRect((n.x + WX) * sx - s / 2, (n.z + WZ) * sz - s / 2, s, s); }
   const px = (P.x + WX) * sx, pz = (P.z + WZ) * sz;
   const qt = questTarget();
   if (qt) {                                                     // destino da missão: linha tracejada e estrela dourada
@@ -2238,12 +2240,18 @@ function renderStats() {
     <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b> · Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
-$('statwin').addEventListener('click', e => {
-  const b = e.target.closest('[data-st],[data-close]'); if (!b) return;
-  if (b.dataset.close !== undefined) return toggleStats();
-  const k = b.dataset.st;
-  if (k && P.statPts > 0) { P[k]++; P.statPts--; Audio8.sfx('click'); renderStats(); }
+$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); });
+// segurar o + vai adicionando sozinho (cada vez mais rápido)
+let statHold = null;
+const addStat = k => { if (k && P.statPts > 0) { P[k]++; P.statPts--; Audio8.sfx('click'); renderStats(); return true; } return false; };
+$('statwin').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-st]'); if (!b) return; e.preventDefault();
+  const k = b.dataset.st; if (!addStat(k)) return;
+  let wait = 380; const tick = () => { if (!addStat(k)) return stopHold(); wait = Math.max(60, wait * 0.8); statHold = setTimeout(tick, wait); };
+  statHold = setTimeout(tick, wait);
 });
+const stopHold = () => { clearTimeout(statHold); statHold = null; };
+addEventListener('pointerup', stopHold); addEventListener('pointercancel', stopHold);
 function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); renderStats(); }
 
 // ---------------------------------------------------------------- árvore de habilidades
@@ -2345,8 +2353,10 @@ function talkBase(n) {
         { label: `🧪 Poção Vermelha — 25 cr`, fn: () => { buy('red', 1); shop(); return true; } },
         { label: `🧪×10 — 250 cr`, fn: () => { buy('red', 10); shop(); return true; } },
         { label: `💧 Poção Azul — 90 cr`, fn: () => { buy('blue', 1); shop(); return true; } },
-        { label: `🪰 Asa de Mosca — 300 cr (salto no mesmo mapa) · tem ${P.inv.asa_mosca || 0}`, fn: () => { buy('asa_mosca', 1); shop(); return true; } },
-        { label: `🦋 Asa de Borboleta — 900 cr (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { buy('asa_borboleta', 1); shop(); return true; } },
+        { label: `🪰 Asa de Mosca — 300 cr cada (salto no mesmo mapa) · tem ${P.inv.asa_mosca || 0}`, fn: () => { qty('asa_mosca', shop); return true; } },
+        { label: `🦋 Asa de Borboleta — 900 cr cada (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { qty('asa_borboleta', shop); return true; } },
+        { label: `🧪 Poção Vermelha — quantidade…`, fn: () => { qty('red', shop); return true; } },
+        { label: `💧 Poção Azul — quantidade…`, fn: () => { qty('blue', shop); return true; } },
         { label: '⚔️ Equipamentos', fn: () => { Vida.gearShop(); return true; } },
         { label: '💰 Vender materiais e colheita', fn: () => { Vida.sellAll(); shop(); return true; } },
         { label: 'Sair' }]);
@@ -2359,8 +2369,15 @@ function talkBase(n) {
     default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
     case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
-    case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor. Volte quando estiver acima do nível 15.`); break;
+    case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor e salta sobre quem foge. Volte quando estiver acima do nível 20, ou traga amigos.`); break;
   }
+}
+// escolher quanto comprar
+function qty(id, back) {
+  const pr = ITEMS[id].price, opts = [1, 5, 10, 25, 50].map(n => ({ label: `${n}× — ${(pr * n).toLocaleString('pt-BR')} cr`, fn: () => { buy(id, n); qty(id, back); return true; } }));
+  const max = Math.floor(P.zeny / pr); if (max > 50) opts.push({ label: `Máximo (${max}×) — ${(pr * max).toLocaleString('pt-BR')} cr`, fn: () => { buy(id, max); qty(id, back); return true; } });
+  opts.push({ label: '← Voltar', fn: () => { back(); return true; } });
+  dialog(`${ITEMS[id].ic} ${ITEMS[id].name}`, `Quantos? <small>Tem ${P.inv[id] || 0} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, opts);
 }
 function buy(id, n) {
   const c = ITEMS[id].price * n;
