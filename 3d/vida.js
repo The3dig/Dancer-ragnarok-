@@ -671,7 +671,7 @@ const Vida = (() => {
   // ---------------------------------------------------------------- multiplayer: troca e banca
   let peers = [], tr = null, stallSold = [], stallRej = [], buyReq = [], declined = new Set(), doneTr = new Set(), stallMode = 1;
   const online = () => typeof Net !== 'undefined' && Net.connected && Net.me;
-  const soloMsg = () => log('Troca e banca funcionam pelo link do Claude, com os amigos online no mesmo mundo.', 'sys');
+  const soloMsg = () => log('Troca e banca funcionam com os amigos online no mesmo mundo (precisa de internet).', 'sys');
   const near = (r, d) => Math.hypot(r.x - P.x, r.z - P.z) < d;
   const keyOf = (a, b) => JSON.stringify([a || {}, b || {}]);
   const offerTxt = g => { const e = Object.entries(g || {}).filter(([k, n]) => n > 0); return e.length ? e.map(([k, n]) => k === 'z' ? `<b>${n} cr</b>` : `${it(k).ic} ${it(k).name} ×${n}`).join('<br>') : '<i>nada ainda</i>'; };

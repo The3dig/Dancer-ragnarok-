@@ -1,19 +1,56 @@
 // =====================================================================
-//  Multiplayer — usa a "sala" da página do Claude (presence em tempo real).
-//  Cada jogador publica o próprio estado; todos veem todos.
-//  Fora do Claude (GitHub Pages / app) o jogo continua single-player.
+//  Multiplayer: cada jogador publica o próprio estado e todos veem todos.
+//  No link do Claude usa a "sala" da página (presence em tempo real).
+//  Fora dele (GitHub Pages / app) usa o servidor do MMO na Cloudflare
+//  (servidor/ → kravenox-mmo.kravenox.workers.dev), que faz a mesma coisa
+//  por WebSocket. O resto do jogo não sabe a diferença.
 // =====================================================================
 'use strict';
+const SERVIDOR_MMO = 'wss://kravenox-mmo.kravenox.workers.dev/mundo/reino';
+// sala por WebSocket com a mesma cara da sala do Claude: presence() e onPeers()
+function salaServidor(url) {
+  let ws = null, me = null, cb = null, pend = null, espera = 1000, aberta = false;
+  const peers = new Map();
+  const emit = (joined = [], left = []) => {
+    if (!cb) return;
+    const list = [...peers.entries()].map(([peer, s]) => ({ peer, isMe: false, sameTab: false, presence: s }));
+    if (me) list.push({ peer: me, isMe: true, sameTab: true, presence: null });
+    cb({ peers: list, joined, left });
+  };
+  function conectar() {
+    try { ws = new WebSocket(url); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
+    ws.onopen = () => { aberta = true; espera = 1000; if (pend) ws.send(JSON.stringify({ t: 'p', s: pend })); };
+    ws.onmessage = e => {
+      if (e.data === 'pong') return;
+      let m; try { m = JSON.parse(e.data); } catch (_) { return; }
+      if (m.t === 'eu') { me = m.peer; emit(); }
+      else if (m.t === 'todos') { const velhos = [...peers.keys()]; peers.clear(); for (const p of m.peers || []) peers.set(p.peer, p.s); emit([], velhos.filter(k => !peers.has(k)).map(peer => ({ peer }))); }
+      else if (m.t === 'p') { const novo = !peers.has(m.peer); peers.set(m.peer, m.s); emit(novo ? [{ peer: m.peer, presence: m.s, sameTab: false }] : []); }
+      else if (m.t === 'saiu') { if (peers.delete(m.peer)) emit([], [{ peer: m.peer }]); }
+      else if (m.t === 'erro' && typeof log === 'function') log('🌐 ' + String(m.msg).slice(0, 120), 'sys');
+    };
+    ws.onclose = () => {
+      aberta = false; const left = [...peers.keys()].map(peer => ({ peer })); peers.clear(); me = null; emit([], left);
+      setTimeout(conectar, espera); espera = Math.min(espera * 2, 30000);        // cai a internet: tenta de novo, cada vez esperando mais
+    };
+    ws.onerror = () => { };
+  }
+  conectar();
+  setInterval(() => { if (aberta) try { ws.send('ping'); } catch (e) { } }, 25000);   // mantém a conexão viva
+  return {
+    servidor: true, get aberta() { return aberta; },
+    presence(s) { pend = s; if (aberta) try { ws.send(JSON.stringify({ t: 'p', s })); } catch (e) { } return Promise.resolve(); },
+    onPeers(f) { cb = f; emit(); },
+  };
+}
 const Net = (() => {
   let room = null, sendT = 0, lastSent = '', online = 1, myPeer = null;
   const remotes = new Map();   // peer -> jogador remoto
   const seenSay = new Map();
 
   async function init() {
-    try {
-      if (!window.claude || !window.claude.use) return;
-      room = await window.claude.use('room');
-    } catch (e) { room = null; }
+    try { if (window.claude && window.claude.use) room = await window.claude.use('room'); } catch (e) { room = null; }
+    if (!room && !/[?&#]solo\b/.test(location.href) && 'WebSocket' in window) room = salaServidor((/[?&]servidor=(wss?:\/\/[^&#]+)/.exec(location.search) || [])[1] ? decodeURIComponent(/[?&]servidor=(wss?:\/\/[^&#]+)/.exec(location.search)[1]) : SERVIDOR_MMO);   // fora do Claude: servidor na Cloudflare
     if (!room) return;
     room.onPeers(ch => {
       for (const p of ch.left) drop(p.peer);
@@ -59,7 +96,8 @@ const Net = (() => {
   }
   function updateBadge() {
     const el = $('online'); if (!el) return;
-    if (!room) { el.textContent = '👤 Solo'; el.title = 'Multiplayer disponível ao abrir pelo link do Claude'; return; }
+    if (!room) { el.textContent = '👤 Solo'; el.title = 'Jogando sozinho'; return; }
+    if (room.servidor && !room.aberta) { el.textContent = '🌐 Conectando…'; el.title = 'Ligando ao servidor do Reino'; return; }
     el.textContent = `👥 ${Math.max(1, remotes.size + 1)} online`;
   }
 
@@ -69,7 +107,7 @@ const Net = (() => {
     // publica o próprio estado ~10x/s
     sendT -= dt;
     if (sendT <= 0) {
-      sendT = 0.1;
+      sendT = room.servidor ? 0.15 : 0.1;              // no servidor, ~7x/s (poupa a cota grátis da Cloudflare)
       const st = P.dead ? 'd' : P.dashT > 0 ? 'r' : P.moving ? 'm' : P.sit ? 's' : 'i';
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
@@ -138,7 +176,7 @@ const Net = (() => {
     P.say = { t: text, at: Date.now() };
     log(`💬 <b>${esc(P.name)}</b>: ${esc(text)}`, 'chat');
     const b = $('mybubble'); b.textContent = text; b.classList.remove('hidden'); myBubT = 6;
-    if (!room) log('Você está jogando sozinho. O chat aparece para amigos quando todos abrem o mesmo link do Claude.', 'sys');
+    if (!room) log('Você está jogando sozinho agora (sem internet). O chat aparece para os amigos online.', 'sys');
   }
   let myBubT = 0;
   function tickMyBubble(dt) {

@@ -1,0 +1,15 @@
+# Servidor do MMO Reino Quebrado Online (Cloudflare Workers, plano grátis).
+# Fica em https://kravenox-mmo.kravenox.workers.dev
+# Não é o kravenox-duelo (Quadros do Cisma): esse não pode ser mexido.
+name = "kravenox-mmo"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+[[durable_objects.bindings]]
+name = "MUNDOS"
+class_name = "Mundo"
+
+# no plano grátis o Durable Object tem que ser SQLite (new_sqlite_classes)
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Mundo"]

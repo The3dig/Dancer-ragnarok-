@@ -1,5 +1,5 @@
 // =====================================================================
-//  PvP no estilo Lineage 2 (só no link com multiplayer).
+//  PvP no estilo Lineage 2 (só com multiplayer: link do Claude ou servidor do MMO).
 //  - Bater em outro jogador deixa o seu nome ROSA (combate) por 60 s.
 //  - Matar quem estava com nome BRANCO deixa você VERMELHO (PK) por 5 min;
 //    o vermelho vai clareando até sumir. Todo mundo recebe o aviso na tela.
