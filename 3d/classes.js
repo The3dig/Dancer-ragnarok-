@@ -250,7 +250,7 @@ Object.assign(CLASSES, {
     weapon: 'staff', colors: { cloth: 0x1a3a6a, trim: 0xe0c050, accent: 0xffd860 },
     range: 10, dmg: 'int', ranged: true, magic: true, proj: 0xffd860, aspd: 1.0, hp: 1.25, sp: 1.25, crit: 0.03, bonus: { int: 3, vit: 2 },
     skills: [
-      { id: 'rajada', name: 'Rajada Dourada', icon: '✨', lv: 1, sp: 8, cd: 1.3, type: 'bolt', mult: 2.0, magic: true, shots: 1, big: true, color: 0xffd860, desc: 'Luz contra as trevas (200%).' },
+      { id: 'rajada', name: 'Lança Dourada', icon: '✨', lv: 1, sp: 8, cd: 1.3, type: 'bolt', mult: 2.0, magic: true, shots: 1, big: true, fx: 'lanca', color: 0xffd860, desc: 'Uma lança de luz contra as trevas (200%).' },
       { id: 'luz', name: 'Luz Dourada', icon: '💛', lv: 4, sp: 14, cd: 4, type: 'heal', pct: 0.35, color: 0xfff2a0, desc: 'Cura 35% do HP.' },
       { id: 'barreira', name: 'Barreira de Luz', icon: '🛡️', lv: 8, sp: 18, cd: 30, type: 'buff', dur: 25, mods: { def: 25 }, color: 0xffe9a0, desc: '25s: +25 de defesa.' },
       { id: 'pedras', name: 'Pedras Flutuantes', icon: '🪨', lv: 12, sp: 36, cd: 11, type: 'blast', r: 5, mult: 3.0, magic: true, stun: 1, color: 0xffd860, desc: 'A luz ergue escombros contra todos em volta do alvo (300%).' },
@@ -286,7 +286,7 @@ Object.assign(CLASSES, {
     weapon: 'staff', colors: { cloth: 0x1a2a1a, trim: 0xe8e8e0, accent: 0xf0f0c0 },
     range: 11, dmg: 'int', ranged: true, magic: true, proj: 0xf0f0c0, aspd: 1.0, hp: 0.95, sp: 1.4, crit: 0.05, bonus: { int: 3, agi: 1, luk: 1 },
     skills: [
-      { id: 'marca', name: 'Marca da Escolha', icon: '✳️', lv: 1, sp: 9, cd: 1.4, type: 'bolt', mult: 1.1, magic: true, shots: 3, spread: true, color: 0xf0f0c0, desc: 'Três marcas que buscam alvos diferentes (110% cada).' },
+      { id: 'marca', name: 'Espíritos da Escolha', icon: '👻', lv: 1, sp: 12, cd: 1.4, type: 'bolt', mult: 1.5, magic: true, shots: 3, spread: true, fx: 'espiritos', color: 0xd8f0ff, desc: 'Três espíritos correm pelo chão, ziguezagueando, atrás de alvos diferentes (150% cada).' },
       { id: 'quintaMarca', name: 'Quinta Marca', icon: '🤍', lv: 4, sp: 14, cd: 5, type: 'heal', pct: 0.35, color: 0xffffff, desc: 'A marca da Escolha cura 35% do HP.' },
       { id: 'escolhaLivre', name: 'Escolha Livre', icon: '🕊️', lv: 8, sp: 20, cd: 35, type: 'buff', dur: 30, mods: { def: 18, matk: 1.2 }, color: 0xf0f0c0, desc: 'Ninguém escolhe o seu destino. 30s: +18 de defesa e +20% de magia.' },
       { id: 'possibilidades', name: 'Mil Possibilidades', icon: '🔆', lv: 12, sp: 42, cd: 12, type: 'blast', r: 5, mult: 1.4, hits: 3, magic: true, color: 0xf0f0c0, desc: 'Em cada possibilidade, o golpe acerta (3× 140% em área).' },
@@ -305,6 +305,16 @@ Object.assign(CLASSES, {
     ],
   },
 });
+// Recarga mais longa (13/11): as habilidades de ataque eram quase sem espera e
+// ninguém usava o ataque normal. Agora a 1ª habilidade espera pelo menos 4s,
+// as outras de ataque 50% a mais (mínimo 7s) e as curas no mínimo 10s.
+function rebalanceCd(list) {
+  for (const s of list) {
+    if (s.type === 'buff' || s.type === 'summon') continue;
+    if (s.type === 'heal') { s.cd = Math.max(s.cd, 10); continue; }
+    s.cd = s.lv <= 1 ? Math.max(4, s.cd * 2) : Math.max(7, Math.round(s.cd * 1.5));
+  }
+}
 // saves antigos (classes de raça) viram o herói mais parecido
 const OLD_TO_HERO = {
   guerreiro: 'kravenox', berserker: 'kravenox', arruaceiro: 'kravenox', saqueador: 'kravenox', assassino: 'kravenox', monge: 'kravenox', ferreira: 'kravenox',
@@ -351,7 +361,7 @@ const TIER_SKILLS = {
   ],
   erya: [
     { id: 'novaPorta', name: 'Nova Porta', icon: '🚪', tier: 1, lv: 20, sp: 30, cd: 20, type: 'step', mult: 3.0, color: 0xf0f0c0, desc: 'Cria uma possibilidade: surge atrás do alvo (300%).' },
-    { id: 'quintaMaior', name: 'Marca Viva', icon: '✳️', tier: 1, lv: 24, sp: 44, cd: 10, type: 'bolt', mult: 1.8, magic: true, shots: 5, spread: true, color: 0xf0f0c0, desc: 'Cinco marcas que buscam alvos (180% cada).' },
+    { id: 'quintaMaior', name: 'Revoada de Espíritos', icon: '👻', tier: 1, lv: 24, sp: 44, cd: 10, type: 'bolt', mult: 1.8, magic: true, shots: 5, spread: true, fx: 'espiritos', color: 0xfff6c0, desc: 'Cinco espíritos dourados caçam os inimigos (180% cada).' },
     { id: 'antesDeTudo', name: 'Antes de Tudo', icon: '👁️', tier: 2, lv: 40, sp: 50, cd: 40, type: 'buff', dur: 30, mods: { matk: 1.4, def: 30, crit: 0.1 }, heal: 0.25, color: 0xffffff, desc: '30s: +40% de magia, +30 de defesa, +10% de crítico; cura 25%.' },
     { id: 'todasEscolhas', name: 'Todas as Escolhas', icon: '♾️', tier: 2, lv: 46, sp: 90, cd: 18, type: 'blast', r: 8, mult: 2.4, hits: 3, magic: true, color: 0xfff6c0, desc: 'Todas as possibilidades acertam (3× 240% em área).' },
   ],
@@ -362,3 +372,5 @@ const TIER_SKILLS = {
     { id: 'voltemTodos', name: 'Voltem, Todos', icon: '🌙', tier: 2, lv: 46, sp: 85, cd: 18, type: 'nova', r: 9, mult: 5.5, heal: 0.35, color: 0xe8e8ff, desc: 'A promessa cumprida: 550% em volta e cura 35%.' },
   ],
 };
+for (const c of Object.values(CLASSES)) if (c.skills) rebalanceCd(c.skills);
+for (const l of Object.values(TIER_SKILLS)) rebalanceCd(l);

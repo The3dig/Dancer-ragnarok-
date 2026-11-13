@@ -526,3 +526,8 @@ body.touch #kvx { font-size: 10px; }
 #bigmap .bm-npc b { flex: 1; font-weight: 700; } #bigmap .bm-npc em { font-style: normal; color: #ffcf40; font-size: 11px; }
 
 .ibtn button.danger { background: rgba(200,40,40,.6) !important; border-color: #ff6a6a !important; }
+/* passagem escura entre andares da Torre (escadaria) */
+#tfade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 30; }
+.eslot.r4 { border-color: #ff4040; box-shadow: 0 0 10px rgba(255,64,64,.55); }
+.icell.r4 { border-color: #ff4040; background: rgba(255,40,40,.16); box-shadow: 0 0 8px rgba(255,60,60,.5); }
+.ibig.r4 { border-color: #ff4040; box-shadow: 0 0 22px rgba(255,40,40,.6) inset, 0 0 14px rgba(255,40,40,.5); }

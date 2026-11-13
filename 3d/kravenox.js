@@ -99,7 +99,7 @@ function kravenoxModel(r, mt) {
 const Kvx = (() => {
   const DAY = 6, START = 20, END = 22;            // sábado, 20h–22h
   const ALLY_NAMES = ['Bruna Ferro', 'Tião do Arco', 'Zéfiro', 'Nanda Lumen', 'Grum Pedrabarba', 'Selvyn', 'Morgana Cinza', 'Duda Faísca', 'Otávio Brasa', 'Lia Sereno'];
-  const AR = () => FLOORS[5];                                   // topo da Torre do Cisma
+  const AR = () => FLOORS[TOP];                                   // topo da Torre do Cisma
   let boss = null, allies = [], teles = [], active = false, forced = false, checkT = 0, phaseT = 0, lastMsg = '';
   const forcedByLink = () => /kravenox/i.test(location.hash);
 
@@ -124,7 +124,7 @@ const Kvx = (() => {
     addEventListener('hashchange', () => { forced = forcedByLink(); checkT = 0; });
     const el = document.createElement('div'); el.id = 'kvx'; el.className = 'win'; $('hud').appendChild(el);
     const bar = document.createElement('div'); bar.id = 'kvxbar'; bar.className = 'hidden';
-    bar.innerHTML = '<div class="kn">☠ KRAVENOX <small>Nv 40 · Chefe Mundial</small></div><div class="kt"><b></b><em></em></div>'; $('hud').appendChild(bar);
+    bar.innerHTML = '<div class="kn">☠ KRAVENOX <small>Nv 60 · Chefe Mundial</small></div><div class="kt"><b></b><em></em></div>'; $('hud').appendChild(bar);
     if (P.title) $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
     checkT = 0;
   }
@@ -137,7 +137,7 @@ const Kvx = (() => {
     banner('☠ KRAVENOX DESPERTOU ☠');
     Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 300);
     log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> no topo da Torre do Cisma! Todos os aventureiros estão subindo!', 'bad');
-    log('📍 Ele está no <b>topo da Torre do Cisma</b>, na Cidadela do Cisma (extremo leste). Suba os 6 andares!', 'gold');
+    log('📍 Ele está no <b>topo da Torre do Cisma</b>, na Cidadela do Cisma (extremo leste). Suba os 30 andares!', 'gold');
     spawnAllies();
   }
   function sleep(msg) {
@@ -373,9 +373,13 @@ const Kvx = (() => {
     if (Net.count > 1) log(`🤝 Vitória em grupo com ${Net.count - 1} amigo(s)!`, 'gold');
     log(`🏆 <b>KRAVENOX FOI DERROTADO!</b> Você recebeu o título <b>« Matador de Kravenox »</b>. Vitórias: ${P.kvxKills}.`, 'gold');
     log('Ele volta no próximo sábado, às 20h.', 'sys');
-    P.inv.red += 15; P.inv.blue += 8; buildHotbar();
+    // prêmio à altura do pior do jogo: um Mítico garantido (às vezes dois), coroas, Essência e poções
+    const MIT = ['arma_soberano', 'coroa_soberano', 'manto_soberano', 'olho_kravenox'].sort(() => Math.random() - 0.5), got = MIT.slice(0, Math.random() < 0.25 ? 2 : 1);
+    for (const id of got) { P.inv[id] = (P.inv[id] || 0) + 1; log(`🔴 <b style="color:#ff4a4a">MÍTICO!</b> Você recebeu <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); }
+    P.inv.essencia = (P.inv.essencia || 0) + 8; P.inv.red += 40; P.inv.blue += 20; P.zeny += 30000;
+    log('💰 Tesouro do Soberano: <b>30.000 cr</b>, 8 Essências, 40 poções vermelhas e 20 azuis.', 'gold'); buildHotbar();
     for (let i = 0; i < 8; i++) setTimeout(() => { ring(m.x, m.z, 4 + i * 2, [0xffcf40, 0xff4fa3, 0x4fd1ff][i % 3], 0.8); Audio8.sfx(i % 2 ? 'level' : 'coin'); }, i * 200);
-    for (let i = 0; i < 10; i++) drops.push(makeDrop('zeny', irand(150, 300), m.x + rand(-4, 4), m.z + rand(-4, 4)));
+    for (let i = 0; i < 20; i++) drops.push(makeDrop('zeny', irand(600, 1200), m.x + rand(-6, 6), m.z + rand(-6, 6)));
     teles.forEach(t => { scene.remove(t.fill); scene.remove(t.edge); }); teles = [];
     allies.forEach(al => floater(al.x, groundY(al.x, al.z) + 2.4, al.z, 'Vitória!', 'lvl'));
     setTimeout(() => { allies.forEach(al => { scene.remove(al.g); al.lab.remove(); }); allies = []; }, 12000);
@@ -417,7 +421,7 @@ const Kvx = (() => {
     let body;
     if (boss) {
       const left = forced ? 'modo teste' : `termina em ${fmt(endTime() - new Date())}`;
-      const onRoof = inTower(P.z) && Tower.floor === 5;
+      const onRoof = inTower(P.z) && Tower.floor === TOP;
       body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Você está no topo. Derrube o Soberano!' : '📍 Topo da Torre do Cisma — Cidadela do Cisma, extremo leste (caveira no minimapa)'}`;
     } else if (killedThisWeek()) body = `✅ Derrotado esta semana!<br>Próximo despertar em <b>${fmt(nextStart() - new Date())}</b>`;
     else body = `Desperta todo <b>sábado às 20h</b><br>Faltam <b>${fmt(nextStart() - new Date())}</b>`;

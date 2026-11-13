@@ -35,6 +35,15 @@ const VFX = (() => {
     feather: tex(32, 96, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(16, 48, 9, 44, 0, 0, 6.3); g.fill(); g.strokeStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.moveTo(16, 4); g.lineTo(16, 92); g.stroke(); }),
   };
   T.beam.wrapT = THREE.RepeatWrapping;
+  // espírito: cabeça redonda, cauda ondulada e olhos vazados
+  T.ghost = tex(64, 96, (g) => {
+    const r = g.createRadialGradient(32, 30, 4, 32, 40, 40); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.6, 'rgba(255,255,255,.75)'); r.addColorStop(1, 'rgba(255,255,255,.15)');
+    g.fillStyle = r; g.beginPath(); g.arc(32, 30, 22, Math.PI, 0); g.lineTo(54, 60);
+    for (let i = 0; i <= 6; i++) g.quadraticCurveTo(54 - i * 7.3 + 3.6, 70 + (i % 2 ? -8 : 10) + i * 3, 54 - (i + 1) * 7.3 + (i === 6 ? 7.3 : 0), 64 + i * 4);
+    g.lineTo(10, 30); g.fill();
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+    g.beginPath(); g.ellipse(24, 30, 4.5, 7, 0, 0, 6.3); g.fill(); g.beginPath(); g.ellipse(40, 30, 4.5, 7, 0, 0, 6.3); g.fill(); g.beginPath(); g.ellipse(32, 44, 5, 3.5, 0, 0, 6.3); g.fill();
+  });
 
   // ---------------- geometrias reutilizadas
   const G = {
@@ -266,8 +275,50 @@ const VFX = (() => {
     if (e !== 'luz' && e !== 'sombra') setTimeout(() => wave(x, z, r, 0xffffff, 0.35), 160);
   }
   const styleOf = s => { const e = elem(s); return e === 'flecha' ? 'flecha' : e === 'cristal' ? 'cristal' : e === 'sombra' ? 'sombra' : e; };
-  function shoot(s, from, tgt, onHit) {
+  // espíritos que descem e correm rente ao chão, ziguezagueando até o alvo
+  function spirit(from, tgt, color, onHit, side = 0) {
+    const g = new THREE.Group(); g.position.copy(from);
+    const body = new THREE.Sprite(smat(T.ghost, color)); body.scale.set(0.95, 1.4, 1); g.add(body);
+    const core = new THREE.Sprite(smat(T.glow, 0xffffff)); core.scale.setScalar(0.7); core.position.y = 0.15; g.add(core);
+    const halo = new THREE.Sprite(smat(T.glow, color, { opacity: 0.6 })); halo.scale.setScalar(2.2); g.add(halo);
+    let done = false, trailT = 0, t = 0; const tp = new THREE.Vector3(), dir = new THREE.Vector3(), base = new THREE.Vector3().copy(from);
+    const sgn = side % 2 ? -1 : 1, amp = 1.2 + (side % 3) * 0.5;
+    add(g, 3.5, (k, dt) => {
+      if (done) return; t += dt;
+      if (!tgt || tgt.dead) { done = true; return; }
+      tp.set(tgt.x, groundY(tgt.x, tgt.z) + 0.8, tgt.z);
+      dir.subVectors(tp, base); const d = dir.length();
+      if (d < 0.7) { done = true; onHit && onHit(tgt); impact(tp, color, ''); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU, sp = new THREE.Sprite(smat(T.ghost, color)); sp.scale.set(0.4, 0.6, 1); add(sp, 0.9, q => { sp.position.set(tp.x + Math.cos(a + q * 5) * (0.4 + q * 1.4), tp.y + q * 3, tp.z + Math.sin(a + q * 5) * (0.4 + q * 1.4)); sp.material.opacity = 1 - q; }); } return; }
+      dir.multiplyScalar(1 / d); base.addScaledVector(dir, Math.min(d, (8 + t * 14) * dt));
+      const gy = groundY(base.x, base.z) + 0.75; base.y += (gy - base.y) * Math.min(1, dt * 8);        // desce até o chão e corre
+      const lat = Math.sin(t * 9) * amp * sgn * Math.min(1, d / 4);                                   // ziguezague que some perto do alvo
+      g.position.set(base.x + dir.z * lat, base.y + Math.abs(Math.sin(t * 14)) * 0.25, base.z - dir.x * lat);
+      body.material.rotation = -lat * 0.25; halo.material.opacity = 0.45 + Math.sin(t * 20) * 0.15;
+      if ((trailT -= dt) <= 0) { trailT = 0.04; particle(g.position, color, { map: T.ghost, size: 0.7, speed: 0.1, life: 0.35, shrink: true, op: 0.45 }); particle(new THREE.Vector3(g.position.x, base.y - 0.7, g.position.z), color, { size: 0.5, speed: 0.6, life: 0.4, op: 0.6 }); }
+    }, () => { g.traverse(o => { if (o.material) o.material.dispose(); }); });
+    live[live.length - 1].alive = () => !done;
+  }
+  // lança de luz: comprida, reta e rápida, com rastro dourado
+  function lance(from, tgt, color, onHit) {
+    const g = new THREE.Group(); g.position.copy(from);
+    const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.16, 2.4, 8).rotateX(Math.PI / 2), mat(null, 0xffffff)); g.add(sh);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.7, 8).rotateX(Math.PI / 2).translate(0, 0, 1.5), mat(null, color)); g.add(tip);
+    const h = new THREE.Sprite(smat(T.glow, color)); h.scale.set(1.6, 1.6, 1); g.add(h);
+    let done = false, trailT = 0; const tp = new THREE.Vector3(), dir = new THREE.Vector3();
+    add(g, 2, (k, dt) => {
+      if (done) return; if (!tgt || tgt.dead) { done = true; return; }
+      tp.set(tgt.x, groundY(tgt.x, tgt.z) + Math.min(tgt.model.h * 0.5, 3), tgt.z);
+      dir.subVectors(tp, g.position); const d = dir.length();
+      if (d < 0.8) { done = true; onHit && onHit(tgt); impact(tp, color, ''); flash(tp, 0xffffff, 3, 0.3); return; }
+      dir.multiplyScalar(1 / d); g.position.addScaledVector(dir, Math.min(d, 32 * dt)); g.lookAt(tp);
+      if ((trailT -= dt) <= 0) { trailT = 0.02; particle(g.position, color, { map: T.spark, size: 0.5, speed: 0.4, life: 0.3, shrink: true }); }
+    }, () => { g.traverse(o => { if (o.material) o.material.dispose(); if (o.geometry) o.geometry.dispose(); }); });
+    live[live.length - 1].alive = () => !done;
+  }
+  function shoot(s, from, tgt, onHit, j = 0) {
     const e = elem(s);
+    if (s.fx === 'espiritos') { spirit(from, tgt, s.color, onHit, j); return; }
+    if (s.fx === 'lanca') { lance(from, tgt, s.color, onHit); return; }
     if (e === 'raio') { bolt(from, at(tgt), 0xbfe4ff, 0.3); onHit && onHit(tgt); return; }
     projectile(from, tgt, s.color, styleOf(s), onHit, e === 'flecha' ? 34 : 22);
   }
@@ -324,5 +375,5 @@ const VFX = (() => {
     try { renderer.compile(scene, camera); } catch (e) { }
     scene.remove(g);
   }
-  return { particle, T, warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
+  return { particle, T, spirit, lance, warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
 })();

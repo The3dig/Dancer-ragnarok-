@@ -278,10 +278,25 @@ const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 
 // Reino Quebrado (extremo leste): Cidadela do Cisma e a Torre do Cisma
 const CIT = { x: 188, z: 4 }, TOWER = { x: 196, z: -30 };
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
-const FLOORS = [0, 1, 2, 3, 4, 5].map(i => ({ i, x: -250 + i * 100, z: TZ, y: 40 + i * 14, r: i === 5 ? 34 : 17 }));
+// Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo; ao norte, uma escadaria
+// sobe 7 m até o andar de cima; ao sul, a escadaria por onde se chegou desce para o de baixo.
+const TOP = 30, STAIR_L = 14, STAIR_W = 2.4, STAIR_H = 7;
+const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 34 : 18 + Math.floor(i / 10) * 2 }));
 const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
-const floorAt = (x, z) => { for (const f of FLOORS) if (Math.hypot(x - f.x, z - f.z) < f.r + 6) return f; if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null; };
+function floorAt(x, z) {
+  const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? FLOORS[row * 10 + col] : null;
+  if (f && (Math.hypot(x - f.x, z - f.z) < f.r + 6 || (Math.abs(x - f.x) < STAIR_W + 1 && Math.abs(z - f.z) < f.r + STAIR_L + 3))) return f;
+  if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null;
+}
+// altura extra nas escadarias (rampa suave sob os degraus)
+function stairRise(f, x, z) {
+  if (f.casa || Math.abs(x - f.x) > STAIR_W + 1) return 0;
+  const n = f.z - f.r + 0.5 - z, s = z - (f.z + f.r - 0.5);
+  if (n > 0 && f.i < TOP) return Math.min(1, n / STAIR_L) * STAIR_H;
+  if (s > 0) return -Math.min(1, s / STAIR_L) * STAIR_H;
+  return 0;
+}
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
 const FARM = { x: -176, z: 0 };   // Sítio de Solmira (vida.js)
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
@@ -292,7 +307,7 @@ function dRoad(x, z) {
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
-  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === 5 ? 'topo' : 'torre'; }
+  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === TOP ? 'topo' : 'torre'; }
   if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
   if (Math.hypot(x - FARM.x, z - FARM.z) < 22) return 'sitio';
@@ -322,8 +337,9 @@ function height(x, z) {
 }
 const BRIDGES = [-58, 0, 56];   // pontes sobre o rio (z)
 const onBridge = (x, z) => Math.abs(x - riverX(z)) < 6 && BRIDGES.some(bz => Math.abs(z - bz) < 2.6);
-const groundY = (x, z) => inTower(z) ? (floorAt(x, z) || FLOORS[0]).y : onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
+const groundY = (x, z) => inTower(z) ? towerY(x, z) : onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
 const nearWater = (x, z) => Math.abs(x - riverX(z)) < 5 || Math.hypot(x - OAS.x, z - OAS.z) < 9.5;
+function towerY(x, z) { const f = floorAt(x, z) || FLOORS[0]; return f.y + stairRise(f, x, z); }
 const isWater = (x, z) => !inTower(z) && !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
 
 function groundColor(x, z, y, c) {
@@ -494,7 +510,7 @@ function addOb(x, z, r) {
     }
 }
 function blocked(x, z, r = 0.45) {
-  if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - 1 - r) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
+  if (inTower(z)) { const f = floorAt(x, z); if (!f || (Math.hypot(x - f.x, z - f.z) > f.r - 1 - r && !(typeof Tower !== 'undefined' && Tower.corridor(f, x, z, r)))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
   const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
@@ -821,7 +837,7 @@ const MOBDEF = {
   fungolino: { name: 'Raiz Rastejante', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
   besouro:   { name: 'Larva Cristalina', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Sombra Errante', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
-  kravenox:  { name: 'Kravenox', lv: 40, hp: 50000, atk: 70, def: 22, xp: 6000, zeny: [2500, 3500], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
+  kravenox:  { name: 'Kravenox', lv: 60, hp: 300000, atk: 140, def: 42, xp: 90000, zeny: [8000, 12000], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
   larva:     { name: 'Larva Alongada', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
   esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
@@ -1013,27 +1029,42 @@ function upgradeNPCs() {
 const MARKS = {};
 function markTex(k) {
   if (MARKS[k]) return MARKS[k];
-  const [t, col] = k.split(':'), c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const [t, col] = k.split(':'), c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   const live = col !== '#7a7a88';                       // novidade brilha; em andamento fica apagado
-  if (live) { const r = x.createRadialGradient(32, 34, 2, 32, 34, 32); r.addColorStop(0, col + 'aa'); r.addColorStop(1, col + '00'); x.fillStyle = r; x.fillRect(0, 0, 64, 64); }
-  x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText(t, 32, 52); x.fillStyle = col; x.fillText(t, 32, 52);
-  return (MARKS[k] = new THREE.CanvasTexture(c));
+  if (live) {                                           // medalhão colorido com brilho, borda branca e sinal grande
+    const r = x.createRadialGradient(64, 64, 20, 64, 64, 64); r.addColorStop(0, col + 'ff'); r.addColorStop(0.55, col + 'aa'); r.addColorStop(1, col + '00'); x.fillStyle = r; x.fillRect(0, 0, 128, 128);
+    x.beginPath(); x.arc(64, 64, 40, 0, TAU); x.fillStyle = col; x.fill(); x.fillStyle = 'rgba(10,0,40,.35)'; x.fill(); x.lineWidth = 7; x.strokeStyle = '#fff'; x.stroke();
+    const h = x.createLinearGradient(0, 24, 0, 104); h.addColorStop(0, 'rgba(255,255,255,.3)'); h.addColorStop(0.5, 'rgba(255,255,255,0)'); x.fillStyle = h; x.beginPath(); x.arc(64, 64, 36, 0, TAU); x.fill();
+    x.font = 'bold 64px Verdana'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 8; x.strokeStyle = '#1a1020'; x.strokeText(t, 64, 68); x.fillStyle = '#fff'; x.fillText(t, 64, 68);
+  } else { x.font = 'bold 84px Verdana'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 9; x.strokeStyle = '#000'; x.strokeText(t, 64, 68); x.fillStyle = col; x.fillText(t, 64, 68); }
+  const tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding; return (MARKS[k] = tx);
 }
+const BEAM_G = new THREE.CylinderGeometry(0.35, 0.7, 9, 14, 1, true).translate(0, 4.5, 0), RING_G = new THREE.RingGeometry(0.7, 1.15, 32).rotateX(-Math.PI / 2);
 function npcMark(n) {
   let k = '';
-  if (n.hidden && Math.hypot(n.x - P.x, n.z - P.z) > 14) { if (n.markK !== 'h') { n.markK = 'h'; n.bang.visible = false; } return; }
+  if (n.hidden && Math.hypot(n.x - P.x, n.z - P.z) > 14) { if (n.markK !== 'h') { n.markK = 'h'; n.bang.visible = false; if (n.beam) n.beam.visible = n.ring.visible = false; } return; }
   const qm = typeof Quests !== 'undefined' ? Quests.mark(n) : null;
   if (qm) k = qm; else
   if (false) { }
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
   else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
+  const live = !!k && !k.endsWith('#7a7a88');
+  if (n.beam && n.beam.visible) {                       // pulso do medalhão, coluna de luz e anel no chão
+    const p = 1 + Math.sin(time * 5) * 0.12, d = Math.min(2.4, Math.max(1, Math.hypot(n.x - P.x, n.z - P.z) / 14));
+    n.bang.scale.setScalar(1.9 * p * d); n.beam.material.opacity = 0.32 + Math.sin(time * 3) * 0.12; n.ring.rotation.y += 0.03; n.ring.scale.setScalar(1 + (time * 0.8 % 1) * 0.8); n.ring.material.opacity = 0.9 * (1 - time * 0.8 % 1);
+  }
   if (n.markK === k) return; n.markK = k;
-  n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.needsUpdate = true; n.bang.scale.setScalar(k.endsWith('#7a7a88') ? 0.55 : 0.95); }
+  n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.toneMapped = false; n.bang.material.fog = false; n.bang.material.needsUpdate = true; n.bang.scale.setScalar(live ? 1.9 : 0.6); n.bang.renderOrder = 999; }
+  if (live && !n.beam) {
+    const am = () => new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false });
+    n.beam = new THREE.Mesh(BEAM_G, am()); n.ring = new THREE.Mesh(RING_G, am()); n.ring.position.y = 0.08; n.g.add(n.beam, n.ring);
+  }
+  if (n.beam) { n.beam.visible = n.ring.visible = live; if (live) { const c = new THREE.Color(k.split(':')[1]); n.beam.material.color.copy(c); n.ring.material.color.copy(c); } }
 }
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
   x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText('!', 32, 52); x.fillStyle = '#ffcf40'; x.fillText('!', 32, 52);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.setScalar(0.6); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, fog: false, toneMapped: false })); s.scale.setScalar(0.6); return s;
 }
 for (const n of NPCS) {
   const [cloth, hair, hat] = n.look;
@@ -1508,7 +1539,7 @@ function useSkill(i) {
       Audio8.sfx('skill');
       if (instant) { hitOne(tgt, base); break; }
       const list = s.spread ? nearestN(range, s.shots) : Array(s.shots || 1).fill(tgt);
-      list.forEach((t, j) => setTimeout(() => { if (!P.dead && !t.dead) VFX.shoot(s, handPos(), t, m => hitOne(m, base)); }, j * 130));
+      list.forEach((t, j) => setTimeout(() => { if (!P.dead && !t.dead) VFX.shoot(s, handPos(), t, m => hitOne(m, base), j); }, j * (s.fx === 'espiritos' ? 90 : 130)));
       break;
     }
     case 'drain':
@@ -1678,7 +1709,7 @@ function update(dt) {
       fx.push({ m, v: new THREE.Vector3(rand(-0.2, 0.2), 0.8, rand(-0.2, 0.2)), life: 2.5, max: 2.5, kind: 'note', own: m.geometry });
     }
   }
-  for (const n of NPCS) { n.bang.position.y = (n.bangY || 2.3) + Math.sin(time * 3) * 0.1; npcMark(n); }
+  for (const n of NPCS) { n.bang.position.y = (n.bangY || 2.3) + 0.35 + Math.sin(time * 3) * 0.15; npcMark(n); }
   const z = zoneOf(P.x, P.z);
   if (z !== zone) {
     zone = z; Audio8.play(ZONES[z].music); banner(ZONES[z].name); $('zonename').textContent = ZONES[z].name;
@@ -1912,7 +1943,7 @@ function animateModel(dt) {
 
 // ---------------------------------------------------------------- câmera
 function updateCamera(dt) {
-  const big = inTower(P.z) && Tower.floor === 5;                   // topo da torre: câmera para o gigante
+  const big = inTower(P.z) && Tower.floor === TOP;                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
@@ -2222,9 +2253,9 @@ function buildHotbar() {
     el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span>${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
     tapOn(el, () => useSkill(i)); hb.appendChild(el);
   });
-  // itens no atalho: escolhidos pela mochila (📌 Pôr no atalho), até 4
-  const KEYS = ['Q', 'E', 'R', 'T'];
-  (P.hot || ['red', 'blue']).filter(id => ITEMS[id]).slice(0, 4).forEach((id, j) => {
+  // itens no atalho: escolhidos pela mochila (📌 Pôr no atalho), até 6
+  const KEYS = ['Q', 'E', 'R', 'T', 'Y', 'U'];
+  (P.hot || ['red', 'blue']).filter(id => ITEMS[id]).slice(0, 6).forEach((id, j) => {
     const el = document.createElement('div'); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
     el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span><span class="k">${KEYS[j]}</span><span class="cost">x${P.inv[id] || 0}</span>`;
     if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
@@ -2367,7 +2398,7 @@ function talkBase(n) {
     case 'smith': Vida.smith(eu); break;
     case 'warp': if (typeof Quests !== 'undefined') Quests.warp(n.city); break;
     default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
-    case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São seis andares tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
+    case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São <b>trinta andares</b> tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
     case 'guard': dialog(nm, `Saudações, <b>${eu}</b>! Os Campos Dourados começam aqui, a leste. Cuidado com os <b>Ecos Famintos</b>: eles atacam quem chega perto!<br>Seguindo a estrada você chega às <b>Areias Rubras</b> e ao <b>Oásis de Kharum</b>.`); break;
     case 'elder': dialog(nm, `Sente-se, <b>${eu}</b>. Nas ruínas ao sudeste daqui vaga a <b>Sentinela sem Rosto</b>, uma armadura vazia tomada pelo Vazio.<br>Ela não sente medo nem dor e salta sobre quem foge. Volte quando estiver acima do nível 20, ou traga amigos.`); break;
   }
@@ -2414,7 +2445,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   const si = SKILLS.findIndex(s => s.key === k); if (si >= 0 && tierOk(SKILLS[si])) useSkill(si);
   if (k === 'j' || k === 'k') attack();
-  { const hk = ['q', 'e', 'r', 't'].indexOf(k), hot = P.hot || ['red', 'blue']; if (hk >= 0 && hot[hk]) useHot(hot[hk]); }
+  { const hk = ['q', 'e', 'r', 't', 'y', 'u'].indexOf(k), hot = (P.hot || ['red', 'blue']).filter(id => ITEMS[id]); if (hk >= 0 && hot[hk]) useHot(hot[hk]); }
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
@@ -2487,7 +2518,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

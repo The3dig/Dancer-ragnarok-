@@ -58,15 +58,21 @@ const Vida = (() => {
     amuleto: ['Amuleto da Fonte', '📿', 'colar', 380, { sp: 40, hp: 40 }, 0],
     colar_sombra: ['Colar de Sombra', '📿', 'colar', 0, { crit: 0.04, hp: 50 }, 1],
     marca: ['Marca dos Quatro Espinhos', '✴️', 'colar', 0, { pow: 10, crit: 0.07, hp: 120 }, 3],
+    // Míticos: só o próprio Kravenox, no topo dos 30 andares, deixa cair (um garantido por vitória)
+    arma_soberano: ['Espinho do Soberano', '🗡️', 'arma', 0, { pow: 90, crit: 0.12 }, 4, 'soberano'],
+    coroa_soberano: ['Coroa do Soberano', '👑', 'capacete', 0, { def: 26, hp: 350, pow: 22 }, 4, 'soberano'],
+    manto_soberano: ['Manto do Soberano Adormecido', '🦇', 'armadura', 0, { def: 50, hp: 650 }, 4, 'soberano'],
+    olho_kravenox: ['Olho de Kravenox', '🔴', 'colar', 0, { pow: 28, crit: 0.1, hp: 260, sp: 90 }, 4, 'soberano'],
   };
-  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }];
+  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }, { n: 'Mítico', c: '#ff4a4a', hex: 0xff2020 }];
   const SETS = {
     couro: { name: 'Conjunto de Couro', bonus: { hp: 60, def: 3 } },
     areias: { name: 'Conjunto das Areias', bonus: { crit: 0.05, spd: 0.05, hp: 80 } },
     sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
+    soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
   };
-  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000][rar]) / 2) };
+  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
   const SLOTS = { arma: 'Arma', capacete: 'Capacete', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas', anel1: 'Anel', anel2: 'Anel', colar: 'Colar' };
   const MODN = { pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' };
   const modTxt = m => Object.entries(m || {}).map(([k, v]) => `${MODN[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(' · ');
@@ -625,7 +631,7 @@ const Vida = (() => {
     if (a === 'hot') {                                   // atalhos de itens: até 4 na barra
       P.hot = P.hot || ['red', 'blue'];
       if (P.hot.includes(v)) P.hot = P.hot.filter(x => x !== v);
-      else { if (P.hot.length >= 4) { log('A barra de atalhos de itens está cheia (4). Tire um primeiro.', 'bad'); Audio8.sfx('miss'); renderInv(); return; } P.hot.push(v); log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); }
+      else { if (P.hot.length >= 6) { log('A barra de atalhos de itens está cheia (6). Tire um primeiro.', 'bad'); Audio8.sfx('miss'); renderInv(); return; } P.hot.push(v); log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); }
       buildHotbar();
     }
     if (a === 'tab') { tab = v; sel = null; }
@@ -804,7 +810,7 @@ const Vida = (() => {
     const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = -0.37; grp.add(sh);   // sombrinha no chão
     const rar = I.kind === 'equip' ? I.rar : I.kind === 'carta' ? 3 : -1;
     if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade
-      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7][Math.max(0, rar)];
+      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7, 0.85][Math.max(0, rar)];
       const mk = (o, fog) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog });
       const beam = new THREE.Mesh(beamGeo, mk(base, false)); beam.position.y = 2.6; grp.add(beam);
       const core = new THREE.Mesh(coreGeo, mk(Math.min(1, base + 0.3), false)); core.position.y = 2.6; grp.add(core);

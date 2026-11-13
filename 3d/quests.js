@@ -23,7 +23,7 @@ const Quests = (() => {
     { id: 'p7', type: 'principal', giver: 'Anciã Zahra', req: 'p6', title: 'Sombras errantes', txt: 'Sombras andam pelas dunas à noite e de dia.', steps: [{ kill: 'serpe', n: 5 }], rw: { xp: 900, zeny: 400, items: { blue: 3 } } },
     { id: 'p8', type: 'principal', giver: 'Anciã Zahra', req: 'p7', title: 'A Sentinela sem Rosto', txt: 'Nas ruínas ao sudeste vaga uma armadura vazia tomada pelo Vazio.', steps: [{ kill: 'guardiao', n: 1 }], rw: { xp: 2500, zeny: 1500, items: { blue: 5, cota: 1 } } },
     { id: 'p9', type: 'principal', giver: 'Anciã Zahra', to: 'Vigia Morvan', req: 'p8', title: 'A Cidadela do Cisma', txt: 'Vá até a Cidadela do Cisma, no extremo leste, e fale com o Vigia Morvan.', steps: [], rw: { xp: 800, zeny: 300 } },
-    { id: 'p10', type: 'principal', giver: 'Vigia Morvan', req: 'p9', title: 'A Torre do Cisma', txt: 'Seis andares tomados pela Essência. Comece limpando as Sentinelas.', steps: [{ kill: 'sentinela', n: 10 }], rw: { xp: 4000, zeny: 2000, items: { anel_vazio: 1 } } },
+    { id: 'p10', type: 'principal', giver: 'Vigia Morvan', req: 'p9', title: 'A Torre do Cisma', txt: 'Trinta andares tomados pela Essência. Comece limpando as Sentinelas.', steps: [{ kill: 'sentinela', n: 10 }], rw: { xp: 4000, zeny: 2000, items: { anel_vazio: 1 } } },
     { id: 'p11', type: 'principal', giver: 'Vigia Morvan', req: 'p10', title: 'O Soberano dorme', txt: 'Chegue ao topo da Torre e veja com os próprios olhos quem dorme lá.', steps: [{ reach: 'topo' }], rw: { xp: 8000, zeny: 4000, items: { elmo_sentinela: 1 } } },
     // ---------------- secundárias
     { id: 's1', type: 'secundaria', giver: 'Irmã Celina', title: 'Ervas para os feridos', txt: 'Preciso de Raízes Secas para os unguentos.', steps: [{ item: 'raiz', n: 4 }], rw: { xp: 120, zeny: 80, items: { blue: 3 } } },
@@ -63,7 +63,7 @@ const Quests = (() => {
   const stepTxt = (st, i, q) => {
     if (st.kill) return `Derrote ${st.n} ${MOBDEF[st.kill] ? MOBDEF[st.kill].name : st.kill}`;
     if (st.item) return `Traga ${st.n}× ${ITEMS[st.item] ? ITEMS[st.item].name : st.item}`;
-    if (st.reach === 'topo') return 'Chegue ao topo da Torre do Cisma';
+    if (st.reach === 'topo') return 'Chegue ao topo da Torre do Cisma (30 andares)';
     return '';
   };
   const available = q => !S().act[q.id] && (q.repeat || !S().done[q.id]) && (!q.req || S().done[q.req]) && (!q.lv || P.lv >= q.lv);
@@ -216,7 +216,7 @@ const Quests = (() => {
       mesh(new THREE.BoxGeometry(2.1, 1.3, 0.12), PM('madeira.jpg', [1, 0.6], 0xa08060), 0, 1.6, 0, g);
       const paper = new THREE.MeshLambertMaterial({ color: 0xe8dcc0 });
       [[-0.5, 1.75], [0.1, 1.5], [0.55, 1.8]].forEach(([x, y]) => mesh(new THREE.BoxGeometry(0.42, 0.5, 0.02), paper, x, y, 0.08, g, false));
-      const tag = bangSprite(); tag.material = tag.material.clone(); tag.material.map = markTex('!:#7dff9a'); tag.position.y = 2.9; g.add(tag);
+      const tag = bangSprite(); tag.material = tag.material.clone(); tag.material.map = markTex('!:#7dff9a'); tag.material.fog = false; tag.material.toneMapped = false; tag.position.y = 3.1; tag.scale.setScalar(1.1); g.add(tag);
       addOb(b.x, b.z, 1.1);
     }
     for (const s of SECRETS) {
@@ -255,7 +255,7 @@ const Quests = (() => {
   function update(dt) {
     tAcc += dt; if (tAcc < 0.4) return; tAcc = 0;
     for (const s of SECRETS) if (s.glint) s.glint.visible = !opened()[s.id] && Math.hypot(s.x - P.x, s.z - P.z) < 22;
-    for (const id in S().act) { const q = byId[id]; if (!q) continue; if (q.steps.some(st => st.reach === 'topo') && inTower(P.z) && Tower.floor === 5 && !S().act[id].r) { S().act[id].r = 1; log(`🟡 Você chegou ao topo. Volte ao <b>${q.giver}</b>.`, 'gold'); } }
+    for (const id in S().act) { const q = byId[id]; if (!q) continue; if (q.steps.some(st => st.reach === 'topo') && inTower(P.z) && Tower.floor === TOP && !S().act[id].r) { S().act[id].r = 1; log(`🟡 Você chegou ao topo. Volte ao <b>${q.giver}</b>.`, 'gold'); } }
   }
   // saves antigos: converte a missão da Mestra Odete (P.quest) e já começa a próxima
   function migrate() {
