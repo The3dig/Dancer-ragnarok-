@@ -6,7 +6,8 @@
 'use strict';
 const Casa = (() => {
   const C = CASA, H = 7.6;                                 // meia-largura da sala
-  const OUT_DOOR = { x: FARM.x - 13.6, z: FARM.z - 1 };    // porta da casa do Sítio, por fora
+  const OUT_DOOR = { x: FARM.x - 13.6, z: FARM.z - 1 };
+  let portaArmada = true;    // porta da casa do Sítio, por fora
   const IN_DOOR = { x: C.x, z: C.z + H - 1.2 };            // saída, por dentro
   const S = () => (P.casa = P.casa || { mov: {}, bau: {} });
   const it = id => ITEMS[id] || { name: id, ic: '❔' };
@@ -140,13 +141,15 @@ const Casa = (() => {
     Audio8.sfx('warp'); banner('🏠 Sua Casa'); leaveT = 1;
     if (!P.casaSeen) { P.casaSeen = 1; log('🏠 Esta é a sua casa. O <b>baú</b> (canto esquerdo) guarda itens que não caem quando você morre; a <b>bancada</b> (direita) vende móveis.', 'gold'); }
   }
-  function sair() { P.x = OUT_DOOR.x + 2.4; P.z = OUT_DOOR.z; P.y = groundY(P.x, P.z); P.face = Math.PI / 2; camS.yaw = -Math.PI / 2; Audio8.sfx('warp'); leaveT = 1; }
+  function sair() { portaArmada = false; P.x = OUT_DOOR.x + 2.6; P.z = OUT_DOOR.z; P.y = groundY(P.x, P.z); P.face = Math.PI / 2; camS.yaw = -Math.PI / 2; Audio8.sfx('warp'); leaveT = 1; }
   function update(dt) {
     leaveT -= dt; sole.material.opacity = 0.35 + Math.sin(time * 3) * 0.15;
     if (objs.lareira) { const f = objs.lareira.userData.fire; f.scale.set(1.05 + Math.sin(time * 13) * 0.08, 1.25 + Math.sin(time * 9) * 0.15, 1); objs.lareira.userData.light.intensity = 1.2 + Math.sin(time * 11) * 0.25; }
     if (objs.trofeu) objs.trofeu.userData.spin.rotation.y += dt * 1.5;
     if (P.dead || leaveT > 0) return;
-    if (!inTower(P.z) && Math.hypot(P.x - OUT_DOOR.x, P.z - OUT_DOOR.z) < 1.6) entrar();
+    const dPorta = Math.hypot(P.x - OUT_DOOR.x, P.z - OUT_DOOR.z);
+    if (!inTower(P.z) && !portaArmada && dPorta > 3) portaArmada = true;            // só entra de novo depois de se afastar da porta
+    if (!inTower(P.z) && portaArmada && dPorta < 1.6) { portaArmada = false; entrar(); }
     else if (zoneOf(P.x, P.z) === 'casa' && Math.hypot(P.x - IN_DOOR.x, P.z - IN_DOOR.z) < 1.3) sair();
   }
   function nearest() {

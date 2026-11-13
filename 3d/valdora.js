@@ -278,7 +278,7 @@ const Valdora = (() => {
     if (to === 'valdora') { if (!P.valdoraSeen) { P.valdoraSeen = 1; log('🌫️ Do outro lado da passagem, o frio. <i>"Não o frio do ar, e sim da ausência de vida."</i> Colunas de fumaça sobem no horizonte. Siga a estrada até <b>Valdora</b>.', 'gold'); } }
     else log('Você voltou ao <b>Reino Quebrado</b> pelas Areias Rubras.', 'sys');
   }
-  let inside = false, hideList = null, cool = 0;
+  let inside = false, hideList = null, cool = 0, armada = true;
   function setInside(v) {
     inside = v; G.visible = v;
     if (!hideList) hideList = scene.children.filter(o => o.isInstancedMesh || o.isPoints);   // vegetação e vaga-lumes do Reino
@@ -290,9 +290,12 @@ const Valdora = (() => {
     cool -= dt;
     const v = inVal(P.z); if (v !== inside) setInside(v);
     for (const s of swirls) { s.rotation.z -= dt * 1.2; s.material.opacity = 0.75 + Math.sin(time * 3) * 0.2; }
-    if (!P.dead && cool <= 0) {
-      if (!v && !inTower(P.z) && Math.hypot(P.x - VGATE_R.x, P.z - VGATE_R.z) < 3.4) { cool = 1.5; go('valdora'); return; }
-      if (v && Math.hypot(P.x - VGATE_V.x, P.z - VGATE_V.z) < 3.4) { cool = 1.5; go('reino'); return; }
+    // a passagem só funciona de novo depois que a pessoa se afasta dela
+    const dR = Math.hypot(P.x - VGATE_R.x, P.z - VGATE_R.z), dV = Math.hypot(P.x - VGATE_V.x, P.z - VGATE_V.z);
+    if (!armada && (v ? dV : dR) > 7) armada = true;
+    if (!P.dead && cool <= 0 && armada) {
+      if (!v && !inTower(P.z) && dR < 3.4) { cool = 1.5; armada = false; go('valdora'); return; }
+      if (v && dV < 3.4) { cool = 1.5; armada = false; go('reino'); return; }
     }
     if (!v) return;
     for (const f of fires) { const k = time * 9 + f.ph; f.f.scale.set(1.2 * f.s * (1 + Math.sin(k) * 0.08), 2.2 * f.s * (1 + Math.sin(k * 1.3) * 0.12), 1); f.gl.material.opacity = 0.32 + Math.sin(k * 0.7) * 0.08; }

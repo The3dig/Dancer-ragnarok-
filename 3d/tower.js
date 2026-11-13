@@ -276,7 +276,7 @@ const Tower = (() => {
   }
   const GUARD = { 4: 'Guardião do Portão', 9: 'Carcereiro do Cisma', 14: 'Guardião das Brasas', 19: 'Arauto do Soberano', 24: 'Guardião do Gelo Vazio', 29: 'Mão de Kravenox' };
   const RESPAWN = 90;                          // segundos até o andar se encher de novo
-  let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1;
+  let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1, portaArmada = true;
   function clearFloorMobs() {
     for (const m of mobs.filter(m => m.towerFloor !== undefined)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
     mobs = mobs.filter(m => m.towerFloor === undefined);
@@ -320,7 +320,7 @@ const Tower = (() => {
   function enter(i, fromAbove) {
     clearFloorMobs();
     if (i < 0) {                                                       // sai da torre
-      cur = -1; unbuild(); P.x = DOOR.x; P.z = DOOR.z + 1.5; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; blackout();
+      cur = -1; unbuild(); P.x = DOOR.x; P.z = DOOR.z + 6; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; portaArmada = false; blackout();   // sai bem à frente do portal
       log('Você saiu da Torre do Cisma.', 'sys'); return;
     }
     cur = i; const f = FLOORS[i]; buildFloor(f);
@@ -351,7 +351,10 @@ const Tower = (() => {
     if (sleeperR && sleeper.visible) sleeperR.anim({ moving: false, roar: 0, enraged: false, sleeping: true }, time);
     leaveT -= dt;
     if (P.dead || leaveT > 0) return;
-    if (!inTower(P.z) && Math.hypot(P.x - DOOR.x, P.z - DOOR.z) < 3.2) { leaveT = 2.5; P.z = DOOR.z + 3.6; enterFromDoor(); return; }
+    // o portal só funciona de novo depois que a pessoa se afasta dele (senão quem acabou de sair entra sozinho)
+    const dPorta = Math.hypot(P.x - DOOR.x, P.z - DOOR.z);
+    if (!inTower(P.z) && !portaArmada && dPorta > 5) portaArmada = true;
+    if (!inTower(P.z) && portaArmada && dPorta < 3.2) { leaveT = 2.5; portaArmada = false; P.z = DOOR.z + 4; enterFromDoor(); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); unbuild(); } return; }
     const f = floorAt(P.x, P.z); if (!f || f.casa) return;
     if (f.i !== cur) { cur = f.i; buildFloor(f); }                  // asa de mosca / volta de outro jeito
