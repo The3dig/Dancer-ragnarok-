@@ -82,6 +82,7 @@ export class Contas {
       CREATE TABLE IF NOT EXISTS guildas (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT UNIQUE, nomebaixo TEXT UNIQUE, sigla TEXT, emblema TEXT, aviso TEXT, criada INTEGER);
       CREATE TABLE IF NOT EXISTS membros (nome TEXT PRIMARY KEY, exibe TEXT, guilda INTEGER, cargo TEXT, entrou INTEGER);
       CREATE TABLE IF NOT EXISTS convites (nome TEXT, guilda INTEGER, de TEXT, quando INTEGER, PRIMARY KEY (nome, guilda));`);
+    try { this.sql.exec("ALTER TABLE guildas ADD COLUMN xp INTEGER DEFAULT 0"); } catch (e) { }      // XP da guilda (nível 1 a 10)
   }
   um(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
   quem(req) {
@@ -105,7 +106,7 @@ export class Contas {
     return r ? { baixo: r.nome, exibe: nome && nome.toLowerCase() === r.nome ? nome : r.nome } : null;
   }
   infoGuilda(gid) {
-    const g = this.um("SELECT id, nome, sigla, emblema, aviso, criada FROM guildas WHERE id = ?", gid); if (!g) return null;
+    const g = this.um("SELECT id, nome, sigla, emblema, aviso, criada, COALESCE(xp, 0) AS xp FROM guildas WHERE id = ?", gid); if (!g) return null;
     const membros = this.sql.exec("SELECT nome, exibe, cargo, entrou FROM membros WHERE guilda = ? ORDER BY CASE cargo WHEN 'lider' THEN 0 WHEN 'oficial' THEN 1 ELSE 2 END, entrou", gid).toArray();
     return { ...g, membros };
   }
@@ -166,6 +167,11 @@ export class Contas {
     if (acao === "desfazer") {
       if (!pode("lider")) return json({ erro: "Só o líder desfaz a guilda." }, 403);
       this.sql.exec("DELETE FROM membros WHERE guilda = ?", m.guilda); this.sql.exec("DELETE FROM convites WHERE guilda = ?", m.guilda); this.sql.exec("DELETE FROM guildas WHERE id = ?", m.guilda);
+      return json({ ok: true });
+    }
+    if (acao === "xp") {                                            // 10% do XP de monstro dos membros vai para a guilda
+      const v = Math.max(0, Math.min(200000, Math.round(Number(b.v) || 0)));
+      if (v) this.sql.exec("UPDATE guildas SET xp = COALESCE(xp, 0) + ? WHERE id = ?", v, m.guilda);
       return json({ ok: true });
     }
     if (acao === "aviso") {

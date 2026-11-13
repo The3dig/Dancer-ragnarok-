@@ -408,7 +408,7 @@ const Vida = (() => {
     add(r.out, r.n); Audio8.sfx('buff'); log(`Fez ${r.n}× <b>${it(r.out).name}</b>.`, 'gold');
   }
   function buyIt(id, n, price) {
-    const c = price * n; if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return false; }
+    const c = Math.round(price * n * (1 - gBon('desc'))); if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return false; }   // guilda nível 2+: 5% de desconto
     P.zeny -= c; add(id, n); Audio8.sfx('coin'); return true;
   }
   // encomenda do dia: a Fazendeira pede uma produção do Sítio e paga bem

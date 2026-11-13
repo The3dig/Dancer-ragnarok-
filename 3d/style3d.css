@@ -618,3 +618,8 @@ body.touch #bossbar { top: 44px; width: 40vw; } body.touch #bossbar .kn { font-s
 #chat .line.guild { color: #8affb0; }
 .plabel em.gtag { font-style: normal; color: #c8b8e0; } .plabel em.gtag.aliada { color: #6aff9a; }
 @media (max-height: 470px) { #guildwin .gw-b { font-size: 12px; } }
+#guildwin .gw-nivel { display: flex; align-items: center; gap: 8px; margin-top: 8px; } #guildwin .gw-nivel b { color: #f2c86a; white-space: nowrap; }
+#guildwin .gw-nivel i { flex: 1; height: 8px; border-radius: 5px; background: rgba(0,0,0,.45); overflow: hidden; } #guildwin .gw-nivel s { display: block; height: 100%; background: linear-gradient(90deg, #6aff9a, #f2c86a); }
+#guildwin .gw-nivel small { color: #b8a8c8; white-space: nowrap; }
+#guildwin .gw-vant div { padding: 2px 0; } #guildwin .gw-vant .off { opacity: .5; }
+#guildwin .gw-agora { margin-top: 6px; padding: 6px 8px; background: rgba(106,255,154,.08); border: 1px solid rgba(106,255,154,.3); border-radius: 8px; color: #c8ffd8; }

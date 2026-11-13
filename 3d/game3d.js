@@ -1125,11 +1125,13 @@ refreshSkills();
 function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
 function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0);
+// vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
+const gBon = k => typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0;
 const stats = {
-  atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk')); },
-  matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk')),
+  atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
+  matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
   def: () => Math.floor(P.vit * 0.6) + badd('def') + gearB('def'),
-  maxHp: () => Math.round((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')),
+  maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp'))),
   maxSp: () => Math.round((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
   speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')),
@@ -1288,16 +1290,17 @@ function killMob(m, o = {}) {
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
-    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda));
+    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
     log(`🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
     if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); }
     return;
   }
-  drops.push(makeDrop('zeny', irand(...m.d.zeny), m.x, m.z));
-  const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1);
+  drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
+  const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1) * (1 + gBon('drop'));
   for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
-  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1));
+  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1) * (1 + gBon('xp')));
+  if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
@@ -2072,6 +2075,7 @@ function updateHUD() {
   let b = '';
   for (const id in P.buffs) b += `<span>${P.buffs[id].icon || '✦'} ${Math.ceil(P.buffs[id].t)}s</span>`;
   if (P.sit) b += '<span>🧘 Descansando</span>';
+  if (typeof Guilda !== 'undefined') b += Guilda.hud();
   $('buffs').innerHTML = b;
   $('combo').innerHTML = P.combo >= 2 ? `<b>${P.combo}</b> COMBO<small>+${Math.min(100, P.combo * 5)}% dano</small>` : '';
   const q = QUESTS[P.quest];
@@ -2521,7 +2525,7 @@ function qty(id, back) {
   dialog(`${ITEMS[id].ic} ${ITEMS[id].name}`, `Quantos? <small>Tem ${P.inv[id] || 0} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, opts);
 }
 function buy(id, n) {
-  const c = ITEMS[id].price * n;
+  const c = Math.round(ITEMS[id].price * n * (1 - gBon('desc')));
   if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
   P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item'); buildHotbar();
 }
