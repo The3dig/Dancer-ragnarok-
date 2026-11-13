@@ -98,7 +98,11 @@ const Net = (() => {
     r.s = s; r.tx = s.x; r.tz = s.z; r.ty = s.y || 0; r.tf = s.f || 0;
     if (s.say && s.say.at && seenSay.get(p.peer) !== s.say.at) {
       seenSay.set(p.peer, s.say.at);
-      if (Date.now() - s.say.at < 15000) { log(`💬 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = String(s.say.t).slice(0, 80); r.bubT = 6; }
+      const daGuilda = !!s.say.g;                                            // mensagem só para a guilda: os outros não veem
+      if (Date.now() - s.say.at < 15000 && (!daGuilda || (typeof Guilda !== 'undefined' && Guilda.minha() === s.say.g))) {
+        if (daGuilda) log(`🛡️ <b>[Guilda] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'guild');
+        else { log(`💬 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = String(s.say.t).slice(0, 80); r.bubT = 6; }
+      }
     }
   }
   function drop(peer) {
@@ -139,7 +143,7 @@ const Net = (() => {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
         kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null,
-        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}),
+        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}),
       };
       const j = JSON.stringify(pres);
       if (j !== lastSent) { lastSent = j; room.presence(pres).catch(() => { }); }
@@ -174,7 +178,7 @@ const Net = (() => {
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;
       const pvc = typeof PvP !== 'undefined' && (s.fl === 'r' || s.fl === 'p') ? PvP.color(s.fl, (s.pk || 0) - Date.now()) : null;
-      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : /^#[0-9a-f]{6}$/i.test(s.cn || '') ? 'color:' + s.cn : ''}">${s.fl === 'r' ? '☠️ ' : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
+      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : /^#[0-9a-f]{6}$/i.test(s.cn || '') ? 'color:' + s.cn : ''}">${s.fl === 'r' ? '☠️ ' : ''}${s.gt ? `<em class="gtag${typeof Guilda !== 'undefined' && Guilda.aliado(s) ? ' aliada' : ''}">[${esc(s.gt)}]</em> ` : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
       if (r.lab.dataset.h !== html) { r.lab.innerHTML = html; r.lab.dataset.h = html; }
       if (r.bubT > 0) {
         r.bubT -= dt; r.bub.classList.remove('hidden');

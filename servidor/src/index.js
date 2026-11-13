@@ -78,7 +78,10 @@ export class Contas {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS contas (usuario TEXT PRIMARY KEY, sal TEXT, hash TEXT, criado INTEGER);
       CREATE TABLE IF NOT EXISTS sessoes (token TEXT PRIMARY KEY, usuario TEXT, criado INTEGER);
       CREATE TABLE IF NOT EXISTS vagas (usuario TEXT, vaga INTEGER, jogo TEXT, vida TEXT, atualizado INTEGER, PRIMARY KEY (usuario, vaga));
-      CREATE TABLE IF NOT EXISTS nomes (nome TEXT PRIMARY KEY, usuario TEXT, vaga INTEGER);`);
+      CREATE TABLE IF NOT EXISTS nomes (nome TEXT PRIMARY KEY, usuario TEXT, vaga INTEGER);
+      CREATE TABLE IF NOT EXISTS guildas (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT UNIQUE, nomebaixo TEXT UNIQUE, sigla TEXT, emblema TEXT, aviso TEXT, criada INTEGER);
+      CREATE TABLE IF NOT EXISTS membros (nome TEXT PRIMARY KEY, exibe TEXT, guilda INTEGER, cargo TEXT, entrou INTEGER);
+      CREATE TABLE IF NOT EXISTS convites (nome TEXT, guilda INTEGER, de TEXT, quando INTEGER, PRIMARY KEY (nome, guilda));`);
   }
   um(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
   quem(req) {
@@ -91,6 +94,98 @@ export class Contas {
     const t = hex(crypto.getRandomValues(new Uint8Array(24)));
     this.sql.exec("INSERT INTO sessoes (token, usuario, criado) VALUES (?, ?, ?)", t, usuario, Date.now());
     return t;
+  }
+
+  // ---------------- guildas
+  // o personagem que está agindo: a vaga da conta e o nome (reserva o nome se o personagem é antigo e não tinha)
+  personagem(usuario, vaga, nome) {
+    vaga = Number(vaga) || 0; nome = String(nome || "").trim().replace(/\s+/g, " ").slice(0, 16);
+    let r = this.um("SELECT nome FROM nomes WHERE usuario = ? AND vaga = ?", usuario, vaga);
+    if (!r && nome.length >= 2 && !this.um("SELECT nome FROM nomes WHERE nome = ?", nome.toLowerCase())) { this.sql.exec("INSERT INTO nomes (nome, usuario, vaga) VALUES (?, ?, ?)", nome.toLowerCase(), usuario, vaga); r = { nome: nome.toLowerCase() }; }
+    return r ? { baixo: r.nome, exibe: nome && nome.toLowerCase() === r.nome ? nome : r.nome } : null;
+  }
+  infoGuilda(gid) {
+    const g = this.um("SELECT id, nome, sigla, emblema, aviso, criada FROM guildas WHERE id = ?", gid); if (!g) return null;
+    const membros = this.sql.exec("SELECT nome, exibe, cargo, entrou FROM membros WHERE guilda = ? ORDER BY CASE cargo WHEN 'lider' THEN 0 WHEN 'oficial' THEN 1 ELSE 2 END, entrou", gid).toArray();
+    return { ...g, membros };
+  }
+  async guilda(req, usuario, p, b) {
+    const eu = this.personagem(usuario, b.vaga ?? new URL(req.url).searchParams.get("vaga"), b.nome ?? new URL(req.url).searchParams.get("nome"));
+    if (!eu) return json({ erro: "Personagem sem nome registrado." }, 400);
+    const m = this.um("SELECT guilda, cargo FROM membros WHERE nome = ?", eu.baixo);
+    const acao = p[0] || "";
+    const pode = (...c) => m && c.includes(m.cargo);
+    const alvoDe = (n) => { const a = this.um("SELECT nome, exibe, guilda, cargo FROM membros WHERE nome = ?", String(n || "").toLowerCase()); return a && m && a.guilda === m.guilda ? a : null; };
+    if (req.method === "GET" || acao === "ver") {
+      const convites = this.sql.exec("SELECT c.guilda AS id, g.nome, g.sigla, g.emblema, c.de FROM convites c JOIN guildas g ON g.id = c.guilda WHERE c.nome = ?", eu.baixo).toArray();
+      return json({ eu: eu.exibe, cargo: m ? m.cargo : null, guilda: m ? this.infoGuilda(m.guilda) : null, convites });
+    }
+    if (acao === "criar") {
+      if (m) return json({ erro: "Você já está numa guilda." }, 409);
+      const nome = String(b.gnome || "").trim().replace(/\s+/g, " "), sigla = String(b.sigla || "").trim().toUpperCase(), emb = String(b.emblema || "🛡️").slice(0, 4);
+      if (nome.length < 3 || nome.length > 20) return json({ erro: "O nome da guilda precisa ter de 3 a 20 letras." }, 400);
+      if (!/^[A-Z0-9]{2,4}$/.test(sigla)) return json({ erro: "A sigla precisa ter de 2 a 4 letras ou números." }, 400);
+      if (this.um("SELECT id FROM guildas WHERE nomebaixo = ?", nome.toLowerCase())) return json({ erro: "Já existe uma guilda com esse nome." }, 409);
+      if (this.um("SELECT id FROM guildas WHERE sigla = ?", sigla)) return json({ erro: "Essa sigla já é de outra guilda." }, 409);
+      this.sql.exec("INSERT INTO guildas (nome, nomebaixo, sigla, emblema, aviso, criada) VALUES (?, ?, ?, ?, ?, ?)", nome, nome.toLowerCase(), sigla, emb, "", Date.now());
+      const gid = this.um("SELECT id FROM guildas WHERE nomebaixo = ?", nome.toLowerCase()).id;
+      this.sql.exec("INSERT INTO membros (nome, exibe, guilda, cargo, entrou) VALUES (?, ?, ?, 'lider', ?)", eu.baixo, eu.exibe, gid, Date.now());
+      this.sql.exec("DELETE FROM convites WHERE nome = ?", eu.baixo);
+      return json({ ok: true });
+    }
+    if (acao === "aceitar" || acao === "recusar") {
+      const gid = Number(b.guilda), c = this.um("SELECT guilda FROM convites WHERE nome = ? AND guilda = ?", eu.baixo, gid);
+      if (!c) return json({ erro: "Esse convite não existe mais." }, 404);
+      this.sql.exec("DELETE FROM convites WHERE nome = ? AND guilda = ?", eu.baixo, gid);
+      if (acao === "recusar") return json({ ok: true });
+      if (m) return json({ erro: "Saia da sua guilda antes de entrar em outra." }, 409);
+      if (!this.um("SELECT id FROM guildas WHERE id = ?", gid)) return json({ erro: "Essa guilda acabou." }, 404);
+      if (this.um("SELECT COUNT(*) AS n FROM membros WHERE guilda = ?", gid).n >= 50) return json({ erro: "A guilda está cheia (50)." }, 409);
+      this.sql.exec("INSERT INTO membros (nome, exibe, guilda, cargo, entrou) VALUES (?, ?, ?, 'membro', ?)", eu.baixo, eu.exibe, gid, Date.now());
+      this.sql.exec("DELETE FROM convites WHERE nome = ?", eu.baixo);
+      return json({ ok: true });
+    }
+    if (!m) return json({ erro: "Você não está numa guilda." }, 400);
+    if (acao === "convidar") {
+      if (!pode("lider", "oficial")) return json({ erro: "Só o líder e os oficiais convidam." }, 403);
+      const alvo = String(b.alvo || "").trim().toLowerCase(), existe = this.um("SELECT nome FROM nomes WHERE nome = ?", alvo);
+      if (!existe) return json({ erro: "Não existe personagem com esse nome." }, 404);
+      if (this.um("SELECT nome FROM membros WHERE nome = ?", alvo)) return json({ erro: "Esse personagem já está numa guilda." }, 409);
+      this.sql.exec("INSERT OR REPLACE INTO convites (nome, guilda, de, quando) VALUES (?, ?, ?, ?)", alvo, m.guilda, eu.exibe, Date.now());
+      return json({ ok: true });
+    }
+    if (acao === "sair") {
+      this.sql.exec("DELETE FROM membros WHERE nome = ?", eu.baixo);
+      if (m.cargo === "lider") {                                   // passa a liderança: oficial mais antigo, senão membro mais antigo; ninguém → acaba
+        const prox = this.um("SELECT nome FROM membros WHERE guilda = ? ORDER BY CASE cargo WHEN 'oficial' THEN 0 ELSE 1 END, entrou LIMIT 1", m.guilda);
+        if (prox) this.sql.exec("UPDATE membros SET cargo = 'lider' WHERE nome = ?", prox.nome);
+        else { this.sql.exec("DELETE FROM guildas WHERE id = ?", m.guilda); this.sql.exec("DELETE FROM convites WHERE guilda = ?", m.guilda); }
+      }
+      return json({ ok: true });
+    }
+    if (acao === "desfazer") {
+      if (!pode("lider")) return json({ erro: "Só o líder desfaz a guilda." }, 403);
+      this.sql.exec("DELETE FROM membros WHERE guilda = ?", m.guilda); this.sql.exec("DELETE FROM convites WHERE guilda = ?", m.guilda); this.sql.exec("DELETE FROM guildas WHERE id = ?", m.guilda);
+      return json({ ok: true });
+    }
+    if (acao === "aviso") {
+      if (!pode("lider", "oficial")) return json({ erro: "Só o líder e os oficiais mudam o aviso." }, 403);
+      this.sql.exec("UPDATE guildas SET aviso = ? WHERE id = ?", String(b.texto || "").slice(0, 200), m.guilda);
+      return json({ ok: true });
+    }
+    if (acao === "expulsar" || acao === "cargo") {
+      const a = alvoDe(b.alvo); if (!a || a.nome === eu.baixo) return json({ erro: "Membro não encontrado." }, 404);
+      if (acao === "expulsar") {
+        if (!(pode("lider") || (pode("oficial") && a.cargo === "membro"))) return json({ erro: "Você não pode expulsar esse membro." }, 403);
+        this.sql.exec("DELETE FROM membros WHERE nome = ?", a.nome); return json({ ok: true });
+      }
+      if (!pode("lider")) return json({ erro: "Só o líder muda cargos." }, 403);
+      const c = String(b.cargo);
+      if (c === "lider") { this.sql.exec("UPDATE membros SET cargo = 'lider' WHERE nome = ?", a.nome); this.sql.exec("UPDATE membros SET cargo = 'oficial' WHERE nome = ?", eu.baixo); return json({ ok: true }); }
+      if (c !== "oficial" && c !== "membro") return json({ erro: "cargo inválido" }, 400);
+      this.sql.exec("UPDATE membros SET cargo = ? WHERE nome = ?", c, a.nome); return json({ ok: true });
+    }
+    return json({ erro: "ação desconhecida" }, 404);
   }
 
   async fetch(req) {
@@ -136,6 +231,7 @@ export class Contas {
           return json({ ok: true });
         }
       }
+      if (p[0] === "guilda") return this.guilda(req, usuario, p.slice(1), await corpo());
       if (p[0] === "nome" && req.method === "POST") {                // reserva o nome do personagem (único no mundo)
         const b = await corpo(), nome = String(b.nome || "").trim().replace(/\s+/g, " ").slice(0, 16), low = nome.toLowerCase(), vaga = Number(b.vaga) || 0;
         if (nome.length < 2) return json({ erro: "Nome curto demais." }, 400);

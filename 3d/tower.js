@@ -332,6 +332,7 @@ const Tower = (() => {
     if (i === 10 || i === 20) if ((P.towerCp || 0) < i) { P.towerCp = i; log(`📍 <b>Ponto de retorno</b> liberado: a entrada da Torre agora deixa começar no <b>${i + 1}º andar</b>.`, 'gold'); }
     if (i > (P.towerBest || 0)) P.towerBest = i;
     banner(i === TOP ? 'TOPO DA TORRE' : `${i + 1}º ANDAR`);
+    if (i === 0 && !fromAbove) log('⚔️ <b>A Torre é zona de guerra:</b> aqui o PvP é livre e qualquer jogador pode atacar você, menos quem é da sua guilda. Matar aqui não deixa o nome vermelho.', 'bad');
     spawnFloor(i);
     if (i === TOP) log(Kvx.active ? '☠ <b>Kravenox está acordado!</b> Derrube o Soberano!' : '💤 Kravenox dorme aqui em cima... Ele desperta todo <b>sábado às 20h</b> e fica acordado <b>6 horas</b> (até as 2h de domingo).', Kvx.active ? 'bad' : 'gold');
     else log(`🗼 Torre do Cisma — <b>${i + 1}º andar</b> (monstros nível ${lvOf(i)}).${GUARD[i] ? ` ☠ <b>${GUARD[i]}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria ao norte.`, GUARD[i] ? 'bad' : 'sys');

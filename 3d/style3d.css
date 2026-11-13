@@ -592,3 +592,29 @@ body.touch #evocard.mini { font-size: 9.5px; max-width: 180px; } body.touch #evo
 #bossbar.alfa .kt b { background: linear-gradient(#ffd060, #c08010); } #bossbar.alfa .kn { color: #ffe8a0; }
 #bossbar .kt em { position: absolute; inset: 0; font: bold 9.5px/12px Verdana; font-style: normal; color: #fff; text-shadow: 0 0 2px #000; }
 body.touch #bossbar { top: 44px; width: 40vw; } body.touch #bossbar .kn { font-size: 11px; }
+/* guilda */
+#guildwin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(520px, 92vw); max-height: 86vh; display: flex; flex-direction: column; z-index: 12; }
+#guildwin.hidden { display: none; }
+#guildwin .gw-b { overflow-y: auto; padding: 6px 12px 12px; -webkit-overflow-scrolling: touch; font-size: 13px; }
+#guildwin .gw-sec { margin: 10px 0 4px; font: 800 12px 'Nunito', sans-serif; color: #f2c86a; }
+#guildwin .gw-sec small { color: #b8a8c8; font-weight: 600; }
+#guildwin .gw-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.07); flex-wrap: wrap; }
+#guildwin .gw-row small { color: #b8a8c8; }
+#guildwin button { font: 800 11px 'Nunito', sans-serif; border-radius: 8px; padding: 5px 8px; margin-left: 4px; cursor: pointer; background: linear-gradient(135deg, #f2c86a, #c98a2c); border: 0; color: #1a1020; }
+#guildwin button.sec { background: rgba(255,255,255,.1); color: #efe6ff; border: 1px solid rgba(255,255,255,.2); }
+#guildwin button.perigo { background: rgba(200,40,40,.25); color: #ffc0c0; border: 1px solid rgba(255,90,90,.5); }
+#guildwin .gw-form { display: flex; flex-direction: column; gap: 6px; } #guildwin .gw-in { flex-direction: row; } #guildwin .gw-in input { flex: 1; }
+#guildwin input[type=text], #guildwin input:not([type]) { font: 700 13px 'Nunito', sans-serif; padding: 7px 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.35); color: #fff; }
+#guildwin .gw-emb { display: flex; flex-wrap: wrap; gap: 4px; } #guildwin .gw-emb input { display: none; }
+#guildwin .gw-emb span { display: inline-block; font-size: 20px; padding: 3px 5px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; }
+#guildwin .gw-emb input:checked + span { border-color: #f2c86a; background: rgba(242,200,106,.15); }
+#guildwin .gw-topo { display: flex; align-items: center; gap: 10px; margin-top: 4px; } #guildwin .gw-topo .gw-e { font-size: 34px; }
+#guildwin .gw-topo b { display: block; font: 800 16px 'Cinzel', serif; color: #f2e0ff; } #guildwin .gw-topo small { color: #b8a8c8; }
+#guildwin .gw-aviso { padding: 6px 8px; background: rgba(0,0,0,.25); border-radius: 8px; color: #e8dcf6; }
+#guildwin .gw-on { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5a5066; margin-right: 6px; } #guildwin .gw-on.sim { background: #6aff7a; box-shadow: 0 0 6px #6aff7a; }
+#guildwin .gw-perto { margin-top: 4px; } #guildwin .gw-perto button { margin: 2px 4px 2px 0; }
+#guildwin .gw-fim { margin-top: 12px; display: flex; gap: 6px; justify-content: flex-end; }
+#guildwin .gw-msg { margin: 6px 0; color: #ffd0a0; font-weight: 700; } #guildwin .gw-dica { color: #b8a8c8; font-size: 12px; margin-top: 8px; }
+#chat .line.guild { color: #8affb0; }
+.plabel em.gtag { font-style: normal; color: #c8b8e0; } .plabel em.gtag.aliada { color: #6aff9a; }
+@media (max-height: 470px) { #guildwin .gw-b { font-size: 12px; } }

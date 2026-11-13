@@ -7,6 +7,9 @@
 //  - PK que morre ainda vermelho DERRUBA TODOS OS ITENS (mochila e
 //    equipamento) numa sacola que qualquer jogador pode pegar.
 //  - Cidades, Sítio e casa são zonas seguras: ninguém ataca ninguém.
+//  - Quem é da mesma guilda nunca se ataca (guilda.js).
+//  - Torre do Cisma é ZONA DE GUERRA: PvP livre com todos (menos a própria
+//    guilda), sem precisar ligar o modo PvP, e matar lá não deixa vermelho.
 //  Como a sala só tem presença (cada um publica o próprio estado), o golpe
 //  vai como "hit" no estado de quem bate e quem apanha aplica o dano.
 // =====================================================================
@@ -16,6 +19,7 @@ const PvP = (() => {
   const now = () => Date.now();
   const F = () => (P.flag = P.flag || { pink: 0, red: 0 });
   const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || zn === 'sitio' || zn === 'casa'; };
+  const guerra = (x, z) => inTower(z) && zoneOf(x, z) !== 'casa';             // Torre do Cisma: PvP livre
   const state = () => F().red > now() ? 'r' : F().pink > now() ? 'p' : 'w';
   // cor do nome: vermelho forte no começo, clareando com o tempo; rosa no combate
   function color(fl, left) {
@@ -39,8 +43,9 @@ const PvP = (() => {
     const out = [];
     for (const r of Net.peers()) {
       if (!r.s || r.s.st === 'd' || typeof r.x !== 'number' || safe(r.x, r.z)) continue;
+      if (typeof Guilda !== 'undefined' && Guilda.aliado(r.s)) continue;    // a própria guilda nunca
       const fl = r.s.fl || 'w';
-      if (fl === 'w' && !P.pvpOn) continue;                       // branco só com o modo PvP ligado
+      if (fl === 'w' && !P.pvpOn && !guerra(P.x, P.z)) continue;           // branco só com o modo PvP ligado (na Torre, sempre)
       if (Math.hypot(r.x - P.x, r.z - P.z) > range) continue;
       out.push(proxy(r));
     }
@@ -51,7 +56,7 @@ const PvP = (() => {
     if (safe(P.x, P.z) || safe(t.x, t.z)) return 0;
     dmg = Math.max(1, Math.round(dmg * (crit ? 1.8 : 1) * rand(0.9, 1.1)));
     hits.push({ to: t.peer, d: dmg, n: ++seq }); if (hits.length > 8) hits.shift();
-    F().pink = Math.max(F().pink, now() + PINK);
+    if (!guerra(P.x, P.z)) F().pink = Math.max(F().pink, now() + PINK);   // na Torre bater não deixa rosa
     floater(t.x, P.y + 2.2, t.z, dmg, crit ? 'crit' : '');
     Audio8.sfx(crit ? 'crit' : 'hit');
     return dmg;
@@ -79,11 +84,11 @@ const PvP = (() => {
       const kb = s.kb;
       if (kb && kb.by === me && (seen.get('kb:' + r.peer) || 0) < kb.n) {
         seen.set('kb:' + r.peer, kb.n);
-        if (kb.fl === 'w') {
+        if (kb.fl === 'w' && !guerra(P.x, P.z)) {
           F().red = now() + RED; F().pink = 0; P.pkCount = (P.pkCount || 0) + 1;
           banner('☠️ VOCÊ VIROU PK!'); Audio8.sfx('boom');
           log(`☠️ Você matou <b>${r.n}</b>, que não estava em combate. Seu nome ficou <b style="color:#ff4040">vermelho por 5 minutos</b>. Se morrer assim, derruba <b>todos os itens</b>.`, 'bad');
-        } else log(`⚔️ Você derrotou <b>${r.n}</b> em combate (sem penalidade).`, 'gold');
+        } else log(`⚔️ Você derrotou <b>${r.n}</b>${guerra(P.x, P.z) ? ' na Torre (zona de guerra, sem penalidade)' : ' em combate (sem penalidade)'}.`, 'gold');
       }
       // aviso de PK no território
       const pkUntil = s.fl === 'r' ? (s.pk || 0) : 0;
@@ -159,5 +164,5 @@ const PvP = (() => {
     b.onclick = () => { P.pvpOn = !P.pvpOn; b.classList.toggle('on', P.pvpOn); Audio8.sfx('click'); log(P.pvpOn ? '🗡️ <b>Modo PvP ligado</b>: seus ataques podem acertar jogadores fora das cidades. Matar quem não está em combate deixa você <b style="color:#ff4040">vermelho (PK)</b>.' : '🗡️ Modo PvP desligado: você só ataca jogadores rosa ou vermelhos.', P.pvpOn ? 'bad' : 'sys'); };
     $('menu').insertBefore(b, $('btn-help')); b.classList.toggle('on', !!P.pvpOn);
   }
-  return { init, update, targets, hit, pres, state, color, get connected() { return typeof Net !== 'undefined' && Net.connected; } };
+  return { init, update, targets, hit, pres, state, color, guerra, get connected() { return typeof Net !== 'undefined' && Net.connected; } };
 })();

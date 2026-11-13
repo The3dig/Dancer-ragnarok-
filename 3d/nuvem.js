@@ -74,5 +74,5 @@ const Nuvem = (() => {
   async function sair() { try { await enviar(atual(), true); await api('POST', '/conta/sair'); } catch (e) { } token = null; set('reino-token', null); set('reino-usuario', null); location.reload(); }
   function avisoLogin() { token = null; set('reino-token', null); if (typeof log === 'function') log('🔑 Sua sessão acabou. Entre de novo com usuário e senha.', 'bad'); setTimeout(() => location.reload(), 2500); }
   async function valida() { try { await api('GET', '/conta/valida'); return true; } catch (e) { if (e.status === 401) return false; return null; } }
-  return { parar() { parado = true; }, entrar, baixar, enviar, apagar, nome, sair, valida, avisoLogin, WS, get logado() { return !!token; }, get token() { return token; }, get usuario() { return usuario; } };
+  return { api, parar() { parado = true; }, entrar, baixar, enviar, apagar, nome, sair, valida, avisoLogin, WS, get logado() { return !!token; }, get token() { return token; }, get usuario() { return usuario; } };
 })();

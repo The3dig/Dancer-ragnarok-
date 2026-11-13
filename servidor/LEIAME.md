@@ -10,6 +10,9 @@ O jogo é **todo on-line**. Roda em Cloudflare Workers + Durable Objects
   - As 3 vagas de personagem de cada conta.
   - Nomes únicos de personagem.
   - Rotas: `criar`, `entrar`, `eu`, `vaga/<0-2>` (PUT/DELETE), `nome`, `sair`.
+  - **Guildas** (`/conta/guilda`): ver, `criar`, `convidar`, `aceitar`/`recusar`,
+    `sair`, `desfazer`, `aviso`, `expulsar`, `cargo` (líder, oficial, membro).
+    No máximo 50 membros.
 - **Mundo** (`/mundo/reino?token=...`):
   - Só entra quem está logado.
   - O servidor repassa o estado de cada jogador para os outros e guarda os
