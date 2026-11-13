@@ -8,6 +8,7 @@
 const Avisos = (() => {
   // novidades importantes, a mais nova no topo. Para avisar algo novo: põe aqui com um id novo.
   const NOVIDADES = [
+    { id: 'n9', data: '13/11', t: '🏘️ Casas novas na Cidadela do Cisma', d: 'As casas da Cidadela foram refeitas: térreo de pedra, andar de cima com vigas de madeira, telhado de duas águas e janelas acesas.' },
     { id: 'n8', data: '13/11', t: '⌨️ Barra de atalhos do seu jeito', d: 'A barra voltou a ser uma linha só, com a <b>barra 2 do lado</b> (6 + 6 espaços). Toque em <b>✏️</b> (no fim da barra) e depois num espaço para escolher a habilidade ou o item que fica nele. Também dá para usar o 📌 na árvore de habilidades e na mochila.' },
     { id: 'n7', data: '13/11', t: '📶 Aviso de internet e modo Economia de dados', d: 'O jogo mostra quanto de internet está gastando e tem o modo <b>Economia de dados</b>, que gasta mais ou menos a metade. Músicas, texturas e modelos ficam guardados no aparelho e não são baixados de novo a cada versão.' },
     { id: 'n6', data: '13/11', t: '🌐 O jogo agora é todo on-line', d: 'Entre com <b>usuário e senha</b>. Seus personagens ficam guardados no servidor: entra de qualquer aparelho e nada se perde se o celular quebrar. Sem internet, o jogo pausa até a conexão voltar.' },

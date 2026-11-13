@@ -9,21 +9,62 @@ const Tower = (() => {
   const glow = c => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 1 });
   const lam = c => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
 
-  // ---------------- Cidadela do Cisma
-  [[CIT.x - 16, CIT.z - 8, 0.6], [CIT.x - 18, CIT.z + 14, 0.2], [CIT.x + 16, CIT.z + 14, -0.3], [CIT.x + 18, CIT.z - 6, -0.6], [CIT.x - 2, CIT.z + 20, 0]].forEach(([x, z, rot]) => {
-    const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = Math.atan2(CIT.x - x, CIT.z - z) + rot * 0; scene.add(g);
-    const st = PM('pedra.jpg', [2.6, 2.0], 0x9890a4), st2 = PM('pedra.jpg', [0.5, 2], 0x8a8296);
-    mesh(new THREE.BoxGeometry(5.5, 4.0, 5), st, 0, 2.0, 0, g);
-    [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.7, 3.4, 0.9), st2, a * 2.85, 1.7, b * 2.3, g)));   // contrafortes
-    mesh(new THREE.BoxGeometry(5.9, 0.35, 5.4), st2, 0, 4.1, 0, g);                                  // cornija
-    const roof = mesh(new THREE.ConeGeometry(4.3, 5.2, 4), PM('telha.jpg', [5, 3], 0xb8a2a8), 0, 6.7, 0, g); roof.rotation.y = Math.PI / 4;
-    mesh(new THREE.BoxGeometry(0.8, 3.2, 0.8), st2, 1.4, 7.2, -1.2, g);                               // chaminé
-    mesh(new THREE.ConeGeometry(0.18, 1.4, 6), lam(0x2a2430), 0, 9.9, 0, g);
-    mesh(new THREE.BoxGeometry(1.2, 2.2, 0.14), PM('madeira.jpg', [0.5, 1], 0x5a4038), 0, 1.1, 2.53, g);
-    const winM = new THREE.MeshBasicMaterial({ color: 0x9a4a24 });
-    [-1.7, 1.7].forEach(wx => { mesh(new THREE.BoxGeometry(0.6, 1.1, 0.1), winM, wx, 2.5, 2.53, g, false); const ar = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10, 1, false, 0, Math.PI), winM, wx, 3.05, 2.53, g, false); ar.rotation.set(Math.PI / 2, 0, Math.PI / 2); });
-    addOb(x, z, 3.6);
+  // ---------------- Cidadela do Cisma: casas góticas (térreo de pedra, andar de enxaimel, telhado de duas águas, janelas acesas)
+  const citTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+  const JANELA = citTex(64, 96, g => {                                                    // janela em arco, vidro aceso em cruz
+    g.fillStyle = '#2a1a14'; g.fillRect(0, 0, 64, 96);
+    const l = g.createLinearGradient(0, 10, 0, 92); l.addColorStop(0, '#ffe7a0'); l.addColorStop(1, '#ff9a3a'); g.fillStyle = l;
+    g.beginPath(); g.moveTo(8, 90); g.lineTo(8, 34); g.arc(32, 34, 24, Math.PI, 0); g.lineTo(56, 90); g.fill();
+    g.fillStyle = '#2a1a14'; g.fillRect(30, 8, 4, 84); g.fillRect(8, 52, 48, 4); g.strokeStyle = '#2a1a14'; g.lineWidth = 3; g.strokeRect(1.5, 1.5, 61, 93);
   });
+  const PORTA = citTex(64, 128, g => {
+    g.fillStyle = '#3a2418'; g.fillRect(0, 0, 64, 128);
+    for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#5a3a24' : '#4a2e1c'; g.fillRect(4 + i * 14.5, 20, 13, 106); }
+    g.fillStyle = '#1a0e08'; g.fillRect(0, 50, 64, 5); g.fillRect(0, 96, 64, 5); g.fillStyle = '#c8a050'; g.beginPath(); g.arc(50, 76, 3.5, 0, 6.3); g.fill();
+    g.fillStyle = '#20140c'; g.beginPath(); g.moveTo(0, 0); g.lineTo(64, 0); g.lineTo(64, 22); g.arc(32, 32, 32, 0, Math.PI, true); g.lineTo(0, 0); g.fill();
+  });
+  const pedraC = PM('pedra.jpg', [2.2, 1.4], 0xd8d0e0), pedraE = PM('pedra.jpg', [1, 1], 0xb0a6bc), reboco = PM('reboco.jpg', [1.6, 1.2], 0xeee2cc), viga = PM('madeira.jpg', [0.3, 2], 0x4a3020);
+  const janM = new THREE.MeshBasicMaterial({ map: JANELA, toneMapped: false }), portaM = new THREE.MeshLambertMaterial({ map: PORTA });
+  const TELHAS = [0x6a4a8a, 0x8a3a4a, 0x4a5a7a, 0x5a3a6a, 0x7a4a3a].map(c => PM('telha.jpg', [3, 3], c));
+  const luzM = new THREE.SpriteMaterial({ map: citTex(64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,220,150,1)'); r.addColorStop(0.3, 'rgba(255,170,80,.5)'); r.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  // telhado de duas águas: prisma triangular (cumeeira ao longo de z)
+  function telhado(W, D, H, mt) { const sh = new THREE.Shape(); sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(0, H); sh.closePath(); const geo = new THREE.ExtrudeGeometry(sh, { depth: D, bevelEnabled: false }); geo.translate(0, 0, -D / 2); return new THREE.Mesh(geo, mt); }
+  function casaCisma(x, z, k) {
+    const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = Math.atan2(CIT.x - x, CIT.z - z); scene.add(g);
+    const W = 5.6 + (k % 2) * 0.8, D = 5.2 + (k % 3) * 0.5, H1 = 3.0, H2 = 2.6, RH = 3.4 + (k % 2) * 0.8;
+    const box = (w, h, d, mt, px, py, pz, sh = true) => mesh(new THREE.BoxGeometry(w, h, d), mt, px, py, pz, g, sh);
+    box(W, H1, D, pedraC, 0, H1 / 2, 0);                                                    // térreo de pedra clara
+    box(W + 0.3, 0.3, D + 0.3, pedraE, 0, 0.15, 0, false);                                  // rodapé
+    box(W + 0.5, H2, D + 0.5, reboco, 0, H1 + H2 / 2, 0);                                   // andar de cima (um pouco maior: "balanço")
+    box(W + 0.7, 0.28, D + 0.7, viga, 0, H1 + 0.05, 0, false);                              // viga do piso
+    box(W + 0.7, 0.24, D + 0.7, viga, 0, H1 + H2, 0, false);                                // viga do topo
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(0.24, H2, 0.24, viga, sx * (W / 2 + 0.26), H1 + H2 / 2, sz * (D / 2 + 0.26), false);   // cantos
+    for (const f of [1, -1]) {                                                              // enxaimel na frente e atrás: montantes e mãos-francesas
+      for (const vx of [-W / 6, W / 6]) box(0.18, H2, 0.12, viga, vx, H1 + H2 / 2, f * (D / 2 + 0.27), false);
+      for (const dx of [-1, 1]) { const b = box(0.16, H2 * 1.1, 0.12, viga, dx * W * 0.36, H1 + H2 / 2, f * (D / 2 + 0.28), false); b.rotation.z = dx * 0.6; }
+    }
+    const tl = telhado(W + 1.4, D + 1.4, RH, TELHAS[k % TELHAS.length]); tl.position.y = H1 + H2 + 0.1; tl.castShadow = true; g.add(tl);
+    for (const f of [1, -1]) { const ff = new THREE.Mesh(new THREE.ShapeGeometry((() => { const sh = new THREE.Shape(); sh.moveTo(-(W + 0.5) / 2, 0); sh.lineTo((W + 0.5) / 2, 0); sh.lineTo(0, RH * 0.92); sh.closePath(); return sh; })()), reboco); ff.position.set(0, H1 + H2 + 0.1, f * (D / 2 + 0.26)); if (f < 0) ff.rotation.y = Math.PI; g.add(ff);
+      const jg = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.0), janM); jg.position.set(0, H1 + H2 + 1.0, f * (D / 2 + 0.28)); if (f < 0) jg.rotation.y = Math.PI; g.add(jg); }   // janelinha do sótão
+    // janelas acesas nos quatro lados
+    const jan = (px, py, pz, ry, w = 0.85, h = 1.25) => { const j = new THREE.Mesh(new THREE.PlaneGeometry(w, h), janM); j.position.set(px, py, pz); j.rotation.y = ry; g.add(j); };
+    for (const f of [1, -1]) { jan(-W / 3, H1 + H2 * 0.5, f * (D / 2 + 0.27), f > 0 ? 0 : Math.PI); jan(W / 3, H1 + H2 * 0.5, f * (D / 2 + 0.27), f > 0 ? 0 : Math.PI); }
+    for (const f of [1, -1]) { jan(f * (W / 2 + 0.27), H1 + H2 * 0.5, 0, f * Math.PI / 2); jan(f * (W / 2 + 0.02), H1 * 0.55, -D / 4, f * Math.PI / 2, 0.75, 1.1); }
+    jan(-W / 3, H1 * 0.55, -(D / 2 + 0.02), Math.PI, 0.75, 1.1); jan(W / 3, H1 * 0.55, -(D / 2 + 0.02), Math.PI, 0.75, 1.1);
+    jan(W / 3, H1 * 0.55, D / 2 + 0.02, 0, 0.75, 1.1);
+    // porta em arco com moldura de pedra, degrau e lanterna
+    const pt = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.4), portaM); pt.position.set(-W / 6, 1.2, D / 2 + 0.03); g.add(pt);
+    box(1.7, 0.25, 0.3, pedraE, -W / 6, 2.5, D / 2 + 0.1, false); box(0.22, 2.4, 0.3, pedraE, -W / 6 - 0.76, 1.2, D / 2 + 0.1, false); box(0.22, 2.4, 0.3, pedraE, -W / 6 + 0.76, 1.2, D / 2 + 0.1, false);
+    box(1.8, 0.2, 0.7, pedraE, -W / 6, 0.1, D / 2 + 0.4, false);
+    box(0.08, 0.5, 0.08, viga, -W / 6 + 1.1, 2.3, D / 2 + 0.25, false);
+    const lan = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.22), new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false })); lan.position.set(-W / 6 + 1.1, 1.98, D / 2 + 0.3); g.add(lan);
+    const lt = new THREE.Sprite(luzM); lt.position.set(-W / 6 + 1.1, 1.98, D / 2 + 0.32); lt.scale.setScalar(0.85); g.add(lt);
+    // chaminé
+    box(0.8, RH + 1.2, 0.8, pedraE, W / 4, H1 + H2 + RH / 2 + 0.3, -D / 5);
+    box(1.0, 0.2, 1.0, pedraE, W / 4, H1 + H2 + RH + 0.95, -D / 5, false);
+    addOb(x, z, Math.max(W, D) / 2 + 0.6);
+  }
+  [[CIT.x - 16, CIT.z - 8], [CIT.x - 18, CIT.z + 14], [CIT.x + 16, CIT.z + 14], [CIT.x + 18, CIT.z - 6], [CIT.x - 2, CIT.z + 20]].forEach(([x, z], k) => casaCisma(x, z, k));
   // cristais roxos e tochas pela cidade
   for (let i = 0; i < 14; i++) {
     const a = i / 14 * TAU, r = 25 + (i % 3) * 3, x = CIT.x + Math.cos(a) * r, z = CIT.z + Math.sin(a) * r;
