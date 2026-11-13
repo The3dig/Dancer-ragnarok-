@@ -10,6 +10,8 @@ const SERVIDOR_MMO = (typeof Nuvem !== 'undefined' ? Nuvem.WS : 'wss://kravenox-
 // sala por WebSocket com a mesma cara da sala do Claude: presence() e onPeers()
 function salaServidor(url, aoMsg) {
   let ws = null, me = null, cb = null, pend = null, espera = 1000, aberta = false, falhas = 0, parado = false;
+  const uso = { in: 0, out: 0, t0: Date.now() };           // dados de internet desta sessão (bytes)
+  const mandar = t => { try { ws.send(t); uso.out += t.length + 6; return true; } catch (e) { return false; } };
   const peers = new Map();
   const emit = (joined = [], left = []) => {
     if (!cb) return;
@@ -21,8 +23,9 @@ function salaServidor(url, aoMsg) {
     if (parado) return;
     const tk = typeof Nuvem !== 'undefined' && Nuvem.token ? (url.includes('?') ? '&' : '?') + 'token=' + Nuvem.token : '';
     try { ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
-    ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) ws.send(JSON.stringify({ t: 'p', s: pend })); };
+    ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) mandar(JSON.stringify({ t: 'p', s: pend })); };
     ws.onmessage = e => {
+      uso.in += (e.data.length || 0) + 4;
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
       if (m.t === 'eu') { me = m.peer; emit(); }
@@ -43,17 +46,18 @@ function salaServidor(url, aoMsg) {
     ws.onerror = () => { };
   }
   conectar();
-  setInterval(() => { if (aberta) try { ws.send(JSON.stringify({ t: 'hb' })); } catch (e) { } }, 5000);   // "ainda estou aqui" (mantém o mundo acordado)
+  setInterval(() => { if (aberta) mandar('{"t":"hb"}'); }, 5000);   // "ainda estou aqui" (mantém o mundo acordado)
   return {
     servidor: true, get aberta() { return aberta; },
-    presence(s) { pend = s; if (aberta) try { ws.send(JSON.stringify({ t: 'p', s })); } catch (e) { } return Promise.resolve(); },
-    send(o) { if (aberta) try { ws.send(JSON.stringify(o)); return true; } catch (e) { } return false; },
+    presence(s) { pend = s; if (aberta) mandar(JSON.stringify({ t: 'p', s })); return Promise.resolve(); },
+    send(o) { return aberta ? mandar(JSON.stringify(o)) : false; }, uso,
     onPeers(f) { cb = f; emit(); },
   };
 }
 const Net = (() => {
   let room = null, sendT = 0, lastSent = '', online = 1, myPeer = null;
   const remotes = new Map();   // peer -> jogador remoto
+  const economia = () => { try { return localStorage.getItem('reino-economia') === '1'; } catch (e) { return false; } };
   const handlers = {};          // tipo de mensagem -> função (partilha.js)
   let semNet = 0, foraMsg = '';
   const seenSay = new Map();
@@ -129,7 +133,7 @@ const Net = (() => {
     // publica o próprio estado ~10x/s
     sendT -= dt;
     if (sendT <= 0) {
-      sendT = room.servidor ? 0.15 : 0.1;              // no servidor, ~7x/s (poupa a cota grátis da Cloudflare)
+      sendT = economia() ? 0.3 : room.servidor ? 0.15 : 0.1;   // ~7x/s (no modo Economia de dados, ~3x/s)
       const st = P.dead ? 'd' : P.dashT > 0 ? 'r' : P.moving ? 'm' : P.sit ? 's' : 'i';
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
@@ -210,7 +214,7 @@ const Net = (() => {
   function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
   return { peers, get me() { return myPeer; },
     init, update, kvxOthers, fbOthers, say, tickMyBubble, fora, jaConectou: false,
-    on(t, f) { handlers[t] = f; }, send(o) { return !!(room && room.send && room.send(o)); },
+    on(t, f) { handlers[t] = f; }, economia, get uso() { return room && room.uso ? room.uso : { in: 0, out: 0, t0: Date.now() }; }, send(o) { return !!(room && room.send && room.send(o)); },
     get pausa() { return !!room && room.servidor && (!room.aberta || !!foraMsg); },
     get connected() { return !!room && (!room.servidor || room.aberta); }, get count() { return remotes.size + 1; } };
 })();

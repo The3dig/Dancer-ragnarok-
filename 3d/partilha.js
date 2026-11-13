@@ -82,7 +82,7 @@ const Partilha = (() => {
   function cura(m) { if (meu(m)) Net.send({ t: 'cura', id: m.nid, hp: Math.round(m.hp) }); }
   function update(dt) {
     if (!Net.connected || !Net.me) return;
-    if ((envT -= dt) > 0) return; envT = 0.2;                                         // 5x por segundo
+    if ((envT -= dt) > 0) return; envT = Net.economia() ? 0.4 : 0.2;                   // 5x por segundo (Economia de dados: 2,5x)
     const l = [];
     for (const m of mobs) {
       if (!m.nid || !meu(m)) continue;

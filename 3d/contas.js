@@ -47,7 +47,7 @@ const Contas = (() => {
     Audio8.init(); Audio8.play('title');
     intro.classList.add('hidden'); $('title').classList.add('hidden'); slots.classList.remove('hidden'); window.INTRO = true;
     slots.innerHTML = `<div class="sl-wrap lg"><h2>Entrar no Reino</h2>
-      <p class="lg-sub">O Reino Quebrado é todo on-line: sua conta guarda os personagens, e você entra de qualquer aparelho.</p>
+      <p class="lg-sub">O Reino Quebrado é todo on-line: sua conta guarda os personagens, e você entra de qualquer aparelho.<br>📶 <b>Usa internet o tempo todo:</b> no 4G/5G gasta dados do seu plano.</p>
       <form class="lg-form" autocomplete="on"><input name="u" placeholder="Usuário" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(Nuvem.usuario || '')}">
       <input name="s" type="password" placeholder="Senha" maxlength="64" autocomplete="current-password">
       <div class="lg-err">${msg ? esc(msg) : ''}</div>
@@ -76,7 +76,7 @@ const Contas = (() => {
     try {
       const r = await Nuvem.baixar();
       aviso = r.subiu ? `📲 ${r.subiu} personagem(ns) deste aparelho foram guardados na sua conta.` : '';
-      showSlots();
+      if (typeof Avisos !== 'undefined') Avisos.seTiverNovo(showSlots); else showSlots();     // novidades e aviso de internet
     } catch (e) {
       if (e.status === 401) showLogin('Entre de novo com usuário e senha.');
       else semConexao(e.message);
