@@ -612,7 +612,7 @@ const Vida = (() => {
       if (I.sell > 0 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
       if (I.sell > 0 && P.inv[sel] > 1 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
       btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
-      if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = (P.hot || ['red', 'blue']).includes(sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
+      if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = ensureBar().includes('i:' + sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
       let extra = '';
       if (I.kind === 'carta') {
         const ok = Object.keys(SLOTS).filter(sl => P.equip[sl] && (sl === I.cslot || (I.cslot === 'anel' && sl.startsWith('anel'))));
@@ -642,10 +642,9 @@ const Vida = (() => {
     if (a !== 'trash') trashArm = null;
     if (a === 'sell1' || a === 'sellall') { const n = a === 'sell1' ? 1 : P.inv[v], z = ITEMS[v].sell * n; P.inv[v] -= n; P.zeny += z; Audio8.sfx('coin'); log(`💰 Vendeu ${n}× <b>${it(v).name}</b> por <b>${z.toLocaleString('pt-BR')} cr</b>.`, 'gold'); if (!P.inv[v]) sel = null; buildHotbar(); }
     if (a === 'trash') { if (trashArm !== v) trashArm = v; else { const n = P.inv[v]; P.inv[v] = 0; trashArm = null; sel = null; Audio8.sfx('miss'); log(`🗑️ Destruiu ${n}× <b>${it(v).name}</b>.`, 'sys'); buildHotbar(); } }
-    if (a === 'hot') {                                   // atalhos de itens: até 4 na barra
-      P.hot = P.hot || ['red', 'blue'];
-      if (P.hot.includes(v)) P.hot = P.hot.filter(x => x !== v);
-      else { if (P.hot.length >= 12) { log('As duas fileiras de atalhos estão cheias (12). Tire um primeiro.', 'bad'); Audio8.sfx('miss'); renderInv(); return; } P.hot.push(v); log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); }
+    if (a === 'hot') {                                   // põe/tira o item da barra de atalhos
+      const r = barToggle('i:' + v);
+      if (r === true) log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); else if (r === false) log(`✖ <b>${it(v).name}</b> saiu da barra de atalhos.`, 'sys'); else { renderInv(); return; }
       buildHotbar();
     }
     if (a === 'tab') { tab = v; sel = null; }

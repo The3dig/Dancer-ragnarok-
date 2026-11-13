@@ -564,3 +564,21 @@ body.touch #hotbar2 { padding: 3px; gap: 4px; border-radius: 10px; }
 #avisos .av-ok { background: linear-gradient(135deg, #f2c86a, #c98a2c); border: 0; color: #1a1020; }
 #avisos .av-eco { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); color: #efe6ff; }
 @media (max-height: 470px) { #avisos .av-item { padding: 5px 0; font-size: 13px; } #avisos .av-t { font-size: 16px; padding: 8px 14px 4px; } }
+/* barra de atalhos: barra 1 e barra 2 lado a lado, numa linha só; o jogador escolhe o que vai em cada espaço */
+#hotbar { display: flex; align-items: center; }
+#hotbar .hbg { display: flex; gap: 6px; }
+#hotbar .hbg + .hbg { margin-left: 6px; padding-left: 8px; border-left: 2px solid rgba(255,220,150,.25); }
+#hotbar .hbg.edit .slot { box-shadow: 0 0 0 2px rgba(242,200,106,.7); }
+#hotbar .slot.vazio { background: rgba(0,0,0,.25); border-style: dashed; opacity: .55; }
+#hotbar .slot.vazio .ic { color: #f2c86a; font-weight: 800; }
+#hotbar .hbedit { width: 28px; margin-left: 6px; opacity: .8; } #hotbar .hbedit.on { opacity: 1; box-shadow: 0 0 10px rgba(242,200,106,.8); }
+#hotbar .hbedit .ic { font-size: 14px; }
+body.touch #hotbar .hbg { gap: 3px; } body.touch #hotbar .hbg + .hbg { margin-left: 4px; padding-left: 5px; }
+body.touch #hotbar .slot { width: 32px; height: 32px; } body.touch #hotbar .hbedit { width: 24px; margin-left: 4px; }
+#hotbar2 { display: none !important; }
+.snode .spin { margin-left: 4px; }
+/* quadrinho da evolução: uma linha, pequeno */
+#evocard.mini { max-width: 210px; border-radius: 8px; }
+#evocard.mini .wb { padding: 3px 8px; line-height: 1.25; }
+#evocard.mini .ev-ir { color: #f2c86a; }
+body.touch #evocard.mini { font-size: 9.5px; max-width: 180px; } body.touch #evocard.mini .wb { padding: 2px 6px; }

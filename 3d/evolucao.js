@@ -59,8 +59,8 @@ const Evo = (() => {
   function card() {
     const t = next(), q = Q[t]; if (!q) return null;
     const names = TIERS[P.cls] || [], cl = `${t + 1}ª classe: ${names[t] || ''}`;
-    if (!P.evo) return P.lv >= q.lv ? { txt: `⭐ Você pode evoluir para a <b>${cl}</b>! Toque para ir até o Vigia Morvan`, mini: `Fale com o Vigia Morvan para virar <b>${names[t]}</b>`, k: 'go' } : null;
-    if (done()) return { txt: `✨ Provação completa! Toque para voltar ao Vigia Morvan e virar <b>${names[t]}</b>`, mini: `Provação completa! Volte ao Vigia Morvan`, k: 'done' };
+    if (!P.evo) return P.lv >= q.lv ? { txt: `⭐ Você pode evoluir para a <b>${cl}</b>! Toque para ir até o Vigia Morvan`, mini: `Virar <b>${names[t]}</b>`, k: 'go' } : null;
+    if (done()) return { txt: `✨ Provação completa! Toque para voltar ao Vigia Morvan e virar <b>${names[t]}</b>`, mini: `Provação pronta!`, k: 'done' };
     const r = q.need.find(r => prog(r) < r.n);
     return { txt: `⚔️ ${q.title}: ${r.txt} <b>${prog(r)}/${r.n}</b> · toque para ir`, mini: `${r.txt} <b>${prog(r)}/${r.n}</b>`, k: 'hunt', r };
   }

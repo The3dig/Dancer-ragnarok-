@@ -1359,10 +1359,10 @@ function evoCard(dt) {
   if (!c) { el.classList.add('hidden'); return; }
   const mini = c.k === 'hunt' || P.evoMini === c.k;
   if (mini && !(P.ui && P.ui.evo)) { el.classList.add('hidden'); return; }
-  const html = mini ? `<div class="wt">⭐ Evolução</div><div class="wb">${c.mini}<br><small>toque para ir</small></div>` : c.txt;
+  const html = mini ? `<div class="wb">⭐ ${c.mini} <b class="ev-ir">›</b></div>` : c.txt;
   if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; if (!mini && c.k !== 'hunt' && evoSeen !== c.txt) { evoSeen = c.txt; Audio8.sfx('buff'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); } }
   el.classList.toggle('mini', mini); el.classList.toggle('win', mini);
-  if (mini) { const k = $('rail'), r = k && k.getBoundingClientRect(); if (r && r.height) { el.style.top = (r.bottom + 6) + 'px'; el.style.left = r.left + 'px'; el.style.width = '190px'; } }
+  if (mini) { const k = $('rail'), r = k && k.getBoundingClientRect(); if (r && r.height) { el.style.top = (r.bottom + 6) + 'px'; el.style.left = r.left + 'px'; el.style.width = ''; } }
   else { el.style.top = el.style.left = el.style.width = ''; }
   el.classList.remove('hidden');
 }
@@ -2287,28 +2287,60 @@ function homePos() {
   return P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : P.home === 'acampamento' ? { x: VCAMP.x, z: VCAMP.z + 4 } : { x: VIL.x, z: VIL.z + 10 };
 }
 function breakCast() { if (P.wingT > 0) { P.wingT = 0; log('🦋 A conjuração da Asa de Borboleta foi interrompida!', 'bad'); Audio8.sfx('miss'); } }
+// ---------------- barra de atalhos (como no Ragnarok): 2 barras de 6, lado a lado; o jogador escolhe o que vai em cada espaço
+// P.bar[i] = 's:<id da habilidade>' | 'i:<id do item>' | null. Teclas: barra 1 = 1 a 6, barra 2 = Q E R T Y U.
+const BAR_N = 12, BAR_KEYS = ['1', '2', '3', '4', '5', '6', 'Q', 'E', 'R', 'T', 'Y', 'U'];
+let barEdit = false;
+function ensureBar() {
+  if (Array.isArray(P.bar) && P.bar.length === BAR_N) return P.bar;
+  const l = SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
+  P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
+  return P.bar;
+}
+// põe (ou tira) uma habilidade/item no 1º espaço livre — usado pela mochila e pela árvore de habilidades
+function barToggle(e) {
+  const b = ensureBar(), i = b.indexOf(e);
+  if (i >= 0) { b[i] = null; buildHotbar(); return false; }
+  const j = b.indexOf(null); if (j < 0) { log('As duas barras de atalho estão cheias. Toque em ✏️ para trocar um espaço.', 'bad'); Audio8.sfx('miss'); return null; }
+  b[j] = e; buildHotbar(); return true;
+}
+function barUse(e) {
+  if (!e) return;
+  if (e.startsWith('s:')) { const i = SKILLS.findIndex(s => s.id === e.slice(2)); if (i >= 0 && tierOk(SKILLS[i])) useSkill(i); }
+  else if (e.startsWith('i:') && ITEMS[e.slice(2)]) useHot(e.slice(2));
+}
+// escolher o que vai num espaço
+function barPick(i) {
+  const b = ensureBar(), opts = [];
+  SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0) opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
+  Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
+  opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
+  dialog(`✏️ Atalho ${BAR_KEYS[i]} (barra ${i < 6 ? 1 : 2})`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
+}
 function buildHotbar() {
-  const hb = $('hotbar'); hb.innerHTML = '';
-  SKILLS.forEach((s, i) => {
-    if (!tierOk(s)) return;
-    const el = document.createElement('div'); el.className = 'slot'; el.dataset.skill = i;
-    el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP)\n${s.desc}`;
-    const lv = P.skillLv[s.id] || 0;
-    el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span>${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
-    tapOn(el, () => useSkill(i)); hb.appendChild(el);
-  });
-  // itens no atalho: escolhidos pela mochila (📌 Pôr no atalho), até 12, numa 2ª barra em cima da barra das habilidades
-  const KEYS = ['Q', 'E', 'R', 'T', 'Y', 'U', 'Z', 'V', 'B', 'N', 'G', 'L'];
-  let hb2 = $('hotbar2'); if (!hb2) { hb2 = document.createElement('div'); hb2.id = 'hotbar2'; $('bottom').insertBefore(hb2, hb); }
-  hb2.innerHTML = '';
-  const items = (P.hot || ['red', 'blue']).filter(id => ITEMS[id]).slice(0, 12);
-  hb2.style.display = items.length ? '' : 'none';
-  items.forEach((id, j) => {
-    const el = document.createElement('div'); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
-    el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span><span class="k">${KEYS[j]}</span><span class="cost">x${P.inv[id] || 0}</span>`;
-    if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
-    tapOn(el, () => useHot(id)); hb2.appendChild(el);
-  });
+  const hb = $('hotbar'); hb.innerHTML = ''; const old = $('hotbar2'); if (old) old.remove();
+  const b = ensureBar();
+  for (let g = 0; g < 2; g++) {
+    const grp = document.createElement('div'); grp.className = 'hbg' + (barEdit ? ' edit' : ''); hb.appendChild(grp);
+    for (let i = g * 6; i < g * 6 + 6; i++) {
+      const e = b[i], el = document.createElement('div'); el.className = 'slot';
+      const k = `<span class="k">${BAR_KEYS[i]}</span>`;
+      if (e && e.startsWith('s:') && SKILLS.some(s => s.id === e.slice(2))) {
+        const si = SKILLS.findIndex(s => s.id === e.slice(2)), s = SKILLS[si], lv = P.skillLv[s.id] || 0;
+        el.dataset.skill = si; el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP)\n${s.desc}`;
+        el.innerHTML = `<span class="ic">${s.icon}</span>${k}${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv && tierOk(s) ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
+      } else if (e && e.startsWith('i:') && ITEMS[e.slice(2)]) {
+        const id = e.slice(2); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
+        el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span>${k}<span class="cost">x${P.inv[id] || 0}</span>`;
+        if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
+      } else { el.className = 'slot vazio'; el.innerHTML = `<span class="ic">${barEdit ? '+' : ''}</span>${k}`; }
+      tapOn(el, () => barEdit || !e ? barPick(i) : barUse(e));
+      grp.appendChild(el);
+    }
+  }
+  const ed = document.createElement('div'); ed.className = 'slot hbedit' + (barEdit ? ' on' : ''); ed.title = 'Editar atalhos'; ed.innerHTML = '<span class="ic">✏️</span>';
+  tapOn(ed, () => { barEdit = !barEdit; Audio8.sfx('click'); if (barEdit) log('✏️ Toque num espaço da barra para escolher a habilidade ou o item. Toque em ✏️ de novo para terminar.', 'sys'); buildHotbar(); });
+  hb.appendChild(ed);
 }
 function renderStats() {
   const w = $('statwin');
@@ -2356,7 +2388,7 @@ function learn(i) {
   if (!canLearn(i)) return;
   const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--;
   Audio8.sfx(P.skillLv[s.id] === 1 ? 'buff' : 'click');
-  if (P.skillLv[s.id] === 1) log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold');
+  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (!ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
   buildHotbar(); renderSkills(); save();
 }
 function describe(s, L) {
@@ -2383,7 +2415,7 @@ function renderSkills() {
       <div class="sb"><div class="sn">${s.name}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
       <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
-      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button></div>`;
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${ensureBar().includes('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
     <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(ganhe 1 por nível)</small></div>
@@ -2398,6 +2430,7 @@ function renderSkills() {
 $('skillwin').addEventListener('click', e => {
   if (e.target.closest('[data-close]')) return toggleSkills();
   const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
+  const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
 });
 function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills(); }
 
@@ -2492,9 +2525,8 @@ addEventListener('keydown', e => {
   if (dialogOpen) return;
   keys[k] = true;
   if (e.repeat) return;
-  const si = SKILLS.findIndex(s => s.key === k); if (si >= 0 && tierOk(SKILLS[si])) useSkill(si);
+  { const bi = BAR_KEYS.indexOf(k.toUpperCase()); if (bi >= 0) barUse(ensureBar()[bi]); }
   if (k === 'j' || k === 'k') attack();
-  { const hk = ['q', 'e', 'r', 't', 'y', 'u', 'z', 'v', 'b', 'n', 'g', 'l'].indexOf(k), hot = (P.hot || ['red', 'blue']).filter(id => ITEMS[id]); if (hk >= 0 && hot[hk]) useHot(hot[hk]); }
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
@@ -2567,7 +2599,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
