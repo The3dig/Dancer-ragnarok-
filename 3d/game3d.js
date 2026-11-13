@@ -1272,11 +1272,12 @@ function dmgMob(m, base, crit, magic, color) {
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
   burst(_p.clone(), color ?? (crit ? 0xffcf40 : 0xffffff), crit ? 10 : 5, 3, 0.4);
   if (!magic && badd('poison') > 0) poison(m, stats.atk() * 0.3, 5);
+  if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, dmg); m.hp = Math.max(1, m.hp); return dmg; }
   if (m.hp <= 0) killMob(m);
   return dmg;
 }
 function poison(m, dps, t) { if (!m.dead) m.dot = { dps, t, acc: 0 }; }
-function killMob(m) {
+function killMob(m, o = {}) {
   m.dead = true; mobs = mobs.filter(o => o !== m);
   burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), m.d.boss ? 0xffcf40 : 0xffe0f0, m.d.boss ? 70 : 18, m.d.boss ? 9 : 4, 0.9);
   Audio8.sfx(m.d.boss ? 'boom' : 'die');
@@ -1285,12 +1286,19 @@ function killMob(m) {
   else if (m.model.spr) corpses.push({ g: m.model.g, spr: m.model.spr, face: m.face, t: 1.1 });
   else if (m.model.m3) corpses.push({ g: m.model.g, m3: m.model.body, t: 1.0 });
   else scene.remove(m.model.g);
+  if (o.semPremio) return;                                              // morreu na mão de outro jogador
+  if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
+    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda));
+    log(`🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
+    if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); }
+    return;
+  }
   drops.push(makeDrop('zeny', irand(...m.d.zeny), m.x, m.z));
   const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1);
   for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
-  const xp = Math.round(m.d.xp * mult);
-  log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP`, 'xp');
+  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1));
+  log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
   if (typeof Quests !== 'undefined') Quests.onKill(m);
@@ -1301,7 +1309,7 @@ function killMob(m) {
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
   if (m.type === 'guardiao') log('🏆 <b>A Sentinela sem Rosto caiu!</b> As ruínas estão livres.', 'gold');
   if (m.type === 'kravenox') { Kvx.onKill(m); return; }
-  if (m.noRespawn) return;
+  if (m.noRespawn || m.nid) return;                                     // os compartilhados renascem pelo servidor
   respawnQ.push({ type: m.type, area: m.area, at: m.at, t: m.d.respawn });
 }
 const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: new THREE.SphereGeometry(0.16, 10, 8), blue: new THREE.SphereGeometry(0.16, 10, 8) };
@@ -1718,7 +1726,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); Net.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -1844,19 +1852,20 @@ function updatePlayer(dt) {
 function updateMob(m, dt) {
   if (m.dot) {
     m.dot.t -= dt; m.dot.acc += dt;
-    if (m.dot.acc >= 1) { m.dot.acc = 0; const d = Math.max(1, Math.round(m.dot.dps)); m.hp -= d; floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, d, 'poison'); burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), 0x7dff4a, 4, 1.5, 0.5); if (m.hp <= 0) { killMob(m); return; } }
+    if (m.dot.acc >= 1) { m.dot.acc = 0; const d = Math.max(1, Math.round(m.dot.dps)); if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, d); m.hp = Math.max(1, m.hp - d); } else m.hp -= d; floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, d, 'poison'); burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), 0x7dff4a, 4, 1.5, 0.5); if (m.hp <= 0) { killMob(m); return; } }
     if (m.dot && m.dot.t <= 0) m.dot = null;
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
   if (m.type === 'kravenox') Kvx.ai(m, dt);
-  if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
+  if (m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) Partilha.mover(m, dt);
+  else if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
     if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
-      if (P.dead || Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32)) { m.state = 'return'; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); }
+      if (P.dead || Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32)) { m.state = 'return'; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
         m.face = Math.atan2(P.x - m.x, P.z - m.z);
@@ -2523,7 +2532,7 @@ const joy = { x: 0, y: 0, id: null };
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
-const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }];
+const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
   const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
@@ -2589,9 +2598,9 @@ function start(fromSave) {
   if (!fromSave) { P.hp = stats.maxHp(); P.sp = stats.maxSp(); }
   P.y = groundY(P.x, P.z);
   $('pname').textContent = P.name;
-  for (const s of SPAWNS) for (let i = 0; i < s.n; i++) spawnMob(s.type, s.area, s.at);
+  SPAWNS.forEach((s, si) => { for (let i = 0; i < s.n; i++) { const m = spawnMob(s.type, s.area, s.at); m.nid = si + '-' + i; } });
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
@@ -2629,20 +2638,10 @@ function nameOk() {
   if (v.length < 2) { $('name-in').classList.add('err'); $('name-in').placeholder = 'Escolha um nome (mín. 2 letras)'; $('name-in').focus(); Audio8.sfx('miss'); return false; }
   $('name-in').classList.remove('err'); return true;
 }
-// nome único: no link do Claude os nomes ficam guardados no banco compartilhado (nomes/<id da pessoa>)
+// nome único no mundo inteiro: o servidor reserva o nome para esta conta e esta vaga
 async function nameFree(v) {
-  if (!window.claude || !window.claude.use) return true;                       // fora do Claude não há banco para conferir
-  const low = v.toLowerCase();
-  const tmo = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r(null), ms))]);
-  try {
-    const db = await tmo(window.claude.use('db'), 6000), user = await tmo(window.claude.use('user'), 6000);
-    if (!db || !user) return true;
-    const id = await user.id();
-    const snap = await tmo(db.collection('nomes').where('n', '==', low).get(), 6000);
-    if (snap && snap.docs.some(d => d.id !== id)) return false;
-    if (id) await tmo(db.doc('nomes/' + id).set({ n: low, nome: v, at: Date.now() }), 6000);
-  } catch (e) { }
-  return true;
+  try { await Nuvem.nome(v, typeof Contas !== 'undefined' ? Contas.slot : 0); return true; }
+  catch (e) { return e.message || false; }
 }
 let checking = false;
 $('btn-new').onclick = async () => {
@@ -2651,8 +2650,8 @@ $('btn-new').onclick = async () => {
   checking = true; btn.textContent = '⏳ Conferindo o nome…';
   const ok = await nameFree(v);
   checking = false; btn.textContent = '✨ Novo Jogo';
-  if (!ok) { $('name-in').classList.add('err'); $('name-in').value = ''; $('name-in').placeholder = `"${v}" já existe. Escolha outro nome`; Audio8.sfx('miss'); return; }
-  start(false); };
+  if (ok !== true) { $('name-in').classList.add('err'); $('name-in').value = ''; $('name-in').placeholder = typeof ok === 'string' ? ok : `"${v}" já existe. Escolha outro nome`; Audio8.sfx('miss'); return; }
+  start(false); setTimeout(() => { save(); Nuvem.enviar(typeof Contas !== 'undefined' ? Contas.slot : 0); }, 2500); };
 $('btn-cont').onclick = () => start(true);
 renderCreate();
 (function loadModels() {
@@ -2679,7 +2678,9 @@ function loop(now) {
   if (FRAME_MS && now - lastFrame < FRAME_MS - 3) return;
   lastFrame = now;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (running) {
+  if (running && typeof Net !== 'undefined' && Net.pausa) {      // sem conexão: o mundo para (o jogo é todo on-line)
+    Net.update(dt); sky.position.copy(camera.position); draw();
+  } else if (running) {
     update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();

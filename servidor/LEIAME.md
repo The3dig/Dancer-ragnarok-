@@ -2,13 +2,23 @@
 
 Endereço: **https://kravenox-mmo.kravenox.workers.dev**
 
-- Cloudflare Workers + Durable Objects, plano grátis, conta do Rone.
-- Cada mundo (`/mundo/reino`) junta os jogadores por WebSocket.
-- O servidor só repassa o estado de cada jogador para os outros. É o mesmo
-  modelo da sala do link do Claude.
-- `GET /mundo/reino/online` mostra quantos estão jogando.
-- O jogo usa a sala do Claude quando está aberto no link do Claude e este
-  servidor em todos os outros lugares (GitHub Pages, app).
+O jogo é **todo on-line**. Roda em Cloudflare Workers + Durable Objects
+(SQLite), no plano grátis, na conta do Rone.
+
+- **Contas** (`/conta/...`):
+  - Usuário e senha (senha guardada com PBKDF2).
+  - As 3 vagas de personagem de cada conta.
+  - Nomes únicos de personagem.
+  - Rotas: `criar`, `entrar`, `eu`, `vaga/<0-2>` (PUT/DELETE), `nome`, `sair`.
+- **Mundo** (`/mundo/reino?token=...`):
+  - Só entra quem está logado.
+  - O servidor repassa o estado de cada jogador para os outros e guarda os
+    **monstros compartilhados**.
+  - Ele guarda a vida de cada monstro, recebe o dano de todos e diz quem
+    matou. Quem está mais perto controla a IA do monstro.
+  - O 1º jogador manda a lista inicial de monstros (a "semente").
+- `GET /mundo/reino/online` mostra quantos estão jogando e quantos monstros
+  existem.
 
 ## Publicar
 

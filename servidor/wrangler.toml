@@ -13,3 +13,12 @@ class_name = "Mundo"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Mundo"]
+
+# contas, senhas e personagens (o jogo é todo on-line)
+[[durable_objects.bindings]]
+name = "CONTAS"
+class_name = "Contas"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Contas"]

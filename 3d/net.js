@@ -1,15 +1,15 @@
 // =====================================================================
-//  Multiplayer: cada jogador publica o próprio estado e todos veem todos.
-//  No link do Claude usa a "sala" da página (presence em tempo real).
-//  Fora dele (GitHub Pages / app) usa o servidor do MMO na Cloudflare
-//  (servidor/ → kravenox-mmo.kravenox.workers.dev), que faz a mesma coisa
-//  por WebSocket. O resto do jogo não sabe a diferença.
+//  Multiplayer: o jogo é todo on-line. Conecta ao servidor do MMO na
+//  Cloudflare (servidor/ → kravenox-mmo.kravenox.workers.dev) com a conta
+//  do jogador. Cada um publica o próprio estado e todos veem todos; os
+//  monstros compartilhados chegam pelas mesmas mensagens (partilha.js).
+//  Sem conexão, o jogo pausa e mostra "Reconectando…".
 // =====================================================================
 'use strict';
-const SERVIDOR_MMO = 'wss://kravenox-mmo.kravenox.workers.dev/mundo/reino';
+const SERVIDOR_MMO = (typeof Nuvem !== 'undefined' ? Nuvem.WS : 'wss://kravenox-mmo.kravenox.workers.dev') + '/mundo/reino';
 // sala por WebSocket com a mesma cara da sala do Claude: presence() e onPeers()
-function salaServidor(url) {
-  let ws = null, me = null, cb = null, pend = null, espera = 1000, aberta = false;
+function salaServidor(url, aoMsg) {
+  let ws = null, me = null, cb = null, pend = null, espera = 1000, aberta = false, falhas = 0, parado = false;
   const peers = new Map();
   const emit = (joined = [], left = []) => {
     if (!cb) return;
@@ -18,8 +18,10 @@ function salaServidor(url) {
     cb({ peers: list, joined, left });
   };
   function conectar() {
-    try { ws = new WebSocket(url); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
-    ws.onopen = () => { aberta = true; espera = 1000; if (pend) ws.send(JSON.stringify({ t: 'p', s: pend })); };
+    if (parado) return;
+    const tk = typeof Nuvem !== 'undefined' && Nuvem.token ? (url.includes('?') ? '&' : '?') + 'token=' + Nuvem.token : '';
+    try { ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
+    ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) ws.send(JSON.stringify({ t: 'p', s: pend })); };
     ws.onmessage = e => {
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
@@ -28,30 +30,36 @@ function salaServidor(url) {
       else if (m.t === 'p') { const novo = !peers.has(m.peer); peers.set(m.peer, m.s); emit(novo ? [{ peer: m.peer, presence: m.s, sameTab: false }] : []); }
       else if (m.t === 'saiu') { if (peers.delete(m.peer)) emit([], [{ peer: m.peer }]); }
       else if (m.t === 'erro' && typeof log === 'function') log('🌐 ' + String(m.msg).slice(0, 120), 'sys');
+      if (aoMsg) aoMsg(m);                                                      // monstros compartilhados e o resto
     };
-    ws.onclose = () => {
+    ws.onclose = async ev => {
+      const eraAberta = aberta;
       aberta = false; const left = [...peers.keys()].map(peer => ({ peer })); peers.clear(); me = null; emit([], left);
-      setTimeout(conectar, espera); espera = Math.min(espera * 2, 30000);        // cai a internet: tenta de novo, cada vez esperando mais
+      if (aoMsg) aoMsg({ t: 'caiu' });
+      if (ev && ev.code === 4001) { parado = true; if (typeof Net !== 'undefined') Net.fora('Sua conta entrou em outro aparelho.'); return; }
+      if (!eraAberta && ++falhas >= 3 && typeof Nuvem !== 'undefined') { const ok = await Nuvem.valida(); if (ok === false) { parado = true; Nuvem.avisoLogin(); return; } }
+      setTimeout(conectar, espera); espera = Math.min(espera * 2, 15000);        // cai a internet: tenta de novo, cada vez esperando mais
     };
     ws.onerror = () => { };
   }
   conectar();
-  setInterval(() => { if (aberta) try { ws.send('ping'); } catch (e) { } }, 25000);   // mantém a conexão viva
+  setInterval(() => { if (aberta) try { ws.send(JSON.stringify({ t: 'hb' })); } catch (e) { } }, 5000);   // "ainda estou aqui" (mantém o mundo acordado)
   return {
     servidor: true, get aberta() { return aberta; },
     presence(s) { pend = s; if (aberta) try { ws.send(JSON.stringify({ t: 'p', s })); } catch (e) { } return Promise.resolve(); },
+    send(o) { if (aberta) try { ws.send(JSON.stringify(o)); return true; } catch (e) { } return false; },
     onPeers(f) { cb = f; emit(); },
   };
 }
 const Net = (() => {
   let room = null, sendT = 0, lastSent = '', online = 1, myPeer = null;
   const remotes = new Map();   // peer -> jogador remoto
+  const handlers = {};          // tipo de mensagem -> função (partilha.js)
+  let semNet = 0, foraMsg = '';
   const seenSay = new Map();
 
   async function init() {
-    try { if (window.claude && window.claude.use) room = await window.claude.use('room'); } catch (e) { room = null; }
-    if (!room && !/[?&#]solo\b/.test(location.href) && 'WebSocket' in window) room = salaServidor((/[?&]servidor=(wss?:\/\/[^&#]+)/.exec(location.search) || [])[1] ? decodeURIComponent(/[?&]servidor=(wss?:\/\/[^&#]+)/.exec(location.search)[1]) : SERVIDOR_MMO);   // fora do Claude: servidor na Cloudflare
-    if (!room) return;
+    room = salaServidor(SERVIDOR_MMO, m => { const f = handlers[m.t]; if (f) try { f(m); } catch (e) { console.error(e); } });
     room.onPeers(ch => {
       for (const p of ch.left) drop(p.peer);
       online = ch.peers.length || 1;
@@ -101,9 +109,23 @@ const Net = (() => {
     el.textContent = `👥 ${Math.max(1, remotes.size + 1)} online`;
   }
 
+  // ---------------- sem conexão: pausa o jogo com um aviso
+  function pausaTela(on, msg) {
+    let el = $('netpausa');
+    if (!on) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'netpausa'; document.body.appendChild(el); }
+    const h = msg || '🌐 Sem conexão com o Reino. Reconectando…<small>O jogo continua de onde parou assim que a internet voltar.</small>';
+    if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
+  }
+  function fora(msg) { foraMsg = msg; if (typeof Nuvem !== 'undefined') Nuvem.parar(); pausaTela(true, `🔌 ${esc(msg)}<small>Feche e abra o jogo para continuar aqui.</small>`); }
   // ---------------- laço
   function update(dt) {
     if (!room) return;
+    if (room.servidor) {                                         // pausa depois de 2,5 s sem conexão (ou até a 1ª conexão)
+      semNet = room.aberta ? 0 : semNet + dt;
+      if (!foraMsg) pausaTela(!room.aberta && (semNet > 2.5 || !Net.jaConectou));
+      if (room.aberta) Net.jaConectou = true;
+    }
     // publica o próprio estado ~10x/s
     sendT -= dt;
     if (sendT <= 0) {
@@ -187,5 +209,8 @@ const Net = (() => {
   // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
   function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
   return { peers, get me() { return myPeer; },
-    init, update, kvxOthers, fbOthers, say, tickMyBubble, get connected() { return !!room; }, get count() { return remotes.size + 1; } };
+    init, update, kvxOthers, fbOthers, say, tickMyBubble, fora, jaConectou: false,
+    on(t, f) { handlers[t] = f; }, send(o) { return !!(room && room.send && room.send(o)); },
+    get pausa() { return !!room && room.servidor && (!room.aberta || !!foraMsg); },
+    get connected() { return !!room && (!room.servidor || room.aberta); }, get count() { return remotes.size + 1; } };
 })();

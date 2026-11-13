@@ -534,3 +534,18 @@ body.touch #kvx { font-size: 10px; }
 /* 2ª barra: itens fixados (poções, asas, comida), em cima da barra das habilidades */
 #hotbar2 { display: flex; align-self: center; background: rgba(10, 8, 18, .55); border: 1px solid var(--line); border-radius: 14px; padding: 5px; gap: 6px; }
 body.touch #hotbar2 { padding: 3px; gap: 4px; border-radius: 10px; }
+/* login (o jogo é todo on-line) */
+#slots .sl-wrap.lg { max-width: 420px; margin: 0 auto; background: var(--glass); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-family: 'Nunito', sans-serif; color: var(--txt); }
+#slots .lg-sub { font-size: 13px; color: var(--mut); margin: 0 0 10px; }
+#slots .lg-form { display: flex; flex-direction: column; gap: 8px; }
+#slots .lg-form input { font: 700 16px 'Nunito', sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0,0,0,.35); color: #fff; }
+#slots .lg-bt { display: flex; gap: 8px; } #slots .lg-bt button { flex: 1; }
+#slots .lg-novo { background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--txt); }
+#slots .lg-err { min-height: 18px; font-size: 13px; color: #ffb0b0; font-weight: 700; }
+#slots .lg-dica { display: block; margin-top: 8px; color: var(--mut); font-size: 11px; }
+#slots .sl-conta { font: 700 13px 'Nunito', sans-serif; color: var(--mut); margin: -6px 0 10px; } #slots .sl-conta a { color: #f2c86a; }
+#slots .sl-aviso { font: 700 13px 'Nunito', sans-serif; color: #9fe8a0; margin: 0 0 10px; }
+@media (max-height: 470px) { #slots .sl-wrap.lg { padding: 10px 14px; } #slots .lg-form input { padding: 7px 10px; font-size: 15px; } }
+/* sem conexão no meio do jogo */
+#netpausa { position: fixed; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: rgba(6,4,12,.6); color: #f2e6ff; font: 800 18px 'Nunito', sans-serif; text-align: center; padding: 20px; }
+#netpausa small { display: block; font-weight: 600; font-size: 13px; color: #c8b8e0; margin-top: 6px; }
