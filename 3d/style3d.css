@@ -531,3 +531,6 @@ body.touch #kvx { font-size: 10px; }
 .eslot.r4 { border-color: #ff4040; box-shadow: 0 0 10px rgba(255,64,64,.55); }
 .icell.r4 { border-color: #ff4040; background: rgba(255,40,40,.16); box-shadow: 0 0 8px rgba(255,60,60,.5); }
 .ibig.r4 { border-color: #ff4040; box-shadow: 0 0 22px rgba(255,40,40,.6) inset, 0 0 14px rgba(255,40,40,.5); }
+/* 2ª barra: itens fixados (poções, asas, comida), em cima da barra das habilidades */
+#hotbar2 { display: flex; align-self: center; background: rgba(10, 8, 18, .55); border: 1px solid var(--line); border-radius: 14px; padding: 5px; gap: 6px; }
+body.touch #hotbar2 { padding: 3px; gap: 4px; border-radius: 10px; }

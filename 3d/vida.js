@@ -645,7 +645,7 @@ const Vida = (() => {
     if (a === 'hot') {                                   // atalhos de itens: até 4 na barra
       P.hot = P.hot || ['red', 'blue'];
       if (P.hot.includes(v)) P.hot = P.hot.filter(x => x !== v);
-      else { if (P.hot.length >= 6) { log('A barra de atalhos de itens está cheia (6). Tire um primeiro.', 'bad'); Audio8.sfx('miss'); renderInv(); return; } P.hot.push(v); log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); }
+      else { if (P.hot.length >= 12) { log('As duas fileiras de atalhos estão cheias (12). Tire um primeiro.', 'bad'); Audio8.sfx('miss'); renderInv(); return; } P.hot.push(v); log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); }
       buildHotbar();
     }
     if (a === 'tab') { tab = v; sel = null; }

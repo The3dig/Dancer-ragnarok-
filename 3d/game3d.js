@@ -2288,13 +2288,17 @@ function buildHotbar() {
     el.innerHTML = `<span class="ic">${s.icon}</span><span class="k">${s.key}</span>${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
     tapOn(el, () => useSkill(i)); hb.appendChild(el);
   });
-  // itens no atalho: escolhidos pela mochila (📌 Pôr no atalho), até 6
-  const KEYS = ['Q', 'E', 'R', 'T', 'Y', 'U'];
-  (P.hot || ['red', 'blue']).filter(id => ITEMS[id]).slice(0, 6).forEach((id, j) => {
+  // itens no atalho: escolhidos pela mochila (📌 Pôr no atalho), até 12, numa 2ª barra em cima da barra das habilidades
+  const KEYS = ['Q', 'E', 'R', 'T', 'Y', 'U', 'Z', 'V', 'B', 'N', 'G', 'L'];
+  let hb2 = $('hotbar2'); if (!hb2) { hb2 = document.createElement('div'); hb2.id = 'hotbar2'; $('bottom').insertBefore(hb2, hb); }
+  hb2.innerHTML = '';
+  const items = (P.hot || ['red', 'blue']).filter(id => ITEMS[id]).slice(0, 12);
+  hb2.style.display = items.length ? '' : 'none';
+  items.forEach((id, j) => {
     const el = document.createElement('div'); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
     el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span><span class="k">${KEYS[j]}</span><span class="cost">x${P.inv[id] || 0}</span>`;
     if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
-    tapOn(el, () => useHot(id)); hb.appendChild(el);
+    tapOn(el, () => useHot(id)); hb2.appendChild(el);
   });
 }
 function renderStats() {
@@ -2481,7 +2485,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   const si = SKILLS.findIndex(s => s.key === k); if (si >= 0 && tierOk(SKILLS[si])) useSkill(si);
   if (k === 'j' || k === 'k') attack();
-  { const hk = ['q', 'e', 'r', 't', 'y', 'u'].indexOf(k), hot = (P.hot || ['red', 'blue']).filter(id => ITEMS[id]); if (hk >= 0 && hot[hk]) useHot(hot[hk]); }
+  { const hk = ['q', 'e', 'r', 't', 'y', 'u', 'z', 'v', 'b', 'n', 'g', 'l'].indexOf(k), hot = (P.hot || ['red', 'blue']).filter(id => ITEMS[id]); if (hk >= 0 && hot[hk]) useHot(hot[hk]); }
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
