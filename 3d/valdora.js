@@ -51,7 +51,26 @@ const Valdora = (() => {
   const SMOKE = ctex(64, 64, g => { for (let i = 0; i < 10; i++) { const x = 16 + Math.random() * 32, y = 16 + Math.random() * 32, r = g.createRadialGradient(x, y, 0, x, y, 22); r.addColorStop(0, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); } });
   const GLOW = ctex(64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.3, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
   const add = (o, x, y, z) => { o.position.set(x, y, z); G.add(o); return o; };
-  const box = (w, hh, d, m, x, y, z, ry = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), m); o.position.set(x, y, z); o.rotation.y = ry; o.castShadow = o.receiveShadow = true; G.add(o); return o; };
+  // tudo que é parado (pedra, madeira, raízes) vai para ARQ e vira poucas peças no fim (fundir)
+  const ARQ = new THREE.Group(); G.add(ARQ);
+  // bloco de pedra/madeira com as quinas chanfradas (nada de caixa reta)
+  const UVK = 1 / 3, uvEscala = geo => { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * UVK, uv.getY(i) * UVK); return geo; };
+  const blocoC = {};
+  function blocoGeo(w, hh, d, bv) {
+    bv = Math.min(bv ?? 0.14, w / 4, hh / 4, d / 4); const k = [w, hh, d, bv].map(v => v.toFixed(2)).join(); if (blocoC[k]) return blocoC[k];
+    const sh = new THREE.Shape(); sh.moveTo(-w / 2 + bv, -hh / 2 + bv); sh.lineTo(w / 2 - bv, -hh / 2 + bv); sh.lineTo(w / 2 - bv, hh / 2 - bv); sh.lineTo(-w / 2 + bv, hh / 2 - bv);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: d - bv * 2, bevelEnabled: true, bevelSize: bv, bevelThickness: bv, bevelSegments: 2 }); g.translate(0, 0, -(d - bv * 2) / 2);
+    return (blocoC[k] = uvEscala(g));
+  }
+  const box = (w, hh, d, m, x, y, z, ry = 0, par = ARQ) => { const o = new THREE.Mesh(blocoGeo(w, hh, d), m); o.position.set(x, y, z); o.rotation.y = ry; o.castShadow = o.receiveShadow = true; par.add(o); return o; };
+  // parede quebrada: topo irregular, às vezes com uma janela em arco (a casca que o fogo deixou)
+  function paredeGeo(w, hh, d, janela) {
+    const sh = new THREE.Shape(), n = 6; sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0);
+    for (let i = n; i >= 0; i--) sh.lineTo(-w / 2 + w * i / n + (i % n ? rand(-0.2, 0.2) : 0), hh * (i % n ? rand(0.55, 1) : rand(0.75, 1)));
+    if (janela && w > 2.4) { const jw = 0.45, jy = hh * 0.35; const f = new THREE.Path(); f.moveTo(-jw, jy); f.lineTo(jw, jy); f.lineTo(jw, jy + 0.7); f.quadraticCurveTo(jw, jy + 1.15, 0, jy + 1.2); f.quadraticCurveTo(-jw, jy + 1.15, -jw, jy + 0.7); f.lineTo(-jw, jy); sh.holes.push(f); }
+    const g = new THREE.ExtrudeGeometry(sh, { depth: d - 0.12, bevelEnabled: true, bevelSize: 0.06, bevelThickness: 0.06, bevelSegments: 1 }); g.translate(0, 0, -(d - 0.12) / 2);
+    return uvEscala(g);
+  }
   const fires = [], smokes = [];
   function fire(x, y, z, s = 1, col = 0xffffff) {
     const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: col })); f.scale.set(1.2 * s, 2.2 * s, 1); add(f, x, y + 1.0 * s, z);
@@ -79,37 +98,45 @@ const Valdora = (() => {
 
   // casa queimada: paredes escuras, telhado afundado, brasas na janela
   function burned(x, z, ry, s = 1) {
-    const g = new THREE.Group(); g.position.set(x, h(x, z), z); g.rotation.y = ry; G.add(g);
+    const g = new THREE.Group(); g.position.set(x, h(x, z), z); g.rotation.y = ry; ARQ.add(g);
     const W = 5.5 * s, D = 4.6 * s, H = 3.4 * s;
-    const wall = (w, hh, d, px, pz) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), charM); o.position.set(px, hh / 2, pz); o.castShadow = o.receiveShadow = true; g.add(o); };
-    wall(W, H, 0.4, 0, -D / 2); wall(0.4, H * 0.8, D, -W / 2, 0); wall(0.4, H, D, W / 2, 0); wall(W * 0.45, H * 0.6, 0.4, -W * 0.27, D / 2);
-    const r = new THREE.Mesh(new THREE.BoxGeometry(W * 1.05, 0.3, D * 0.7), roofM); r.position.set(0.3, H * 0.75, -0.4); r.rotation.z = 0.35; r.rotation.x = -0.2; r.castShadow = true; g.add(r);
+    const wall = (w, hh, px, pz, r, jan) => { const o = new THREE.Mesh(paredeGeo(w, hh, 0.4, jan), charM); o.position.set(px, -0.1, pz); o.rotation.y = r; o.castShadow = o.receiveShadow = true; g.add(o); };
+    wall(W, H, 0, -D / 2, 0, true); wall(D, H * 0.8, -W / 2, 0, Math.PI / 2, false); wall(D, H, W / 2, 0, Math.PI / 2, true); wall(W * 0.45, H * 0.6, -W * 0.27, D / 2, 0, false);
+    for (const [cx, cz] of [[-W / 2, -D / 2], [W / 2, -D / 2], [W / 2, D / 2]]) { const c = new THREE.Mesh(blocoGeo(0.6, H * 0.9, 0.6, 0.08), stoneD); c.position.set(cx, H * 0.45 - 0.1, cz); g.add(c); }   // cunhais de pedra
+    for (let k = 0; k < 4; k++) { const e = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.25, 0.5), 0), charM); e.position.set(rand(-W / 2, W / 2), 0.15, D / 2 + rand(0.3, 1.4)); e.rotation.set(rand(0, 3), rand(0, 3), 0); g.add(e); }   // entulho
+    const r = new THREE.Mesh(blocoGeo(W * 1.05, 0.3, D * 0.7, 0.06), roofM); r.position.set(0.3, H * 0.75, -0.4); r.rotation.z = 0.35; r.rotation.x = -0.2; r.castShadow = true; g.add(r);
     for (let k = 0; k < 3; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, D * 1.1, 6), charM2); b.rotation.x = Math.PI / 2 + rand(-0.3, 0.3); b.rotation.z = rand(-0.5, 0.5); b.position.set(-W / 3 + k * W / 3, H * rand(0.5, 1), 0); g.add(b); }
-    const e = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), emberM); e.position.set(W / 2 + 0.22, H * 0.5, 0); e.rotation.y = Math.PI / 2; g.add(e);
+    const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: 0xff5a18, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.7, toneMapped: false })); e.scale.setScalar(1.6); e.position.set(0, H * 0.35 + 0.8, -D / 2); g.add(e);   // brasa acesa atrás da janela
     g.updateMatrixWorld();
     if (Math.random() < 0.6) { const p = new THREE.Vector3(rand(-1, 1), H * 0.6, rand(-1, 1)).applyMatrix4(g.matrixWorld); fire(p.x, p.y, p.z, 0.8 * s); }
     addOb(x, z, 2.9 * s);
   }
   // carroça abandonada (tombada) com rodas
   function cart(x, z, ry) {
-    const g = new THREE.Group(); g.position.set(x, h(x, z), z); g.rotation.set(0, ry, rand(-0.25, 0.25)); G.add(g);
-    const bed = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.5, 1.5), woodM); bed.position.y = 0.9; bed.castShadow = true; g.add(bed);
-    for (const sx of [-1, 1]) { const sd = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.5, 0.12), woodM); sd.position.set(0, 1.3, sx * 0.7); g.add(sd); }
-    for (const [wx, wz] of [[-0.8, 0.85], [0.8, 0.85], [-0.8, -0.85]]) { const w = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 6, 14), charM2); w.position.set(wx, 0.5, wz); g.add(w); }
-    const br = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 6, 14), charM2); br.rotation.x = Math.PI / 2; br.position.set(0.9, 0.08, -1.4); g.add(br);   // roda solta
-    const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 5), woodM); sh.rotation.z = Math.PI / 2; sh.position.set(2.2, 0.5, 0); g.add(sh);
+    const g = new THREE.Group(); g.position.set(x, h(x, z), z); g.rotation.set(0, ry, rand(-0.25, 0.25)); ARQ.add(g);
+    for (let k = 0; k < 5; k++) { const t = new THREE.Mesh(blocoGeo(2.7, 0.1, 0.28, 0.03), woodM); t.position.set(0, 0.75, -0.6 + k * 0.3); t.rotation.z = rand(-0.03, 0.03); g.add(t); }   // tábuas do fundo
+    for (const sx of [-1, 1]) for (const yy of [1.0, 1.32]) { if (sx < 0 && yy > 1.2) continue; const sd = new THREE.Mesh(blocoGeo(2.6, 0.24, 0.1, 0.03), woodM); sd.position.set(0, yy, sx * 0.72); sd.rotation.x = sx * 0.08; g.add(sd); }
+    for (const sx of [-1.2, 0, 1.2]) for (const sz of [-1, 1]) { const f = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.75, 6), woodM); f.position.set(sx, 1.05, sz * 0.74); g.add(f); }   // fueiros
+    const roda = (wx, wy, wz, deit) => {
+      const rg = new THREE.Group(); rg.position.set(wx, wy, wz); if (deit) rg.rotation.x = Math.PI / 2; g.add(rg);
+      rg.add(new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.07, 6, 18), charM2)); const cubo = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 8).rotateX(Math.PI / 2), charM2); rg.add(cubo);
+      for (let k = 0; k < 6; k++) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.9, 5), charM2); r.rotation.z = k / 6 * Math.PI; rg.add(r); }
+    };
+    for (const [wx, wz] of [[-0.8, 0.85], [0.8, 0.85], [-0.8, -0.85]]) roda(wx, 0.5, wz);
+    roda(0.9, 0.08, -1.4, true);   // roda solta
+    for (const sz of [-0.4, 0.4]) { const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.4, 6), woodM); sh.rotation.set(0, sz * 0.25, Math.PI / 2 - 0.35); sh.position.set(2.2, 0.35, sz); g.add(sh); }
     addOb(x, z, 1.6);
   }
   // os mortos da estrada, cobertos por panos
-  function covered(x, z, ry) { const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.2, 4, 8), clothM); m.rotation.set(Math.PI / 2, 0, ry); m.scale.set(1, 1, 0.55); m.position.set(x, h(x, z) + 0.18, z); m.castShadow = true; G.add(m); }
+  function covered(x, z, ry) { const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.2, 4, 8), clothM); m.rotation.set(Math.PI / 2, 0, ry); m.scale.set(1, 1, 0.55); m.position.set(x, h(x, z) + 0.18, z); m.castShadow = true; ARQ.add(m); }
   // raízes negras: tubos retorcidos rente ao chão, alguns atravessando a estrada
   function roots(x, z, n = 4, len = 9) {
     for (let k = 0; k < n; k++) {
       const a = rand(0, TAU), pts = [];
       for (let i = 0; i <= 6; i++) { const t = i / 6, px = x + Math.cos(a) * t * len + Math.sin(t * 7 + k) * 0.9, pz = z + Math.sin(a) * t * len + Math.cos(t * 6 + k) * 0.9; pts.push(new THREE.Vector3(px, h(px, pz) + 0.15 + Math.sin(t * 9) * 0.25, pz)); }
-      const tb = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, rand(0.18, 0.35), 6), rootM); tb.castShadow = true; G.add(tb);
+      const tb = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, rand(0.18, 0.35), 6), rootM); tb.castShadow = true; ARQ.add(tb);
     }
-    const knot = new THREE.Mesh(new THREE.IcosahedronGeometry(1.1, 0), rootM); knot.scale.y = 0.6; knot.position.set(x, h(x, z) + 0.3, z); G.add(knot); addOb(x, z, 1.0);
+    const knot = new THREE.Mesh(new THREE.IcosahedronGeometry(1.1, 0), rootM); knot.scale.y = 0.6; knot.position.set(x, h(x, z) + 0.3, z); ARQ.add(knot); addOb(x, z, 1.0);
   }
 
   // ---------------------------------------------------------------- estrada destruída
@@ -127,7 +154,8 @@ const Valdora = (() => {
       list.push({ x, z, s: rand(0.8, 1.4), r: rand(0, TAU) });
     }
     const trunkG = new THREE.CylinderGeometry(0.12, 0.38, 5, 6); trunkG.translate(0, 2.5, 0);
-    const crownG = new THREE.IcosahedronGeometry(1.5, 0); crownG.scale(1, 0.8, 1); crownG.translate(0, 5, 0);
+    const crownG = new THREE.IcosahedronGeometry(1.5, 2); { const ps = crownG.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < ps.count; i++) { v.fromBufferAttribute(ps, i); const n = 1 + Math.sin(v.x * 3.1) * Math.cos(v.z * 2.7) * 0.18 + Math.sin(v.y * 4.3 + v.x) * 0.1; v.multiplyScalar(n); ps.setXYZ(i, v.x, v.y, v.z); } crownG.computeVertexNormals(); }   // copa irregular, sem facetas
+    crownG.scale(1, 0.8, 1); crownG.translate(0, 5, 0);
     const mk = (geo, m) => { const im = new THREE.InstancedMesh(geo, m, list.length); im.castShadow = !TOUCH; im.frustumCulled = false; const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
       list.forEach((o, i) => { p.set(o.x, h(o.x, o.z) - 0.2, o.z); q.setFromEuler(new THREE.Euler(rand(-0.15, 0.15), o.r, rand(-0.15, 0.15))); s.setScalar(o.s); m4.compose(p, q, s); im.setMatrixAt(i, m4); }); G.add(im); };
     mk(trunkG, new THREE.MeshLambertMaterial({ color: 0x1e1614 }));
@@ -143,20 +171,25 @@ const Valdora = (() => {
       if (da(GATE_A) < 0.2) continue;                                              // portão aberto
       const x = CITY.x + Math.sin(a) * CR, z = CITY.z + Math.cos(a) * CR;
       if (breaches.some(b => da(b) < 0.16)) {                                     // brechas: só escombros
-        for (let j = 0; j < 5; j++) { const r = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.5, 1.2), 0), stoneD); r.position.set(x + rand(-2.5, 2.5), h(x, z) + 0.3, z + rand(-2.5, 2.5)); r.rotation.set(rand(0, 3), rand(0, 3), 0); r.castShadow = true; G.add(r); }
+        for (let j = 0; j < 5; j++) { const r = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.5, 1.2), 0), stoneD); r.position.set(x + rand(-2.5, 2.5), h(x, z) + 0.3, z + rand(-2.5, 2.5)); r.rotation.set(rand(0, 3), rand(0, 3), 0); r.castShadow = true; ARQ.add(r); }
         continue;
       }
       const hh = rand(3.5, 7.5), seg = box(6.6, hh, 2, stoneM, x, h(x, z) + hh / 2 - 0.4, z, a);
+      box(6.9, 0.9, 2.5, stoneD, x, h(x, z) + 0.2, z, a);                                   // rodapé
+      const topo = h(x, z) + hh - 0.4, ca2 = Math.cos(a), sa2 = Math.sin(a);
+      if (hh > 5.2) for (const o of [-2.4, 0, 2.4]) box(1.4, 1.1, 2.1, stoneM, x + ca2 * o, topo + 0.5, z - sa2 * o, a);   // ameias
+      else for (let j = 0; j < 3; j++) { const o = rand(-2.5, 2.5), r = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.4, 0.8), 0), stoneD); r.position.set(x + ca2 * o + Math.sin(a) * rand(1.5, 2.5), h(x, z) + 0.2, z - sa2 * o + Math.cos(a) * rand(1.5, 2.5)); r.rotation.set(rand(0, 3), rand(0, 3), 0); ARQ.add(r); }
       for (const o of [-1, 1]) addOb(x + Math.cos(a) * o * 1.7, z - Math.sin(a) * o * 1.7, 1.6);
       if (k % 9 === 4) {                                                           // torre da muralha, queimando
         const tx = CITY.x + Math.sin(a) * (CR + 1), tz = CITY.z + Math.cos(a) * (CR + 1), th = rand(9, 13);
-        const t = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3.1, th, 12), stoneD); t.position.set(tx, h(tx, tz) + th / 2 - 0.3, tz); t.castShadow = true; G.add(t);
+        const t = new THREE.Mesh(new THREE.LatheGeometry([[3.5, 0], [3.3, 0.8], [3.1, 1], [2.7, th * 0.9], [3.1, th * 0.92], [3.1, th], [0, th]].map(([r, y]) => new THREE.Vector2(r, y)), 14), stoneD); t.position.set(tx, h(tx, tz) - 0.3, tz); t.castShadow = true; ARQ.add(t);
+        for (let j = 0; j < 7; j++) { const aa = j / 7 * TAU; box(1.1, 1.2, 0.8, stoneD, tx + Math.sin(aa) * 2.7, h(tx, tz) + th + 0.3, tz + Math.cos(aa) * 2.7, aa); }
         fire(tx, h(tx, tz) + th, tz, 2.2); smoke(tx, h(tx, tz) + th + 2, tz, 1.6, 6); addOb(tx, tz, 3.2);
       }
     }
     // portão: dois pilares e a verga caída
     const gx = CITY.x + Math.sin(GATE_A) * CR, gz = CITY.z + Math.cos(GATE_A) * CR, ca = Math.cos(GATE_A), sa = Math.sin(GATE_A);
-    for (const o of [-1, 1]) { const px = gx + ca * o * 4, pz = gz - sa * o * 4; box(2, 9, 2, stoneD, px, h(px, pz) + 4.2, pz, GATE_A); addOb(px, pz, 1.3); }
+    for (const o of [-1, 1]) { const px = gx + ca * o * 4, pz = gz - sa * o * 4; box(2.6, 1.2, 2.6, stoneD, px, h(px, pz) + 0.3, pz, GATE_A); box(2, 9, 2, stoneD, px, h(px, pz) + 4.2, pz, GATE_A); box(2.5, 0.8, 2.5, stoneD, px, h(px, pz) + 8.9, pz, GATE_A); addOb(px, pz, 1.3); }
     const lint = box(9, 1.2, 1.6, stoneD, gx + ca * 2, h(gx, gz) + 0.6, gz - sa * 2 + 1, GATE_A + 0.3); lint.rotation.z = 0.25;
     // casas queimadas dentro da cidade (deixa livres a rua do portão e a praça)
     for (let k = 0; k < 14; k++) {
@@ -166,8 +199,8 @@ const Valdora = (() => {
     }
     // torre central com o símbolo dos três irmãos (círculo dividido em três)
     const tx = CITY.x, tz = CITY.z - 15;
-    const ct = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 4.2, 20, 14), stoneM); ct.position.set(tx, h(tx, tz) + 10, tz); ct.castShadow = true; G.add(ct); addOb(tx, tz, 4.4);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(4.4, 5, 14), roofM); cap.position.set(tx, h(tx, tz) + 22.5, tz); cap.rotation.z = 0.2; G.add(cap);
+    const ct = new THREE.Mesh(new THREE.LatheGeometry([[5, 0], [4.8, 1.2], [4.2, 1.5], [3.9, 9], [4.4, 9.3], [4.4, 9.9], [3.7, 10.2], [3.4, 19.4], [4.2, 19.7], [4.2, 20.4], [0, 20.4]].map(([r, y]) => new THREE.Vector2(r, y)), 16), stoneM); ct.position.set(tx, h(tx, tz), tz); ct.castShadow = true; ARQ.add(ct); addOb(tx, tz, 4.4);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(4.4, 5, 14), roofM); cap.position.set(tx, h(tx, tz) + 22.5, tz); cap.rotation.z = 0.2; ARQ.add(cap);
     fire(tx + 2, h(tx, tz) + 20, tz + 2, 2.6); smoke(tx, h(tx, tz) + 24, tz, 2, 7);
     const emb = ctex(256, 256, g => { g.translate(128, 128); g.shadowColor = '#ff3030'; g.shadowBlur = 24; g.strokeStyle = '#ff5050'; g.lineWidth = 12; g.beginPath(); g.arc(0, 0, 96, 0, TAU); g.stroke(); for (let i = 0; i < 3; i++) { const a = i / 3 * TAU - Math.PI / 2; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * 96, Math.sin(a) * 96); g.stroke(); } });
     const es = new THREE.Sprite(new THREE.SpriteMaterial({ map: emb, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); es.scale.setScalar(7); add(es, tx, h(tx, tz) + 16, tz + 4.5);
@@ -182,25 +215,39 @@ const Valdora = (() => {
     bm.position.set(CITY.x, h(CITY.x, CITY.z) + 0.06, CITY.z); G.add(bm);
     // a estátua do pai, com a espada erguida (posta há pouco tempo, diz Lyra)
     const sx = CITY.x, sz = CITY.z, sy = h(sx, sz), stM = PM('pedra.jpg', [1, 1], 0xb0a8b8);
-    box(3.2, 1.6, 3.2, stoneD, sx, sy + 0.8, sz); box(2.4, 0.5, 2.4, stM, sx, sy + 1.85, sz);
-    const st = new THREE.Group(); st.position.set(sx, sy + 2.1, sz); st.rotation.y = GATE_A; G.add(st);
+    box(3.8, 0.5, 3.8, stoneD, sx, sy + 0.2, sz); box(3.2, 1.3, 3.2, stoneD, sx, sy + 1.05, sz); box(2.6, 0.45, 2.6, stM, sx, sy + 1.88, sz);
+    const st = new THREE.Group(); st.position.set(sx, sy + 2.1, sz); st.rotation.y = GATE_A; ARQ.add(st);
     const part = (geo, x, y, z, rx = 0, rz = 0) => { const m = new THREE.Mesh(geo, stM); m.position.set(x, y, z); m.rotation.set(rx, 0, rz); m.castShadow = true; st.add(m); return m; };
     part(new THREE.CylinderGeometry(0.55, 0.75, 2.6, 10), 0, 1.3, 0); part(new THREE.SphereGeometry(0.45, 12, 10), 0, 3.0, 0);
     part(new THREE.CylinderGeometry(0.18, 0.16, 1.6, 8), 0.7, 3.0, 0, 0, 0.35); part(new THREE.CylinderGeometry(0.18, 0.16, 1.3, 8), -0.7, 2.0, 0, 0, -0.3);
-    part(new THREE.BoxGeometry(0.16, 3.2, 0.5), 1.1, 5.0, 0, 0, 0.2); part(new THREE.BoxGeometry(1.0, 0.18, 0.3), 0.95, 3.6, 0, 0, 0.2);
+    const lam = new THREE.Shape(); lam.moveTo(-0.2, 0); lam.lineTo(0.2, 0); lam.lineTo(0.17, 2.7); lam.lineTo(0, 3.2); lam.lineTo(-0.17, 2.7); lam.lineTo(-0.2, 0);   // lâmina com ponta
+    const lg = new THREE.ExtrudeGeometry(lam, { depth: 0.06, bevelEnabled: true, bevelSize: 0.04, bevelThickness: 0.04, bevelSegments: 1 }); lg.translate(0, -1.6, -0.03); lg.rotateY(Math.PI / 2); uvEscala(lg);
+    part(lg, 1.1, 5.0, 0, 0, 0.2);
+    part(blocoGeo(0.26, 0.16, 1.0, 0.05), 0.95, 3.45, 0, 0, 0.2); part(new THREE.CylinderGeometry(0.07, 0.07, 0.5, 8), 0.86, 3.12, 0, 0, 0.2); part(new THREE.SphereGeometry(0.12, 8, 6), 0.8, 2.85, 0);
     addOb(sx, sz, 2.2);
   })();
 
   // ---------------------------------------------------------------- acampamento dos refugiados
+  const BARRIL = new THREE.LatheGeometry([[0, 0], [0.42, 0], [0.5, 0.3], [0.54, 0.55], [0.5, 0.8], [0.42, 1.1], [0, 1.1]].map(([r, y]) => new THREE.Vector2(r, y)), 14);
+  const ARO = new THREE.TorusGeometry(0.5, 0.03, 4, 18).rotateX(Math.PI / 2);
   (function camp() {
     const tentM = [0x8a7a5a, 0x6a5a48, 0x7a4a3a, 0x5a6a5a].map(c => new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide }));
     [[-12, -8, 0.4], [12, -9, -0.6], [-14, 8, 2.6], [14, 10, 3.6]].forEach(([dx, dz, r], i) => {
-      const x = CAMP.x + dx, z = CAMP.z + dz, t = new THREE.Mesh(new THREE.ConeGeometry(3, 3.4, 4, 1, true), tentM[i]); t.position.set(x, h(x, z) + 1.7, z); t.rotation.y = r; t.castShadow = true; G.add(t); addOb(x, z, 2.4);
+      const x = CAMP.x + dx, z = CAMP.z + dz, y = h(x, z);
+      const tg = new THREE.Group(); tg.position.set(x, y, z); tg.rotation.y = r; ARQ.add(tg);
+      // tenda de pano caído: perfil curvo, barra ondulada e uma aba aberta na frente
+      const lona = new THREE.LatheGeometry([[3.1, 0], [2.9, 0.5], [2.3, 1.4], [1.3, 2.5], [0.35, 3.3], [0.08, 3.5]].map(([rr, yy]) => new THREE.Vector2(rr, yy)), 14, 0.5, TAU - 1.0), ps = lona.attributes.position;
+      for (let k = 0; k < ps.count; k++) { const px = ps.getX(k), pz = ps.getZ(k), a2 = Math.atan2(px, pz), yy = ps.getY(k); ps.setY(k, yy + Math.sin(a2 * 7) * 0.12 * (1 - yy / 3.5)); }
+      lona.computeVertexNormals(); const t = new THREE.Mesh(lona, tentM[i]); t.castShadow = true; tg.add(t);
+      const aba = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.6, 2, 4), tentM[i]); aba.position.set(Math.sin(0.25) * 2.2, 1.2, Math.cos(0.25) * 2.4); aba.rotation.set(-0.4, 0.9, 0.15); tg.add(aba);
+      const mastro = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 4.2, 6), woodM); mastro.position.y = 2.1; tg.add(mastro);
+      for (let k = 0; k < 5; k++) { const a2 = 0.9 + k / 5 * (TAU - 1.6), e2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.6, 5), woodM); e2.position.set(Math.sin(a2) * 3.4, 0.2, Math.cos(a2) * 3.4); e2.rotation.set(Math.cos(a2) * 0.4, 0, -Math.sin(a2) * 0.4); tg.add(e2); }
+      addOb(x, z, 2.4);
     });
     const fx = CAMP.x, fz = CAMP.z + 2;
-    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3, 0), stoneD); s.position.set(fx + Math.cos(a) * 0.9, h(fx, fz) + 0.15, fz + Math.sin(a) * 0.9); G.add(s); }
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3, 0), stoneD); s.position.set(fx + Math.cos(a) * 0.9, h(fx, fz) + 0.15, fz + Math.sin(a) * 0.9); ARQ.add(s); }
     fire(fx, h(fx, fz) - 0.2, fz, 0.9); addOb(fx, fz, 1.0);
-    [[-5, 12], [6, -12], [9, -10]].forEach(([dx, dz]) => { const x = CAMP.x + dx, z = CAMP.z + dz; box(1, 1, 1, woodM, x, h(x, z) + 0.5, z, rand(0, 3)); addOb(x, z, 0.8); });
+    [[-5, 12], [6, -12], [9, -10]].forEach(([dx, dz]) => { const x = CAMP.x + dx, z = CAMP.z + dz; const b = new THREE.Mesh(BARRIL, woodM); b.position.set(x, h(x, z), z); b.rotation.y = rand(0, 3); ARQ.add(b); for (const yy of [0.2, 0.9]) { const a2 = new THREE.Mesh(ARO, charM2); a2.position.set(x, h(x, z) + yy, z); ARQ.add(a2); } addOb(x, z, 0.8); });
   })();
 
   // ---------------------------------------------------------------- Passagem do Norte (nos dois mapas): arco de pedra com névoa negra
@@ -209,12 +256,15 @@ const Valdora = (() => {
   function arch(parent, x, z, ry, label, y) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g);
     const sm = PM('pedra.jpg', [1, 3], 0x8a8098);
-    for (const sx of [-3, 3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(1.4, 8, 1.6), sm); p.position.set(sx, 4, 0); p.castShadow = true; g.add(p); }
-    const l = new THREE.Mesh(new THREE.BoxGeometry(8, 1.4, 1.8), sm); l.position.y = 8.4; g.add(l);
+    const pf = new THREE.Shape(); pf.moveTo(-3.7, 0); pf.lineTo(-2.3, 0); pf.lineTo(-2.3, 6); pf.quadraticCurveTo(-2.3, 8.2, 0, 8.7); pf.quadraticCurveTo(2.3, 8.2, 2.3, 6); pf.lineTo(2.3, 0); pf.lineTo(3.7, 0); pf.lineTo(3.7, 7.4); pf.quadraticCurveTo(3.5, 9.6, 0, 10.2); pf.quadraticCurveTo(-3.5, 9.6, -3.7, 7.4); pf.lineTo(-3.7, 0);
+    const pg = new THREE.ExtrudeGeometry(pf, { depth: 1.3, bevelEnabled: true, bevelSize: 0.18, bevelThickness: 0.18, bevelSegments: 2 }); pg.translate(0, 0, -0.65); uvEscala(pg);
+    const p = new THREE.Mesh(pg, sm); p.castShadow = true; g.add(p);
+    for (const sx of [-3, 3]) { const b = new THREE.Mesh(blocoGeo(2, 1, 2.1, 0.12), sm); b.position.set(sx, 0.4, 0); g.add(b); }
+    const ped = new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), new THREE.MeshBasicMaterial({ color: 0xb070ff, toneMapped: false })); ped.scale.y = 1.6; ped.position.set(0, 9.4, 0.9); g.add(ped);
     const sw = new THREE.Mesh(new THREE.CircleGeometry(2.6, 32), new THREE.MeshBasicMaterial({ map: SWIRL, color: 0x9a6aff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })); sw.scale.y = 1.4; sw.position.y = 3.8; g.add(sw); swirls.push(sw);
     const dk = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 7.6), new THREE.MeshBasicMaterial({ color: 0x08040c })); dk.position.set(0, 3.8, -0.25); g.add(dk);
     const c = document.createElement('canvas'); c.width = 512; c.height = 96; const x2 = c.getContext('2d'); x2.fillStyle = 'rgba(16,8,24,.8)'; x2.fillRect(0, 0, 512, 96); x2.strokeStyle = '#b070ff'; x2.lineWidth = 4; x2.strokeRect(2, 2, 508, 92); x2.fillStyle = '#f2d8ff'; x2.font = 'bold 40px Georgia'; x2.textAlign = 'center'; x2.fillText(label, 256, 62);
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(6, 1.1, 1); sp.position.y = 10.2; g.add(sp);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(6, 1.1, 1); sp.position.y = 11.6; g.add(sp);
     addOb(x + Math.cos(ry) * 3, z - Math.sin(ry) * 3, 1.0); addOb(x - Math.cos(ry) * 3, z + Math.sin(ry) * 3, 1.0);
   }
   arch(scene, VGATE_R.x, VGATE_R.z - 1, Math.PI, 'Estrada de Valdora ↑', groundY(VGATE_R.x, VGATE_R.z - 1));
@@ -238,6 +288,8 @@ const Valdora = (() => {
     for (const ex of [-9, 9]) { const e = new THREE.Sprite(eyeM); e.scale.setScalar(12); e.position.set(ex, 232, 26); giant.add(e); }
     giant.userData.eye = eyeM; G.userData.giant = giant;
   })();
+
+  fundir(ARQ);
 
   // ---------------------------------------------------------------- cinzas caindo em volta do jogador
   const ash = (() => {
