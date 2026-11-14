@@ -205,12 +205,23 @@ const Vida = (() => {
     return (cropMats[k] = m);
   };
   const cropGeo = cardGeo([[0, 0.5, 0, 0, 0, 1.1, 1, -0.55, true], [0, 0.5, 0, Math.PI / 2, 0, 1.1, 1, -0.55, true]]);
-  const board = new THREE.BoxGeometry(3.7, 0.3, 0.16), ridge = new THREE.BoxGeometry(3.1, 0.12, 0.42);
+  // canteiro: terra em montinho com sulcos (uma peça só), cercado por troncos roliços com estacas nos cantos
+  const sitioG = new THREE.Group(); scene.add(sitioG);
+  const leiraGeo = (() => {
+    const g = new THREE.PlaneGeometry(3.5, 3.5, 14, 14).rotateX(-Math.PI / 2), ps = g.attributes.position;
+    for (let i = 0; i < ps.count; i++) {
+      const x = ps.getX(i), z = ps.getZ(i), borda = Math.min(1, (1.75 - Math.max(Math.abs(x), Math.abs(z))) / 0.45);
+      ps.setY(i, Math.max(0, borda) * (0.16 + 0.07 * Math.cos(z / 1.05 * Math.PI * 2)) - 0.04);   // sulcos de 1,05 m
+    }
+    g.computeVertexNormals(); return g;
+  })();
+  const tora = new THREE.CylinderGeometry(0.13, 0.14, 3.75, 9).rotateZ(Math.PI / 2), estaca = new THREE.CylinderGeometry(0.07, 0.09, 0.62, 7);
   for (const p of PLOTS) {
     const y = groundY(p.x, p.z);
-    p.soil = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.22, 3.4), soilM); p.soil.position.set(p.x, y + 0.05, p.z); p.soil.receiveShadow = true; scene.add(p.soil);
-    p.ridges = [-1, 0, 1].map(k => { const r = new THREE.Mesh(ridge, soilM); r.position.set(p.x, y + 0.18, p.z + k * 1.05); r.receiveShadow = true; scene.add(r); return r; });   // sulcos
-    for (const [dx, dz, ry] of [[0, -1.78, 0], [0, 1.78, 0], [-1.78, 0, Math.PI / 2], [1.78, 0, Math.PI / 2]]) { const b = new THREE.Mesh(board, woodM); b.position.set(p.x + dx, y + 0.12, p.z + dz); b.rotation.y = ry; b.castShadow = b.receiveShadow = true; scene.add(b); }
+    p.soil = new THREE.Mesh(leiraGeo, soilM); p.soil.position.set(p.x, y + 0.05, p.z); p.soil.receiveShadow = true; scene.add(p.soil);
+    p.ridges = [];
+    for (const [dx, dz, ry] of [[0, -1.82, 0], [0, 1.82, 0], [-1.82, 0, Math.PI / 2], [1.82, 0, Math.PI / 2]]) { const b = new THREE.Mesh(tora, woodM); b.position.set(p.x + dx, y + 0.12, p.z + dz); b.rotation.y = ry; sitioG.add(b); }
+    for (const [dx, dz] of [[-1.82, -1.82], [1.82, -1.82], [-1.82, 1.82], [1.82, 1.82]]) { const e = new THREE.Mesh(estaca, woodM); e.position.set(p.x + dx, y + 0.28, p.z + dz); sitioG.add(e); }
     p.g = new THREE.Group(); p.g.position.set(p.x, y + 0.2, p.z); scene.add(p.g);
     p.stalks = [];
     for (let i = 0; i < 9; i++) {
@@ -219,17 +230,18 @@ const Vida = (() => {
     }
     p.mark = null; p.markT = '';
   }
-  // cerca do curral (visual) e celeiro
-  const post = new THREE.BoxGeometry(0.2, 1.1, 0.2), rail = new THREE.BoxGeometry(1, 0.14, 0.07);
+  // cerca do curral: postes roliços com ponta, travessas de galho (um pouco tortas)
+  const postG = new THREE.CylinderGeometry(0.1, 0.12, 1.15, 8), pontaG = new THREE.ConeGeometry(0.1, 0.2, 8), railG = new THREE.CylinderGeometry(0.055, 0.06, 1, 7).rotateZ(Math.PI / 2);
   const fenceLine = (ax, az, bx, bz, gap) => {
     const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 1.6);
     for (let i = 0; i <= n; i++) {
       const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
       if (gap && Math.abs(t - 0.5) < 0.14) continue;
-      const m = new THREE.Mesh(post, woodM); m.position.set(x, groundY(x, z) + 0.5, z); m.castShadow = true; scene.add(m);
-      if (i < n && !(gap && Math.abs(t + 0.5 / n - 0.5) < 0.16)) for (const y of [0.45, 0.8]) {
-        const r = new THREE.Mesh(rail, woodM); const t2 = (i + 0.5) / n, rx = ax + (bx - ax) * t2, rz = az + (bz - az) * t2;
-        r.position.set(rx, groundY(rx, rz) + y, rz); r.scale.x = len / n; r.rotation.y = -Math.atan2(bz - az, bx - ax); scene.add(r);
+      const m = new THREE.Mesh(postG, woodM); m.position.set(x, groundY(x, z) + 0.5, z); m.rotation.set(Math.sin(i * 3.1) * 0.05, i, Math.cos(i * 2.3) * 0.05); sitioG.add(m);
+      const c = new THREE.Mesh(pontaG, woodM); c.position.set(x, groundY(x, z) + 1.17, z); sitioG.add(c);
+      if (i < n && !(gap && Math.abs(t + 0.5 / n - 0.5) < 0.16)) for (const yy of [0.42, 0.82]) {
+        const r = new THREE.Mesh(railG, woodM); const t2 = (i + 0.5) / n, rx = ax + (bx - ax) * t2, rz = az + (bz - az) * t2;
+        r.position.set(rx, groundY(rx, rz) + yy + Math.sin(i * 5.7 + yy) * 0.03, rz); r.scale.x = len / n + 0.15; r.rotation.set(0, -Math.atan2(bz - az, bx - ax), Math.sin(i * 4.1 + yy * 9) * 0.04); sitioG.add(r);
       }
     }
   };
@@ -241,17 +253,29 @@ const Vida = (() => {
     const bale = (x, z, ry) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.3, 16), [hay, hayEnd, hayEnd]); m.rotation.z = Math.PI / 2; m.rotation.y = ry; m.position.set(x, groundY(x, z) + 0.72, z); m.castShadow = m.receiveShadow = true; scene.add(m); addOb(x, z, 0.9); };
     bale(F.x - 13.5, F.z + 1.8, 0.2); bale(F.x - 11.8, F.z + 2.2, -0.3); bale(F.x + 4.5, F.z + 15.2, 1.4);
     const tx = F.x - 5, tz = F.z + 12.2, ty = groundY(tx, tz);                                   // bebedouro no curral
-    const tr = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 0.8), woodM); tr.position.set(tx, ty + 0.3, tz); tr.castShadow = true; scene.add(tr);
-    const wt = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.05, 0.62), new THREE.MeshPhongMaterial({ color: 0x3a5a66, shininess: 60, specular: 0x406070 })); wt.position.set(tx, ty + 0.53, tz); scene.add(wt);
-    const sx = F.x - 3, sz = F.z - 6.6, sy = groundY(sx, sz), sg = new THREE.Group(); sg.position.set(sx, sy, sz); sg.rotation.y = 0.4; scene.add(sg);   // espantalho
-    const stick = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), woodM); m.position.set(x, y, z); m.castShadow = true; sg.add(m); };
-    stick(0.12, 2.4, 0.12, 0, 1.2, 0); stick(1.8, 0.1, 0.1, 0, 1.75, 0);
-    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.8, 0.32), new THREE.MeshLambertMaterial({ color: 0x6a4a3a })); shirt.position.y = 1.55; shirt.castShadow = true; sg.add(shirt);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), hay); head.position.y = 2.25; sg.add(head);
-    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.42, 12), hay); hat.position.y = 2.6; sg.add(hat);
-    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.04, 14), hay); brim.position.y = 2.42; sg.add(brim);
+    {                                                                                            // bebedouro: tronco escavado sobre dois cavaletes
+      const cocho = new THREE.Group(); cocho.position.set(tx, ty, tz); sitioG.add(cocho);
+      const casca = woodM.clone(); casca.side = THREE.DoubleSide;
+      const meia = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 3, 14, 1, true, Math.PI / 2, Math.PI).rotateZ(Math.PI / 2), casca); meia.position.y = 0.72; cocho.add(meia);
+      for (const sx2 of [-1.5, 1.5]) { const tampa = new THREE.Mesh(new THREE.CircleGeometry(0.45, 14, Math.PI, Math.PI).rotateY(Math.PI / 2), casca); tampa.position.set(sx2, 0.72, 0); cocho.add(tampa); }
+      for (const sx2 of [-1.05, 1.05]) for (const k of [-1, 1]) { const pe = new THREE.Mesh(estaca, woodM); pe.scale.set(1, 1.1, 1); pe.position.set(sx2, 0.3, k * 0.22); pe.rotation.x = k * 0.35; cocho.add(pe); }
+      const agua = new THREE.Mesh(new THREE.PlaneGeometry(2.96, 0.78).rotateX(-Math.PI / 2), new THREE.MeshPhongMaterial({ color: 0x3a6a7a, shininess: 90, specular: 0x6090a0 })); agua.position.y = 0.6; cocho.add(agua);
+    }
+    const sx = F.x - 3, sz = F.z - 6.6, sy = groundY(sx, sz), sg = new THREE.Group(); sg.position.set(sx, sy, sz); sg.rotation.y = 0.4; sitioG.add(sg);   // espantalho
+    const pau = (r, h, x, y, z, rz = 0) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r, h, 7), woodM); m.position.set(x, y, z); m.rotation.z = rz; sg.add(m); };
+    pau(0.07, 2.5, 0, 1.2, 0); pau(0.05, 1.9, 0, 1.78, 0, Math.PI / 2 + 0.06);
+    const panoM = new THREE.MeshLambertMaterial({ color: 0x7a5a42, side: THREE.DoubleSide }), remendoM = new THREE.MeshLambertMaterial({ color: 0x4a6a8a, side: THREE.DoubleSide });
+    const camisa = new THREE.Mesh(new THREE.LatheGeometry([[0.2, 1.98], [0.3, 1.9], [0.32, 1.6], [0.36, 1.3], [0.44, 1.1]].map(([r, y]) => new THREE.Vector2(r, y - 1.55)), 12), panoM); camisa.scale.z = 0.7; camisa.position.y = 1.55; sg.add(camisa);
+    for (const k of [-1, 1]) {
+      const manga = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.17, 0.6, 9, 1, true).rotateZ(Math.PI / 2), panoM); manga.position.set(k * 0.55, 1.77, 0); sg.add(manga);
+      const palha = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.3, 7).rotateZ(-k * Math.PI / 2), hay); palha.position.set(k * 0.95, 1.77, 0); sg.add(palha);
+    }
+    const remendo = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.18), remendoM); remendo.position.set(0.12, 1.45, 0.24); remendo.rotation.z = 0.2; sg.add(remendo);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 10), PM('palha.jpg', [1, 1], new THREE.Color(1.25, 1.05, 0.8))); head.scale.set(1, 1.12, 0.95); head.position.y = 2.25; sg.add(head);
+    const hat = new THREE.Mesh(new THREE.LatheGeometry([[0.6, 0], [0.55, 0.03], [0.3, 0.06], [0.28, 0.3], [0.12, 0.45], [0.02, 0.48]].map(([r, y]) => new THREE.Vector2(r, y)), 14), hay); hat.position.y = 2.42; hat.rotation.z = 0.12; sg.add(hat);
     addOb(sx, sz, 0.4);
     const path = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 26), PM('terra.jpg', [1, 8], new THREE.Color(1.9, 1.7, 1.5))); path.rotation.x = -Math.PI / 2; path.position.set(F.x + 4.2, groundY(F.x + 4.2, F.z) + 0.04, F.z - 1); path.receiveShadow = true; scene.add(path);
+    fundir(sitioG); decor(sitioG, 30);
   }
   // Fazendeira (NPC)
   {

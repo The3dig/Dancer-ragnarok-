@@ -188,7 +188,7 @@ const C_ = h => new THREE.Color(h);
 const DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
-  const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : null;
+  const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : /dia/.test(location.hash) ? 0.5 : null;
   const t = forced ?? ((Date.now() / 1000 / 1800 + 0.2) % 1);          // 0..1 (0,25 manhã · 0,5 meio-dia · 0,75 fim de tarde)
   const ang = (t - 0.25) * Math.PI * 2, elev = Math.sin(ang + Math.PI / 2 - Math.PI / 2) ;
   const e = Math.sin((t - 0.2) / 0.62 * Math.PI);                         // elevação do sol: dia de 0,2 a 0,82
