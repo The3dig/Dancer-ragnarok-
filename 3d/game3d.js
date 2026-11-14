@@ -2009,7 +2009,9 @@ function updateMob(m, dt) {
     if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
-      if (P.dead || Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32)) { m.state = 'return'; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); }
+      // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
+      // Também não se cura se acabou de apanhar (antes o chefe que saltava longe voltava a encher a vida a cada golpe).
+      if (P.dead || (m.towerFloor === undefined && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
         m.face = Math.atan2(P.x - m.x, P.z - m.z);
@@ -2020,7 +2022,8 @@ function updateMob(m, dt) {
         }
       }
     } else if (m.state === 'return') {
-      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1) m.state = 'idle';
+      m.retT = (m.retT || 0) + dt;
+      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 12) { m.state = 'idle'; m.retT = 0; }     // preso no caminho: desiste de voltar
       else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
     } else {
       m.timer -= dt;

@@ -129,9 +129,13 @@ const Chefes = (() => {
     if (m.spT > 0) return false;
     m.spT = rand(4.5, 7);
     const dP = Math.hypot(P.x - m.x, P.z - m.z);
-    if (dP > 7 && dP < 26) {                                             // salto: cai em cima de onde você estava
+    const fP = inTower(P.z) ? floorAt(P.x, P.z) : null, pRampa = fP && !fP.casa && rampa(fP, P.x, P.z);
+    if (dP > 7 && dP < 26 && !pRampa) {                                             // salto: cai em cima de onde você estava
       const tx = P.x, tz = P.z, w = warn(tx, tz, 4, 1.2); m.busy = 1.25; m.face = Math.atan2(tx - m.x, tz - m.z);
-      w.boom = () => { if (m.dead) return; if (!blocked(tx, tz, 0.45)) { m.x = tx; m.z = tz; } Audio8.sfx('boom'); ring(tx, tz, 4, 0xff6a30, 0.5);
+      w.boom = () => { if (m.dead) return;
+        // não cai em cima das escadarias da Torre (ficava preso lá em cima, fora do alcance)
+        const fT = inTower(tz) ? floorAt(tx, tz) : null, naRampa = fT && !fT.casa && typeof rampa === 'function' && rampa(fT, tx, tz);
+        if (!naRampa && !blocked(tx, tz, 0.45)) { m.x = tx; m.z = tz; } Audio8.sfx('boom'); ring(tx, tz, 4, 0xff6a30, 0.5);
         if (typeof VFX !== 'undefined') { VFX.wave(tx, tz, 4.5, 0xff8a40, 0.5); VFX.flash(new THREE.Vector3(tx, groundY(tx, tz) + 1, tz), 0xff8a40, 4); }
         if (Math.hypot(P.x - tx, P.z - tz) < 4) hurtPlayer(m, 1.8); };
       warns.push(w); log(`⚠️ <b>${m.d.name}</b> vai saltar! Saia do círculo vermelho!`, 'bad');
