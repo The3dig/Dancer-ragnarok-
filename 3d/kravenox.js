@@ -101,6 +101,7 @@ const Kvx = (() => {
   const DAY = 6, START = 20, HORAS = 6;            // sábado 20h → domingo 2h (passa da meia-noite)
   const ALLY_NAMES = ['Bruna Ferro', 'Tião do Arco', 'Zéfiro', 'Nanda Lumen', 'Grum Pedrabarba', 'Selvyn', 'Morgana Cinza', 'Duda Faísca', 'Otávio Brasa', 'Lia Sereno'];
   const AR = () => FLOORS[TOP];                                   // topo da Torre do Cisma
+  const naArena = () => inTower(P.z) && Tower.floor === TOP && Math.hypot(P.x - AR().x, P.z - AR().z) < 40;   // golpes, sons e avisos só valem para quem está lá em cima
   let boss = null, allies = [], teles = [], active = false, forced = false, checkT = 0, phaseT = 0, lastMsg = '';
   const forcedByLink = () => /kravenox/i.test(location.hash);
 
@@ -298,11 +299,11 @@ const Kvx = (() => {
       if (tl.line) tl.fill.material.opacity = 0.15 + k * 0.45; else { tl.fill.scale.set(tl.r * k, 1, tl.r * k); tl.fill.material.opacity = 0.15 + k * 0.35; }
       if (tl.t <= 0) {
         tl.done = true; scene.remove(tl.fill); scene.remove(tl.edge);
-        Audio8.sfx('boom'); if (!tl.line) ring(tl.x, tl.z, tl.r, 0xff5030, 0.5);
+        if (naArena()) Audio8.sfx('boom'); if (!tl.line) ring(tl.x, tl.z, tl.r, 0xff5030, 0.5);
         burst(new THREE.Vector3(tl.x, groundY(tl.x, tl.z) + 0.5, tl.z), 0xff4020, 26, tl.r * 1.5, 0.8);
         const hit = (x, z) => tl.line ? inLine(tl, x, z) : Math.hypot(x - tl.x, z - tl.z) < tl.r;
         if (tl.line) beamFx(tl);
-        if (boss && hit(P.x, P.z)) hurtPlayer(boss, tl.mult);
+        if (boss && naArena() && hit(P.x, P.z)) hurtPlayer(boss, tl.mult);
         allies.forEach(al => { if (hit(al.x, al.z)) hurtAlly(al, 70 * tl.mult); });
       }
     }
@@ -313,8 +314,8 @@ const Kvx = (() => {
   function ai(m, dt) {
     m.roar = Math.max(0, (m.roar || 0) - dt);
     if (!m.enraged && m.hp < m.maxHp * 0.5) {
-      m.enraged = true; banner('KRAVENOX SE ENFURECE!'); Audio8.sfx('boom');
-      log('🔥 <b>Kravenox se enfurece!</b> Ele ficou mais rápido e agressivo.', 'bad');
+      m.enraged = true; if (naArena()) { banner('KRAVENOX SE ENFURECE!'); Audio8.sfx('boom'); }
+      if (naArena()) log('🔥 <b>Kravenox se enfurece!</b> Ele ficou mais rápido e agressivo.', 'bad');
     }
     const enr = m.enraged ? 1.4 : 1;
     // alvo: jogador ou aliado mais próximo dentro da arena
@@ -340,7 +341,7 @@ const Kvx = (() => {
     if (m.meleeT <= 0 && d < 16) {
       m.meleeT = 3; m.swing = 1;
       telegraph(m.x + fx * 9, m.z + fz * 9, 7.5, 0.7, 1.2, 0xff2a2a);
-      setTimeout(() => { if (boss) { clawFx(m); Audio8.sfx('crit'); } }, 650);
+      setTimeout(() => { if (boss) { clawFx(m); if (naArena()) Audio8.sfx('crit'); } }, 650);
     }
     // golpes especiais
     m.specT -= dt * enr;
@@ -349,13 +350,13 @@ const Kvx = (() => {
       if (m.spec === 1) {                                              // Raio da Essência
         const a = Math.atan2(tg.x - m.x, tg.z - m.z); m.face = a; m.beam = 1.6;
         teleLine(m.x, m.z, a, 46, 6, 1.5, 2.0);
-        log('🔴 Kravenox carrega o <b>Raio da Essência</b>! Saia da faixa vermelha!', 'bad');
+        if (naArena()) log('🔴 Kravenox carrega o <b>Raio da Essência</b>! Saia da faixa vermelha!', 'bad');
       } else if (m.spec === 2) {                                       // Esmagamento
         m.pound = 1; telegraph(m.x, m.z, 15, 1.3, 1.6, 0xff2a2a);
         setTimeout(() => { if (boss) spikeRing(m.x, m.z, 15); }, 1250);
-        log('⬇️ Kravenox salta para o <b>Esmagamento</b>! Use a esquiva!', 'bad');
+        if (naArena()) log('⬇️ Kravenox salta para o <b>Esmagamento</b>! Use a esquiva!', 'bad');
       } else {                                                         // espinhos brotando sob os alvos
-        const pts = [{ x: P.x, z: P.z }, ...allies.filter(a => a.down <= 0).map(a => ({ x: a.x, z: a.z }))].slice(0, 6);
+        const pts = cands.map(c => ({ x: c.x, z: c.z })).slice(0, 6);           // só quem está na arena (antes mirava você até na cidade)
         pts.forEach((p, i) => setTimeout(() => { if (boss) { telegraph(p.x, p.z, 3.4, 1.1, 1.3, 0xff2a2a); setTimeout(() => spikeRing(p.x, p.z, 3.4), 1050); } }, i * 120));
         if (m.enraged) telegraph(m.x, m.z, 9, 1.1, 1.5);
       }
@@ -365,7 +366,7 @@ const Kvx = (() => {
     if (m.addT <= 0 && m.hp < m.maxHp * 0.75) {
       m.addT = 28;
       for (let i = 0; i < 3; i++) { const c = spawnMob('larva', null, { x: m.x + rand(-6, 6), z: m.z + rand(-6, 6) }); c.state = 'chase'; c.at = null; c.area = [m.x - 10, m.x + 10, m.z - 10, m.z + 10]; c.noRespawn = true; }
-      log('🐛 Kravenox chamou <b>Larvas da Essência</b>!', 'bad');
+      if (naArena()) log('🐛 Kravenox chamou <b>Larvas da Essência</b>!', 'bad');
     }
   }
 
