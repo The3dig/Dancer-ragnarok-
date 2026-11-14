@@ -2126,10 +2126,7 @@ function animateModel(dt) {
 function updateCamera(dt) {
   const big = inTower(P.z) && Tower.floor === TOP;                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
-  if (inTower(P.z)) {                                    // escadaria da Torre: a câmera se alinha com ela (de lado só veria a parede)
-    const f = floorAt(P.x, P.z);
-    if (f && !f.casa && rampa(f, P.x, P.z)) { const alvo = Math.atan2(f.x - P.x, f.z - P.z), d = ((alvo - camS.yaw + Math.PI) % TAU + TAU) % TAU - Math.PI; camS.yaw += d * Math.min(1, dt * 3); }
-  }
+  // a câmera nunca gira sozinha: só quem joga vira a câmera (antes ela se alinhava nas escadarias da Torre e trocava a direção do joystick)
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
   // aproxima a câmera quando uma árvore/casa fica entre ela e o personagem
@@ -2437,13 +2434,16 @@ function homePos() {
   return P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : P.home === 'acampamento' ? { x: VCAMP.x, z: VCAMP.z + 4 } : { x: VIL.x, z: VIL.z + 10 };
 }
 function breakCast() { if (P.wingT > 0) { P.wingT = 0; log('🦋 A conjuração da Asa de Borboleta foi interrompida!', 'bad'); Audio8.sfx('miss'); } }
-// ---------------- barra de atalhos (como no Ragnarok): 2 barras de 6, lado a lado; o jogador escolhe o que vai em cada espaço
-// P.bar[i] = 's:<id da habilidade>' | 'i:<id do item>' | null. Teclas: barra 1 = 1 a 6, barra 2 = Q E R T Y U.
-const BAR_N = 12, BAR_KEYS = ['1', '2', '3', '4', '5', '6', 'Q', 'E', 'R', 'T', 'Y', 'U'];
+// ---------------- barra de atalhos (como no Ragnarok): uma barra de 8 espaços; o jogador escolhe o que vai em cada um (✏️)
+// P.bar[i] = 's:<id da habilidade>' | 'i:<id do item>' | null. Teclas 1 a 8.
+// Fora do modo ✏️, tocar num espaço vazio não faz nada (antes abria a janela de escolha no meio da luta).
+const BAR_N = 8, BAR_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 let barEdit = false;
 function ensureBar() {
   if (Array.isArray(P.bar) && P.bar.length === BAR_N) return P.bar;
-  const l = SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
+  // barra antiga (12 espaços): guarda os 8 primeiros atalhos que estavam ocupados
+  const velha = Array.isArray(P.bar) ? P.bar.filter(Boolean) : null;
+  const l = velha && velha.length ? velha : SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
   P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
   return P.bar;
 }
@@ -2451,7 +2451,7 @@ function ensureBar() {
 function barToggle(e) {
   const b = ensureBar(), i = b.indexOf(e);
   if (i >= 0) { b[i] = null; buildHotbar(); return false; }
-  const j = b.indexOf(null); if (j < 0) { log('As duas barras de atalho estão cheias. Toque em ✏️ para trocar um espaço.', 'bad'); Audio8.sfx('miss'); return null; }
+  const j = b.indexOf(null); if (j < 0) { log('A barra de atalhos está cheia. Toque em ✏️ para trocar um espaço.', 'bad'); Audio8.sfx('miss'); return null; }
   b[j] = e; buildHotbar(); return true;
 }
 function barUse(e) {
@@ -2465,14 +2465,14 @@ function barPick(i) {
   SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0) opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
   Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
   opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
-  dialog(`✏️ Atalho ${BAR_KEYS[i]} (barra ${i < 6 ? 1 : 2})`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
+  dialog(`✏️ Atalho ${BAR_KEYS[i]}`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
 }
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = ''; const old = $('hotbar2'); if (old) old.remove();
   const b = ensureBar();
-  for (let g = 0; g < 2; g++) {
+  {
     const grp = document.createElement('div'); grp.className = 'hbg' + (barEdit ? ' edit' : ''); hb.appendChild(grp);
-    for (let i = g * 6; i < g * 6 + 6; i++) {
+    for (let i = 0; i < BAR_N; i++) {
       const e = b[i], el = document.createElement('div'); el.className = 'slot';
       const k = `<span class="k">${BAR_KEYS[i]}</span>`;
       if (e && e.startsWith('s:') && SKILLS.some(s => s.id === e.slice(2))) {
@@ -2484,7 +2484,7 @@ function buildHotbar() {
         el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span>${k}<span class="cost">x${P.inv[id] || 0}</span>`;
         if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
       } else { el.className = 'slot vazio'; el.innerHTML = `<span class="ic">${barEdit ? '+' : ''}</span>${k}`; }
-      tapOn(el, () => barEdit || !e ? barPick(i) : barUse(e));
+      tapOn(el, () => barEdit ? barPick(i) : barUse(e));
       grp.appendChild(el);
     }
   }
