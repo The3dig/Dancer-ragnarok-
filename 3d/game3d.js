@@ -282,25 +282,32 @@ const VCAMP = { x: -110, z: -668 }, VHILL = { x: -12, z: -735 }, VCITY = { x: 85
 const VGATE_R = { x: 84, z: -84 }, VGATE_V = { x: -110, z: -645 };            // passagem no Reino (Areias Rubras) e chegada em Valdora
 const inVal = z => z < -300;
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
-// Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo; ao norte, uma escadaria
-// sobe 7 m até o andar de cima; ao sul, a escadaria por onde se chegou desce para o de baixo.
+// Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo e grande; colada na parede, uma
+// escadaria curva SOBE 7 m até a porta do andar de cima, e do outro lado outra escadaria curva DESCE
+// por um vão no chão até o andar de baixo (as duas dão a volta pela beira do salão).
 const TOP = 30, STAIR_L = 14, STAIR_W = 2.4, STAIR_H = 7;
-const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 34 : 18 + Math.floor(i / 10) * 2 }));
+const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 38 : 30 }));
+// escadarias laterais: ângulo (θ: x = sen θ, z = cos θ) onde começam, quanto da volta ocupam e a largura
+const RAMPA = { sobe: 0.55 * Math.PI, desce: -0.45 * Math.PI, volta: 0.5 * Math.PI, larg: 4.2 };
+function rampa(f, x, z) {
+  if (!f || f.casa) return null;
+  const dx = x - f.x, dz = z - f.z, r = Math.hypot(dx, dz); if (r < f.r - RAMPA.larg - 0.3 || r > f.r + 0.6) return null;
+  const th = Math.atan2(dx, dz), em = a0 => { const d = ((th - a0) % TAU + TAU) % TAU; return d <= RAMPA.volta ? d / RAMPA.volta : -1; };
+  if (f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
+  const p = em(RAMPA.desce); if (p >= 0) return { tipo: 'desce', p };
+  return null;
+}
+// ponto da escadaria: p de 0 (embaixo/no chão) a 1 (no fim), na faixa do meio
+function pontoRampa(f, tipo, p) { const th = (tipo === 'sobe' ? RAMPA.sobe : RAMPA.desce) + p * RAMPA.volta, r = f.r - RAMPA.larg / 2 - 0.2; return { x: f.x + Math.sin(th) * r, z: f.z + Math.cos(th) * r, th }; }
 const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? FLOORS[row * 10 + col] : null;
-  if (f && (Math.hypot(x - f.x, z - f.z) < f.r + 6 || (Math.abs(x - f.x) < STAIR_W + 1 && Math.abs(z - f.z) < f.r + STAIR_L + 3))) return f;
+  if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
   if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null;
 }
-// altura extra nas escadarias (rampa suave sob os degraus)
-function stairRise(f, x, z) {
-  if (f.casa || Math.abs(x - f.x) > STAIR_W + 1) return 0;
-  const n = f.z - f.r + 0.5 - z, s = z - (f.z + f.r - 0.5);
-  if (n > 0 && f.i < TOP) return Math.min(1, n / STAIR_L) * STAIR_H;
-  if (s > 0) return -Math.min(1, s / STAIR_L) * STAIR_H;
-  return 0;
-}
+// altura nas escadarias laterais (rampa suave sob os degraus)
+function stairRise(f, x, z) { const r = rampa(f, x, z); return !r ? 0 : r.tipo === 'sobe' ? r.p * STAIR_H : -r.p * STAIR_H; }
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
 const FARM = { x: -176, z: 0 };   // Sítio de Solmira (vida.js)
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
@@ -516,7 +523,7 @@ function addOb(x, z, r) {
     }
 }
 function blocked(x, z, r = 0.45) {
-  if (inTower(z)) { const f = floorAt(x, z); if (!f || (Math.hypot(x - f.x, z - f.z) > f.r - 1 - r && !(typeof Tower !== 'undefined' && Tower.corridor(f, x, z, r)))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
+  if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
   else if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
@@ -1341,7 +1348,7 @@ function gainXp(n) {
   }
 }
 function hurtPlayer(m, mult = 1) {
-  if (P.dead || P.dashT > 0) return;
+  if (P.dead || P.dashT > 0 || (P.protT && time < P.protT)) return;          // dash ou proteção de chegada (Torre)
   if (Math.random() < stats.flee()) { floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
   const dmg = Math.max(1, Math.round(m.d.atk * mult * rand(0.85, 1.15) - stats.def()));
   P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
@@ -2010,7 +2017,7 @@ function updateCamera(dt) {
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
   if (inTower(P.z)) {                                    // escadaria da Torre: a câmera se alinha com ela (de lado só veria a parede)
     const f = floorAt(P.x, P.z);
-    if (f && !f.casa && stairRise(f, P.x, P.z) !== 0) { const alvo = Math.cos(camS.yaw) >= 0 ? 0 : Math.PI, d = ((alvo - camS.yaw + Math.PI) % TAU + TAU) % TAU - Math.PI; camS.yaw += d * Math.min(1, dt * 4); }
+    if (f && !f.casa && rampa(f, P.x, P.z)) { const alvo = Math.atan2(f.x - P.x, f.z - P.z), d = ((alvo - camS.yaw + Math.PI) % TAU + TAU) % TAU - Math.PI; camS.yaw += d * Math.min(1, dt * 3); }
   }
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
@@ -2021,7 +2028,7 @@ function updateCamera(dt) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
     if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
-    if (inTower(camS.z) && blocked(x, z, 0.35)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; }   // parede da Torre: a câmera chega perto em vez de ficar atrás dela
+    if (inTower(camS.z)) { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
   }
   camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 20 : 2.5)));
   const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
@@ -2289,7 +2296,7 @@ function useWing(id) {
   if (zn === 'casa') { log('Aqui dentro não dá para usar asas.', 'sys'); return; }
   if (id === 'asa_mosca') {
     let tx = null, tz = null;
-    if (inTower(P.z)) { const f = floorAt(P.x, P.z); for (let i = 0; i < 40 && f; i++) { const a = rand(0, TAU), r = rand(2, f.r - 3), x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r; if (!blocked(x, z)) { tx = x; tz = z; break; } } }
+    if (inTower(P.z)) { const f = floorAt(P.x, P.z); for (let i = 0; i < 40 && f; i++) { const a = rand(0, TAU), r = rand(2, f.r - 3), x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r; if (!blocked(x, z) && !rampa(f, x, z)) { tx = x; tz = z; break; } } }
     else for (let i = 0; i < 60; i++) { const a = rand(0, TAU), r = rand(15, 55), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if ((inVal(P.z) ? inVal(z) : Math.abs(x) < WX - 8 && Math.abs(z) < WZ - 8) && !blocked(x, z) && !isWater(x, z) && zoneOf(x, z) === zn) { tx = x; tz = z; break; } }
     if (tx === null) { log('A Asa de Mosca não achou lugar para pousar. Tente de novo.', 'sys'); return; }
     P.inv[id]--; burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x9ad0ff, 24, 3, 0.6);

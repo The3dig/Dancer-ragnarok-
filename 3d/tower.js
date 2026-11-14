@@ -158,31 +158,57 @@ const Tower = (() => {
   function unbuild() {
     if (!built) return;
     scene.remove(built.g);
-    built.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.isSprite && o.material) o.material.dispose(); });
+    built.g.traverse(o => { if (o.geometry && o.geometry !== CAIXA) o.geometry.dispose(); if (o.isSprite && o.material) o.material.dispose(); });
     built.own.forEach(m => m.dispose()); FX.length = 0; built = null;
   }
-  // escadaria (dir = -1 sobe ao norte, +1 desce ao sul), em coordenadas do andar
-  function stairway(f, g, T, fx, dir) {
-    const z0 = dir < 0 ? -f.r + 0.5 : f.r - 0.5, up = dir < 0 ? 1 : -1, N = 20, stepL = STAIR_L / N, own = fx.own;
+  // várias cópias da mesma peça num desenho só (degraus, paredes, colunas, corrimão): o celular agradece
+  function inst(geo, mat, lista, g, sombra = true) {
+    if (!lista.length) return null;
+    const im = new THREE.InstancedMesh(geo, mat, lista.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
+    lista.forEach((o, i) => { p.set(o.x, o.y, o.z); q.setFromEuler(e.set(0, o.ry || 0, 0)); s.set(o.sx || 1, o.sy || 1, o.sz || 1); m4.compose(p, q, s); im.setMatrixAt(i, m4); });
+    im.castShadow = sombra && !TOUCH; im.receiveShadow = true; im.frustumCulled = false; g.add(im); return im;
+  }
+  const CAIXA = new THREE.BoxGeometry(1, 1, 1);
+  // escadaria lateral, colada na parede: 'sobe' (até +7 m, porta do andar de cima) ou 'desce' (por um vão no chão, até -7 m)
+  function escadaria(f, g, T, fx, tipo, own) {
+    const a0 = tipo === 'sobe' ? RAMPA.sobe : RAMPA.desce, N = 28, H = STAIR_H * (tipo === 'sobe' ? 1 : -1);
+    const rin = f.r - RAMPA.larg - 0.3, rout = f.r + 0.3, W = rout - rin, rc = (rin + rout) / 2, tl = rc * RAMPA.volta / N + 0.06;
+    const deg = [];
     for (let k = 0; k < N; k++) {
-      const top = (k + 0.5) / N * STAIR_H * up, bot = Math.min(top, 0) - 1.2;
-      const st = mesh(new THREE.BoxGeometry(STAIR_W * 2 + 0.2, top - bot, stepL + 0.02), T.stepM, 0, (top + bot) / 2, z0 + dir * (k + 0.5) * stepL, g); st.castShadow = false; st.receiveShadow = true;
+      const th = a0 + (k + 0.5) / N * RAMPA.volta, topo = (k + 0.5) / N * H, base = tipo === 'sobe' ? -0.1 : -STAIR_H - 1.5;
+      deg.push({ x: Math.sin(th) * rc, y: (topo + base) / 2, z: Math.cos(th) * rc, ry: th, sx: tl, sy: topo - base, sz: W });
     }
-    const zm = z0 + dir * STAIR_L / 2, yb = Math.min(0, STAIR_H * up) - 2, yt = Math.max(0, STAIR_H * up) + 10;
-    for (const sx of [-1, 1]) {
-      mesh(new THREE.BoxGeometry(1, yt - yb, STAIR_L + 1.5), T.corrM, sx * (STAIR_W + 0.6), (yt + yb) / 2, zm, g, false);
-      for (let k = 1; k < 4; k++) {                                                 // tochas nas paredes da escadaria
-        const tz = z0 + dir * k * STAIR_L / 4, ty = k / 4 * STAIR_H * up + 2.6;
-        const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[k % 2] })); fl.position.set(sx * (STAIR_W + 0.05), ty, tz); fl.scale.set(0.6, 1.1, 1); g.add(fl); fx.fires.push(fl);
-        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[k % 2] })); gl.position.set(sx * (STAIR_W - 0.15), ty, tz); gl.scale.setScalar(1.6); g.add(gl); fx.fires.push(gl);
-        const sup = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 0.5, 6), T.spikeM); sup.position.set(sx * (STAIR_W + 0.08), ty - 0.55, tz); g.add(sup);
-      }
+    inst(CAIXA, T.stepM, deg, g);
+    // corrimão na beira de dentro (deixa a entrada livre) — os postes de colisão ficam mais juntos que os desenhados
+    const postes = [], arco = rin * RAMPA.volta;
+    for (let d = 0.12 * arco; d <= arco; d += 1.1) {
+      const p = d / arco, th = a0 + p * RAMPA.volta, x = Math.sin(th) * (rin - 0.15), z = Math.cos(th) * (rin - 0.15);
+      if (!f.obs) addOb(f.x + x, f.z + z, 0.55);
+      if (Math.round(d / 1.1) % 2 === 0) postes.push({ x, y: (tipo === 'sobe' ? p * H : 0) + 0.55, z, sx: 0.22, sy: 1.1, sz: 0.22 });
+    }
+    inst(CAIXA, T.trimM, postes, g, false);
+    if (tipo === 'desce') {                                                    // o vão no chão: parede curva de dentro e a parede do fim
+      const pw = new THREE.Mesh(new THREE.CylinderGeometry(rin, rin, STAIR_H + 2, 24, 1, true, a0, RAMPA.volta), T.corrM.clone()); pw.material.side = THREE.DoubleSide; own.push(pw.material);
+      pw.position.y = -(STAIR_H + 2) / 2; g.add(pw);
+      const thf = a0 + RAMPA.volta, fim = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.6, STAIR_H + 2), pw.material); fim.position.set(Math.sin(thf) * rc, -(STAIR_H + 2) / 2, Math.cos(thf) * rc); fim.rotation.y = thf - Math.PI / 2; g.add(fim);
     }
     // arco e passagem escura no fim (continua subindo/descendo)
-    const ze = z0 + dir * (STAIR_L + 0.4), ye = STAIR_H * up;
-    for (const sx of [-1, 1]) mesh(new THREE.CylinderGeometry(0.45, 0.55, 6.5, 10), T.colM, sx * (STAIR_W + 0.1), ye + 3.25, ze, g);
-    const arc = mesh(new THREE.TorusGeometry(STAIR_W + 0.1, 0.4, 8, 20, Math.PI), T.colM, 0, ye + 6.4, ze, g); arc.rotation.y = 0;
-    const dark = mesh(new THREE.PlaneGeometry(STAIR_W * 2 + 0.4, 9), T.darkM, 0, ye + 4, ze + dir * 0.3, g, false); dark.rotation.y = dir < 0 ? 0 : Math.PI;
+    const the = a0 + RAMPA.volta * 0.985, ye = H, tx = Math.cos(the), tz = -Math.sin(the);
+    const cx = Math.sin(the) * (f.r - 0.1), cz = Math.cos(the) * (f.r - 0.1);
+    for (const o of [-1, 1]) inst(CAIXA, T.colM, [{ x: cx + tx * o * (W / 2 + 0.2), y: ye + 3.4, z: cz + tz * o * (W / 2 + 0.2), ry: the, sx: 0.8, sy: 6.8, sz: 0.8 }], g);
+    inst(CAIXA, T.colM, [{ x: cx, y: ye + 7, z: cz, ry: the + Math.PI / 2, sx: W + 1.4, sy: 0.7, sz: 0.9 }], g);
+    const dk = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.4, 6.6), T.darkM); dk.position.set(Math.sin(the) * (f.r + 0.15), ye + 3.3, Math.cos(the) * (f.r + 0.15)); dk.rotation.y = the + Math.PI; g.add(dk);
+    for (const o of [-1, 1]) {                                                 // tochas no arco
+      const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[0] }));
+      fl.position.set(cx + tx * o * (W / 2 + 0.2) - Math.sin(the) * 0.6, ye + 4.6, cz + tz * o * (W / 2 + 0.2) - Math.cos(the) * 0.6); fl.scale.set(0.6, 1.1, 1); g.add(fl); fx.fires.push(fl);
+      const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[0] })); gl.position.copy(fl.position); gl.scale.setScalar(1.8); g.add(gl); fx.fires.push(gl);
+    }
+    // placa: o que tem do outro lado
+    const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x2 = c.getContext('2d'); x2.fillStyle = 'rgba(16,8,24,.85)'; x2.fillRect(0, 0, 256, 64); x2.strokeStyle = '#f2c86a'; x2.lineWidth = 3; x2.strokeRect(2, 2, 252, 60);
+    x2.fillStyle = '#f2e0ff'; x2.font = 'bold 32px Georgia'; x2.textAlign = 'center';
+    x2.fillText(tipo === 'sobe' ? (f.i + 1 === TOP ? '↑ TOPO' : `↑ ${f.i + 2}º andar`) : (f.i === 0 ? '↓ Saída' : `↓ ${f.i}º andar`), 128, 44);
+    const txp = new THREE.CanvasTexture(c); own.push(txp); const pl = new THREE.Sprite(new THREE.SpriteMaterial({ map: txp, transparent: true, depthWrite: false })); own.push(pl.material);
+    const pp = pontoRampa(f, tipo, 0.02); pl.position.set(pp.x - f.x, 3.2, pp.z - f.z); pl.scale.set(2.6, 0.65, 1); g.add(pl);
   }
   function buildFloor(f) {
     if (built && built.f === f) return;
@@ -190,57 +216,63 @@ const Tower = (() => {
     const T = theme(f), own = [];
     const g = new THREE.Group(); g.position.set(f.x, f.y, f.z); scene.add(g);
     const top = f.i === TOP, fx = { f, runes: [], fires: [], embers: [], own, barrier: null }; FX[0] = fx;
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(f.r + 1, f.r + 1, 1.2, 48), [T.sideM, top ? T.topM : T.floorM, T.floorM]); disc.position.y = -0.6; disc.receiveShadow = true; g.add(disc);
+    // chão: miolo inteiro + faixa da beira com o vão da escadaria que desce
+    const rin = f.r - RAMPA.larg - 0.3;
+    const miolo = new THREE.Mesh(new THREE.CylinderGeometry(rin, rin, 1.2, 64), [T.sideM, top ? T.topM : T.floorM, T.floorM]); miolo.position.y = -0.6; miolo.receiveShadow = true; g.add(miolo);
+    const faixa = new THREE.Mesh(new THREE.RingGeometry(rin, f.r + 1, 72, 1, RAMPA.desce + RAMPA.volta - Math.PI / 2, TAU - RAMPA.volta).rotateX(-Math.PI / 2), top ? T.topM : T.floorM); faixa.receiveShadow = true; g.add(faixa);
     const am = (c, op) => { const m = add_(RUNE, c, { opacity: op }); own.push(m); return m; };
-    const rn = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), am(top ? RED : T.rune, 0.75)); rn.scale.setScalar(f.r * 1.05); rn.position.y = 0.03; g.add(rn); fx.runes.push(rn);
-    const rn2 = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), am(top ? 0xff8a40 : T.rune2, 0.35)); rn2.scale.setScalar(f.r * 0.5); rn2.position.y = 0.04; g.add(rn2); fx.runes.push(rn2);
-    // paredes altas de pedra, colunas, janelas acesas, ameias, tochas e estandartes
-    const wallH = top ? 1.6 : 8, n = top ? 28 : 20;
+    const rn = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), am(top ? RED : T.rune, 0.75)); rn.scale.setScalar(rin * 1.6); rn.position.y = 0.03; g.add(rn); fx.runes.push(rn);
+    const rn2 = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), am(top ? 0xff8a40 : T.rune2, 0.35)); rn2.scale.setScalar(rin * 0.7); rn2.position.y = 0.04; g.add(rn2); fx.runes.push(rn2);
+    // paredes altas (descem até o fundo do vão), colunas, janelas acesas, estandartes e tochas
+    const n = top ? 40 : 36, R = f.r + 0.6, hT = top ? 2.4 : 12, yB = top ? -0.5 : -STAIR_H - 2, paredes = [[], []], cols = [], capit = [];
     for (let k = 0; k < n; k++) {
-      const a = k / n * TAU, ca = Math.cos(a), sa = Math.sin(a), R = f.r + 0.6, x = sa * R, z = ca * R;
-      if (Math.abs(x) < STAIR_W + 1.6 && (!top || z > 0)) continue;                   // vãos das escadarias (norte e sul)
-      const b = mesh(new THREE.BoxGeometry(top ? 2 : 3.9 * (f.r / 17), wallH, 1.2), top ? T.wallM : (k % 2 ? T.wallM : T.wallM2), x, wallH / 2, z, g); b.rotation.y = a;
+      const a = k / n * TAU, sa = Math.sin(a), ca = Math.cos(a);
+      paredes[k % 2].push({ x: sa * R, y: (hT + yB) / 2, z: ca * R, ry: a, sx: TAU * R / n + 0.15, sy: hT - yB, sz: 1.2 });
       if (top) continue;
-      const a2 = a + Math.PI / n, cx = Math.sin(a2) * (R - 0.4), cz = Math.cos(a2) * (R - 0.4);
-      if (Math.abs(cx) < STAIR_W + 1) continue;
-      mesh(new THREE.CylinderGeometry(0.55, 0.65, wallH + 0.6, 10), T.colM, cx, (wallH + 0.6) / 2, cz, g);
-      mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), T.trimM, cx, 0.25, cz, g); mesh(new THREE.BoxGeometry(1.4, 0.45, 1.4), T.trimM, cx, wallH + 0.4, cz, g);
-      if (k % 2 === 0) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.8), T.winM); w.position.set(sa * (R - 0.62), 4.6, ca * (R - 0.62)); w.rotation.y = a + Math.PI; g.add(w); }
-      else if (k % 4 === 1) { const bn = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 3.4), T.banM); bn.position.set(sa * (R - 0.64), 4.7, ca * (R - 0.64)); bn.rotation.y = a + Math.PI; g.add(bn); }
-      if (k % 3 === 0) {
-        const tx = Math.sin(a2) * (R - 1.05), tz = Math.cos(a2) * (R - 1.05);
-        mesh(new THREE.CylinderGeometry(0.16, 0.08, 0.7, 6), T.spikeM, tx, 3.2, tz, g, false);
-        const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[k % 2] })); fl.position.set(tx, 3.95, tz); fl.scale.set(0.8, 1.4, 1); g.add(fl); fx.fires.push(fl);
-        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[k % 2] })); gl.position.set(tx, 3.9, tz); gl.scale.setScalar(2.2); g.add(gl); fx.fires.push(gl);
+      const a2 = a + Math.PI / n, cx = Math.sin(a2) * (R - 0.45), cz = Math.cos(a2) * (R - 0.45);
+      if (k % 2 === 0) { cols.push({ x: cx, y: (hT + 0.6 + yB) / 2, z: cz, sx: 1, sy: hT + 0.6 - yB, sz: 1 }); capit.push({ x: cx, y: hT + 0.4, z: cz, sx: 1.5, sy: 0.45, sz: 1.5 }); }
+      if (k % 3 === 0) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.8), T.winM); w.position.set(sa * (R - 0.62), 9, ca * (R - 0.62)); w.rotation.y = a + Math.PI; g.add(w); }
+      else if (k % 6 === 1) { const bn = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 3.4), T.banM); bn.position.set(sa * (R - 0.64), 9.2, ca * (R - 0.64)); bn.rotation.y = a + Math.PI; g.add(bn); }
+      if (k % 4 === 0) {
+        const tx = Math.sin(a2) * (R - 1.05), tz = Math.cos(a2) * (R - 1.05), ty = 4.2 + stairRise(f, f.x + tx, f.z + tz);
+        const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[k % 2] })); fl.position.set(tx, ty, tz); fl.scale.set(0.8, 1.4, 1); g.add(fl); fx.fires.push(fl);
+        const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[k % 2] })); gl.position.set(tx, ty - 0.1, tz); gl.scale.setScalar(2.2); g.add(gl); fx.fires.push(gl);
       }
     }
+    inst(CAIXA, T.wallM, paredes[0], g); inst(CAIXA, T.wallM2, paredes[1], g);
+    inst(new THREE.CylinderGeometry(0.55, 0.65, 1, 10), T.colM, cols, g); inst(CAIXA, T.trimM, capit, g, false);
     if (top) for (let k = 0; k < 8; k++) {
       const a = k / 8 * TAU + 0.2, sp = mesh(new THREE.ConeGeometry(1.2, 9, 6), T.spikeM, Math.sin(a) * (f.r + 1), 4, Math.cos(a) * (f.r + 1), g);
       sp.rotation.x = Math.cos(a) * 0.25; sp.rotation.z = -Math.sin(a) * 0.25;
     }
-    // pilares internos com cristais da ala
-    if (!top) for (let k = 0; k < 4; k++) {
-      const a = k / 4 * TAU + Math.PI / 4, x = Math.sin(a) * f.r * 0.62, z = Math.cos(a) * f.r * 0.62;
-      mesh(new THREE.CylinderGeometry(0.85, 1.0, 7, 12), T.colM, x, 3.5, z, g);
-      mesh(new THREE.BoxGeometry(2.3, 0.6, 2.3), T.trimM, x, 0.3, z, g); mesh(new THREE.BoxGeometry(2.1, 0.5, 2.1), T.trimM, x, 7.1, z, g);
-      for (let j = 0; j < 3; j++) { const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.35 + j * 0.12, 0), T.crM); const ang = a + j * 2.1; cr.position.set(x + Math.sin(ang) * 1.2, 0.35 + j * 0.15, z + Math.cos(ang) * 1.2); cr.scale.y = 2.2; cr.rotation.set(rand(-0.4, 0.4), ang, rand(-0.4, 0.4)); g.add(cr); }
-      if (!f.obs) addOb(f.x + x, f.z + z, 1.15);
-    }
-    f.obs = true;
-    for (let k = 0; k < (top ? 26 : 14); k++) { const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: T.ember[k % 3 ? 0 : 1] })); e.scale.setScalar(rand(0.15, 0.3)); e.userData = { a: rand(0, TAU), r: rand(2, f.r - 1), y: rand(0, 8), v: rand(0.4, 1) }; g.add(e); fx.embers.push(e); }
-    // escadarias: a do norte sobe (selada por uma barreira até o andar ficar limpo), a do sul desce
+    // pilares do salão com cristais da ala
     if (!top) {
-      stairway(f, g, T, fx, -1);
-      const bm = add_(SWIRL, 0xff3a3a, { opacity: 0.6 }); own.push(bm);
-      const bar = new THREE.Mesh(new THREE.PlaneGeometry(STAIR_W * 2 + 0.4, 6), bm); bar.position.set(0, 3, -f.r + 0.6); g.add(bar); fx.barrier = bar;
+      const pil = [], bases = [], cris = [];
+      for (let k = 0; k < 6; k++) {
+        const a = k / 6 * TAU + Math.PI / 6, x = Math.sin(a) * rin * 0.62, z = Math.cos(a) * rin * 0.62;
+        pil.push({ x, y: 4, z, sx: 1, sy: 8, sz: 1 }); bases.push({ x, y: 0.3, z, sx: 2.3, sy: 0.6, sz: 2.3 }, { x, y: 8.1, z, sx: 2.1, sy: 0.5, sz: 2.1 });
+        for (let j = 0; j < 3; j++) { const ang = a + j * 2.1; cris.push({ x: x + Math.sin(ang) * 1.2, y: 0.5 + j * 0.15, z: z + Math.cos(ang) * 1.2, ry: ang, sx: 0.4 + j * 0.12, sy: 0.9 + j * 0.25, sz: 0.4 + j * 0.12 }); }
+        if (!f.obs) addOb(f.x + x, f.z + z, 1.15);
+      }
+      inst(new THREE.CylinderGeometry(0.85, 1.0, 1, 12), T.colM, pil, g); inst(CAIXA, T.trimM, bases, g, false); inst(new THREE.OctahedronGeometry(1, 0), T.crM, cris, g, false);
     }
-    stairway(f, g, T, fx, 1);
-    // número do andar na parede da escadaria
+    for (let k = 0; k < (top ? 22 : 14); k++) { const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: T.ember[k % 3 ? 0 : 1] })); e.scale.setScalar(rand(0.15, 0.3)); e.userData = { a: rand(0, TAU), r: rand(2, rin - 1), y: rand(0, 8), v: rand(0.4, 1) }; g.add(e); fx.embers.push(e); }
+    // escadarias laterais: a que sobe fica selada (barreira vermelha) até o andar ficar limpo
+    if (!top) {
+      escadaria(f, g, T, fx, 'sobe', own);
+      const bm = add_(SWIRL, 0xff3a3a, { opacity: 0.6 }); own.push(bm);
+      const pb = pontoRampa(f, 'sobe', 0.1), bar = new THREE.Mesh(new THREE.PlaneGeometry(RAMPA.larg + 0.8, 5), bm);
+      bar.position.set(pb.x - f.x, 2.5 + 0.1 * STAIR_H, pb.z - f.z); bar.rotation.y = pb.th + Math.PI / 2; g.add(bar); fx.barrier = bar;
+    }
+    escadaria(f, g, T, fx, 'desce', own);
+    f.obs = true;
+    // número do andar no alto da parede
     const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x2 = c.getContext('2d'); x2.fillStyle = 'rgba(16,8,24,.8)'; x2.fillRect(0, 0, 256, 96); x2.strokeStyle = '#' + new THREE.Color(T.rune).getHexString(); x2.lineWidth = 5; x2.strokeRect(3, 3, 250, 90);
     x2.fillStyle = '#f2e0ff'; x2.font = 'bold 50px Georgia'; x2.textAlign = 'center'; x2.fillText(top ? 'TOPO' : `${f.i + 1}º`, 128, 66);
     const tx = new THREE.CanvasTexture(c), sm = new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false }); own.push(tx);
-    const sign = new THREE.Sprite(sm); sign.scale.set(3, 1.1, 1); sign.position.set(0, 8.6, top ? f.r - 1 : -f.r + 0.2); g.add(sign);
+    const sign = new THREE.Sprite(sm); sign.scale.set(3.4, 1.25, 1); sign.position.set(0, top ? 5 : 12.5, top ? f.r - 1 : -f.r + 0.5); g.add(sign);
     built = { f, g, own };
+    try { renderer.compile(scene, camera); } catch (e) { }                   // prepara tudo agora, com a tela ainda escura (sem travão depois)
   }
   function animFloor(dt) {
     const fx = FX[0]; if (!fx) return;
@@ -271,7 +303,7 @@ const Tower = (() => {
   const lvOf = i => 18 + Math.round(i * 40 / 29);
   function waveOf(i) {
     const pool = i < 4 ? ['larva', 'verme'] : i < 10 ? ['larva', 'verme', 'esfera'] : i < 20 ? ['verme', 'esfera', 'sentinela', 'larva'] : ['sentinela', 'esfera', 'sentinela', 'verme'];
-    const n = Math.min(12, 6 + Math.floor(i / 3));
+    const n = Math.min(18, 10 + Math.floor(i / 2));
     return Array.from({ length: n }, (_, k) => pool[(k * 7 + i) % pool.length]);
   }
   const GUARD = { 4: 'Guardião do Portão', 9: 'Carcereiro do Cisma', 14: 'Guardião das Brasas', 19: 'Arauto do Soberano', 24: 'Guardião do Gelo Vazio', 29: 'Mão de Kravenox' };
@@ -290,13 +322,13 @@ const Tower = (() => {
     if (i >= TOP || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
     const f = FLOORS[i], list = waveOf(i);
     list.forEach((type, k) => {
-      const a = (k / list.length) * TAU + i, r = f.r * (0.3 + (k % 3) * 0.17);
-      const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r - 2 });
+      const rin = f.r - RAMPA.larg - 0.3, a = (k / list.length) * TAU + i * 0.7, r = rin * (0.25 + (k % 3) * 0.22);
+      const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r });
       m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), 1);
     });
     if (GUARD[i]) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
       const big = i % 10 === 9;
-      const m = spawnMob('guardiao', null, { x: f.x, z: f.z - f.r * 0.45 });
+      const pg = pontoRampa(f, 'sobe', 0), m = spawnMob('guardiao', null, { x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 });   // guarda a escadaria que sobe
       m.towerFloor = i; m.noRespawn = true; m.towerGuard = true; scaleMob(m, lvOf(i) + 3, big ? 1.6 : 0.9);
       m.d.name = GUARD[i]; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8));
       m.d.drops = [...m.d.drops, ['essencia', 1], ...(big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
@@ -324,9 +356,12 @@ const Tower = (() => {
       log('Você saiu da Torre do Cisma.', 'sys'); return;
     }
     cur = i; const f = FLOORS[i]; buildFloor(f);
-    if (fromAbove) { P.x = f.x; P.z = f.z - f.r - STAIR_L + 3; P.face = 0; }            // desceu: chega no alto da escadaria norte
-    else { P.x = f.x; P.z = f.z + f.r + STAIR_L - 3.5; P.face = Math.PI; }               // subiu: chega na escadaria sul
+    if (fromAbove) opened[i] = true;                                    // quem desce já passou por aqui: a escadaria fica aberta
+    // subiu: chega no começo da escadaria que desce (no chão do andar novo); desceu: chega no alto da que sobe
+    const pc = fromAbove ? pontoRampa(f, 'sobe', 0.9) : pontoRampa(f, 'desce', 0.06);
+    P.x = pc.x; P.z = pc.z; P.face = Math.atan2(f.x - P.x, f.z - P.z);
     P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.cur = 3; camS.pitch = Math.max(camS.pitch, 0.42);
+    P.protT = time + 3;                                                 // 3 s sem apanhar ao chegar (dá para se situar)
     if (i === TOP) { camS.dist = Math.max(camS.dist, 24); camS.pitch = Math.max(camS.pitch, 0.32); }
     blackout();
     if (i === 10 || i === 20) if ((P.towerCp || 0) < i) { P.towerCp = i; log(`📍 <b>Ponto de retorno</b> liberado: a entrada da Torre agora deixa começar no <b>${i + 1}º andar</b>.`, 'gold'); }
@@ -335,14 +370,11 @@ const Tower = (() => {
     if (i === 0 && !fromAbove) log('⚔️ <b>A Torre é zona de guerra:</b> aqui o PvP é livre e qualquer jogador pode atacar você, menos quem é da sua guilda. Matar aqui não deixa o nome vermelho.', 'bad');
     spawnFloor(i);
     if (i === TOP) log(Kvx.active ? '☠ <b>Kravenox está acordado!</b> Derrube o Soberano!' : '💤 Kravenox dorme aqui em cima... Ele desperta todo <b>sábado às 20h</b> e fica acordado <b>6 horas</b> (até as 2h de domingo).', Kvx.active ? 'bad' : 'gold');
-    else log(`🗼 Torre do Cisma — <b>${i + 1}º andar</b> (monstros nível ${lvOf(i)}).${GUARD[i] ? ` ☠ <b>${GUARD[i]}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria ao norte.`, GUARD[i] ? 'bad' : 'sys');
+    else log(`🗼 Torre do Cisma — <b>${i + 1}º andar</b> (monstros nível ${lvOf(i)}).${GUARD[i] ? ` ☠ <b>${GUARD[i]}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria que sobe pela paredee.`, GUARD[i] ? 'bad' : 'sys');
     lastCount = -1;
   }
-  function corridor(f, x, z, r) {
-    if (f.casa || Math.abs(x - f.x) > STAIR_W - r) return false;
-    if (z < f.z) return f.i < TOP && !!opened[f.i] && z > f.z - f.r - STAIR_L - 1;
-    return z < f.z + f.r + STAIR_L + 1;
-  }
+  function selada(f, x, z) { if (f.casa || f.i >= TOP || opened[f.i]) return false; const r = rampa(f, x, z); return !!r && r.tipo === 'sobe' && r.p < 0.16; }
+  function corridor() { return false; }
 
   function update(dt) {
     beacon.rotation.y += dt; beacon.position.y = ty + 4 + Math.sin(time * 2) * 0.4;
@@ -365,11 +397,12 @@ const Tower = (() => {
     if (cur < TOP) {
       if (left === 0 && !clearedAt[cur]) clearedAt[cur] = time;
       if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN && Math.hypot(P.x - f.x, P.z - f.z) < f.r) { spawnFloor(cur); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
-      if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(`✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu ao norte.`, 'gold'); }
-      if (!opened[cur] && P.z < f.z - f.r + 3 && Math.abs(P.x - f.x) < STAIR_W + 1 && left !== lastCount) { lastCount = left; log(`A escadaria está selada. Faltam <b>${left}</b> inimigos neste andar.`, 'bad'); }
-      if (P.z < f.z - f.r - STAIR_L + 1.2) { leaveT = 1; enter(cur + 1, false); return; }
+      if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(`✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu (a que sobe pela parede).`, 'gold'); }
+      const pe = pontoRampa(f, 'sobe', 0.08);
+      if (!opened[cur] && Math.hypot(P.x - pe.x, P.z - pe.z) < 4 && left !== lastCount) { lastCount = left; log(`A escadaria está selada. Faltam <b>${left}</b> inimigos neste andar.`, 'bad'); }
     }
-    if (P.z > f.z + f.r + STAIR_L - 1.2) { leaveT = 1; enter(cur - 1, true); }
+    const rp = rampa(f, P.x, P.z);                                       // chegou no fim de uma escadaria: troca de andar
+    if (rp && rp.p > 0.97) { leaveT = 1; enter(rp.tipo === 'sobe' ? cur + 1 : cur - 1, rp.tipo === 'desce'); }
   }
   function minimap(g) {
     const W = g.canvas.width, H = g.canvas.height, x0 = W / 2 - 42, bw = 84 / (TOP + 1);
@@ -382,7 +415,7 @@ const Tower = (() => {
     g.fillStyle = '#b8a8d0'; g.font = '11px sans-serif'; if (cur < TOP) g.fillText(`monstros Nv ${lvOf(Math.max(0, cur))}`, W / 2, H / 2 + 41);
     g.textAlign = 'left';
   }
-  return { update, minimap, enter, corridor, lvOf, get floor() { return cur; }, door: DOOR, roof };
+  return { update, minimap, enter, corridor, selada, lvOf, get floor() { return cur; }, door: DOOR, roof };
 })();
 
 // ---------------------------------------------------------------- modelos dos inimigos do Reino Quebrado

@@ -279,16 +279,19 @@ const Valdora = (() => {
     else log('Você voltou ao <b>Reino Quebrado</b> pelas Areias Rubras.', 'sys');
   }
   let inside = false, hideList = null, cool = 0, armada = true;
-  function setInside(v) {
-    inside = v; G.visible = v;
-    if (!hideList) hideList = scene.children.filter(o => o.isInstancedMesh || o.isPoints);   // vegetação e vaga-lumes do Reino
-    for (const o of hideList) o.visible = !v;
-    if (v) ensureMaps();
+  let escondido = false;
+  function setInside(v) { inside = v; G.visible = v; if (v) ensureMaps(); }
+  // fora do mapa do Reino (Valdora, Torre ou casa): esconde a vegetação de lá (o celular nem precisa desenhar)
+  function esconderReino(e) {
+    if (e === escondido) return; escondido = e;
+    if (!hideList) hideList = scene.children.filter(o => (o.isInstancedMesh || o.isPoints) && o.parent === scene && !G.children.includes(o));
+    for (const o of hideList) o.visible = !e;
   }
 
   function update(dt) {
     cool -= dt;
     const v = inVal(P.z); if (v !== inside) setInside(v);
+    esconderReino(v || inTower(P.z));
     for (const s of swirls) { s.rotation.z -= dt * 1.2; s.material.opacity = 0.75 + Math.sin(time * 3) * 0.2; }
     // a passagem só funciona de novo depois que a pessoa se afasta dela
     const dR = Math.hypot(P.x - VGATE_R.x, P.z - VGATE_R.z), dV = Math.hypot(P.x - VGATE_V.x, P.z - VGATE_V.z);
