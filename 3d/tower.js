@@ -73,51 +73,103 @@ const Tower = (() => {
     addOb(x, z, 0.8);
   }
 
-  // ---------------- Torre do Cisma (exterior)
+  // ---------------- Torre do Cisma (exterior): peça única lisa e afinando (perfil torneado), cornijas arredondadas,
+  // contrafortes, janelas em ogiva acesas e coroa de espinhos curvos — nada de caixas
   const ext = new THREE.Group(); ext.position.set(TOWER.x, groundY(TOWER.x, TOWER.z), TOWER.z); scene.add(ext);
-  let ty = 0;
-  for (let i = 0; i < 11; i++) {                                // 30 andares: a torre por fora ficou bem mais alta
-    const r0 = 9.5 - i * 0.5, r1 = r0 - 0.45, h = 8.5;
-    mesh(new THREE.CylinderGeometry(r1, r0, h, 20), PM('pedra.jpg', [8, 3.5], i % 2 ? 0x7a7088 : 0x625a70), 0, ty + h / 2, 0, ext);
-    for (let k = 0; k < 8 && i % 2 === 0; k++) { const a = k / 8 * TAU + i * 0.2; if (i === 0 && Math.abs(Math.sin(a)) < 0.3 && Math.cos(a) > 0) continue; const b = mesh(new THREE.BoxGeometry(1.1, h * 0.9, 1.4), PM('pedra.jpg', [0.5, 3], 0x6a6278), Math.sin(a) * (r0 - 0.1), ty + h * 0.45, Math.cos(a) * (r0 - 0.1), ext); b.rotation.y = a; }
-    mesh(new THREE.CylinderGeometry(r1 + 0.6, r1 + 0.6, 0.7, 20), PM('pedra.jpg', [8, 0.3], 0x585068), 0, ty + h, 0, ext);
-    for (let k = 0; k < 4; k++) {                               // janelas vermelhas
-      const a = k / 4 * TAU + i * 0.3, wr = (r0 + r1) / 2;
-      const w = mesh(new THREE.BoxGeometry(0.9, 1.8, 0.2), glow(RED), Math.sin(a) * wr, ty + h * 0.55, Math.cos(a) * wr, ext, false); w.rotation.y = a;
-    }
-    ty += h;
+  const etex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+  const ALT = 96, NIV = 6;                                       // altura da torre e quantos "anéis" de cornija
+  const raio = y => 10.2 - 5.2 * Math.pow(y / ALT, 0.85);        // afina para o alto
+  const perfil = [new THREE.Vector2(0, -1), new THREE.Vector2(11.4, -1), new THREE.Vector2(11.4, 0.6), new THREE.Vector2(10.9, 1.1), new THREE.Vector2(10.9, 2.2), new THREE.Vector2(raio(2.6), 2.6)];
+  for (let n = 1; n <= NIV; n++) {                               // cada anel: o fuste sobe e faz uma cornija arredondada
+    const y = n * ALT / NIV, r = raio(y);
+    perfil.push(new THREE.Vector2(r, y - 1.2), new THREE.Vector2(r + 0.55, y - 0.9), new THREE.Vector2(r + 0.75, y - 0.45), new THREE.Vector2(r + 0.55, y), new THREE.Vector2(r - 0.05, y + 0.25));
   }
-  // coroa de espinhos no topo (como a cabeça do Kravenox)
-  for (let k = 0; k < 12; k++) {
-    const a = k / 12 * TAU, sp = mesh(new THREE.ConeGeometry(0.7, 5, 6), lam(0x120e16), Math.sin(a) * 4.6, ty + 2, Math.cos(a) * 4.6, ext);
-    sp.rotation.x = Math.cos(a) * 0.35; sp.rotation.z = -Math.sin(a) * 0.35;
+  perfil.push(new THREE.Vector2(raio(ALT) + 0.9, ALT + 0.5), new THREE.Vector2(raio(ALT) + 0.9, ALT + 1.6), new THREE.Vector2(0, ALT + 1.6));
+  const corpo = new THREE.Mesh(new THREE.LatheGeometry(perfil, 40), PM('pedra.jpg', [10, 26], 0xb4accb, { emissive: 0x141020 })); corpo.castShadow = true; corpo.receiveShadow = true; ext.add(corpo);
+  let ty = ALT + 1.6;
+  // contrafortes: lâminas de pedra inclinadas com bordas arredondadas
+  const lamina = (() => { const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(4.2, 0); s.quadraticCurveTo(2.2, 6, 0.4, 16); s.lineTo(0, 16); s.closePath(); return new THREE.ExtrudeGeometry(s, { depth: 1.0, bevelEnabled: true, bevelThickness: 0.18, bevelSize: 0.18, bevelSegments: 3, curveSegments: 10 }); })();
+  lamina.translate(0, 0, -0.5);
+  const pedraCtf = PM('pedra.jpg', [0.4, 1.6], 0xa49cb8, { emissive: 0x141020 });
+  for (let k = 0; k < 8; k++) {
+    const a = k / 8 * TAU + TAU / 16; if (Math.cos(a) > 0.85) continue;                    // deixa a frente livre para o portal
+    const b = new THREE.Mesh(lamina, pedraCtf); b.position.set(Math.sin(a) * 9.4, 0, Math.cos(a) * 9.4); b.rotation.y = a - Math.PI / 2; b.castShadow = true; ext.add(b);
+    addOb(TOWER.x + Math.sin(a) * 11.5, TOWER.z + Math.cos(a) * 11.5, 1.4);
   }
-  const beacon = mesh(new THREE.OctahedronGeometry(1.6), glow(RED), 0, ty + 4, 0, ext, false);
-  // porta com portal (de frente para a cidade)
-  const doorZ = TOWER.z + 9.6, doorX = TOWER.x;
-  // entrada: arco de pedra com portal girando, degraus, braseiros e placa
-  const stoneD = PM('pedra.jpg', [1, 3], 0x8a8098), dz = 10.2;
-  mesh(new THREE.BoxGeometry(1.2, 7, 1.6), stoneD, -2.6, 3.5, dz, ext); mesh(new THREE.BoxGeometry(1.2, 7, 1.6), stoneD, 2.6, 3.5, dz, ext);   // colunas
-  mesh(new THREE.BoxGeometry(6.6, 1.3, 1.8), stoneD, 0, 7.3, dz, ext);                                                                       // verga
-  mesh(new THREE.ConeGeometry(0.8, 1.6, 4), stoneD, 0, 8.7, dz, ext);
-  for (let k = 0; k < 3; k++) mesh(new THREE.BoxGeometry(6.2 - k * 0.6, 0.3, 1.2), stoneD, 0, 0.15 + k * 0.3, dz + 2.4 - k * 0.9, ext);   // degraus
-  const swirlTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.translate(64, 64);
-    const r = g.createRadialGradient(0, 0, 0, 0, 0, 64); r.addColorStop(0, 'rgba(255,220,255,1)'); r.addColorStop(0.35, 'rgba(176,80,255,.9)'); r.addColorStop(1, 'rgba(60,0,110,.0)'); g.fillStyle = r; g.fillRect(-64, -64, 128, 128);
-    for (let k = 0; k < 5; k++) { g.rotate(TAU / 5); g.beginPath(); for (let t = 0; t < 1; t += 0.02) g.lineTo(Math.cos(t * 5) * t * 60, Math.sin(t * 5) * t * 60); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4; g.stroke(); }
-    return new THREE.CanvasTexture(c); })();
-  const portalM = new THREE.MeshBasicMaterial({ map: swirlTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
-  const doorGlow = mesh(new THREE.CircleGeometry(1.75, 32), portalM, 0, 3.3, dz + 0.3, ext, false); doorGlow.scale.y = 1.6;
-  const doorBack = mesh(new THREE.PlaneGeometry(4, 6.4), new THREE.MeshBasicMaterial({ color: 0x0a0010 }), 0, 3.2, dz - 0.3, ext, false);
+  // janelas em ogiva com vitral aceso (planos encostados no fuste)
+  const VITRAL = etex(64, 128, g => {
+    g.fillStyle = '#1a0e10'; g.fillRect(0, 0, 64, 128);
+    const arco = () => { g.beginPath(); g.moveTo(8, 126); g.lineTo(8, 50); g.quadraticCurveTo(8, 14, 32, 4); g.quadraticCurveTo(56, 14, 56, 50); g.lineTo(56, 126); g.closePath(); };
+    const l = g.createLinearGradient(0, 0, 0, 128); l.addColorStop(0, '#ffb070'); l.addColorStop(0.5, '#ff5a3a'); l.addColorStop(1, '#7a1020'); g.fillStyle = l; arco(); g.fill();
+    g.strokeStyle = '#1a0e10'; g.lineWidth = 3; g.beginPath(); g.moveTo(32, 8); g.lineTo(32, 126); g.moveTo(8, 70); g.lineTo(56, 70); g.moveTo(8, 100); g.lineTo(56, 100); g.stroke();
+    g.beginPath(); g.arc(32, 38, 9, 0, TAU); g.stroke(); g.lineWidth = 4; arco(); g.stroke();
+  });
+  const vitM = new THREE.MeshBasicMaterial({ map: VITRAL, toneMapped: false, transparent: true, alphaTest: 0.1 });
+  for (let n = 0; n < NIV; n++) for (let k = 0; k < 4; k++) {
+    const y = (n + 0.5) * ALT / NIV + (n === 0 ? 3 : 0), a = k / 4 * TAU + (n % 2) * TAU / 8 + 0.3, r = raio(y) + 0.06;
+    if (n === 0 && Math.cos(a) > 0.6) continue;
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 3.2), vitM); w.position.set(Math.sin(a) * r, y, Math.cos(a) * r); w.rotation.y = a; ext.add(w);
+  }
+  // coroa de espinhos curvos no topo (como a cabeça do Kravenox)
+  const espM = new THREE.MeshLambertMaterial({ color: 0x1a141e });
+  const espinho = new THREE.LatheGeometry([new THREE.Vector2(0.75, 0), new THREE.Vector2(0.6, 2), new THREE.Vector2(0.35, 4.5), new THREE.Vector2(0.12, 6.4), new THREE.Vector2(0, 7.2)], 12);
+  for (let k = 0; k < 14; k++) {
+    const a = k / 14 * TAU, r0 = raio(ALT) + 0.4, sp = new THREE.Mesh(espinho, espM);
+    sp.position.set(Math.sin(a) * r0, ty - 0.4, Math.cos(a) * r0); sp.rotation.set(Math.cos(a) * 0.42, 0, -Math.sin(a) * 0.42); sp.scale.setScalar(k % 2 ? 0.75 : 1.05); sp.castShadow = true; ext.add(sp);
+  }
+  const beacon = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshLambertMaterial({ color: RED, emissive: RED, emissiveIntensity: 1, flatShading: true })); beacon.position.y = ty + 4; ext.add(beacon);
+  const BRILHO_E = etex(64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,.95)'); r.addColorStop(0.3, 'rgba(255,255,255,.4)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+  const bGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO_E, color: 0xff3030, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); bGlow.scale.setScalar(9); beacon.add(bGlow);
+
+  // ---------------- entrada: portal gótico (arco pontudo de pedra esculpida), portas abertas, névoa na passagem
+  const dz = 10.6, pedraP = PM('pedra.jpg', [0.6, 0.6], 0xe4dcef, { emissive: 0x2a2236 }), pedraP2 = PM('pedra.jpg', [0.6, 0.6], 0xc4bcd2, { emissive: 0x1e1828 });   // pedra clara com leve brilho: aparece à noite
+  const ogiva = (w, h, s = new THREE.Shape()) => { s.moveTo(-w / 2, 0); s.lineTo(-w / 2, h - w * 0.62); s.quadraticCurveTo(-w / 2, h - w * 0.1, 0, h); s.quadraticCurveTo(w / 2, h - w * 0.1, w / 2, h - w * 0.62); s.lineTo(w / 2, 0); s.closePath(); return s; };
+  const moldura = (wo, ho, wi, hi, prof, mt, z) => {
+    const s = ogiva(wo, ho), p = ogiva(wi, hi);
+    s.holes.push(new THREE.Path(p.getPoints(24)));
+    const geo = new THREE.ExtrudeGeometry(s, { depth: prof, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.2, bevelSegments: 4, curveSegments: 24 });
+    const m = new THREE.Mesh(geo, mt); m.position.set(0, 0, z); m.castShadow = true; m.receiveShadow = true; ext.add(m); return m;
+  };
+  moldura(8.6, 11.2, 5.0, 8.2, 1.4, pedraP2, dz - 1.3);                       // arco de fora
+  moldura(6.2, 9.4, 4.6, 7.7, 0.6, pedraP, dz + 0.05);                         // arquivolta (segunda camada, mais clara)
+  // colunas torneadas (base, fuste e capitel) dos dois lados
+  const coluna = new THREE.LatheGeometry([new THREE.Vector2(0, 0), new THREE.Vector2(0.62, 0), new THREE.Vector2(0.62, 0.3), new THREE.Vector2(0.48, 0.5), new THREE.Vector2(0.38, 0.75), new THREE.Vector2(0.34, 6.2), new THREE.Vector2(0.42, 6.45), new THREE.Vector2(0.62, 6.8), new THREE.Vector2(0.62, 7.05), new THREE.Vector2(0, 7.05)], 20);
+  for (const sx of [-1, 1]) for (const dd of [0, 0.9]) { const c = new THREE.Mesh(coluna, pedraP); c.position.set(sx * (3.0 + dd), 0, dz + 0.6 - dd * 0.4); c.castShadow = true; ext.add(c); }
+  // passagem: fundo escuro e névoa roxa que se mexe (no formato do arco)
+  const formaPorta = ogiva(4.6, 7.7);
+  const fundo = new THREE.Mesh(new THREE.ShapeGeometry(formaPorta, 24), new THREE.MeshBasicMaterial({ color: 0x07020c })); fundo.position.set(0, 0, dz - 0.9); ext.add(fundo);
+  const NEVOA = etex(128, 128, g => { const im = g.createImageData(128, 128); for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) { const v = 0.5 + 0.25 * Math.sin(x * 0.098 + Math.sin(y * 0.07) * 2) + 0.25 * Math.sin(y * 0.11 + Math.cos(x * 0.05) * 3); const o = (y * 128 + x) * 4; im.data[o] = 150 + v * 90; im.data[o + 1] = 60 + v * 60; im.data[o + 2] = 255; im.data[o + 3] = 70 + v * 150; } g.putImageData(im, 0, 0); });
+  NEVOA.wrapS = NEVOA.wrapT = THREE.RepeatWrapping;
+  const nevoaGeo = new THREE.ShapeGeometry(formaPorta, 24); { const pos = nevoaGeo.attributes.position, uv = nevoaGeo.attributes.uv; for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / 4.6, pos.getY(i) / 7.7); }
+  const portalM = new THREE.MeshBasicMaterial({ map: NEVOA, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0.85, side: THREE.DoubleSide });
+  const doorGlow = new THREE.Mesh(nevoaGeo, portalM); doorGlow.position.set(0, 0, dz - 0.6); ext.add(doorGlow);
+  const faisca = new THREE.SpriteMaterial({ map: BRILHO_E, color: 0xc890ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const faiscas = []; for (let k = 0; k < 14; k++) { const sp = new THREE.Sprite(faisca); sp.scale.setScalar(0.25); sp.userData = { x: rand(-1.8, 1.8), t: rand(0, 1), v: rand(0.15, 0.35) }; ext.add(sp); faiscas.push(sp); }
+  // portas de madeira pesadas, abertas para dentro, com ferragens e cravos
+  const portaG = new THREE.ExtrudeGeometry(ogiva(2.25, 7.5), { depth: 0.22, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2, curveSegments: 16 }); portaG.translate(1.12, 0, 0);
+  const madeira = PM('madeira.jpg', [0.6, 1.2], 0x9a7254, { emissive: 0x1a0e08 }), ferro = new THREE.MeshLambertMaterial({ color: 0x2a2630 });
+  for (const sx of [-1, 1]) {
+    const pg = new THREE.Group(); pg.position.set(sx * 2.25, 0.05, dz - 0.75); pg.rotation.y = sx > 0 ? Math.PI + 1.15 : -1.15; ext.add(pg);
+    const fol = new THREE.Mesh(portaG, madeira); fol.castShadow = true; pg.add(fol);
+    for (const y of [1.2, 3.6, 6.0]) { const fb = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.1, 6), ferro); fb.rotation.z = Math.PI / 2; fb.position.set(1.12, y, 0.28); pg.add(fb);
+      for (const xx of [0.35, 1.12, 1.9]) { const c = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 5), ferro); c.position.set(xx, y, 0.33); pg.add(c); } }
+  }
+  // degraus em meia-lua
+  for (let k = 0; k < 3; k++) { const d = new THREE.Mesh(new THREE.CylinderGeometry(5.6 - k * 0.9, 5.7 - k * 0.9, 0.32, 40, 1, false, -Math.PI / 2, Math.PI), pedraP2); d.position.set(0, 0.16 + k * 0.32, dz + 0.2); d.receiveShadow = true; ext.add(d); }
+  // braseiros de pedra torneada com fogo
+  const FOGO = etex(64, 128, g => { const r = g.createRadialGradient(32, 92, 2, 32, 80, 50); r.addColorStop(0, 'rgba(255,250,210,1)'); r.addColorStop(0.25, 'rgba(255,180,60,.95)'); r.addColorStop(0.6, 'rgba(255,70,20,.5)'); r.addColorStop(1, 'rgba(120,0,0,0)'); g.fillStyle = r; g.beginPath(); g.moveTo(32, 4); g.quadraticCurveTo(62, 70, 32, 124); g.quadraticCurveTo(2, 70, 32, 4); g.fill(); });
+  const braseiro = new THREE.LatheGeometry([new THREE.Vector2(0, 0), new THREE.Vector2(0.55, 0), new THREE.Vector2(0.5, 0.15), new THREE.Vector2(0.22, 0.4), new THREE.Vector2(0.2, 1.1), new THREE.Vector2(0.35, 1.25), new THREE.Vector2(0.75, 1.45), new THREE.Vector2(0.85, 1.75), new THREE.Vector2(0.7, 1.8), new THREE.Vector2(0.3, 1.55), new THREE.Vector2(0, 1.55)], 18);
   const fires = [];
-  for (const sx of [-4.2, 4.2]) {                                                    // braseiros
-    mesh(new THREE.CylinderGeometry(0.5, 0.3, 1.4, 8), stoneD, sx, 0.7, dz + 1.6, ext);
-    const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: swirlTex, color: 0xff8030, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); f.position.set(sx, 1.9, dz + 1.6); f.scale.set(1.4, 2, 1); ext.add(f); fires.push(f);
+  for (const sx of [-5.6, 5.6]) {
+    const b = new THREE.Mesh(braseiro, pedraP2); b.position.set(sx, 0, dz + 1.6); b.castShadow = true; ext.add(b); addOb(TOWER.x + sx, TOWER.z + dz + 1.6, 0.8);
+    const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: FOGO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); f.position.set(sx, 2.5, dz + 1.6); f.scale.set(1.1, 1.9, 1); ext.add(f); fires.push(f);
+    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO_E, color: 0xff7a30, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.45 })); gl.position.set(sx, 2.2, dz + 1.6); gl.scale.setScalar(4); ext.add(gl);
   }
-  const sign = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d'); g.fillStyle = 'rgba(16,8,24,.75)'; g.fillRect(0, 0, 512, 96); g.strokeStyle = '#b070ff'; g.lineWidth = 4; g.strokeRect(2, 2, 508, 92);
-    g.fillStyle = '#f2d8ff'; g.font = 'bold 44px Georgia'; g.textAlign = 'center'; g.fillText('Entrada da Torre', 256, 64);
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(5, 0.95, 1); sp.position.set(0, 9.4, dz + 1); ext.add(sp); return sp; })();
-  addOb(TOWER.x, TOWER.z, 9.6); addOb(TOWER.x - 2.6, TOWER.z + dz, 0.9); addOb(TOWER.x + 2.6, TOWER.z + dz, 0.9);
-  const DOOR = { x: doorX, z: TOWER.z + dz + 1.2 };
+  // nome gravado na pedra, em cima do arco
+  const placa = etex(512, 96, g => { g.fillStyle = '#8a8298'; g.fillRect(0, 0, 512, 96); g.strokeStyle = '#5a5266'; g.lineWidth = 6; g.strokeRect(4, 4, 504, 88); g.font = 'bold 50px Georgia'; g.textAlign = 'center'; g.fillStyle = '#3a3442'; g.fillText('TORRE DO CISMA', 256, 66); g.fillStyle = 'rgba(255,240,255,.35)'; g.fillText('TORRE DO CISMA', 255, 64); });
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.98), new THREE.MeshLambertMaterial({ map: placa })); pl.position.set(0, 12.0, dz - 0.4); ext.add(pl);
+  addOb(TOWER.x, TOWER.z, 10.4); for (const sx of [-1, 1]) addOb(TOWER.x + sx * 3.4, TOWER.z + dz + 0.4, 1.0);
+  const DOOR = { x: TOWER.x, z: TOWER.z + dz + 1.2 };
 
   // ---------------- andares (fora do mapa, em z ≈ 420)
   const ctex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
@@ -378,7 +430,9 @@ const Tower = (() => {
 
   function update(dt) {
     beacon.rotation.y += dt; beacon.position.y = ty + 4 + Math.sin(time * 2) * 0.4;
-    doorGlow.rotation.z -= 0.03; doorGlow.material.opacity = 0.8 + Math.sin(time * 3) * 0.2; for (const f of fires) { f.material.rotation += 0.05; f.scale.set(1.3 + Math.sin(time * 9 + f.position.x) * 0.15, 1.9 + Math.sin(time * 7) * 0.2, 1); }
+    NEVOA.offset.set(time * 0.03, time * 0.08); doorGlow.material.opacity = 0.7 + Math.sin(time * 2) * 0.15;     // névoa da passagem se mexendo devagar
+    for (const f of fires) f.scale.set(1.1 + Math.sin(time * 11 + f.position.x) * 0.08, 1.9 + Math.sin(time * 8 + f.position.x) * 0.2, 1);
+    for (const sp of faiscas) { const u = sp.userData; u.t = (u.t + u.v * 0.016) % 1; sp.position.set(u.x + Math.sin(u.t * 9 + u.x) * 0.25, 0.3 + u.t * 7.2, dz - 0.4); sp.material.opacity = Math.sin(u.t * Math.PI); }
     if (!sleeperR && typeof kravenoxModel === 'function' && (typeof SpriteKit === 'undefined' || SpriteKit.ready || running)) buildSleeper();
     sleeper.visible = !Kvx.active && cur === TOP;
     if (sleeperR && sleeper.visible) sleeperR.anim({ moving: false, roar: 0, enraged: false, sleeping: true }, time);
