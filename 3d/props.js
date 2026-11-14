@@ -109,15 +109,22 @@ const Props = (() => {
     // Cidadela do Cisma: lanternas e rochas
     for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + 0.5; lantern(CIT.x + Math.cos(a) * 18, CIT.z + Math.sin(a) * 18, 0xb060ff); }
   }
-  // lanterna num poste de madeira, com luz quente
+  // poste de ferro torneado (base, anéis e braço curvo) com a lanterna pendurada e luz
+  let posteG = null, bracoG = null, ferroM = null;
   function lantern(x, z, color = 0xffb060) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.4, 0.16), new THREE.MeshLambertMaterial({ map: photo('madeira.jpg', [0.2, 1]), color: 0x8a6a50 }));
-    post.position.set(x, groundY(x, z) + 1.2, z); post.castShadow = true; scene.add(post);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.1), post.material); arm.position.set(x + 0.3, groundY(x, z) + 2.35, z); scene.add(arm);
-    const l = place('wooden_lantern_01', x + 0.55, z, 0.45, 0, 0);
-    if (l) l.position.y = groundY(x, z) + 1.85;
+    if (!posteG) {
+      posteG = new THREE.LatheGeometry([[0, 0], [0.26, 0], [0.26, 0.12], [0.16, 0.22], [0.1, 0.45], [0.06, 0.6], [0.06, 1.9], [0.1, 1.95], [0.1, 2.05], [0.06, 2.1], [0.05, 2.7], [0.09, 2.78], [0, 2.95]].map(([a, b]) => new THREE.Vector2(a, b)), 12);
+      const cv = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 2.55, 0), new THREE.Vector3(0.15, 2.85, 0), new THREE.Vector3(0.62, 2.62, 0));
+      bracoG = new THREE.TubeGeometry(cv, 12, 0.035, 6, false);
+      ferroM = new THREE.MeshLambertMaterial({ color: 0x2a262e });
+    }
+    const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); scene.add(g);
+    const p = new THREE.Mesh(posteG, ferroM); p.castShadow = true; g.add(p);
+    g.add(new THREE.Mesh(bracoG, ferroM));
+    const l = place('wooden_lantern_01', x + 0.62, z, 0.42, 0, 0);
+    if (l) l.position.y = groundY(x, z) + 2.05;
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.7 }));
-    glow.position.set(x + 0.55, groundY(x, z) + 2.05, z); glow.scale.setScalar(1.6); scene.add(glow); glows.push(glow);
+    glow.position.set(x + 0.62, groundY(x, z) + 2.25, z); glow.scale.setScalar(1.6); scene.add(glow); glows.push(glow);
     addOb(x, z, 0.3);
   }
   let _glow = null;

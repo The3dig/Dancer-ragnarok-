@@ -224,11 +224,16 @@ const Quests = (() => {
   function build() {
     for (const [city, b] of Object.entries(BOARDS)) {
       const g = new THREE.Group(); g.position.set(b.x, groundY(b.x, b.z), b.z); g.rotation.y = Math.atan2(P.x - b.x, P.z - b.z) * 0; scene.add(g);
-      const wood = PM('madeira.jpg', [0.3, 1], 0x8a6a50);
-      [-0.9, 0.9].forEach(x => mesh(new THREE.BoxGeometry(0.15, 2.2, 0.15), wood, x, 1.1, 0, g));
-      mesh(new THREE.BoxGeometry(2.1, 1.3, 0.12), PM('madeira.jpg', [1, 0.6], 0xa08060), 0, 1.6, 0, g);
-      const paper = new THREE.MeshLambertMaterial({ color: 0xe8dcc0 });
-      [[-0.5, 1.75], [0.1, 1.5], [0.55, 1.8]].forEach(([x, y]) => mesh(new THREE.BoxGeometry(0.42, 0.5, 0.02), paper, x, y, 0.08, g, false));
+      // quadro de caça: postes roliços, telhadinho de duas águas, moldura e papéis tortos presos com tachinhas
+      const wood = PM('madeira.jpg', [0.3, 1], 0x8a6a50), tabua = PM('madeira.jpg', [1, 0.6], 0xa08060), escuro = PM('madeira.jpg', [0.3, 1], 0x5a4030);
+      [-1.05, 1.05].forEach(x => { mesh(new THREE.CylinderGeometry(0.09, 0.11, 2.9, 8), wood, x, 1.45, 0, g); mesh(new THREE.SphereGeometry(0.13, 8, 6), escuro, x, 2.92, 0, g); });
+      mesh(new THREE.BoxGeometry(2.0, 1.25, 0.08), tabua, 0, 1.65, 0, g);
+      for (const [w, h, x, y] of [[2.2, 0.1, 0, 2.3], [2.2, 0.1, 0, 1.0], [0.1, 1.4, -1.05, 1.65], [0.1, 1.4, 1.05, 1.65]]) mesh(new THREE.BoxGeometry(w, h, 0.14), escuro, x, y, 0.02, g, false);
+      const tel = new THREE.Shape(); tel.moveTo(-1.35, 0); tel.lineTo(1.35, 0); tel.lineTo(0, 0.55); tel.closePath();
+      const tj = new THREE.Mesh(new THREE.ExtrudeGeometry(tel, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 }), PM('telha.jpg', [2, 1], 0x9a5a48)); tj.position.set(0, 2.42, -0.25); tj.castShadow = true; g.add(tj);
+      const papel = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 80; const x = c.getContext('2d'); x.fillStyle = '#efe4c8'; x.fillRect(0, 0, 64, 80); x.fillStyle = '#7a3a2a'; x.font = 'bold 14px serif'; x.fillText('PROCURA-SE', 3, 16); x.fillStyle = '#5a4a3a'; for (let i = 0; i < 6; i++) x.fillRect(6, 26 + i * 8, 40 + (i * 13) % 16, 2); x.strokeStyle = '#a08a60'; x.strokeRect(1, 1, 62, 78); return new THREE.CanvasTexture(c); })();
+      const pm = new THREE.MeshLambertMaterial({ map: papel }), tach = new THREE.MeshLambertMaterial({ color: 0xc03030 });
+      [[-0.55, 1.75, 0.08], [0.05, 1.5, -0.06], [0.6, 1.8, 0.12]].forEach(([x, y, r]) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.58), pm); p.position.set(x, y, 0.05); p.rotation.z = r; g.add(p); mesh(new THREE.SphereGeometry(0.035, 6, 4), tach, x, y + 0.25, 0.07, g, false); });
       const tag = bangSprite(); tag.material = tag.material.clone(); tag.material.map = markTex('!:#7dff9a'); tag.material.fog = false; tag.material.toneMapped = false; tag.position.y = 3.1; tag.scale.setScalar(1.1); g.add(tag);
       addOb(b.x, b.z, 1.1);
     }
