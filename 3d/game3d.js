@@ -303,6 +303,19 @@ function fundir(grupo) {
 // enfeites longe demais (além da névoa) não são desenhados: cada lugar só aparece quando você está perto
 const DECOR = [];
 function decor(g, folga = 0) { const c = new THREE.Box3().setFromObject(g).getCenter(new THREE.Vector3()); g.userData.dc = c; g.userData.df = folga; DECOR.push(g); return g; }
+// no fim da montagem do mundo: todo enfeite parado e pequeno (casa, cerca, ponte, barril, NPC…) entra na lista
+let enfeitesFeitos = false;
+function registrarEnfeites() {
+  if (enfeitesFeitos) return; enfeitesFeitos = true;
+  const pular = new Set([lyra, ...clouds]), esf = new THREE.Sphere(), cx = new THREE.Box3();
+  for (const o of scene.children) {
+    if (pular.has(o) || DECOR.includes(o) || o.isInstancedMesh || o.isPoints || o.isLight || o.isCamera || (o.isMesh && o.frustumCulled === false)) continue;
+    if (!(o.isMesh || o.isGroup)) continue;
+    cx.setFromObject(o); if (cx.isEmpty()) continue; cx.getBoundingSphere(esf);
+    if (!isFinite(esf.radius) || esf.radius > 70 || Math.abs(esf.center.z) > 250) continue;      // grandes (terreno, céu) e o que fica fora do mapa (Torre, casa, Valdora) ficam de fora
+    o.userData.dc = esf.center.clone(); o.userData.df = esf.radius; DECOR.push(o);
+  }
+}
 let decorT = 0;
 function decorTick(dt) {
   if ((decorT -= dt) > 0) return; decorT = 0.5;
@@ -764,7 +777,7 @@ const windU = { value: 0 };
 
 // palmeiras: tronco com casca e folhas em cartões (horizontais, caídas)
 const PALM_G = cardGeo(Array.from({ length: 9 }, (_, i) => [0, 0, 0, i * TAU / 9 + (i % 2) * 0.2, 0.25 + (i % 3) * 0.12, 3.4, 1.0, 0.0]));
-const palmMat = cardMat('palmeira.png');
+const palmMat = cardMat('palmeira.png'); palmMat.emissive.setHex(0x2a3a18); palmMat.color.setHex(0xd8f0b0);   // folhas não ficam pretas contra o céu
 for (const p of palms) {
   const g = new THREE.Group(); g.position.set(p.x, height(p.x, p.z), p.z); g.scale.setScalar(p.s); scene.add(g);
   const trunk = mesh(new THREE.CylinderGeometry(0.14, 0.26, 4.6, 8), PM('casca.jpg', [1, 3], 0xb0a088), 0, 2.25, 0, g); trunk.rotation.z = p.lean;
@@ -776,19 +789,39 @@ const smokes = [];
 function house(x, z, rot, w, d, roofC, style) {
   const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = rot; scene.add(g);
   if (style === 'sand') {
-    mesh(new THREE.BoxGeometry(w, 3.2, d), PM('pedra.jpg', [w / 2, 1.6], 0xd8b890), 0, 1.6, 0, g);
-    const adobe = PM('reboco.jpg', [1, 0.5], 0xc8a478);
-    mesh(new THREE.BoxGeometry(w + 0.3, 0.3, d + 0.3), adobe, 0, 3.3, 0, g);
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.BoxGeometry(0.5, 0.6, 0.5), adobe, a * (w / 2), 3.7, b * (d / 2), g));   // ameias
-    for (let k = -2; k <= 2; k++) { const v = mesh(new THREE.CylinderGeometry(0.1, 0.1, d + 1.0, 6), PM('madeira.jpg', [0.2, 1], 0x6a5040), k * w / 5.5, 2.9, 0, g); v.rotation.x = Math.PI / 2; }   // vigas salientes
-    if (roofC) mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.32, 20, 10, 0, TAU, 0, Math.PI / 2), PM('reboco.jpg', [2, 1], new THREE.Color(roofC).lerp(new THREE.Color(0xd8c8b0), 0.6).getHex()), 0, 3.4, 0, g);
-    const door = mesh(new THREE.BoxGeometry(1.1, 1.8, 0.1), M(0x5a3a1a), 0, 0.9, d / 2 + 0.03, g, false);
-    [-w / 2 + 1, w / 2 - 1].forEach(wx => mesh(new THREE.BoxGeometry(0.6, 0.8, 0.1), M(0x2a3a5a), wx, 2, d / 2 + 0.03, g, false));
+    // casa de adobe do deserto: paredes de barro de cantos arredondados, mureta no telhado, cúpula de cebola,
+    // porta em arco com toldo listrado, janelas com treliça acesa e vigas saindo da parede
+    const k = Math.abs(Math.round(x * 3 + z)) % 3, H = 3.4;
+    const barro = PMc('reboco.jpg', [w / 3, 1.2], 0xe2c49a), barro2 = PMc('reboco.jpg', [1, 0.4], 0xd0ae80), madeira = PMc('madeira.jpg', [0.2, 1], 0x6a5040);
+    const caixaRed = (W, Hh, D, mt, px, py, pz, bev = 0.25) => { const sh = new THREE.Shape(); const r = bev; sh.moveTo(-W / 2 + r, -D / 2); sh.lineTo(W / 2 - r, -D / 2); sh.quadraticCurveTo(W / 2, -D / 2, W / 2, -D / 2 + r); sh.lineTo(W / 2, D / 2 - r); sh.quadraticCurveTo(W / 2, D / 2, W / 2 - r, D / 2); sh.lineTo(-W / 2 + r, D / 2); sh.quadraticCurveTo(-W / 2, D / 2, -W / 2, D / 2 - r); sh.lineTo(-W / 2, -D / 2 + r); sh.quadraticCurveTo(-W / 2, -D / 2, -W / 2 + r, -D / 2);
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: Hh, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 2, curveSegments: 6 }); geo.rotateX(-Math.PI / 2); const m = new THREE.Mesh(geo, mt); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+    caixaRed(w, H, d, barro, 0, 0, 0, 0.5);
+    caixaRed(w + 0.3, 0.35, d + 0.3, barro2, 0, H, 0, 0.55);                                      // cornija
+    for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) caixaRed(a ? 0.35 : w + 0.2, 0.55, b ? 0.35 : d + 0.2, barro2, a * (w / 2 + 0.05), H + 0.35, b * (d / 2 + 0.05), 0.12);   // mureta do terraço
+    for (let q = -2; q <= 2; q++) { const v = mesh(new THREE.CylinderGeometry(0.09, 0.1, d + 0.9, 7), madeira, q * w / 5.5, H - 0.45, 0, g); v.rotation.x = Math.PI / 2; }   // vigas salientes
+    if (roofC) { const cup = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [1.25, 0], [1.35, 0.35], [1.25, 0.9], [0.85, 1.45], [0.35, 1.85], [0.12, 2.15], [0.05, 2.5], [0, 2.6]].map(([a, b]) => new THREE.Vector2(a, b)), 24), PMc('reboco.jpg', [2, 1], [0xf0e0c8, 0x9ac0c8, 0xd8b890][k])); cup.position.set(0, H + 0.35, 0); cup.castShadow = true; g.add(cup); }
+    // porta em arco com toldo listrado
+    const arco = (W2, H2) => { const sh = new THREE.Shape(); sh.moveTo(-W2 / 2, 0); sh.lineTo(-W2 / 2, H2 - W2 / 2); sh.absarc(0, H2 - W2 / 2, W2 / 2, Math.PI, 0, true); sh.lineTo(W2 / 2, 0); sh.closePath(); return sh; };
+    const porta = new THREE.Mesh(new THREE.ShapeGeometry(arco(1.2, 2.3), 12), PMc('madeira.jpg', [0.6, 1], 0x6a3a24)); porta.position.set(0, 0.02, d / 2 + 0.13); g.add(porta);
+    const LISTRA = MATC['listra' + k] || (MATC['listra' + k] = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 16; const x2 = c.getContext('2d'); for (let q = 0; q < 8; q++) { x2.fillStyle = q % 2 ? '#f2e6d0' : ['#b8402a', '#2a6a9a', '#3a8a5a'][k]; x2.fillRect(q * 8, 0, 8, 16); } return new THREE.CanvasTexture(c); })() }));
+    const toldo = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.0), LISTRA); toldo.position.set(0, 2.55, d / 2 + 0.55); toldo.rotation.x = -0.9; g.add(toldo);
+    // janelas em arco com treliça de madeira acesa
+    const TREL = MATC.trelica || (MATC.trelica = new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, alphaTest: 0.2, map: (() => { const c = document.createElement('canvas'); c.width = 32; c.height = 48; const x2 = c.getContext('2d'); x2.fillStyle = '#ffcf80'; x2.beginPath(); x2.moveTo(2, 47); x2.lineTo(2, 16); x2.arc(16, 16, 14, Math.PI, 0); x2.lineTo(30, 47); x2.fill(); x2.strokeStyle = '#5a3a20'; x2.lineWidth = 2; for (let q = -48; q < 48; q += 6) { x2.beginPath(); x2.moveTo(q, 0); x2.lineTo(q + 48, 48); x2.stroke(); x2.beginPath(); x2.moveTo(q + 48, 0); x2.lineTo(q, 48); x2.stroke(); } x2.globalCompositeOperation = 'destination-in'; x2.beginPath(); x2.moveTo(2, 47); x2.lineTo(2, 16); x2.arc(16, 16, 14, Math.PI, 0); x2.lineTo(30, 47); x2.fill(); return new THREE.CanvasTexture(c); })() }));
+    for (const [px, pz, ry] of [[-w / 2 + 1, d / 2 + 0.14, 0], [w / 2 - 1, d / 2 + 0.14, 0], [w / 2 + 0.14, 0, Math.PI / 2], [-w / 2 - 0.14, 0, -Math.PI / 2], [0, -d / 2 - 0.14, Math.PI]]) { const jn = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.05), TREL); jn.position.set(px, 2.0, pz); jn.rotation.y = ry; g.add(jn); }
   } else if (style === 'tent') {
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4), M(0x6b4a2a), a * w / 2, 1.2, b * d / 2, g));
-    const roof = mesh(new THREE.ConeGeometry(Math.hypot(w, d) / 2 + 0.3, 1.2, 4), M(roofC), 0, 2.9, 0, g); roof.rotation.y = Math.PI / 4;
-    mesh(new THREE.BoxGeometry(w - 0.4, 0.8, 1), M(0xd9c39a), 0, 0.4, d / 2 - 0.6, g);
-    ['#8a4a3a', '#a08040', '#5a6a40', '#9a6a3a'].forEach((c, i) => mesh(new THREE.SphereGeometry(0.2, 6, 5), M(c), -w / 2 + 0.8 + i * (w - 1.6) / 3, 0.95, d / 2 - 0.6, g));
+    // barraca do mercado: tecido listrado caído entre os postes, balcão e mercadorias (cestos, jarros, frutas)
+    const k = Math.abs(Math.round(x + z * 3)) % 3, madeira = PMc('madeira.jpg', [0.2, 1], 0x6b4a2a);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.CylinderGeometry(0.06, 0.07, 2.6, 7), madeira, a * w / 2, 1.3, b * d / 2, g));
+    const tec = new THREE.PlaneGeometry(w + 0.6, d + 0.6, 10, 8); tec.rotateX(-Math.PI / 2); { const ps = tec.attributes.position; for (let q = 0; q < ps.count; q++) { const px = ps.getX(q) / ((w + 0.6) / 2), pz = ps.getZ(q) / ((d + 0.6) / 2); ps.setY(q, 0.55 - 0.45 * (px * px) * 0.5 - 0.25 * Math.max(0, Math.abs(pz) - 0.6) + 0.15 * Math.cos(px * 1.6)); } tec.computeVertexNormals(); }
+    const LIST = MATC['listraT' + k] || (MATC['listraT' + k] = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 16; const x2 = c.getContext('2d'); for (let q = 0; q < 8; q++) { x2.fillStyle = q % 2 ? '#f2e6d0' : ['#a83a2e', '#2e5a8a', '#8a6a2a'][k]; x2.fillRect(q * 8, 0, 8, 16); } const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.set(2, 1); return t; })() }));
+    const pano = new THREE.Mesh(tec, LIST); pano.position.y = 2.45; pano.castShadow = true; g.add(pano);
+    mesh(new THREE.BoxGeometry(w - 0.3, 0.12, 1.0), PMc('madeira.jpg', [1, 0.3], 0x9a7a54), 0, 0.85, d / 2 - 0.6, g);
+    mesh(new THREE.BoxGeometry(w - 0.4, 0.8, 0.9), PMc('madeira.jpg', [1, 0.5], 0x7a5a3a), 0, 0.4, d / 2 - 0.6, g);
+    const cesto = new THREE.LatheGeometry([[0, 0], [0.2, 0], [0.28, 0.15], [0.3, 0.25], [0.27, 0.27]].map(([a, b]) => new THREE.Vector2(a, b)), 12), jarro = new THREE.LatheGeometry([[0, 0], [0.12, 0], [0.2, 0.15], [0.18, 0.35], [0.08, 0.45], [0.1, 0.52], [0, 0.52]].map(([a, b]) => new THREE.Vector2(a, b)), 12);
+    const vime = PMc('palha.jpg', [1, 0.5], 0xc8a060), barroJ = PMc('reboco.jpg', [0.5, 0.5], 0xb86a3a);
+    for (let q = 0; q < 3; q++) { const c = new THREE.Mesh(cesto, vime); c.position.set(-w / 2 + 0.6 + q * (w - 1.2) / 2, 0.91, d / 2 - 0.6); g.add(c);
+      for (let f = 0; f < 3; f++) { const fr = new THREE.Mesh(new THREE.SphereGeometry(0.09, 7, 5), FLORES[(q + f + k) % 4]); fr.position.set(c.position.x + (f - 1) * 0.12, 1.12, c.position.z + (f % 2) * 0.06); g.add(fr); } }
+    for (const sx of [-1, 1]) { const j = new THREE.Mesh(jarro, barroJ); j.position.set(sx * (w / 2 + 0.25), 0, d / 2 + 0.1); j.scale.setScalar(1.6); g.add(j); }
   } else {
     // casa de vila medieval: térreo de pedra, andar de reboco com vigas (enxaimel), telhado de duas águas com beiral,
     // janelas com vidro aceso e venezianas, porta em arco, floreira e chaminé — sem caixa lisa nem telhado de pirâmide
@@ -856,9 +889,11 @@ cortina.onBeforeRender = () => { AGUA_T.offset.y = -time * 1.5; };   // fios de 
 cortina.position.y = 1.65; fountain.add(cortina);
 addOb(VIL.x, VIL.z, 3.4); decor(fountain);
 // Oásis de Kharum
-[[100, 48, '#6a7a80'], [118, 77, '#8a5a44'], [141, 64, '#6a7058'], [142, 42, '#9a7a4a'], [100, 68, null]]
-  .forEach(([x, z, c]) => house(x, z, Math.atan2(OAS.x - x, OAS.z - z), 6, 5, c, 'sand'));
-[[106, 32, '#7a3a2e'], [124, 31, '#3e4e5a'], [131, 34, '#5a4a3a']].forEach(([x, z, c]) => house(x, z, 0, 3.2, 2.4, c, 'tent'));
+{ const oasisG = new THREE.Group(); scene.add(oasisG);
+  [[100, 48, '#6a7a80'], [118, 77, '#8a5a44'], [141, 64, '#6a7058'], [142, 42, '#9a7a4a'], [100, 68, null]]
+    .forEach(([x, z, c]) => oasisG.attach(house(x, z, Math.atan2(OAS.x - x, OAS.z - z), 6, 5, c, 'sand')));
+  [[106, 32, '#7a3a2e'], [124, 31, '#3e4e5a'], [131, 34, '#5a4a3a']].forEach(([x, z, c]) => oasisG.attach(house(x, z, 0, 3.2, 2.4, c, 'tent')));
+  fundir(oasisG); decor(oasisG, 30); }
 // ruínas do Guardião
 for (let i = 0; i < 9; i++) {
   const a = i * TAU / 9, x = RUIN.x + Math.cos(a) * 12, z = RUIN.z + Math.sin(a) * 12, h = rr(2, 6);
@@ -2721,7 +2756,7 @@ function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); }
 setInterval(save, 8000); addEventListener('beforeunload', save);
 
 function start(fromSave) {
-  Audio8.init();
+  Audio8.init(); registrarEnfeites();
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden'); camera.clearViewOffset();
   if (fromSave) {
     const s = loadSave();
