@@ -115,7 +115,20 @@ const Kvx = (() => {
   function nextStart(d = new Date()) { const s = ultimoInicio(d); s.setDate(s.getDate() + 7); return s; }
   function endTime(d = new Date()) { return new Date(ultimoInicio(d).getTime() + HORAS * 3600e3); }
   const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)), dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return dd ? `${dd}d ${h}h ${m}min` : h ? `${h}h ${m}min` : `${m}min ${ss}s`; };
-  const killedThisWeek = () => P.kvxWeek === (forced ? 'teste' : weekId());
+  // horário oficial e quem já derrubou nesta semana: vêm do servidor (todo mundo vê igual)
+  let srv = null, srvT = 0, mortoPor = '';
+  async function sincronizar() {
+    if (typeof Nuvem === 'undefined' || !Nuvem.logado) return;
+    try { const r = await Nuvem.api('GET', '/conta/kvx'); r.dif = r.agora - Date.now(); srv = r; } catch (e) { }
+  }
+  const agoraSrv = () => srv ? Date.now() + srv.dif : Date.now();
+  const semanaAtual = () => forced ? 'teste' : srv ? srv.semana : weekId();
+  const acordadoAgora = () => srv ? agoraSrv() >= srv.inicio && agoraSrv() < srv.fim : windowNow();
+  const fimAgora = () => srv ? srv.fim - srv.dif : endTime().getTime();
+  const proximoAgora = () => srv ? (agoraSrv() < srv.inicio ? srv.inicio : srv.proximo) - srv.dif : nextStart().getTime();
+  const mortoNoServidor = () => !forced && srv && srv.morto;
+  const killedThisWeek = () => P.kvxWeek === semanaAtual() || !!mortoNoServidor();
+  const MIN_DANO = 1500;                                        // só ganha o prêmio quem lutou (0,5% da vida dele)
 
   function init() {
     forced = forcedByLink();
@@ -356,15 +369,25 @@ const Kvx = (() => {
     }
   }
 
-  function curWeek() { return forced ? 'teste' : weekId(); }
+  function curWeek() { return semanaAtual(); }
   function addDmg(d) { const w = curWeek(); if (!P.kvxDmg || P.kvxDmg.w !== w) P.kvxDmg = { w, d: 0 }; P.kvxDmg.d += d; }
   function sharedHp(m) {
     const w = curWeek(), mine = P.kvxDmg && P.kvxDmg.w === w ? P.kvxDmg.d : 0;
     return m.maxHp - mine - Net.kvxOthers(w);
   }
+  // caiu, mas você não lutou o bastante: sem prêmio
+  function caiuSemVoce(por) {
+    boss = null; active = false;
+    banner('☠ KRAVENOX FOI DERROTADO ☠');
+    log(`🏆 <b>Kravenox foi derrotado${por ? ' por ' + por : ''}!</b> Você não lutou o bastante para ganhar o prêmio (é preciso causar pelo menos ${MIN_DANO.toLocaleString('pt-BR')} de dano). Ele volta no próximo sábado, às 20h.`, 'sys');
+    allies.forEach(al => { scene.remove(al.g); al.lab.remove(); }); allies = [];
+    teles.forEach(t => { scene.remove(t.fill); scene.remove(t.edge); }); teles = [];
+    panel();
+  }
   function onKill(m) {
     boss = null; active = false;
-    P.kvxWeek = forced ? 'teste' : weekId(); P.kvxKills = (P.kvxKills || 0) + 1;
+    P.kvxWeek = semanaAtual(); P.kvxKills = (P.kvxKills || 0) + 1;
+    if (!forced && typeof Nuvem !== 'undefined') Nuvem.api('POST', '/conta/kvx/morto', { semana: P.kvxWeek, nome: P.name }).then(r => { srv = { ...srv, ...r, dif: r.agora - Date.now() }; }).catch(() => { });
     P.title = 'Matador de Kravenox';
     $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
     banner('🏆 KRAVENOX FOI DERROTADO! 🏆');
@@ -386,16 +409,27 @@ const Kvx = (() => {
 
   // ---------------- laço
   function update(dt) {
-    checkT -= dt;
+    checkT -= dt; srvT -= dt;
+    if (srvT <= 0) { srvT = acordadoAgora() || (srv && proximoAgora() - Date.now() < 120e3) ? 20 : 120; sincronizar(); }
     if (checkT <= 0) {
       checkT = 1;
-      const should = (forced || windowNow()) && !killedThisWeek();
+      if (boss && !boss.dead && mortoNoServidor() && P.kvxWeek !== semanaAtual()) {        // outro grupo derrubou: ele some para todos
+        mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); caiuSemVoce(srv.morto.por);
+      }
+      const should = (forced || acordadoAgora()) && !killedThisWeek();
       if (should && !boss) wake();
       if (!should && boss && !forced) sleep('🌑 Deu 2h da manhã: Kravenox voltou a dormir. Só no próximo sábado, às 20h.');
       panel();
     }
     if (boss && boss.dead) boss = null;
-    if (boss) { boss.hp = Math.min(boss.maxHp, sharedHp(boss)); if (boss.hp <= 0 && !boss.dead) { boss.hp = 0; killMob(boss); } }
+    if (boss) {
+      boss.hp = Math.min(boss.maxHp, sharedHp(boss));
+      if (boss.hp <= 0 && !boss.dead) {
+        boss.hp = 0; const meu = P.kvxDmg && P.kvxDmg.w === semanaAtual() ? P.kvxDmg.d : 0;
+        if (meu >= MIN_DANO || forced) killMob(boss);                                   // lutou: prêmio
+        else { const b = boss; killMob(b, { semPremio: true }); caiuSemVoce(''); }      // só estava por perto: sem prêmio
+      }
+    }
     updateAllies(dt); updateTeles(dt);
     // rótulos dos aliados
     for (const al of allies) {
@@ -418,11 +452,11 @@ const Kvx = (() => {
     const el = $('kvx'); if (!el) return;
     let body;
     if (boss) {
-      const left = forced ? 'modo teste' : `termina em ${fmt(endTime() - new Date())}`;
+      const left = forced ? 'modo teste' : `termina em ${fmt(fimAgora() - Date.now())}`;
       const onRoof = inTower(P.z) && Tower.floor === TOP;
       body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Você está no topo. Derrube o Soberano!' : '📍 Topo da Torre do Cisma — Cidadela do Cisma, extremo leste (caveira no minimapa)'}`;
-    } else if (killedThisWeek()) body = `✅ Derrotado esta semana!<br>Próximo despertar em <b>${fmt(nextStart() - new Date())}</b>`;
-    else body = `Desperta todo <b>sábado às 20h</b> e fica acordado <b>6 horas</b> (até as 2h)<br>Faltam <b>${fmt(nextStart() - new Date())}</b>`;
+    } else if (killedThisWeek()) body = `✅ Derrotado esta semana${mortoNoServidor() ? ` por <b>${srv.morto.por}</b>` : ''}!<br>Próximo despertar em <b>${fmt(proximoAgora() - Date.now())}</b>`;
+    else body = `Desperta todo <b>sábado às 20h</b> (horário de Brasília) e fica acordado <b>6 horas</b> (até as 2h)<br>Faltam <b>${fmt(proximoAgora() - Date.now())}</b>`;
     const html = `<div class="wt">☠ Kravenox</div><div class="wb">${body}</div>`;
     if (html !== lastMsg) { el.innerHTML = html; lastMsg = html; }
     el.classList.toggle('live', !!boss);

@@ -72,6 +72,16 @@ async function hashSenha(senha, sal) {
   return hex(bits);
 }
 
+// ---------------- Kravenox: acorda todo sábado às 20h (horário de Brasília, UTC-3) e fica 6 horas
+const BR = 3 * 3600e3, DIA_KVX = 6, HORA_KVX = 20, HORAS_KVX = 6;
+function kvxAgora(t = Date.now()) {
+  const d = new Date(t - BR);                                    // "relógio de Brasília" nos campos UTC
+  const s = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), HORA_KVX));
+  s.setUTCDate(s.getUTCDate() - ((s.getUTCDay() - DIA_KVX + 7) % 7)); if (s > d) s.setUTCDate(s.getUTCDate() - 7);   // último sábado 20h
+  const inicio = s.getTime() + BR, fim = inicio + HORAS_KVX * 3600e3;
+  return { agora: t, acordado: t < fim, inicio, fim, proximo: inicio + 7 * 86400e3, semana: `${s.getUTCFullYear()}-${s.getUTCMonth() + 1}-${s.getUTCDate()}` };
+}
+
 export class Contas {
   constructor(state) {
     this.sql = state.storage.sql;
@@ -83,6 +93,7 @@ export class Contas {
       CREATE TABLE IF NOT EXISTS membros (nome TEXT PRIMARY KEY, exibe TEXT, guilda INTEGER, cargo TEXT, entrou INTEGER);
       CREATE TABLE IF NOT EXISTS convites (nome TEXT, guilda INTEGER, de TEXT, quando INTEGER, PRIMARY KEY (nome, guilda));`);
     try { this.sql.exec("ALTER TABLE guildas ADD COLUMN xp INTEGER DEFAULT 0"); } catch (e) { }      // XP da guilda (nível 1 a 10)
+    this.sql.exec("CREATE TABLE IF NOT EXISTS kvx (semana TEXT PRIMARY KEY, por TEXT, quando INTEGER)");   // quem derrubou o Kravenox em cada semana
   }
   um(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
   quem(req) {
@@ -238,6 +249,15 @@ export class Contas {
         }
       }
       if (p[0] === "guilda") return this.guilda(req, usuario, p.slice(1), await corpo());
+      if (p[0] === "kvx") {                                          // Kravenox: horário oficial (Brasília) e quem já derrubou nesta semana
+        const k = kvxAgora();
+        if (p[1] === "morto" && req.method === "POST") {
+          const b = await corpo();
+          if (k.acordado && b.semana === k.semana) this.sql.exec("INSERT OR IGNORE INTO kvx (semana, por, quando) VALUES (?, ?, ?)", k.semana, String(b.nome || "?").slice(0, 16), Date.now());
+        }
+        const m = this.um("SELECT por, quando FROM kvx WHERE semana = ?", k.semana);
+        return json({ ...k, morto: m });
+      }
       if (p[0] === "nome" && req.method === "POST") {                // reserva o nome do personagem (único no mundo)
         const b = await corpo(), nome = String(b.nome || "").trim().replace(/\s+/g, " ").slice(0, 16), low = nome.toLowerCase(), vaga = Number(b.vaga) || 0;
         if (nome.length < 2) return json({ erro: "Nome curto demais." }, 400);
