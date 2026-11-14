@@ -272,6 +272,43 @@ function mesh(geo, mat, x = 0, y = 0, z = 0, parent = null, shadow = true) {
   (parent || scene).add(m); return m;
 }
 
+// junta as peças de um objeto (casa, quiosque…) que usam o mesmo material numa peça só: o celular desenha
+// uma vez por material em vez de uma vez por peça (casas detalhadas sem pesar)
+// materiais compartilhados (mesma textura e cor = mesmo material): permite juntar peças de várias casas
+const MATC = {};
+const PMc = (n, rep, c = 0xffffff, o) => { const k = n + rep + (c.isColor ? c.getHex() : c) + JSON.stringify(o || {}); return MATC[k] || (MATC[k] = PM(n, rep, c, o)); };
+const FLORES = [0xff6a8a, 0xffd040, 0xc070ff, 0xff8a40].map(c => new THREE.MeshLambertMaterial({ color: c }));
+const VIDRO = new THREE.MeshBasicMaterial({ color: 0xffd890, toneMapped: false });
+function fundir(grupo) {
+  grupo.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(grupo.matrixWorld).invert(), porMat = new Map(), tirar = [];
+  grupo.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || o === grupo || Array.isArray(o.material) || !o.geometry.attributes.uv) return;
+    const geo = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
+    for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
+    geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)); geo.clearGroups();
+    if (!porMat.has(o.material)) porMat.set(o.material, []); porMat.get(o.material).push(geo); tirar.push(o);
+  });
+  for (const o of tirar) o.parent.remove(o);
+  for (const [mat, geos] of porMat) {
+    const n = geos.reduce((t, g) => t + g.attributes.position.count, 0), pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+    let i = 0; for (const g of geos) { pos.set(g.attributes.position.array, i * 3); nor.set(g.attributes.normal.array, i * 3); uv.set(g.attributes.uv.array, i * 2); i += g.attributes.position.count; g.dispose(); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.computeBoundingSphere(); const m = new THREE.Mesh(geo, mat); m.castShadow = !mat.transparent && !mat.isMeshBasicMaterial; m.receiveShadow = true; grupo.add(m);
+  }
+  // os grupos que ficaram vazios (janelas etc.) saem
+  for (const c of [...grupo.children]) if (c.isGroup && !c.children.length) grupo.remove(c);
+  return grupo;
+}
+// enfeites longe demais (além da névoa) não são desenhados: cada lugar só aparece quando você está perto
+const DECOR = [];
+function decor(g, folga = 0) { const c = new THREE.Box3().setFromObject(g).getCenter(new THREE.Vector3()); g.userData.dc = c; g.userData.df = folga; DECOR.push(g); return g; }
+let decorT = 0;
+function decorTick(dt) {
+  if ((decorT -= dt) > 0) return; decorT = 0.5;
+  const fora = inTower(P.z) || inVal(P.z);
+  for (const g of DECOR) g.visible = !fora && Math.hypot(g.userData.dc.x - P.x, g.userData.dc.z - P.z) < 190 + g.userData.df;
+}
 // ---------------------------------------------------------------- mundo
 const WX = 220, WZ = 90;
 const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 }, LAIR = { x: -20, z: -64 };
@@ -753,32 +790,71 @@ function house(x, z, rot, w, d, roofC, style) {
     mesh(new THREE.BoxGeometry(w - 0.4, 0.8, 1), M(0xd9c39a), 0, 0.4, d / 2 - 0.6, g);
     ['#8a4a3a', '#a08040', '#5a6a40', '#9a6a3a'].forEach((c, i) => mesh(new THREE.SphereGeometry(0.2, 6, 5), M(c), -w / 2 + 0.8 + i * (w - 1.6) / 3, 0.95, d / 2 - 0.6, g));
   } else {
-    mesh(new THREE.BoxGeometry(w, 1.3, d), PM('pedra.jpg', [w / 2, 0.65], 0xa8a090), 0, 0.65, 0, g);                       // base de pedra
-    mesh(new THREE.BoxGeometry(w - 0.1, 1.6, d - 0.1), PM('reboco.jpg', [1, 0.4], 0xb8ab94), 0, 2.1, 0, g);         // reboco
-    const beam = PM('madeira.jpg', [0.25, 1], 0x6a5040);
-    [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.28, 2.9, 0.28), beam, a * w / 2, 1.45, b * d / 2, g)));
-    [-1, 1].forEach(b => { mesh(new THREE.BoxGeometry(w + 0.1, 0.22, 0.22), beam, 0, 1.35, b * d / 2, g); mesh(new THREE.BoxGeometry(w + 0.1, 0.22, 0.22), beam, 0, 2.85, b * d / 2, g); });
-    [-1, 1].forEach(a => { const x = mesh(new THREE.BoxGeometry(0.16, 1.9, 0.16), beam, a * w / 4, 2.1, d / 2 + 0.02, g); x.rotation.z = a * 0.6; });
-    const thatch = (Math.round(x * 7 + z) & 1) === 0;
-    const roof = mesh(new THREE.ConeGeometry(Math.hypot(w, d) / 2 + 0.7, 2.6, 4), PM(thatch ? 'palha.jpg' : 'telha.jpg', thatch ? [3, 1.5] : [4, 2], thatch ? 0xb0a080 : new THREE.Color(roofC).lerp(new THREE.Color(0xffffff), 0.55).multiplyScalar(1.5).getHex()), 0, 4.1, 0, g); roof.rotation.y = Math.PI / 4;
-    mesh(new THREE.BoxGeometry(0.7, 1.9, 0.7), PM('pedra.jpg', [0.4, 1], 0x9a9284), w / 4, 4.4, -d / 5, g);
-    smokes.push(new THREE.Vector3(x, 0, z).add(new THREE.Vector3(w / 4, 5, -d / 5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot)).setY(groundY(x, z) + 5.1));
-    mesh(new THREE.BoxGeometry(1.1, 2.0, 0.12), PM('madeira.jpg', [0.5, 1], 0x7a5a40), 0, 1.0, d / 2 + 0.05, g, false);
-    [-w / 2 + 1.1, w / 2 - 1.1].forEach(wx => { mesh(new THREE.BoxGeometry(0.8, 0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0x3a2a14 }), wx, 2.1, d / 2 + 0.04, g, false); mesh(new THREE.BoxGeometry(0.95, 0.12, 0.2), beam, wx, 1.66, d / 2 + 0.1, g, false); });
+    // casa de vila medieval: térreo de pedra, andar de reboco com vigas (enxaimel), telhado de duas águas com beiral,
+    // janelas com vidro aceso e venezianas, porta em arco, floreira e chaminé — sem caixa lisa nem telhado de pirâmide
+    const k = Math.abs(Math.round(x * 7 + z)) % 4, thatch = (k & 1) === 0;
+    const pedra = PMc('pedra.jpg', [w / 2, 0.8], 0xc8bca8), reb = PMc('reboco.jpg', [1.2, 0.8], 0xeadcc0), beam = PMc('madeira.jpg', [0.25, 1], 0x5a4030);
+    const H1 = 1.7, H2 = 1.7, RH = 2.4;
+    mesh(new THREE.BoxGeometry(w, H1, d), pedra, 0, H1 / 2, 0, g);
+    mesh(new THREE.BoxGeometry(w + 0.2, 0.22, d + 0.2), PMc('pedra.jpg', [2, 0.2], 0x9a907e), 0, 0.11, 0, g, false);
+    mesh(new THREE.BoxGeometry(w + 0.3, H2, d + 0.3), reb, 0, H1 + H2 / 2, 0, g);
+    mesh(new THREE.BoxGeometry(w + 0.45, 0.22, d + 0.45), beam, 0, H1 + 0.02, 0, g, false); mesh(new THREE.BoxGeometry(w + 0.45, 0.2, d + 0.45), beam, 0, H1 + H2, 0, g, false);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) mesh(new THREE.BoxGeometry(0.2, H2, 0.2), beam, sx * (w / 2 + 0.17), H1 + H2 / 2, sz * (d / 2 + 0.17), g, false);
+    for (const f of [1, -1]) for (const dx of [-1, 1]) { const b = mesh(new THREE.BoxGeometry(0.14, H2 * 1.12, 0.1), beam, dx * w * 0.3, H1 + H2 / 2, f * (d / 2 + 0.18), g, false); b.rotation.z = dx * 0.55; }
+    // telhado de duas águas (prisma) com beiral e as empenas de reboco
+    const tri = (W, Hh) => { const sh = new THREE.Shape(); sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(0, Hh); sh.closePath(); return sh; };
+    const tg = new THREE.ExtrudeGeometry(tri(w + 1.3, RH + 0.3), { depth: d + 1.1, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2 }); tg.translate(0, 0, -(d + 1.1) / 2);
+    const roof = new THREE.Mesh(tg, PMc(thatch ? 'palha.jpg' : 'telha.jpg', thatch ? [1.4, 1.4] : [1.6, 1.6], thatch ? 0xc8b088 : 0xa85a44)); roof.position.y = H1 + H2 - 0.05; roof.castShadow = true; g.add(roof);
+    for (const f of [1, -1]) { const em = new THREE.Mesh(new THREE.ShapeGeometry(tri(w + 0.3, RH * 0.92)), reb); em.position.set(0, H1 + H2 + 0.05, f * (d / 2 + 0.16)); if (f < 0) em.rotation.y = Math.PI; g.add(em); }
+    // chaminé de pedra
+    mesh(new THREE.BoxGeometry(0.7, RH + 1.4, 0.7), PMc('pedra.jpg', [0.4, 1], 0x9a9284), w / 4, H1 + H2 + RH / 2 + 0.3, -d / 5, g);
+    mesh(new THREE.BoxGeometry(0.85, 0.18, 0.85), PMc('pedra.jpg', [0.4, 1], 0x9a9284), w / 4, H1 + H2 + RH + 1.05, -d / 5, g, false);
+    smokes.push(new THREE.Vector3(x, 0, z).add(new THREE.Vector3(w / 4, H1 + H2 + RH + 1.2, -d / 5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot)).setY(groundY(x, z) + H1 + H2 + RH + 1.3));
+    // porta em arco com moldura de pedra e degrau
+    const ap = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.55, 0); sh.lineTo(-0.55, 1.45); sh.absarc(0, 1.45, 0.55, Math.PI, 0, true); sh.lineTo(0.55, 0); sh.closePath(); return sh; })();
+    const porta = new THREE.Mesh(new THREE.ShapeGeometry(ap, 12), PMc('madeira.jpg', [0.6, 1], 0x6a4a30)); porta.position.set(-w / 5, 0.05, d / 2 + 0.02); g.add(porta);
+    const mold = new THREE.Mesh(new THREE.ExtrudeGeometry((() => { const sh = new THREE.Shape(); sh.moveTo(-0.8, 0); sh.lineTo(-0.8, 1.45); sh.absarc(0, 1.45, 0.8, Math.PI, 0, true); sh.lineTo(0.8, 0); sh.closePath(); sh.holes.push(new THREE.Path(ap.getPoints(12))); return sh; })(), { depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2, curveSegments: 12 }), PMc('pedra.jpg', [0.5, 0.5], 0xb0a690));
+    mold.position.set(-w / 5, 0.05, d / 2 - 0.02); g.add(mold);
+    mesh(new THREE.CylinderGeometry(0.9, 0.95, 0.16, 16, 1, false, -Math.PI / 2, Math.PI), PMc('pedra.jpg', [2, 0.2], 0x9a907e), -w / 5, 0.08, d / 2 + 0.05, g, false);
+    // janelas: vidro aceso, moldura, venezianas abertas e floreira
+    const vidro = VIDRO, venM = PMc('madeira.jpg', [0.3, 0.6], [0x4a6a5a, 0x6a4a3a, 0x3a4a6a, 0x5a5a3a][k]);
+    const janela = (px, py, pz, ry) => {
+      const jg = new THREE.Group(); jg.position.set(px, py, pz); jg.rotation.y = ry; g.add(jg);
+      const v = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.78), vidro); jg.add(v);
+      for (const [sw, sh2, ox, oy] of [[0.78, 0.08, 0, 0.43], [0.78, 0.08, 0, -0.43], [0.08, 0.86, 0.35, 0], [0.08, 0.86, -0.35, 0], [0.04, 0.78, 0, 0], [0.62, 0.04, 0, 0.05]]) { const fr = new THREE.Mesh(new THREE.BoxGeometry(sw, sh2, 0.06), beam); fr.position.set(ox, oy, 0.03); jg.add(fr); }
+      for (const sx of [-1, 1]) { const vn = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.8, 0.04), venM); vn.position.set(sx * 0.58, 0, 0.12); vn.rotation.y = sx * -0.5; jg.add(vn); }
+      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.14, 0.2), beam); fl.position.set(0, -0.5, 0.12); jg.add(fl);
+      for (let i = 0; i < 4; i++) { const fo = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4), FLORES[(i + k) % 4]); fo.position.set(-0.27 + i * 0.18, -0.38, 0.14); jg.add(fo); }
+    };
+    janela(w / 5 + 0.1, 1.0, d / 2 + 0.03, 0);
+    for (const f of [1, -1]) janela(f * w * 0.25, H1 + H2 / 2, f > 0 ? d / 2 + 0.19 : -(d / 2 + 0.19), f > 0 ? 0 : Math.PI);
+    for (const f of [1, -1]) janela(f * (w / 2 + 0.19), H1 + H2 / 2, 0, f * Math.PI / 2);
   }
   addOb(x, z, Math.max(w, d) / 2 + 0.3);
   return g;
 }
 // Vila de Solmira
-[[-125, -22, '#7a5546'], [-105, -30, '#5a5e64'], [-84, -24, '#6e5a44'], [-127, 22, '#4e545a'], [-104, 30, '#7a5a40'], [-84, 22, '#5e5048'], [-135, -6, '#585e5e']]
-  .forEach(([x, z, c]) => house(x, z, Math.atan2(VIL.x - x, VIL.z - z), 5, 4.5, c, 'wood'));
-// chafariz
+{ // as 7 casas viram um conjunto só por material (a vila inteira em poucas chamadas de desenho)
+  const casas = new THREE.Group(); scene.add(casas);
+  [[-125, -22, '#7a5546'], [-105, -30, '#5a5e64'], [-84, -24, '#6e5a44'], [-127, 22, '#4e545a'], [-104, 30, '#7a5a40'], [-84, 22, '#5e5048'], [-135, -6, '#585e5e']]
+    .forEach(([x, z, c]) => casas.attach(house(x, z, Math.atan2(VIL.x - x, VIL.z - z), 5, 4.5, c, 'wood')));
+  fundir(casas); decor(casas, 30);
+}
+// chafariz de pedra torneada: bacia com borda arredondada, pé esculpido e taça de onde a água cai
 const fountain = new THREE.Group(); fountain.position.set(VIL.x, 0, VIL.z); scene.add(fountain);
-mesh(new THREE.CylinderGeometry(3.2, 3.4, 0.7, 24), PM('pedra.jpg', [8, 0.5], 0xb0a898), 0, 0.35, 0, fountain);
-mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.1, 24), waterMat, 0, 0.66, 0, fountain, false);
-mesh(new THREE.CylinderGeometry(0.4, 0.5, 2.2, 10), TM(TEX.stone, [1, 1]), 0, 1.4, 0, fountain);
-mesh(new THREE.CylinderGeometry(1.2, 0.8, 0.35, 16), TM(TEX.stone, [3, 0.3]), 0, 2.5, 0, fountain);
-addOb(VIL.x, VIL.z, 3.4);
+const V2 = (a, b) => new THREE.Vector2(a, b), pedraF = PM('pedra.jpg', [6, 1], 0xd0c8b8);
+const bacia = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 0), V2(3.4, 0), V2(3.45, 0.1), V2(3.5, 0.55), V2(3.38, 0.72), V2(3.2, 0.78), V2(3.0, 0.7), V2(2.95, 0.4), V2(0, 0.4)], 40), pedraF); bacia.castShadow = true; bacia.receiveShadow = true; fountain.add(bacia);
+mesh(new THREE.CylinderGeometry(2.95, 2.95, 0.05, 32), waterMat, 0, 0.62, 0, fountain, false);
+const pe = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 0.4), V2(0.75, 0.4), V2(0.7, 0.6), V2(0.45, 0.8), V2(0.38, 1.4), V2(0.32, 1.9), V2(0.42, 2.1), V2(0.3, 2.25), V2(0, 2.25)], 24), pedraF); pe.castShadow = true; fountain.add(pe);
+const taca = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 2.2), V2(0.3, 2.25), V2(1.1, 2.45), V2(1.35, 2.7), V2(1.3, 2.8), V2(1.15, 2.72), V2(0, 2.6)], 32), pedraF); taca.castShadow = true; fountain.add(taca);
+mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.04, 24), waterMat, 0, 2.7, 0, fountain, false);
+const ponta = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 2.6), V2(0.16, 2.6), V2(0.12, 3.1), V2(0.2, 3.25), V2(0, 3.5)], 16), pedraF); fountain.add(ponta);
+// cortina de água caindo da taça para a bacia
+const AGUA_T = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 64; const g = c.getContext('2d'); for (let i = 0; i < 24; i++) { const x = (i * 37) % 64, a = 0.15 + ((i * 13) % 10) / 25; g.fillStyle = `rgba(220,240,255,${a})`; g.fillRect(x, 0, 1 + (i % 2), 64); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 1); return t; })();
+const cortina = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.6, 2.1, 32, 1, true), new THREE.MeshBasicMaterial({ map: AGUA_T, color: 0xbfe6ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+cortina.onBeforeRender = () => { AGUA_T.offset.y = -time * 1.5; };   // fios de água descendo
+cortina.position.y = 1.65; fountain.add(cortina);
+addOb(VIL.x, VIL.z, 3.4); decor(fountain);
 // Oásis de Kharum
 [[100, 48, '#6a7a80'], [118, 77, '#8a5a44'], [141, 64, '#6a7058'], [142, 42, '#9a7a4a'], [100, 68, null]]
   .forEach(([x, z, c]) => house(x, z, Math.atan2(OAS.x - x, OAS.z - z), 6, 5, c, 'sand'));
@@ -1759,7 +1835,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });

@@ -63,18 +63,22 @@ const Tower = (() => {
     box(0.8, RH + 1.2, 0.8, pedraE, W / 4, H1 + H2 + RH / 2 + 0.3, -D / 5);
     box(1.0, 0.2, 1.0, pedraE, W / 4, H1 + H2 + RH + 0.95, -D / 5, false);
     addOb(x, z, Math.max(W, D) / 2 + 0.6);
+    return g;
   }
-  [[CIT.x - 16, CIT.z - 8], [CIT.x - 18, CIT.z + 14], [CIT.x + 16, CIT.z + 14], [CIT.x + 18, CIT.z - 6], [CIT.x - 2, CIT.z + 20]].forEach(([x, z], k) => casaCisma(x, z, k));
+  { const casasC = new THREE.Group(); scene.add(casasC);
+    [[CIT.x - 16, CIT.z - 8], [CIT.x - 18, CIT.z + 14], [CIT.x + 16, CIT.z + 14], [CIT.x + 18, CIT.z - 6], [CIT.x - 2, CIT.z + 20]].forEach(([x, z], k) => casasC.attach(casaCisma(x, z, k)));
+    fundir(casasC); decor(casasC, 30); }
   // cristais da Essência pela cidade: aglomerados de pontas de seis lados saindo de uma pedra (nada de losango liso)
   const CRISTAL = new THREE.LatheGeometry([new THREE.Vector2(0, 0), new THREE.Vector2(0.32, 0), new THREE.Vector2(0.34, 1.6), new THREE.Vector2(0.26, 1.9), new THREE.Vector2(0, 2.4)], 6);
   const crisM = new THREE.MeshPhongMaterial({ color: 0x9a5aff, emissive: 0x4a1490, specular: 0xffe0ff, shininess: 90, flatShading: true, transparent: true, opacity: 0.92 });
   const rochaG = new THREE.IcosahedronGeometry(1, 1); { const ps = rochaG.attributes.position; for (let i = 0; i < ps.count; i++) { const k = 0.8 + 0.35 * Math.sin(ps.getX(i) * 5.1 + ps.getZ(i) * 3.3) * Math.cos(ps.getY(i) * 4.2); ps.setXYZ(i, ps.getX(i) * k, ps.getY(i) * k * 0.6, ps.getZ(i) * k); } rochaG.computeVertexNormals(); }
   const rochaM = PM('rocha.jpg', [1, 1], 0x6a6272);
   const brilhoC = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,.8)'); r.addColorStop(0.35, 'rgba(255,255,255,.25)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+  const cristaisG = new THREE.Group(); scene.add(cristaisG);
   for (let i = 0; i < 14; i++) {
     const a = i / 14 * TAU, r = 25 + (i % 3) * 3, x = CIT.x + Math.cos(a) * r, z = CIT.z + Math.sin(a) * r;
     if (Math.hypot(x - TOWER.x, z - TOWER.z) < 14 || Math.abs(z) < 4) continue;
-    const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = a * 3.7; scene.add(g);
+    const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = a * 3.7; cristaisG.add(g);
     const rc = new THREE.Mesh(rochaG, rochaM); rc.scale.set(1.3, 1, 1.1); rc.position.y = 0.2; rc.castShadow = true; g.add(rc);
     const n = 4 + (i % 3);
     for (let k = 0; k < n; k++) {
@@ -84,6 +88,7 @@ const Tower = (() => {
     const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilhoC, color: 0xa060ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.5 })); gl.position.y = 1.4; gl.scale.setScalar(4); g.add(gl);
     addOb(x, z, 1.0);
   }
+  fundir(cristaisG); decor(cristaisG, 30);
 
   // ---------------- Torre do Cisma (exterior): peça única lisa e afinando (perfil torneado), cornijas arredondadas,
   // contrafortes, janelas em ogiva acesas e coroa de espinhos curvos — nada de caixas
@@ -182,6 +187,7 @@ const Tower = (() => {
   const pl = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.98), new THREE.MeshLambertMaterial({ map: placa })); pl.position.set(0, 12.0, dz - 0.4); ext.add(pl);
   addOb(TOWER.x, TOWER.z, 10.4); for (const sx of [-1, 1]) addOb(TOWER.x + sx * 3.4, TOWER.z + dz + 0.4, 1.0);
   const DOOR = { x: TOWER.x, z: TOWER.z + dz + 1.2 };
+  decor(ext, 120);                                              // a torre alta aparece de mais longe
 
   // ---------------- andares (fora do mapa, em z ≈ 420)
   const ctex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
