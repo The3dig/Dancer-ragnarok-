@@ -146,7 +146,8 @@ const Kvx = (() => {
     boss = spawnMob('kravenox', null, { x: AR().x, z: AR().z - 6 });
     boss.sx = AR().x; boss.sz = AR().z - 6; boss.face = 0; boss.state = 'idle'; boss.specT = 5; boss.addT = 20; boss.meleeT = 2;
     active = true;
-    banner('☠ KRAVENOX DESPERTOU ☠');
+    const jaEstava = srv && agoraSrv() - srv.inicio > 90e3;               // quem entra depois das 20h: aviso grande de que ele ESTÁ acordado
+    banner(jaEstava ? '☠ KRAVENOX ESTÁ ACORDADO ☠' : '☠ KRAVENOX DESPERTOU ☠');
     Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 300);
     log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> no topo da Torre do Cisma! Todos os aventureiros estão subindo!', 'bad');
     log('📍 Ele está no <b>topo da Torre do Cisma</b>, na Cidadela do Cisma (extremo leste). Suba os 30 andares!', 'gold');
@@ -455,9 +456,9 @@ const Kvx = (() => {
     if (boss) {
       const left = forced ? 'modo teste' : `termina em ${fmt(fimAgora() - Date.now())}`;
       const onRoof = inTower(P.z) && Tower.floor === TOP;
-      body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Você está no topo. Derrube o Soberano!' : '📍 Topo da Torre do Cisma — Cidadela do Cisma, extremo leste (caveira no minimapa)'}`;
+      body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Derrube o Soberano!' : '📍 Topo da Torre do Cisma'}`;
     } else if (killedThisWeek()) body = `✅ Derrotado esta semana${mortoNoServidor() ? ` por <b>${srv.morto.por}</b>` : ''}!<br>Próximo despertar em <b>${fmt(proximoAgora() - Date.now())}</b>`;
-    else body = `Desperta todo <b>sábado às 20h</b> (horário de Brasília) e fica acordado <b>6 horas</b> (até as 2h)<br>Faltam <b>${fmt(proximoAgora() - Date.now())}</b>`;
+    else body = `Sábado, 20h às 2h (Brasília)<br>Faltam <b>${fmt(proximoAgora() - Date.now())}</b>`;
     const html = `<div class="wt">☠ Kravenox</div><div class="wb">${body}</div>`;
     if (html !== lastMsg) { el.innerHTML = html; lastMsg = html; }
     el.classList.toggle('live', !!boss);

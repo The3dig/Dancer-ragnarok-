@@ -1534,7 +1534,9 @@ function railTick(dt) {
   const live = typeof Kvx !== 'undefined' && Kvx.active;
   set('kvx', live ? '!' : '');
   const kv = $('kvx');
-  if (kv) { const show = P.ui.kvx || live; kv.style.display = show ? '' : 'none'; if (show) { const rr = r.getBoundingClientRect(); kv.style.top = (rr.bottom + 6) + 'px'; kv.style.left = rr.left + 'px'; kv.style.transform = 'none'; kv.style.width = '190px'; } }
+  r.querySelector('[data-p="kvx"]').classList.toggle('vivo', !!live);                 // ☠ pisca vermelho enquanto ele está acordado
+  // o quadro do Kravenox só abre quando você toca no ☠ (antes ficava aberto, grande, o tempo todo)
+  if (kv) { const show = !!P.ui.kvx; kv.style.display = show ? '' : 'none'; if (show) { const rr = r.getBoundingClientRect(); kv.style.top = (rr.bottom + 6) + 'px'; kv.style.left = rr.left + 'px'; kv.style.transform = 'none'; kv.style.width = ''; } }
 }
 function hurtFlash(k) {
   let el = $('hurtfx'); if (!el) { el = document.createElement('div'); el.id = 'hurtfx'; document.body.appendChild(el); }

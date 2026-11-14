@@ -623,3 +623,13 @@ body.touch #bossbar { top: 44px; width: 40vw; } body.touch #bossbar .kn { font-s
 #guildwin .gw-nivel small { color: #b8a8c8; white-space: nowrap; }
 #guildwin .gw-vant div { padding: 2px 0; } #guildwin .gw-vant .off { opacity: .5; }
 #guildwin .gw-agora { margin-top: 6px; padding: 6px 8px; background: rgba(106,255,154,.08); border: 1px solid rgba(106,255,154,.3); border-radius: 8px; color: #c8ffd8; }
+/* Kravenox: o ☠ pisca enquanto ele está acordado; o quadro só abre ao tocar e é pequeno */
+#rail button.vivo { border-color: #ff4a4a; animation: kvxpulse 1s infinite; }
+#kvx { width: auto !important; max-width: 180px; }
+#kvx .wt { padding: 3px 8px; font-size: 11px; }
+#kvx .wb { padding: 4px 8px 6px; line-height: 1.3; }
+body.touch #kvx { font-size: 9px; max-width: 150px; } body.touch #kvx .wt { font-size: 9px; padding: 2px 6px; } body.touch #kvx .wb { padding: 3px 6px 4px; }
+/* quadro pequeno da evolução (⭐) do mesmo tamanho do do Kravenox */
+body.touch #evocard.mini { font-size: 8.5px; max-width: 160px; } body.touch #evocard.mini .wt { font-size: 8.5px; }
+/* aviso de evolução no alto: menor no celular deitado */
+@media (max-height: 470px) { body.touch #evocard:not(.mini) { font-size: 9px; padding: 3px 9px; max-width: 38vw; } }
