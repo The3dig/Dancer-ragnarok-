@@ -1166,6 +1166,8 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
   { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  // Nosferatur: menino da Vila de Solmira (pedido do Rone, nome escrito assim mesmo)
+  { id: 'nosferatur', name: 'Nosferatur', crianca: true, x: VIL.x - 4.5, z: VIL.z + 3.5, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
   // Clareira de Lira (Floresta Morta)
   { id: 'lira', name: 'Lira', x: FCLAR.x - 4, z: FCLAR.z - 5, look: [0x2a2430, 0x0a0a0a, 'veil'] },
   { id: 'healer', name: 'Eremita Odila', x: FCLAR.x + 5, z: FCLAR.z - 4, look: [0xd8d0c0, 0x8a8a8a, 'veil'] },
@@ -1184,7 +1186,7 @@ const NPCS = [
   { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1249,6 +1251,7 @@ function bangSprite() {
 for (const n of NPCS) {
   const [cloth, hair, hat] = n.look;
   const g = new THREE.Group(); g.position.set(n.x, groundY(n.x, n.z), n.z); scene.add(g);
+  if (n.crianca) g.scale.setScalar(0.62);                                       // criança: bem menor que os adultos
   g.rotation.y = Math.atan2(VIL.x - n.x, VIL.z - n.z) + (n.x > 0 ? Math.PI : 0);
   mesh(new THREE.CylinderGeometry(0.2, 0.36, 1.2, 10), toon(cloth), 0, 0.6, 0, g);
   mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.25, 10), toon(cloth), 0, 1.3, 0, g);
@@ -2719,6 +2722,17 @@ function talkBase(n) {
       shop(); break;
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
+    case 'nosferatur': {
+      const falas = ['Eu sou o <b>Nosferatur</b>! O terror da Vila de Solmira! ...Tá bom, eu só tenho um pouquinho de medo do escuro.',
+        'Shhh! Tô escondido da minha mãe. Se ela perguntar, você não me viu, tá?',
+        `Quando eu crescer vou subir os <b>trinta andares</b> da Torre do Cisma. Você já subiu, ${eu}? Conta como é lá em cima!`,
+        'Você já viu o <b>Kravenox</b>? Eu não tenho medo dele. Quase nada. Só um pouco. De noite.',
+        'Sabia que na Praia de Cômodo tem um farol que nunca apaga? Um dia eu vou lá pescar uma pérola.',
+        'Eu treino com espada de madeira todo dia atrás da fonte. Olha: zás! zás! ...ai, bati no meu pé.'];
+      let txt = falas[Math.floor(Math.random() * falas.length)];
+      if (!P.nosfe) { P.nosfe = 1; P.inv.maca = (P.inv.maca || 0) + 3; txt += '<br><br>Toma, pega essas <b>3 Maçãs Silvestres</b>. É pra você não ficar com fome na aventura!'; Audio8.sfx('pick'); }
+      dialog(`💬 ${n.name}`, txt, [{ label: 'Valeu, Nosferatur!' }]); break;
+    }
     case 'pescador': case 'faroleira': if (typeof Praia !== 'undefined') Praia.talk(n); break;
     case 'lira': dialog(nm, `— Essa pergunta é engraçada vindo de você, <b>${eu}</b>.<br>As árvores contam tudo. Algumas coisas continuam falando depois de morrer.<br><small>O Templo da Primeira Raiz fica ao norte, depois dos pilares da Ordem.</small>`); break;
     case 'refugee': dialog(nm, `Você... veio da Passagem? Ninguém vem <i>para</i> cá, ${eu}. Todo mundo foge.<br>Valdora caiu. As muralhas estão no chão, as torres queimam, e as <b>Sentinelas do Vazio</b> andam pelas ruas. No meio da praça desenharam com sangue um símbolo enorme: <b>três espinhos</b>.<br>A estrada até lá está tomada pelas <b>Raízes Negras</b>. Cuidado.`); break;
@@ -2846,7 +2860,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
