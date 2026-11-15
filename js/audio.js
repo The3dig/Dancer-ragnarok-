@@ -258,7 +258,7 @@ const Audio8 = (() => {
 
   // ---------- trilha orquestral gravada (musica/*.m4a) ----------
   // trilhas do RPG Kravenox (kravenox-jogar/rpg/music), com os pontos de laço de lá
-  const LOOPS = {"title": {"loop": 1, "a": 0.5, "b": 42.2391304}, "vila": {"loop": 1, "a": 0.5, "b": 34.7857143}, "floresta": {"loop": 1, "a": 0.5, "b": 49.7307692}, "vale": {"loop": 1, "a": 0.5, "b": 64.5}, "abismo": {"loop": 1, "a": 0.5, "b": 60.5}, "cidade": {"loop": 1, "a": 0.5, "b": 53.8333333}, "fortaleza": {"loop": 1, "a": 0.5, "b": 46.2142857}, "masmorra": {"loop": 1, "a": 0.5, "b": 46.2142857}, "chefe": {"loop": 1, "a": 0.5, "b": 26.1}, "torre": {"loop": 1, "a": 0.02, "b": 64.84}};
+  const LOOPS = {"title": {"loop": 1, "a": 0.5, "b": 42.2391304}, "vila": {"loop": 1, "a": 0.5, "b": 34.7857143}, "floresta": {"loop": 1, "a": 0.5, "b": 49.7307692}, "vale": {"loop": 1, "a": 0.5, "b": 64.5}, "abismo": {"loop": 1, "a": 0.5, "b": 60.5}, "cidade": {"loop": 1, "a": 0.5, "b": 53.8333333}, "fortaleza": {"loop": 1, "a": 0.5, "b": 46.2142857}, "masmorra": {"loop": 1, "a": 0.5, "b": 46.2142857}, "chefe": {"loop": 1, "a": 0.5, "b": 26.1}, "torre": {"loop": 1, "a": 0.02, "b": 69.12}};
   const FILES = Object.keys(LOOPS);
   const MUSIC_BASE = (() => { try { return new URL('../musica/', document.currentScript.src).href; } catch (e) { return 'musica/'; } })();
   // tocada em streaming por <audio> (não decodifica a trilha inteira na memória: sem travar ao trocar de região)

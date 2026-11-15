@@ -1,5 +1,5 @@
-"""Torre do Cisma: trilha de metal gótico (guitarras distorcidas, órgão de igreja,
-coro, violino e bumbo duplo), em mi menor.
+"""Torre do Cisma: trilha de metal ópera (voz soprano, coro, cordas, cravo e órgão,
+com guitarra e bateria por baixo), em mi menor.
 
 Mesmo jeito do scripts/compor.py: MIDI em General MIDI, gravado com o FluidSynth,
 gerado duas vezes e cortado na segunda volta para o laço não ter emenda.
@@ -72,77 +72,57 @@ def triade(p, grau, oit=0):
 
 
 def torre():
-    random.seed(7)
-    p = Peca(148, 52, MIN)                         # mi menor
-    p.instrumento('guitE', 0, 30, 92, 24, 30); p.instrumento('guitD', 1, 30, 92, 104, 30)   # duas guitarras, uma em cada lado
-    p.instrumento('baixo', 2, 34, 104, 64, 20); p.instrumento('orgao', 3, 19, 70, 64, 100)
-    p.instrumento('coro', 4, 52, 92, 56, 110); p.instrumento('violino', 5, 40, 96, 74, 90)
-    p.instrumento('sino', 6, 14, 84, 64, 110); p.instrumento('solo', 7, 29, 84, 64, 60)
-    p.instrumento('bat', 9, 16, 110, 64, 40)
-    K, S, HH, RIDE, CRASH, CHINA, TOM1, TOM2 = 36, 38, 42, 51, 49, 52, 48, 45
+    # metal ópera: voz soprano à frente, orquestra de cordas, cravo e órgão;
+    # guitarras e bateria por baixo, sem dominar (a 1ª versão ficou alta e pesada demais)
+    random.seed(11)
+    p = Peca(118, 52, MIN)                         # mi menor, andamento médio
+    p.instrumento('soprano', 0, 53, 104, 64, 100); p.instrumento('coro', 1, 52, 74, 50, 110)
+    p.instrumento('cordas', 2, 48, 82, 40, 90); p.instrumento('cravo', 3, 6, 70, 88, 70)
+    p.instrumento('orgao', 4, 19, 54, 64, 100); p.instrumento('guit', 5, 30, 62, 74, 40)
+    p.instrumento('baixo', 6, 33, 84, 64, 30); p.instrumento('timp', 7, 47, 86, 60, 70)
+    p.instrumento('sino', 8, 14, 70, 64, 110); p.instrumento('bat', 9, 16, 84, 64, 60)
+    K, S, RIDE, CRASH, HH = 36, 38, 51, 49, 42
 
-    intro = [0, 5, 3, 4]
-    riff = [0, 0, 5, 6, 0, 0, 3, 4]
-    verso = [0, 5, 3, 4, 0, 5, 6, 4]
-    refrao = [0, 5, 3, 4, 0, 5, 6, 4]
-    ponte = [3, 4, 5, 4]
-    secs = [('intro', intro), ('riff', riff), ('verso', verso), ('refrao', refrao), ('ponte', ponte), ('refrao', refrao)]
+    secs = [('intro', [0, 5, 3, 4]), ('verso', [0, 5, 3, 4, 0, 5, 6, 4]), ('refrao', [0, 5, 3, 4, 0, 5, 6, 4]),
+            ('ponte', [3, 4, 5, 4]), ('refrao', [0, 5, 3, 4, 0, 5, 6, 4]), ('fim', [0, 0])]
     mel_verso = [[(4, 2), (3, 1), (2, 1)], [(1, 3), (0, 1)], [(2, 2), (4, 2)], [(3, 4)],
                  [(4, 2), (5, 1), (4, 1)], [(3, 2), (2, 2)], [(1, 1), (2, 1), (3, 1), (1, 1)], [(0, 4)]]
     mel_refrao = [[(7, 3), (6, 1)], [(5, 2), (4, 2)], [(5, 3), (6, 1)], [(4, 4)],
                   [(7, 2), (8, 2)], [(9, 2), (7, 2)], [(6, 2), (5, 1), (6, 1)], [(7, 4)]]
-    mel_ponte = [[(2, 1), (3, 1), (4, 1), (5, 1)], [(6, 2), (4, 2)], [(5, 1), (4, 1), (3, 1), (2, 1)], [(1, 4)]]
-
+    mel_ponte = [[(2, 2), (4, 2)], [(6, 3), (5, 1)], [(4, 2), (3, 2)], [(1, 4)]]
     bar = 0
     for nome, prog in secs:
         for i, gr in enumerate(prog):
-            t = bar * 4; ult = i == len(prog) - 1
+            t = bar * 4
+            # cravo em arpejo (o "gótico" da faixa) em quase tudo
+            if nome != 'fim':
+                for k, s_ in enumerate([0, 2, 4, 7, 4, 2, 0, 2]): p.nota('cravo', t + k * 0.5, 0.45, p.g(gr + s_, 0), 58 if k else 66)
+            p.acorde('cordas', t, 4, triade(p, gr, -1), 50 if nome in ('intro', 'verso') else 62)
+            p.acorde('orgao', t, 4, [p.g(gr, -2), p.g(gr + 4, -2)], 46)
+            p.nota('baixo', t, 1.9, p.g(gr, -3) + 12, 78); p.nota('baixo', t + 2, 1.9, p.g(gr, -3) + 12, 70)
             if nome == 'intro':
-                p.acorde('orgao', t, 4, triade(p, gr, -1) + [p.g(gr, -2)], 84)
-                p.acorde('coro', t, 4, triade(p, gr, 0), 70)
-                p.nota('sino', t, 3, p.g(0, 0), 96)
-                if ult:                                                    # virada de bateria para entrar o riff
-                    for k in range(8): p.nota('bat', t + 2 + k * 0.25, 0.2, [S, S, TOM1, TOM1, TOM2, TOM2, S, S][k], 80 + k * 5)
-            elif nome in ('riff', 'verso', 'refrao'):
-                pw = power(p, gr)
-                if nome == 'riff':                                         # galope: colcheia + duas semicolcheias
-                    for b in range(4):
-                        for off, d, v in ((0, 0.5, 112), (0.5, 0.25, 92), (0.75, 0.25, 96)):
-                            for lado in ('guitE', 'guitD'): p.acorde(lado, t + b + off, d * 0.9, pw, v)
-                elif nome == 'verso':                                      # abafado em colcheias, guitarras mais baixas
-                    for k in range(8):
-                        for lado in ('guitE', 'guitD'): p.acorde(lado, t + k * 0.5, 0.4, pw[:2], 78 if k % 2 else 92)
-                else:                                                      # refrão: acordes abertos e longos
-                    for lado in ('guitE', 'guitD'): p.acorde(lado, t, 3.9, pw, 108)
-                for k in range(8): p.nota('baixo', t + k * 0.5, 0.45, p.g(gr, -3) + 12, 100 if k % 2 == 0 else 88)
-                # bateria
-                p.nota('bat', t, 1, CRASH if (i % 4 == 0 or nome == 'refrao') else RIDE, 104)
-                if nome == 'refrao':
-                    for k in range(16): p.nota('bat', t + k * 0.25, 0.2, K, 96 if k % 2 == 0 else 84)   # bumbo duplo
-                    for k in range(1, 4): p.nota('bat', t + k, 0.5, RIDE, 80)
-                else:
-                    for k in range(8): p.nota('bat', t + k * 0.5, 0.4, RIDE if nome == 'riff' else HH, 78)
-                    for off in (0, 1.5, 2, 2.5) if nome == 'riff' else (0, 0.75, 2, 2.5): p.nota('bat', t + off, 0.4, K, 104)
-                for off in (1, 3): p.nota('bat', t + off, 0.5, S, 112)
-                if ult: [p.nota('bat', t + 3 + k * 0.25, 0.2, [TOM1, TOM1, TOM2, CHINA][k], 96) for k in range(4)]
-                # o que canta por cima
-                if nome == 'verso':
-                    p.melodia('violino', t, mel_verso[i], 1, 96)
-                    p.acorde('orgao', t, 4, triade(p, gr, -1), 52)
-                elif nome == 'refrao':
-                    p.melodia('coro', t, mel_refrao[i], 1, 100); p.melodia('violino', t, mel_refrao[i], 1, 84)
-                    p.acorde('orgao', t, 4, triade(p, gr, -1) + [p.g(gr, -2)], 66)
-                    if i % 4 == 0: p.nota('sino', t, 3, p.g(gr, 0), 84)
-                else:
-                    p.acorde('coro', t, 4, triade(p, gr, 0), 58)
-            else:                                                          # ponte: meio tempo, órgão e solo de guitarra
-                p.acorde('orgao', t, 4, triade(p, gr, -1) + [p.g(gr, -2)], 80)
-                for lado in ('guitE', 'guitD'): p.acorde(lado, t, 1.9, power(p, gr), 100)
-                p.nota('baixo', t, 3.8, p.g(gr, -3) + 12, 100)
-                p.nota('bat', t, 1, CRASH, 100); p.nota('bat', t, 0.5, K, 104); p.nota('bat', t + 2, 0.5, S, 112)
-                for k in range(4): p.nota('bat', t + k, 0.5, RIDE, 72)
-                p.melodia('solo', t, mel_ponte[i], 1, 100)
-                if ult: [p.nota('bat', t + 2 + k * 0.25, 0.2, [S, S, TOM1, TOM1, TOM2, TOM2, S, CHINA][k], 84 + k * 4) for k in range(8)]
+                p.nota('sino', t, 3, p.g(0, 0), 70)
+                p.acorde('coro', t, 4, triade(p, gr, 0), 56)
+            elif nome == 'verso':
+                p.melodia('soprano', t, mel_verso[i], 1, 92)
+                for off in (0, 2.5): p.nota('bat', t + off, 0.4, K, 70)
+                for off in (1, 3): p.nota('bat', t + off, 0.4, S, 66)
+                for k in range(4): p.nota('bat', t + k, 0.3, HH, 46)
+            elif nome == 'refrao':
+                p.melodia('soprano', t, mel_refrao[i], 1, 100)
+                p.melodia('coro', t, mel_refrao[i], 0, 62)
+                for k in range(8): p.acorde('guit', t + k * 0.5, 0.42, power(p, gr)[:2], 62 if k % 2 else 72)   # guitarra baixinha, só no refrão
+                p.nota('bat', t, 1, CRASH if i % 4 == 0 else RIDE, 70)
+                for off in (0, 0.5, 2, 2.5): p.nota('bat', t + off, 0.3, K, 74)
+                for off in (1, 3): p.nota('bat', t + off, 0.4, S, 74)
+                for k in range(1, 4): p.nota('bat', t + k, 0.3, RIDE, 50)
+                if i % 4 == 0: p.nota('timp', t, 1, p.g(0, -2), 80)
+            elif nome == 'ponte':
+                p.melodia('soprano', t, mel_ponte[i], 2, 84)
+                p.acorde('coro', t, 4, triade(p, gr, 0), 60)
+                p.nota('timp', t, 0.5, p.g(gr, -2), 74); p.nota('timp', t + 3, 0.5, p.g(gr, -2), 60)
+            else:
+                p.acorde('coro', t, 4, triade(p, gr, 0), 54); p.nota('sino', t, 3, p.g(0, 0), 64)
             bar += 1
     return p, bar * 4
 
@@ -155,5 +135,5 @@ subprocess.run(['fluidsynth', '-ni', '-q', '-g', '0.6', '-r', '44100', '-R', '1'
                 '-o', 'synth.reverb.room-size=0.85', '-o', 'synth.reverb.width=1.0', '-o', 'synth.reverb.level=0.55',
                 '-F', wav, SF, mid], check=True)
 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{dur:.4f}', '-t', f'{dur:.4f}', '-i', wav,
-                '-af', 'loudnorm=I=-17:TP=-2', '-ar', '44100', '-c:a', 'aac', '-b:a', '96k', SAIDA], check=True)
+                '-af', 'loudnorm=I=-21:TP=-3', '-ar', '44100', '-c:a', 'aac', '-b:a', '96k', SAIDA], check=True)
 print(f'torre: {dur:.2f}s')

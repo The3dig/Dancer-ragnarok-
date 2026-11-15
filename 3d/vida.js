@@ -17,6 +17,28 @@ const Vida = (() => {
     cristal: ['Cristal Opaco', '💎', 20, 0, 'mat'], fio: ['Fio de Sombra', '🧵', 28, 0, 'mat'], lasca: ['Lasca de Armadura', '🛡️', 45, 0, 'mat'],
     essencia: ['Essência Negra', '🖤', 120, 0, 'mat'],
     cinza: ['Cinza de Valdora', '🌫️', 55, 0, 'mat'], fibra: ['Fibra de Raiz Negra', '🪢', 50, 0, 'mat'],
+    // ---- materiais novos (como no Ragnarok: cada monstro solta várias coisas, do comum ao raro)
+    // Campos Dourados
+    pele_larva: ['Pele de Larva', '🟫', 6, 0, 'mat'], nucleo_lumen: ['Núcleo Luminoso', '✨', 180, 0, 'mat'],
+    asa_eco: ['Asa Translúcida', '🪽', 14, 0, 'mat'], olho_eco: ['Olho de Eco', '👁️', 200, 0, 'mat'],
+    casca: ['Casca Grossa', '🟤', 11, 0, 'mat'], muda: ['Muda Viva', '🌿', 220, 0, 'mat'],
+    // Areias Rubras
+    areia_rubra: ['Areia Rubra', '⏳', 16, 0, 'mat'], carapaca: ['Carapaça Partida', '🐚', 30, 0, 'mat'], cristal_puro: ['Cristal Puro', '💠', 400, 0, 'mat'],
+    veu: ['Véu de Sombra', '🕸️', 34, 0, 'mat'], lagrima: ['Lágrima Sombria', '🩶', 420, 0, 'mat'],
+    // Torre do Cisma
+    presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
+    estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
+    placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
+    // Valdora
+    seiva: ['Seiva Negra', '🫗', 62, 0, 'mat'], espinho_negro: ['Espinho Negro', '🥀', 700, 0, 'mat'],
+    brasa: ['Brasa Viva', '🔥', 66, 0, 'mat'], sino: ['Sino Rachado', '🔔', 800, 0, 'mat'],
+    pele_cinza: ['Pele Chamuscada', '🧥', 60, 0, 'mat'], ovo_cinza: ['Ovo de Cinza', '🥚', 750, 0, 'mat'],
+    brasao: ['Brasão de Valdora', '🎖️', 140, 0, 'mat'], aco_valdora: ['Aço de Valdora', '🔩', 900, 0, 'mat'],
+    lamina_carrasco: ['Lâmina do Carrasco', '🪓', 2500, 0, 'mat'],
+    // frutas e ervas (curam na hora, como as do Ragnarok)
+    maca: ['Maçã Silvestre', '🍎', 4, 0, 'comida', { heal: 0.08 }], mel: ['Mel Escuro', '🍯', 12, 0, 'comida', { heal: 0.15 }],
+    folha: ['Folha Verde', '🍃', 3, 0, 'comida', { heal: 0.05 }], erva_vermelha: ['Erva Vermelha', '🌺', 9, 0, 'comida', { heal: 0.2 }],
+    erva_azul: ['Erva Azul', '🫐', 20, 0, 'comida', { spH: 0.25 }], figo: ['Figo do Deserto', '🟣', 10, 0, 'comida', { heal: 0.12 }],
     s_trigo: ['Semente de Trigo', '🌱', 2, 6, 'semente'], s_cenoura: ['Semente de Cenoura', '🌱', 4, 12, 'semente'],
     s_flor: ['Semente de Flor-da-Fonte', '🌱', 10, 30, 'semente'], racao: ['Ração', '🌾', 1, 4, 'racao'],
     trigo: ['Trigo', '🌾', 9, 0, 'colheita'], cenoura: ['Cenoura', '🥕', 15, 0, 'colheita'], flor: ['Flor-da-Fonte', '🌸', 40, 0, 'colheita'],
@@ -91,7 +113,28 @@ const Vida = (() => {
 
   // materiais que cada monstro solta
   const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia' };
-  for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.45]);
+  for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.55]);
+  // tabela no jeito do Ragnarok: um comum (~20–30%), uma fruta/erva (~10%), um incomum e uma raridade (1–3%)
+  const MOB_LOOT = {
+    pompom: [['pele_larva', 0.3], ['maca', 0.12], ['nucleo_lumen', 0.01]],
+    zunzum: [['asa_eco', 0.3], ['mel', 0.06], ['olho_eco', 0.01]],
+    fungolino: [['casca', 0.3], ['folha', 0.2], ['muda', 0.012]],
+    besouro: [['areia_rubra', 0.3], ['carapaca', 0.14], ['figo', 0.1], ['cristal_puro', 0.01]],
+    serpe: [['veu', 0.18], ['areia_rubra', 0.2], ['erva_azul', 0.08], ['lagrima', 0.01]],
+    larva: [['presa', 0.22], ['pele_larva', 0.3], ['erva_vermelha', 0.1]],
+    verme: [['escama', 0.25], ['presa', 0.12], ['nucleo_ferro', 0.02]],
+    esfera: [['estilhaco', 0.22], ['erva_azul', 0.1], ['po_estelar', 0.015]],
+    sentinela: [['placa_vazio', 0.16], ['escama', 0.15], ['olho_vazio', 0.015]],
+    guardiao: [['placa_vazio', 1], ['olho_vazio', 0.3], ['nucleo_ferro', 0.3]],
+    raizNegra: [['seiva', 0.22], ['casca', 0.3], ['erva_vermelha', 0.12], ['espinho_negro', 0.012]],
+    ecoCinza: [['brasa', 0.2], ['asa_eco', 0.25], ['sino', 0.012]],
+    larvaCinza: [['pele_cinza', 0.24], ['brasa', 0.12], ['erva_vermelha', 0.1], ['ovo_cinza', 0.012]],
+    sentinelaMuralha: [['brasao', 0.1], ['placa_vazio', 0.15], ['aco_valdora', 0.02]],
+    carrasco: [['lamina_carrasco', 1], ['aco_valdora', 0.5], ['brasao', 1]],
+  };
+  for (const [t, l] of Object.entries(MOB_LOOT)) if (MOBDEF[t]) for (const d of l) if (ITEMS[d[0]]) MOBDEF[t].drops.push(d);
+  // os Alfas (versões grandes) soltam o mesmo, com mais chance
+  for (const t of Object.keys(MOB_LOOT)) { const A = MOBDEF['alfa_' + t]; if (A) for (const [id, ch] of MOB_LOOT[t]) A.drops.push([id, Math.min(1, ch * 2.5)]); }
   const GEAR_DROP = {
     pompom: [['capuz_couro', 0.04], ['botas_couro', 0.02]],
     zunzum: [['luvas_couro', 0.04], ['botas_couro', 0.03]],
@@ -493,7 +536,19 @@ const Vida = (() => {
     { out: 'manto_areias', need: { fio: 8, cristal: 6 }, z: 600 },
     { out: 'couraca_sentinela', need: { lasca: 10, essencia: 2 }, z: 2000 },
     { out: 'arma_essencia', need: { lasca: 8, essencia: 3 }, z: 3000 },
-  ];
+    // com os materiais novos
+    { out: 'anel_raiz', need: { casca: 6, muda: 1 }, z: 120 },
+    { out: 'turbante', need: { areia_rubra: 8, veu: 2 }, z: 350 },
+    { out: 'luvas_areias', need: { carapaca: 5, areia_rubra: 5 }, z: 350 },
+    { out: 'sandalias', need: { areia_rubra: 6, pele_larva: 8 }, z: 350 },
+    { out: 'colar_sombra', need: { veu: 6, lagrima: 1 }, z: 900 },
+    { out: 'arm_negra', need: { escama: 10, presa: 6, nucleo_ferro: 1 }, z: 2500 },
+    { out: 'elmo_valdora', need: { brasao: 3, pele_cinza: 6, aco_valdora: 1 }, z: 4000 },
+    { out: 'luvas_valdora', need: { seiva: 6, brasa: 5, aco_valdora: 1 }, z: 4000 },
+    { out: 'botas_valdora', need: { pele_cinza: 8, fibra: 8 }, z: 3500 },
+    { out: 'couraca_valdora', need: { brasao: 5, placa_vazio: 6, aco_valdora: 2 }, z: 6000 },
+    { out: 'arma_valdora', need: { lamina_carrasco: 1, aco_valdora: 2, brasa: 6 }, z: 8000 },
+  ].filter(r => ITEMS[r.out]);
   const needTxt = r => Object.entries(r.need).map(([id, n]) => `${n} ${it(id).ic}`).join(' + ') + ` + ${r.z} cr`;
   function forge() {
     const opts = FORGE.map(r => {
@@ -572,7 +627,7 @@ const Vida = (() => {
     ['equip', '⚔️', 'Equip.', I => I.kind === 'equip'],
     ['mat', '🪨', 'Material', I => I.kind === 'mat'],
     ['carta', '🃏', 'Cartas', I => I.kind === 'carta'],
-    ['uso', '🧪', 'Usáveis', I => !!(I.use || I.heal)],
+    ['uso', '🧪', 'Usáveis', I => !!(I.use || I.heal || I.spH)],
     ['sitio', '🌾', 'Sítio', I => ['semente', 'colheita', 'racao', 'comida'].includes(I.kind)],
     ['missao', '📜', 'Missão', (I, id) => typeof Quests !== 'undefined' && Quests.needItems && !!Quests.needItems()[id]],
   ];
@@ -688,7 +743,9 @@ const Vida = (() => {
     if (ITEMS[id].use === 'pot') return usePotion(id);
     if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
     if (!has(id)) return;
-    add(id, -1); healP(stats.maxHp() * ITEMS[id].heal); Audio8.sfx('heal');
+    add(id, -1); Audio8.sfx('heal');
+    if (ITEMS[id].heal) healP(stats.maxHp() * ITEMS[id].heal);
+    if (ITEMS[id].spH) { const v = Math.round(stats.maxSp() * ITEMS[id].spH); P.sp = Math.min(stats.maxSp(), P.sp + v); floater(P.x, P.y + 2.4, P.z, '+' + v + ' SP', 'sp'); }
   }
 
   // ---------------------------------------------------------------- multiplayer: troca e banca

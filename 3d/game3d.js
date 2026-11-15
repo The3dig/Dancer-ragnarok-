@@ -1853,7 +1853,7 @@ const ZONES = {
   areias: { name: 'Areias Rubras', music: 'vale' },
   lair: { name: 'Cratera do Cisma', music: 'abismo' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
-  torre: { name: 'Torre do Cisma', music: 'torre' },          // metal gótico (scripts/compor_torre.py); a masmorra.mp4 antiga continua guardada
+  torre: { name: 'Torre do Cisma', music: 'torre' },          // metal ópera (scripts/compor_torre.py); a masmorra.mp4 antiga continua guardada
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'vila' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
@@ -2468,7 +2468,7 @@ function barUse(e) {
 function barPick(i) {
   const b = ensureBar(), opts = [];
   SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0) opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
-  Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
+  Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || ITEMS[id].spH || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
   opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
   dialog(`✏️ Atalho ${BAR_KEYS[i]}`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
 }
