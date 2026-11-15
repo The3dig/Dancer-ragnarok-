@@ -51,7 +51,7 @@ const Desafios = (() => {
       { id: 'd2', t: 'Colheita Sombria', pede: { i: { gosma: 300, po_eco: 300, raiz: 300, nucleo_lumen: 3 } }, da: { v: [['rastro', 'outono']] } },
       { id: 'd3', t: 'O Grande Alfa', pede: { g: { alfa: 50 } }, da: { e: ['colar_alfa'], v: [['titulo', 'alfa']] } },
     ] },
-    zahir: { nome: 'Nômade Zahir', fala: 'A areia guarda tudo, viajante. Até o que você ainda não conquistou.', lista: [
+    zahir: { nome: 'Rivas', fala: 'A areia guarda tudo, viajante. Até o que você ainda não conquistou.', lista: [
       { id: 'd4', t: 'Senhor das Dunas', pede: { m: { besouro: 300, serpe: 300 } }, da: { v: [['aura', 'miragem']] } },
       { id: 'd5', t: 'Lâmina da Miragem', pede: { i: { areia_rubra: 200, carapaca: 100, veu: 100, cristal_puro: 3, lagrima: 2 } }, da: { e: ['lamina_miragem'] } },
       { id: 'd6', t: 'Quebra-Chefes', pede: { g: { campo: 5 } }, da: { v: [['cor', 'rubi'], ['titulo', 'quebra']] } },
