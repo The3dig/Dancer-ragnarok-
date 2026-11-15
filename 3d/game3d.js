@@ -335,8 +335,12 @@ const inVal = z => z < -300;
 const FGATE = { x: 318, z: -760 }, VGATE_VF = { x: 138, z: -705 };              // chegada na Floresta e passagem em Valdora
 const FCLAR = { x: 362, z: -748 }, FGUARD = { x: 470, z: -772 }, FWALL = { x: 545, z: -812 }, FHALL = { x: 545, z: -850 };
 const inFlo = (x, z) => z < -300 && x > 250;
+// Praia de Cômodo: lugar tranquilo, criado para o jogo (não está no livro), a oeste (x < -250), sem monstros
+const PVILA = { x: -440, z: -760 }, PPIER = { z: -792 }, PFAROL = { x: -505, z: -858 }, PGATE = { x: -318, z: -760 }, RGATE_P = { x: -206, z: -40 };            // chegada na praia e passagem no Reino (oeste)
+const inPraia = (x, z) => z < -300 && x < -250;
+let PRAIA_H = null, PRAIA_OUT = null, PRAIA_ZONA = null;                     // praia.js preenche (antes de construir o mapa)
 // em que mapa está um ponto (para setas de missão, mapa e passagens)
-const mapaDe = (x, z) => inTower(z) ? 'torre' : z < -300 ? (x > 250 ? 'floresta' : 'valdora') : 'reino';
+const mapaDe = (x, z) => inTower(z) ? 'torre' : z < -300 ? (x > 250 ? 'floresta' : x < -250 ? 'praia' : 'valdora') : 'reino';
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
 // Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo e grande; colada na parede, uma
 // escadaria curva SOBE 7 m até a porta do andar de cima, e do outro lado outra escadaria curva DESCE
@@ -376,6 +380,7 @@ function dRoad(x, z) {
 function zoneOf(x, z) {
   if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === TOP ? 'topo' : 'torre'; }
   if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.zona(x, z) : 'floresta';
+  if (z < -300 && x < -250) return PRAIA_ZONA ? PRAIA_ZONA(x, z) : 'praia';
   if (z < -300) { const dc = Math.hypot(x - VCITY.x, z - VCITY.z); return Math.hypot(x - VCAMP.x, z - VCAMP.z) < 18 ? 'acampamento' : dc < 40 ? 'valdora' : 'estrada'; }
   if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
@@ -387,6 +392,7 @@ function zoneOf(x, z) {
 }
 function height(x, z) {
   if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.h(x, z) : 0;
+  if (z < -300 && x < -250) return PRAIA_H ? PRAIA_H(x, z) : 0;
   if (z < -300) return typeof Valdora !== 'undefined' ? Valdora.h(x, z) : 0;
   let h = Math.sin(x * 0.05) * Math.cos(z * 0.06) * 1.6 + Math.sin(x * 0.13 + z * 0.09) * 0.6;
   const des = smooth(42, 58, x);
@@ -583,6 +589,7 @@ function addOb(x, z, r) {
 function blocked(x, z, r = 0.45) {
   if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (z < -300 && x > 250) { if (typeof Floresta === 'undefined' || Floresta.out(x, z, r)) return true; }
+  else if (z < -300 && x < -250) { if (!PRAIA_OUT || PRAIA_OUT(x, z, r)) return true; }
   else if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
   else if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
@@ -1165,13 +1172,19 @@ const NPCS = [
   { id: 'shop', name: 'Mascate Corvo', x: FCLAR.x - 6, z: FCLAR.z + 4, look: [0x2a2a2a, 0x1a1a1a, 'cap'] },
   { id: 'warp', city: 'clareira', name: 'Guia de Viagem Ione', x: FCLAR.x + 1, z: FCLAR.z - 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
   { id: 'desafio', dsf: 'teodor', name: 'Andarilho Teodor', x: FCLAR.x + 7, z: FCLAR.z + 5, look: [0x4a3a2a, 0x6a6a6a, 'cap'] },
+  // Praia de Cômodo (praia.js)
+  { id: 'healer', name: 'Curandeira Marisa', x: PVILA.x + 4, z: PVILA.z - 7, look: [0xf0e8d8, 0x3a2a1a, 'veil'] },
+  { id: 'shop', name: 'Peixeiro Bené', x: PVILA.x - 7, z: PVILA.z + 5, look: [0x3a6a8a, 0x2a1a0a, 'cap'] },
+  { id: 'warp', city: 'praia', name: 'Guia de Viagem Davi', x: PVILA.x + 7, z: PVILA.z + 7, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  { id: 'pescador', name: 'Pescador Zé do Mar', x: -508, z: PPIER.z + 5, look: [0x8a6a3a, 0x6a6a6a, 'cap'] },
+  { id: 'faroleira', name: 'Faroleira Rosa', x: PFAROL.x + 9, z: PFAROL.z + 8, look: [0x2a3a6a, 0x5a3a2a, 'veil'] },
   // mestres dos Desafios (desafios.js): caçadas e entregas longas com prêmios que só existem lá
   { id: 'desafio', dsf: 'ivanna', name: 'Caçadora Ivanna', x: VIL.x + 12, z: VIL.z + 2, look: [0x4a6a2a, 0x6a3a1a, 'cap'] },
   { id: 'desafio', dsf: 'zahir', name: 'Nômade Zahir', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
   { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1904,6 +1917,7 @@ const ZONES = {
   clareira: { name: 'Clareira de Lira', music: 'vila', town: true },
   floresta: { name: 'Floresta Morta', music: 'abismo' },
   templo: { name: 'Templo da Primeira Raiz', music: 'masmorra' },
+  praia: { name: 'Praia de Cômodo', music: 'vila', town: true },
   valdora: { name: 'Ruínas de Valdora', music: 'fortaleza' },
 };
 function update(dt) {
@@ -1917,7 +1931,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -1952,7 +1966,7 @@ function update(dt) {
   skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
   if (dark > 0) { skyMat.uniforms.horizon.value.lerp(DARK_H, dark); skyMat.uniforms.top.value.lerp(DARK_T, dark); }
   if (inFlo(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(FLO_H, 0.9); skyMat.uniforms.top.value.lerp(FLO_T, 0.9); }
-  else if (inVal(P.z)) { skyMat.uniforms.horizon.value.lerp(ASH_H, 0.85); skyMat.uniforms.top.value.lerp(ASH_T, 0.85); }
+  else if (inVal(P.z) && !inPraia(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(ASH_H, 0.85); skyMat.uniforms.top.value.lerp(ASH_T, 0.85); }
   if (typeof Props !== 'undefined' && Props.setNight) Props.setNight(DAY.night);
   mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(MOUNT_C, 0.25);
   updateFireflies(dt, DAY.night * (1 - dark));
@@ -2035,7 +2049,7 @@ function updatePlayer(dt) {
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -2336,8 +2350,8 @@ const BigMap = (() => {
     }
     view = city || null;
     box.querySelector('.bm-back').style.display = view ? '' : 'none';
-    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inFlo(P.x, P.z) ? '🗺️ Floresta Morta' : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
-    box.querySelector('.bm-back').textContent = inFlo(P.x, P.z) ? '← Floresta' : inVal(P.z) ? '← Valdora' : '← Reino';
+    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inFlo(P.x, P.z) ? '🗺️ Floresta Morta' : inPraia(P.x, P.z) ? '🗺️ Praia de Cômodo' : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
+    box.querySelector('.bm-back').textContent = inFlo(P.x, P.z) ? '← Floresta' : inPraia(P.x, P.z) ? '← Praia' : inVal(P.z) ? '← Valdora' : '← Reino';
     const list = box.querySelector('.bm-list');
     if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
     else list.style.display = 'none';
@@ -2389,6 +2403,7 @@ function questTarget() {
     if (inTower(P.z)) return null; const t = Quests.target(); if (!t) return null;
     const aqui = mapaDe(P.x, P.z), la = mapaDe(t.x, t.z); if (aqui === la || la === 'torre') return t;
     // o caminho entre os mapas: Reino ↔ Valdora ↔ Floresta Morta
+    if (aqui === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'Passagem para o Reino' };
     if (aqui === 'reino') return { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' };
     if (aqui === 'floresta') return { x: FGATE.x + 4, z: FGATE.z, name: 'Passagem para Valdora' };
     return la === 'floresta' ? { x: VGATE_VF.x - 4, z: VGATE_VF.z, name: 'Passagem da Floresta Morta' } : { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'Passagem do Norte' };
@@ -2425,7 +2440,7 @@ function updateQuestArrow() {
   qArrow.material.opacity = 0.55 + 0.45 * Math.sin(slide * Math.PI);
 }
 const REINO_MAP = { x0: -WX, z0: -WZ, w: WX * 2, h: WZ * 2 };
-function curMap() { return inFlo(P.x, P.z) && typeof Floresta !== 'undefined' ? Floresta.map : inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
+function curMap() { return inPraia(P.x, P.z) && typeof Praia !== 'undefined' ? Praia.map : inFlo(P.x, P.z) && typeof Floresta !== 'undefined' ? Floresta.map : inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
 function drawMinimap() {
   const M = curMap(), sx = mm.width / M.w, sz = mm.height / M.h;
   mg.drawImage(M.mm || mmBase, 0, 0, mm.width, mm.height);
@@ -2684,6 +2699,7 @@ function talkBase(n) {
       shop(); break;
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
+    case 'pescador': case 'faroleira': if (typeof Praia !== 'undefined') Praia.talk(n); break;
     case 'lira': dialog(nm, `— Essa pergunta é engraçada vindo de você, <b>${eu}</b>.<br>As árvores contam tudo. Algumas coisas continuam falando depois de morrer.<br><small>O Templo da Primeira Raiz fica ao norte, depois dos pilares da Ordem.</small>`); break;
     case 'refugee': dialog(nm, `Você... veio da Passagem? Ninguém vem <i>para</i> cá, ${eu}. Todo mundo foge.<br>Valdora caiu. As muralhas estão no chão, as torres queimam, e as <b>Sentinelas do Vazio</b> andam pelas ruas. No meio da praça desenharam com sangue um símbolo enorme: <b>três espinhos</b>.<br>A estrada até lá está tomada pelas <b>Raízes Negras</b>. Cuidado.`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
@@ -2810,7 +2826,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2818,6 +2834,7 @@ setInterval(save, 8000); addEventListener('beforeunload', save);
 
 function start(fromSave) {
   Audio8.init(); registrarEnfeites();
+  for (const n of NPCS) if (n.g) n.g.position.y = groundY(n.x, n.z);          // os mapas de fora (Floresta, Praia) carregam depois dos NPCs
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden'); camera.clearViewOffset();
   if (fromSave) {
     const s = loadSave();

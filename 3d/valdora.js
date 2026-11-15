@@ -343,7 +343,7 @@ const Valdora = (() => {
 
   function update(dt) {
     cool -= dt;
-    const v = inVal(P.z) && P.x < 250; if (v !== inside) setInside(v);          // x > 250 é a Floresta Morta
+    const v = inVal(P.z) && P.x < 250 && P.x > -250; if (v !== inside) setInside(v);          // x > 250 é a Floresta Morta
     esconderReino(inVal(P.z) || inTower(P.z));
     for (const s of swirls) { s.rotation.z -= dt * 1.2; s.material.opacity = 0.75 + Math.sin(time * 3) * 0.2; }
     // a passagem só funciona de novo depois que a pessoa se afasta dela

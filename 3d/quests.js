@@ -144,7 +144,7 @@ const Quests = (() => {
     opts.push({ label: 'Fechar' });
     dialog('📋 Quadro de Caça', 'Contratos de caça da cidade. Pode repetir quantas vezes quiser.', opts);
   }
-  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora', clareira: 'Clareira de Lira' };
+  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora', clareira: 'Clareira de Lira', praia: 'Praia de Cômodo' };
   function travel(from) {
     const opts = Object.keys(BOARDS).filter(c => c !== from).map(c => P.warps[c]
       ? { label: `🧭 ${CITY_N[c]} — 50 cr`, fn: () => {
@@ -231,7 +231,7 @@ const Quests = (() => {
   }
 
   // ---------------- mundo: quadros de caça, tesouros e NPCs escondidos
-  const BOARDS = { solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 } };
+  const BOARDS = { solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 }, praia: { x: PVILA.x + 10, z: PVILA.z - 2 } };
   const opened = () => (P.secrets = P.secrets || {});
   const glintMats = [];
   function build() {
