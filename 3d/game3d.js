@@ -1166,8 +1166,8 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
   { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
-  // Nosferatur: menino da Vila de Solmira (pedido do Rone, nome escrito assim mesmo)
-  { id: 'nosferatur', name: 'Nosferatur', crianca: true, x: VIL.x - 4.5, z: VIL.z + 3.5, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
+  // Nosferatur: menino da Praia de Cômodo (pedido do Rone, nome escrito assim mesmo)
+  { id: 'nosferatur', name: 'Nosferatur', crianca: true, x: PVILA.x - 3, z: PVILA.z + 4, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
   // Clareira de Lira (Floresta Morta)
   { id: 'lira', name: 'Lira', x: FCLAR.x - 4, z: FCLAR.z - 5, look: [0x2a2430, 0x0a0a0a, 'veil'] },
   { id: 'healer', name: 'Eremita Odila', x: FCLAR.x + 5, z: FCLAR.z - 4, look: [0xd8d0c0, 0x8a8a8a, 'veil'] },
@@ -2723,12 +2723,13 @@ function talkBase(n) {
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
     case 'nosferatur': {
-      const falas = ['Eu sou o <b>Nosferatur</b>! O terror da Vila de Solmira! ...Tá bom, eu só tenho um pouquinho de medo do escuro.',
+      const falas = ['Eu sou o <b>Nosferatur</b>! O terror da Praia de Cômodo! ...Tá bom, eu só tenho um pouquinho de medo do escuro.',
         'Shhh! Tô escondido da minha mãe. Se ela perguntar, você não me viu, tá?',
+        'Eu nasci aqui em Cômodo. O mar daqui é o mais bonito do mundo inteiro, pode perguntar pro Zé do Mar.',
         `Quando eu crescer vou subir os <b>trinta andares</b> da Torre do Cisma. Você já subiu, ${eu}? Conta como é lá em cima!`,
         'Você já viu o <b>Kravenox</b>? Eu não tenho medo dele. Quase nada. Só um pouco. De noite.',
-        'Sabia que na Praia de Cômodo tem um farol que nunca apaga? Um dia eu vou lá pescar uma pérola.',
-        'Eu treino com espada de madeira todo dia atrás da fonte. Olha: zás! zás! ...ai, bati no meu pé.'];
+        'Sabia que o farol daqui nunca apaga? Um dia eu vou pescar uma <b>Pérola de Cômodo</b> lá na ponta do píer.',
+        'Eu treino com espada de madeira todo dia na areia. Olha: zás! zás! ...ai, entrou areia no meu olho.'];
       let txt = falas[Math.floor(Math.random() * falas.length)];
       if (!P.nosfe) { P.nosfe = 1; P.inv.maca = (P.inv.maca || 0) + 3; txt += '<br><br>Toma, pega essas <b>3 Maçãs Silvestres</b>. É pra você não ficar com fome na aventura!'; Audio8.sfx('pick'); }
       dialog(`💬 ${n.name}`, txt, [{ label: 'Valeu, Nosferatur!' }]); break;
