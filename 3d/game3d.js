@@ -1262,7 +1262,14 @@ const stats = {
   flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003),
   crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit') + gearB('crit')),
 };
-const xpNeed = lv => Math.floor(30 + 22 * Math.pow(lv, 1.75));
+// nível máximo 200 (como o Ragnarok, cada nível pesa bem mais que o anterior)
+const LV_MAX = 200;
+const xpNeed = lv => Math.floor(40 + 25 * Math.pow(lv, 2.2));
+// pontos de atributo: poucos por nível, e cada ponto custa mais quanto mais alto o atributo
+// (do 1 ao 10 custa 1, do 11 ao 20 custa 2, do 21 ao 30 custa 3…), como no Ragnarok
+const ptsNivel = lv => 2 + Math.floor(lv / 20);
+const custoStat = x => 1 + Math.floor((x - 1) / 10);
+const ptsTotais = (lv, tier) => { let t = 3; for (let l = 2; l <= lv; l++) t += ptsNivel(l); return t + 5 * (tier || 0); };
 
 const QUESTS = [
   { mob: 'pompom', n: 5, txt: 'Derrote 5 Larvas da Essência nos Campos Dourados', xp: 60, zeny: 80, red: 3 },
@@ -1451,9 +1458,9 @@ function makeDrop(id, n, x, z) {
 }
 function gainXp(n) {
   P.xp += n;
-  while (P.xp >= xpNeed(P.lv) && P.lv < 60) {
+  while (P.xp >= xpNeed(P.lv) && P.lv < LV_MAX) {
     P.xp -= xpNeed(P.lv); P.lv++;
-    P.statPts += 3 + Math.floor(P.lv / 5);
+    P.statPts += ptsNivel(P.lv);
     P.hp = stats.maxHp(); P.sp = stats.maxSp();
     Audio8.sfx('level');
     for (let i = 0; i < 4; i++) setTimeout(() => ring(P.x, P.z, 2 + i, 0xffcf40, 0.7), i * 120);
@@ -2506,7 +2513,7 @@ function buildHotbar() {
 }
 function renderStats() {
   const w = $('statwin');
-  const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts ? '' : 'disabled'}>+</button><span class="si">${STAT_INFO[k]}</span></div>`;
+  const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts >= custoStat(P[k]) ? '' : 'disabled'} title="custa ${custoStat(P[k])} ponto(s)">+${custoStat(P[k]) > 1 ? `<small>${custoStat(P[k])}</small>` : ''}</button><span class="si">${STAT_INFO[k]}</span></div>`;
   const html = `<div class="wt">📊 ${className(P.cls, P.gender)} · Nv ${P.lv}<button class="x" data-close>×</button></div>
     <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'}</div>
     <div class="sgrid">${STAT_KEYS.map(row).join('')}</div>
@@ -2516,7 +2523,7 @@ function renderStats() {
 $('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); });
 // segurar o + vai adicionando sozinho (cada vez mais rápido)
 let statHold = null;
-const addStat = k => { if (k && P.statPts > 0) { P[k]++; P.statPts--; Audio8.sfx('click'); renderStats(); return true; } return false; };
+const addStat = k => { const c = k ? custoStat(P[k]) : 1e9; if (k && P.statPts >= c) { P[k]++; P.statPts -= c; Audio8.sfx('click'); renderStats(); return true; } return false; };
 $('statwin').addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-st]'); if (!b) return; e.preventDefault();
   const k = b.dataset.st; if (!addStat(k)) return;
@@ -2762,7 +2769,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2781,7 +2788,16 @@ function start(fromSave) {
     Object.assign(P, CREATE, { name: $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16) });
     const r = CLASSES[P.cls].hero ? {} : RACES[P.race].bonus, c = CLASSES[P.cls].bonus;
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = 3;
+    P.statPts = 3; P.statV = 2;
+  }
+  // atributos no sistema novo (15/11): devolve todos os pontos uma vez, para redistribuir com o custo novo
+  if (fromSave && P.statV !== 2) {
+    const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
+    for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
+    P.statPts = ptsTotais(P.lv, P.tier); P.statV = 2;
+    setTimeout(() => { P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
+      dialog('📊 Atributos novos', `O jogo agora vai até o <b>nível 200</b>. Para isso, os atributos mudaram como no Ragnarok: menos pontos por nível, e <b>cada ponto custa mais</b> quanto mais alto o atributo (do 1 ao 10 custa 1, do 11 ao 20 custa 2…).<br>Seus pontos foram <b>devolvidos</b>: você tem <b>${P.statPts}</b> para distribuir de novo.`,
+        [{ label: '📊 Distribuir agora', fn: () => { toggleStats(); } }, { label: 'Depois' }]); }, 3500);
   }
   refreshSkills(); rebuildAvatar();
   if (!fromSave) { P.skillLv = { [SKILLS[0].id]: 1 }; P.skillPts = 0; }
