@@ -1926,7 +1926,13 @@ function update(dt) {
   for (const m of mobs) updateMob(m, dt);
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
-  for (const d of drops) { d.t += dt; d.m.rotation.y += dt * (d.m.userData.flat ? 0.6 : 3); d.m.position.y = groundY(d.x, d.z) + 0.4 + (d.m.userData.flat ? 0 : Math.sin(d.t * 4) * 0.1); }
+  for (const d of drops) {
+    d.t += dt; d.m.rotation.y += dt * (d.m.userData.flat ? 0.6 : 3);
+    // pega sozinho: depois de meio segundo no chão, o item voa direto para você (até 60 m de distância)
+    const dd = Math.hypot(P.x - d.x, P.z - d.z);
+    if (d.t > 0.5 && !P.dead && dd < 60) { const k = Math.min(1, dt * (6 + d.t * 6)); d.x += (P.x - d.x) * k; d.z += (P.z - d.z) * k; d.m.position.set(d.x, P.y + 0.8 + Math.min(1.5, dd * 0.15), d.z); }
+    else d.m.position.y = groundY(d.x, d.z) + 0.4 + (d.m.userData.flat ? 0 : Math.sin(d.t * 4) * 0.1);
+  }
   if (typeof Vida !== 'undefined') Vida.update(dt);
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
