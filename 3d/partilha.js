@@ -63,7 +63,7 @@ const Partilha = (() => {
         if (Math.hypot(mb.x - x, mb.z - z) > 25) { mb.x = x; mb.z = z; }          // longe demais: pula direto
       }
     });
-    Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.by && m.by !== me()) mb.flash = 0.08; } });
+    Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.hp > 1) mb.morrendo = 0; if (m.by && m.by !== me()) mb.flash = 0.08; } });
     Net.on('morre', m => {
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
@@ -79,6 +79,7 @@ const Partilha = (() => {
       Net.send({ t: 'nasceu', id: m.id, x: +mb.x.toFixed(2), z: +mb.z.toFixed(2) });
     });
     Net.on('caiu', () => { });
+    Net.on('some', m => { const mb = porId().get(m.id); if (mb) { mortos.set(m.id, mb.type); tirar(mb); } });   // o servidor diz que ele já tinha morrido
   }
   // ---------------- o que eu mando
   function dano(m, v) { Net.send({ t: 'd', id: m.nid, v: Math.round(v) }); }

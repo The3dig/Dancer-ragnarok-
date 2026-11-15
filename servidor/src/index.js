@@ -349,7 +349,8 @@ export class Mundo {
       if (out.length) this.todos({ t: "m", l: out }, ws);
     } else if (m.t === "d" && typeof m.id === "string") {
       const mob = this.mobs.get(m.id), v = Math.max(0, Math.min(1e6, Number(m.v) || 0));
-      if (!mob || !mob.vivo || !v) return;
+      if (!mob || !mob.vivo) { this.enviar(ws, { t: "some", id: m.id }); return; }        // já morreu aqui: o jogo de quem bateu tira o monstro
+      if (!v) return;
       mob.hp -= v; mob.dano[d.peer] = (mob.dano[d.peer] || 0) + v;
       if (mob.hp <= 0) {
         mob.hp = 0; mob.vivo = false; mob.volta = agora + mob.resp * 1000;

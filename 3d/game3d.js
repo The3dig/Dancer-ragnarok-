@@ -1449,7 +1449,7 @@ function dmgMob(m, base, crit, magic, color) {
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
   burst(_p.clone(), color ?? (crit ? 0xffcf40 : 0xffffff), crit ? 10 : 5, 3, 0.4);
   if (!magic && badd('poison') > 0) poison(m, stats.atk() * 0.3, 5);
-  if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, dmg); m.hp = Math.max(1, m.hp); return dmg; }
+  if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, dmg); if (m.hp <= 1 && !m.morrendo) m.morrendo = time; m.hp = Math.max(1, m.hp); return dmg; }
   if (m.hp <= 0) killMob(m);
   return dmg;
 }
@@ -2080,6 +2080,12 @@ function separarMobs(dt) {
   }
 }
 function updateMob(m, dt) {
+  // monstro compartilhado que zerou a vida: espera o servidor confirmar a morte sem atacar; sem resposta em 4 s, cai aqui mesmo
+  if (m.morrendo) {
+    m.moving = false; m.atkCd = Math.max(m.atkCd, 0.5);
+    if (time - m.morrendo > 4) { m.morrendo = 0; if (typeof Net !== 'undefined') Net.send({ t: 'd', id: m.nid, v: 1e6 }); killMob(m); return; }
+    return;
+  }
   if (m.dot) {
     m.dot.t -= dt; m.dot.acc += dt;
     if (m.dot.acc >= 1) { m.dot.acc = 0; const d = Math.max(1, Math.round(m.dot.dps)); if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, d); m.hp = Math.max(1, m.hp - d); } else m.hp -= d; floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, d, 'poison'); burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), 0x7dff4a, 4, 1.5, 0.5); if (m.hp <= 0) { killMob(m); return; } }
@@ -2353,11 +2359,11 @@ const BigMap = (() => {
   const npcsOf = v => NPCS.filter(n => !n.hidden && Math.hypot(n.x - v.c.x, n.z - v.c.z) < v.R * 1.5);
   // ---------------- Mapa do Mundo: todos os lugares, os níveis, as passagens e "você está aqui"
   const REG = [
-    { id: 'praia', n: 'Praia de Cômodo', lv: 'sem monstros', x: 0.02, y: 0.44, w: 0.19, h: 0.34, cor: '#c8b478', cid: ['Vila de Cômodo', 'Píer (pesca)', 'Farol'], M: () => typeof Praia !== 'undefined' && Praia.map },
-    { id: 'reino', n: 'Reino Quebrado', lv: 'Nv 1–22', x: 0.27, y: 0.44, w: 0.44, h: 0.46, cor: '#6a8a4a', cid: ['Vila de Solmira · Sítio', 'Campos Dourados · Cratera', 'Areias Rubras · Oásis de Kharum', 'Cidadela do Cisma'], M: () => Object.assign({}, REINO_MAP, { base }) },
-    { id: 'torre', n: 'Torre do Cisma', lv: 'Nv 18–60 · 30 andares', x: 0.77, y: 0.5, w: 0.21, h: 0.3, cor: '#5a3a7a', cid: ['Entrada na Cidadela do Cisma', 'Kravenox no topo (sábado 20h)'] },
-    { id: 'valdora', n: 'Terras de Valdora', lv: 'Nv 24–40', x: 0.3, y: 0.04, w: 0.33, h: 0.3, cor: '#7a5a4a', cid: ['Acampamento · Colina', 'Ruínas de Valdora'], M: () => typeof Valdora !== 'undefined' && Valdora.map },
-    { id: 'floresta', n: 'Floresta Morta', lv: 'Nv 40–55', x: 0.69, y: 0.04, w: 0.29, h: 0.3, cor: '#3e3e52', cid: ['Clareira de Lira', 'Pilares da Ordem', 'Templo da Primeira Raiz'], M: () => typeof Floresta !== 'undefined' && Floresta.map },
+    { id: 'praia', n: 'Praia de Cômodo', lv: 'sem monstros', x: 0.02, y: 0.52, w: 0.2, h: 0.36, cor: '#c8b478', cid: ['Vila de Cômodo · Farol', 'Píer (pesca)', '🚪 leste → Reino'], M: () => typeof Praia !== 'undefined' && Praia.map },
+    { id: 'reino', n: 'Reino Quebrado', lv: 'Nv 1–22', x: 0.27, y: 0.5, w: 0.44, h: 0.48, cor: '#6a8a4a', cid: ['Solmira · Sítio · Campos Dourados', 'Areias Rubras · Oásis de Kharum', 'Cidadela do Cisma · Cratera', '🚪 norte (Areias) → Valdora', '🚪 oeste (Sítio) → Praia'], M: () => Object.assign({}, REINO_MAP, { base }) },
+    { id: 'torre', n: 'Torre do Cisma', lv: 'Nv 18–60 · 30 andares', x: 0.77, y: 0.54, w: 0.21, h: 0.34, cor: '#5a3a7a', cid: ['Kravenox no topo', '(sábado, 20h)', '🚪 porta na Cidadela'] },
+    { id: 'valdora', n: 'Terras de Valdora', lv: 'Nv 24–40', x: 0.3, y: 0.02, w: 0.34, h: 0.4, cor: '#7a5a4a', cid: ['Acampamento · Ruínas', '🚪 sul → Reino', '🚪 leste → Floresta'], M: () => typeof Valdora !== 'undefined' && Valdora.map },
+    { id: 'floresta', n: 'Floresta Morta', lv: 'Nv 40–55', x: 0.69, y: 0.02, w: 0.29, h: 0.4, cor: '#3e3e52', cid: ['Clareira de Lira', 'Templo da Primeira Raiz', '🚪 oeste → Valdora'], M: () => typeof Floresta !== 'undefined' && Floresta.map },
   ];
   const LIG = [['praia', 'reino', 'arco do oeste (perto do Sítio)'], ['reino', 'valdora', 'Passagem do Norte (Areias Rubras)'], ['valdora', 'floresta', 'arco do leste de Valdora'], ['reino', 'torre', 'porta na Cidadela do Cisma']];
   const regDe = () => inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
@@ -2380,7 +2386,8 @@ const BigMap = (() => {
   function drawMundo() {
     const W = cv.width, H = cv.height, aqui = regDe(), t = performance.now() / 1000;
     g.fillStyle = '#16121e'; g.fillRect(0, 0, W, H);
-    const C = r => [(r.x + r.w / 2) * W, (r.y + r.h / 2) * H], f = Math.max(9, W / 70);
+    const C = r => [(r.x + r.w / 2) * W, (r.y + r.h / 2) * H], f = Math.max(18, W / 40);
+    const caber = (txt, peso, tam, fam, maxW) => { let t = tam; g.font = `${peso} ${Math.round(t)}px ${fam}`; while (t > 10 && g.measureText(txt).width > maxW) { t -= 1; g.font = `${peso} ${Math.round(t)}px ${fam}`; } };   // letra grande, mas sem sair do quadro
     // ligações (passagens)
     for (const [a, b, nome] of LIG) {
       const A = REG.find(r => r.id === a), Bq = REG.find(r => r.id === b), [ax, ay] = C(A), [bx, by] = C(Bq);
@@ -2392,24 +2399,26 @@ const BigMap = (() => {
       if (M && M.base) { g.globalAlpha = 0.55; g.drawImage(M.base, x, y, w, h); g.globalAlpha = 1; }
       g.fillStyle = 'rgba(10,6,16,.45)'; g.fillRect(x, y, w, h);
       g.strokeStyle = eu ? '#ffcf40' : 'rgba(247,226,168,.6)'; g.lineWidth = eu ? Math.max(3, W / 200) : 1.5; g.strokeRect(x, y, w, h);
-      g.textAlign = 'left'; g.fillStyle = '#f7e2a8'; g.font = `800 ${Math.round(f * 1.15)}px Cinzel, serif`; g.fillText(r.n, x + 8, y + f * 1.5);
-      g.fillStyle = '#ffb0d0'; g.font = `700 ${Math.round(f * 0.85)}px Nunito, sans-serif`; g.fillText(r.lv, x + 8, y + f * 2.6);
-      g.fillStyle = '#e8e4dc'; g.font = `600 ${Math.round(f * 0.8)}px Nunito, sans-serif`; r.cid.forEach((c, i) => g.fillText('• ' + c, x + 8, y + f * (3.8 + i * 1.15)));
+      g.textAlign = 'left'; g.fillStyle = '#f7e2a8'; caber(r.n, 800, f * 1.15, 'Cinzel, serif', w - 16); g.fillText(r.n, x + 8, y + f * 1.4);
+      g.fillStyle = '#ffb0d0'; caber(r.lv, 800, f * 0.9, 'Nunito, sans-serif', w - 16); g.fillText(r.lv, x + 8, y + f * 2.5);
+      g.fillStyle = '#ffffff'; r.cid.forEach((c, i) => { caber('• ' + c, 700, f * 0.82, 'Nunito, sans-serif', w - 16); g.fillText('• ' + c, x + 8, y + f * (3.6 + i * 1.1)); });
       if (eu) {                                                     // você está aqui (posição aproximada dentro do lugar)
         let px = x + w / 2, py = y + h / 2;
         if (M && M.w) { px = x + Math.min(1, Math.max(0, (P.x - M.x0) / M.w)) * w; py = y + Math.min(1, Math.max(0, (P.z - M.z0) / M.h)) * h; }
         const pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(255,79,163,.35)'; g.beginPath(); g.arc(px, py, f * 1.2 * pul, 0, TAU); g.fill();
         g.fillStyle = '#ff4fa3'; g.beginPath(); g.arc(px, py, f * 0.45, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
-        g.textAlign = 'center'; g.font = `800 ${Math.round(f * 0.9)}px Nunito, sans-serif`; const tx = 'VOCÊ ESTÁ AQUI', tw = g.measureText(tx).width + 10;
-        g.fillStyle = '#ff4fa3'; g.fillRect(px - tw / 2, py - f * 2.6, tw, f * 1.25); g.fillStyle = '#fff'; g.fillText(tx, px, py - f * 1.65);
+        g.fillStyle = '#ff4fa3'; g.fillRect(x, y + h - f * 1.35, w, f * 1.35); g.fillStyle = '#fff'; g.textAlign = 'center'; caber('📍 VOCÊ ESTÁ AQUI', 800, f * 0.85, 'Nunito, sans-serif', w - 8); g.fillText('📍 VOCÊ ESTÁ AQUI', x + w / 2, y + h - f * 0.38);
       }
     }
-    // nomes das passagens por cima de tudo, no meio do caminho entre os dois lugares
-    for (const [a, b, nome] of LIG) {
-      const [ax, ay] = C(REG.find(r => r.id === a)), [bx, by] = C(REG.find(r => r.id === b)), mx = (ax + bx) / 2, my = (ay + by) / 2;
-      g.font = `700 ${Math.round(f * 0.78)}px Nunito, sans-serif`; g.textAlign = 'center'; const tw = g.measureText('🚪 ' + nome).width + 12;
-      g.fillStyle = 'rgba(16,10,24,.92)'; g.fillRect(mx - tw / 2, my - f * 0.75, tw, f * 1.2); g.strokeStyle = 'rgba(247,226,168,.6)'; g.lineWidth = 1; g.strokeRect(mx - tw / 2, my - f * 0.75, tw, f * 1.2);
-      g.fillStyle = '#e8d8a8'; g.fillText('🚪 ' + nome, mx, my + f * 0.15);
+    // no meio de cada ligação, só a porta (o caminho de cada saída está escrito dentro dos quadros)
+    for (const [a, b] of LIG) {
+      const A = REG.find(r => r.id === a), Bq = REG.find(r => r.id === b);
+      // a porta fica no vão entre os dois quadros (não em cima do texto)
+      const lado = A.y < Bq.y + Bq.h && Bq.y < A.y + A.h, [E, D] = A.x < Bq.x ? [A, Bq] : [Bq, A], [Ci, Ba] = A.y < Bq.y ? [A, Bq] : [Bq, A];
+      const mx = lado ? (E.x + E.w + D.x) / 2 * W : (Math.max(A.x, Bq.x) + Math.min(A.x + A.w, Bq.x + Bq.w)) / 2 * W;
+      const my = lado ? (Math.max(A.y, Bq.y) + Math.min(A.y + A.h, Bq.y + Bq.h)) / 2 * H : (Ci.y + Ci.h + Ba.y) / 2 * H;
+      g.fillStyle = 'rgba(16,10,24,.95)'; g.beginPath(); g.arc(mx, my, f * 0.75, 0, TAU); g.fill(); g.strokeStyle = '#f7e2a8'; g.lineWidth = 1.5; g.stroke();
+      g.textAlign = 'center'; g.font = `${Math.round(f * 0.8)}px sans-serif`; g.fillText('🚪', mx, my + f * 0.28);
     }
   }
   function show(city) {
@@ -2473,8 +2482,9 @@ const BigMap = (() => {
     const M = curMap(), B = M.base || base; g.imageSmoothingEnabled = true; g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
     g.textAlign = 'center';
     if (!view) {
-      g.font = `800 ${Math.round(9 * k)}px Nunito, sans-serif`;
-      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
+      const fs = Math.round(Math.max(9 * k, 27)); g.font = `800 ${fs}px Nunito, sans-serif`;                // nomes grandes (no celular ficavam miúdos)
+      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 6, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(fs * 1.2, Z(p.z) - fs * 0.9);
+        g.fillStyle = 'rgba(12,8,20,.7)'; g.fillRect(lx - w, ly - fs * 0.95, w * 2, fs * 1.25); g.fillStyle = '#ffe9a8'; g.fillText(n, lx, ly); }
       for (const c of cities()) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
     }
     for (const m of mobs) { if (m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue; const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k / u * (view ? 1.6 : 1); g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); }
