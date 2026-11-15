@@ -40,7 +40,10 @@ const Partilha = (() => {
       if (!m) m = criar(o); if (!m) continue;
       m.x = m.nx = o.x; m.z = m.nz = o.z; m.dono = o.dono; m.hp = Math.min(m.maxHp, o.hp ?? m.hp);
     }
-    for (const [id, m] of loc) if (!vistos.has(id)) tirar(m);
+    // monstros que o servidor ainda não conhece (lugar novo, versão nova): manda para ele em vez de apagar
+    const novos = [];
+    for (const [id, m] of loc) if (!vistos.has(id)) { if (m.dono === undefined || m.dono === null) { m.dono = me(); novos.push(m); } else tirar(m); }
+    if (novos.length) Net.send({ t: 'semente+', l: novos.map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
   }
   function semente() {
     const l = mobs.filter(m => m.nid).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2), vivo: true }));

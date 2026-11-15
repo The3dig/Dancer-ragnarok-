@@ -150,7 +150,7 @@ const Valdora = (() => {
     const list = [];
     for (let i = 0; i < 2000 && list.length < (TOUCH ? 90 : 140); i++) {
       const x = rand(B.x0 + 8, B.x0 + B.w - 8), z = rand(B.z0 + 8, B.z0 + B.h - 10);
-      if (dRoad(x, z) < 6 || Math.hypot(x - CITY.x, z - CITY.z) < CR + 8 || Math.hypot(x - CAMP.x, z - CAMP.z) < 22 || Math.hypot(x - HILL.x, z - HILL.z) < 9) continue;
+      if (dRoad(x, z) < 6 || Math.hypot(x - CITY.x, z - CITY.z) < CR + 8 || Math.hypot(x - CAMP.x, z - CAMP.z) < 22 || Math.hypot(x - HILL.x, z - HILL.z) < 9 || Math.hypot(x - VGATE_VF.x, z - VGATE_VF.z) < 12) continue;
       list.push({ x, z, s: rand(0.8, 1.4), r: rand(0, TAU) });
     }
     const trunkG = new THREE.CylinderGeometry(0.12, 0.38, 5, 6); trunkG.translate(0, 2.5, 0);
@@ -269,6 +269,7 @@ const Valdora = (() => {
   }
   arch(scene, VGATE_R.x, VGATE_R.z - 1, Math.PI, 'Estrada de Valdora ↑', groundY(VGATE_R.x, VGATE_R.z - 1));
   arch(G, VGATE_V.x, VGATE_V.z + 1, 0, 'Reino Quebrado ↓', h(VGATE_V.x, VGATE_V.z + 1));
+  arch(G, VGATE_VF.x + 1, VGATE_VF.z, Math.PI / 2, 'Floresta Morta →', h(VGATE_VF.x + 1, VGATE_VF.z));          // a leste: a Floresta Morta (floresta.js)
 
   // ---------------------------------------------------------------- horizonte: montanhas, fumaça ao longe e o Gigante do Vazio
   (function horizon() {
@@ -342,8 +343,8 @@ const Valdora = (() => {
 
   function update(dt) {
     cool -= dt;
-    const v = inVal(P.z); if (v !== inside) setInside(v);
-    esconderReino(v || inTower(P.z));
+    const v = inVal(P.z) && P.x < 250; if (v !== inside) setInside(v);          // x > 250 é a Floresta Morta
+    esconderReino(inVal(P.z) || inTower(P.z));
     for (const s of swirls) { s.rotation.z -= dt * 1.2; s.material.opacity = 0.75 + Math.sin(time * 3) * 0.2; }
     // a passagem só funciona de novo depois que a pessoa se afasta dela
     const dR = Math.hypot(P.x - VGATE_R.x, P.z - VGATE_R.z), dV = Math.hypot(P.x - VGATE_V.x, P.z - VGATE_V.z);
@@ -359,5 +360,5 @@ const Valdora = (() => {
     const A = ash; for (let i = 0; i < A.N; i++) { const s = A.sd[i]; s[1] -= dt * s[3]; if (s[1] < 0) s[1] = 14; A.pos[i * 3] = P.x + s[0] + Math.sin(time * 0.5 + i) * 0.6; A.pos[i * 3 + 1] = P.y + s[1]; A.pos[i * 3 + 2] = P.z + s[2]; }
     A.pts.geometry.attributes.position.needsUpdate = true;
   }
-  return { h, out, update, map, dRoad, get inside() { return inside; } };
+  return { h, out, update, map, dRoad, arch, get inside() { return inside; } };
 })();

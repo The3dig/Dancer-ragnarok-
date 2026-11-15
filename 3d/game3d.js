@@ -185,7 +185,7 @@ const SUN_OFF = new THREE.Vector3(40, 34, 22);
 let LASTDAY = null;
 const DAYC = { horizon: new THREE.Color(), top: new THREE.Color(), sunC: new THREE.Color(), hemiC: new THREE.Color(), sunDir: new THREE.Vector3() };
 const C_ = h => new THREE.Color(h);
-const DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
+const FLO_H = C_(0x343844), FLO_T = C_(0x0c0a12), DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
   const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : /dia/.test(location.hash) ? 0.5 : null;
@@ -331,6 +331,12 @@ const CIT = { x: 188, z: 4 }, TOWER = { x: 196, z: -30 };
 const VCAMP = { x: -110, z: -668 }, VHILL = { x: -12, z: -735 }, VCITY = { x: 85, z: -795 };
 const VGATE_R = { x: 84, z: -84 }, VGATE_V = { x: -110, z: -645 };            // passagem no Reino (Areias Rubras) e chegada em Valdora
 const inVal = z => z < -300;
+// Floresta Morta e Templo da Primeira Raiz (livro I, caps. 4 e 5): mapa a leste de Valdora (x > 250), níveis 40–55
+const FGATE = { x: 318, z: -760 }, VGATE_VF = { x: 138, z: -705 };              // chegada na Floresta e passagem em Valdora
+const FCLAR = { x: 362, z: -748 }, FGUARD = { x: 470, z: -772 }, FWALL = { x: 545, z: -812 }, FHALL = { x: 545, z: -850 };
+const inFlo = (x, z) => z < -300 && x > 250;
+// em que mapa está um ponto (para setas de missão, mapa e passagens)
+const mapaDe = (x, z) => inTower(z) ? 'torre' : z < -300 ? (x > 250 ? 'floresta' : 'valdora') : 'reino';
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
 // Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo e grande; colada na parede, uma
 // escadaria curva SOBE 7 m até a porta do andar de cima, e do outro lado outra escadaria curva DESCE
@@ -369,6 +375,7 @@ function dRoad(x, z) {
 }
 function zoneOf(x, z) {
   if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === TOP ? 'topo' : 'torre'; }
+  if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.zona(x, z) : 'floresta';
   if (z < -300) { const dc = Math.hypot(x - VCITY.x, z - VCITY.z); return Math.hypot(x - VCAMP.x, z - VCAMP.z) < 18 ? 'acampamento' : dc < 40 ? 'valdora' : 'estrada'; }
   if (x > 158) return 'cidadela';
   if (Math.hypot(x - LAIR.x, z - LAIR.z) < 24) return 'lair';
@@ -379,6 +386,7 @@ function zoneOf(x, z) {
   return 'campos';
 }
 function height(x, z) {
+  if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.h(x, z) : 0;
   if (z < -300) return typeof Valdora !== 'undefined' ? Valdora.h(x, z) : 0;
   let h = Math.sin(x * 0.05) * Math.cos(z * 0.06) * 1.6 + Math.sin(x * 0.13 + z * 0.09) * 0.6;
   const des = smooth(42, 58, x);
@@ -574,7 +582,8 @@ function addOb(x, z, r) {
 }
 function blocked(x, z, r = 0.45) {
   if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
-  if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
+  if (z < -300 && x > 250) { if (typeof Floresta === 'undefined' || Floresta.out(x, z, r)) return true; }
+  else if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
   else if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
   const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
@@ -974,6 +983,13 @@ const MOBDEF = {
   sentinelaMuralha: { name: 'Sentinela da Muralha', lv: 32, hp: 3800, atk: 112, def: 34, xp: 2000, zeny: [120, 240], speed: 2.8, aggro: 16, respawn: 25, drops: [['red', 0.5], ['blue', 0.35]] },
   carrasco:  { name: 'Carrasco de Valdora', lv: 36, hp: 60000, atk: 150, def: 40, xp: 22000, zeny: [3000, 4500], speed: 2.6, aggro: 18, respawn: 300, boss: true, mini: true, drops: [['blue', 1], ['red', 1], ['red', 1], ['essencia', 1]] },
   guardiao:  { name: 'Sentinela sem Rosto', lv: 22, hp: 14000, atk: 64, def: 24, xp: 2600, zeny: [600, 900], speed: 2.4, aggro: 16, respawn: 180, boss: true, mini: true, drops: [['blue', 1], ['red', 1], ['red', 1]] },
+  // Floresta Morta e Templo da Primeira Raiz (níveis 40–55)
+  larvaPernalta: { name: 'Larva Pernalta', lv: 40, hp: 4800, atk: 130, def: 38, xp: 2600, zeny: [130, 260], speed: 2.8, aggro: 13, respawn: 22, drops: [['red', 0.5], ['blue', 0.3]] },
+  raizOssuda: { name: 'Raiz Ossuda', lv: 43, hp: 5600, atk: 142, def: 46, xp: 3000, zeny: [150, 290], speed: 1.9, aggro: 10, respawn: 22, drops: [['red', 0.5], ['blue', 0.3]] },
+  larvaCristal: { name: 'Larva Cristalizada', lv: 46, hp: 6400, atk: 156, def: 50, xp: 3600, zeny: [170, 330], speed: 2.5, aggro: 13, respawn: 24, drops: [['red', 0.5], ['blue', 0.35]] },
+  larvaAntiga: { name: 'Larva Antiga', lv: 50, hp: 8000, atk: 170, def: 58, xp: 4400, zeny: [200, 380], speed: 2.3, aggro: 14, respawn: 25, drops: [['red', 0.55], ['blue', 0.35]] },
+  memoria: { name: 'Memória Aprisionada', lv: 53, hp: 7600, atk: 186, def: 50, xp: 5000, zeny: [220, 420], speed: 3.0, aggro: 15, respawn: 25, drops: [['blue', 0.5]] },
+  guardiaoBranco: { name: 'Guardião Branco', lv: 56, hp: 140000, atk: 235, def: 62, xp: 60000, zeny: [6000, 9000], speed: 2.8, aggro: 18, respawn: 420, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
 
@@ -1089,6 +1105,7 @@ const SPR_MOBS = {
   kravenox:  { set: { kind: 'hero', base: 'k' }, px: 22 / 34 },        // o próprio Kravenox, gigante
   raizNegra: { img: 'e_raizRast', h: 2.4 }, ecoCinza: { img: 'e_eco', h: 2.2, float: true }, larvaCinza: { img: 'e_larvaLonga', h: 2.0 },
   sentinelaMuralha: { img: 'e_sentinela', h: 3.0 }, carrasco: { img: 'e_semRosto', h: 5.6 },
+  larvaPernalta: { img: 'e_larvaLonga', h: 2.6 }, raizOssuda: { img: 'e_raizRast', h: 2.8 }, larvaCristal: { img: 'e_larvaLonga', h: 2.4 }, larvaAntiga: { img: 'e_larvaLonga', h: 2.8 }, memoria: { img: 'e_eco', h: 2.4, float: true }, guardiaoBranco: { img: 'e_semRosto', h: 5.4 },
 };
 function spriteMob(type, r) {
   const d = SPR_MOBS[type];
@@ -1142,13 +1159,19 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
   { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  // Clareira de Lira (Floresta Morta)
+  { id: 'lira', name: 'Lira', x: FCLAR.x - 4, z: FCLAR.z - 5, look: [0x2a2430, 0x0a0a0a, 'veil'] },
+  { id: 'healer', name: 'Eremita Odila', x: FCLAR.x + 5, z: FCLAR.z - 4, look: [0xd8d0c0, 0x8a8a8a, 'veil'] },
+  { id: 'shop', name: 'Mascate Corvo', x: FCLAR.x - 6, z: FCLAR.z + 4, look: [0x2a2a2a, 0x1a1a1a, 'cap'] },
+  { id: 'warp', city: 'clareira', name: 'Guia de Viagem Ione', x: FCLAR.x + 1, z: FCLAR.z - 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  { id: 'desafio', dsf: 'teodor', name: 'Andarilho Teodor', x: FCLAR.x + 7, z: FCLAR.z + 5, look: [0x4a3a2a, 0x6a6a6a, 'cap'] },
   // mestres dos Desafios (desafios.js): caçadas e entregas longas com prêmios que só existem lá
   { id: 'desafio', dsf: 'ivanna', name: 'Caçadora Ivanna', x: VIL.x + 12, z: VIL.z + 2, look: [0x4a6a2a, 0x6a3a1a, 'cap'] },
   { id: 'desafio', dsf: 'zahir', name: 'Nômade Zahir', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
   { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1296,6 +1319,11 @@ const SPAWNS = [
   { type: 'raizNegra', n: 12, area: [-125, -25, -730, -660] }, { type: 'ecoCinza', n: 10, area: [-70, 30, -790, -700] },
   { type: 'larvaCinza', n: 10, area: [-40, 120, -720, -665] }, { type: 'ecoCinza', n: 6, area: [-140, -60, -840, -740] },
   { type: 'sentinelaMuralha', n: 12, area: [VCITY.x - 26, VCITY.x + 26, VCITY.z - 26, VCITY.z + 26] }, { type: 'carrasco', n: 1, at: { x: VCITY.x, z: VCITY.z + 9 } },
+  // Floresta Morta (níveis 40–55) e Templo da Primeira Raiz
+  { type: 'larvaPernalta', n: 12, area: [330, 430, -800, -690] }, { type: 'raizOssuda', n: 10, area: [380, 470, -730, -660] },
+  { type: 'larvaCristal', n: 12, area: [420, 530, -760, -680] }, { type: 'larvaAntiga', n: 12, area: [490, 590, -800, -700] },
+  { type: 'memoria', n: 6, area: [534, 556, -864, -838] }, { type: 'memoria', n: 3, area: [541, 549, -834, -816] },
+  { type: 'guardiaoBranco', n: 1, at: { x: FGUARD.x, z: FGUARD.z - 4 } },
 ];
 function spawnMob(type, area, at) {
   const d = MOBDEF[type]; let x, z, t = 0;
@@ -1873,6 +1901,9 @@ const ZONES = {
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
   acampamento: { name: 'Acampamento de Valdora', music: 'vila', town: true },
   estrada: { name: 'Estrada de Valdora', music: 'abismo' },
+  clareira: { name: 'Clareira de Lira', music: 'vila', town: true },
+  floresta: { name: 'Floresta Morta', music: 'abismo' },
+  templo: { name: 'Templo da Primeira Raiz', music: 'masmorra' },
   valdora: { name: 'Ruínas de Valdora', music: 'fortaleza' },
 };
 function update(dt) {
@@ -1886,7 +1917,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -1920,7 +1951,8 @@ function update(dt) {
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
   skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
   if (dark > 0) { skyMat.uniforms.horizon.value.lerp(DARK_H, dark); skyMat.uniforms.top.value.lerp(DARK_T, dark); }
-  if (inVal(P.z)) { skyMat.uniforms.horizon.value.lerp(ASH_H, 0.85); skyMat.uniforms.top.value.lerp(ASH_T, 0.85); }
+  if (inFlo(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(FLO_H, 0.9); skyMat.uniforms.top.value.lerp(FLO_T, 0.9); }
+  else if (inVal(P.z)) { skyMat.uniforms.horizon.value.lerp(ASH_H, 0.85); skyMat.uniforms.top.value.lerp(ASH_T, 0.85); }
   if (typeof Props !== 'undefined' && Props.setNight) Props.setNight(DAY.night);
   mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(MOUNT_C, 0.25);
   updateFireflies(dt, DAY.night * (1 - dark));
@@ -2303,8 +2335,8 @@ const BigMap = (() => {
     }
     view = city || null;
     box.querySelector('.bm-back').style.display = view ? '' : 'none';
-    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
-    box.querySelector('.bm-back').textContent = inVal(P.z) ? '← Valdora' : '← Reino';
+    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inFlo(P.x, P.z) ? '🗺️ Floresta Morta' : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
+    box.querySelector('.bm-back').textContent = inFlo(P.x, P.z) ? '← Floresta' : inVal(P.z) ? '← Valdora' : '← Reino';
     const list = box.querySelector('.bm-list');
     if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
     else list.style.display = 'none';
@@ -2352,7 +2384,14 @@ const BigMap = (() => {
   return { show: () => show(null), hide, draw, get open() { return open; } };
 })();
 function questTarget() {
-  if (typeof Quests !== 'undefined') { if (inTower(P.z)) return null; const t = Quests.target(); return t && inVal(t.z) !== inVal(P.z) ? (inVal(P.z) ? { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'Passagem do Norte' } : { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' }) : t; }
+  if (typeof Quests !== 'undefined') {
+    if (inTower(P.z)) return null; const t = Quests.target(); if (!t) return null;
+    const aqui = mapaDe(P.x, P.z), la = mapaDe(t.x, t.z); if (aqui === la || la === 'torre') return t;
+    // o caminho entre os mapas: Reino ↔ Valdora ↔ Floresta Morta
+    if (aqui === 'reino') return { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' };
+    if (aqui === 'floresta') return { x: FGATE.x + 4, z: FGATE.z, name: 'Passagem para Valdora' };
+    return la === 'floresta' ? { x: VGATE_VF.x - 4, z: VGATE_VF.z, name: 'Passagem da Floresta Morta' } : { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'Passagem do Norte' };
+  }
   const q = QUESTS[P.quest]; if (!q || inTower(P.z)) return null;
   if (P.qcount >= q.n) { const n = NPCS.find(n => n.id === 'master'); return { x: n.x, z: n.z }; }
   let best = null, bd = 1e9;
@@ -2385,7 +2424,7 @@ function updateQuestArrow() {
   qArrow.material.opacity = 0.55 + 0.45 * Math.sin(slide * Math.PI);
 }
 const REINO_MAP = { x0: -WX, z0: -WZ, w: WX * 2, h: WZ * 2 };
-function curMap() { return inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
+function curMap() { return inFlo(P.x, P.z) && typeof Floresta !== 'undefined' ? Floresta.map : inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
 function drawMinimap() {
   const M = curMap(), sx = mm.width / M.w, sz = mm.height / M.h;
   mg.drawImage(M.mm || mmBase, 0, 0, mm.width, mm.height);
@@ -2644,6 +2683,7 @@ function talkBase(n) {
       shop(); break;
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
+    case 'lira': dialog(nm, `— Essa pergunta é engraçada vindo de você, <b>${eu}</b>.<br>As árvores contam tudo. Algumas coisas continuam falando depois de morrer.<br><small>O Templo da Primeira Raiz fica ao norte, depois dos pilares da Ordem.</small>`); break;
     case 'refugee': dialog(nm, `Você... veio da Passagem? Ninguém vem <i>para</i> cá, ${eu}. Todo mundo foge.<br>Valdora caiu. As muralhas estão no chão, as torres queimam, e as <b>Sentinelas do Vazio</b> andam pelas ruas. No meio da praça desenharam com sangue um símbolo enorme: <b>três espinhos</b>.<br>A estrada até lá está tomada pelas <b>Raízes Negras</b>. Cuidado.`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
     case 'smith': Vida.smith(eu); break;

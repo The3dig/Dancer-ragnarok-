@@ -93,10 +93,27 @@ const Modelos3D = (() => {
     ecoCinza: () => makeGhost({ c1: 0x6a6266, eye: 0xff8a3a }),
     larvaCinza: () => makeLarva({ c1: 0x4a4446, c2: 0x6e6668, core: 0xff7a3a, long: true, armor: true }),
     sentinelaMuralha: () => makeSentinel({ c1: 0x3a3238, c2: 0x1a1418, eye: 0xff3a3a }),
+    // Floresta Morta (livro I, cap. 4): larvas maiores, de membros alongados; umas com cristais crescendo na carne,
+    // outras com pedaços de armadura antiga; raízes que se mexem como ossos; memórias presas nos cristais do Templo
+    larvaPernalta: () => { const r = makeLarva({ c1: 0x3e3a34, c2: 0x6e665a, core: 0x9a7aff, long: true }); r.g.scale.set(1.7, 1.9, 1.7); return r; },
+    larvaCristal: () => { const r = makeLarva({ c1: 0x2c2638, c2: 0x544468, core: 0xd070ff, long: true, crystal: true }); r.g.scale.setScalar(1.7); return r; },
+    larvaAntiga: () => { const r = makeLarva({ c1: 0x4a4238, c2: 0x9a907e, core: 0xffd070, long: true, armor: true }); r.g.scale.setScalar(1.85); return r; },
+    raizOssuda: () => { const r = makeRoot({ c1: 0xcfc4a8, c2: 0x8a7e68, eye: 0x9a6aff, eyes: 2, n: 10, mouth: true }); r.g.scale.setScalar(1.3); return r; },
+    memoria: () => makeGhost({ c1: 0xd8c078, eye: 0xffffff, crystal: true }),
+    guardiaoBranco: () => {                                                   // armadura branca rachada, máscara e lança (a Ordem da Essência)
+      const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+      const S = makeSentinel({ c1: 0xdcdce4, c2: 0xa4a4b2, eye: 0x7ad8ff, faceless: true }); S.g.scale.setScalar(2.1); inner.add(S.g);
+      const haste = M(0xd8c8a0, { roughness: .4 }), ponta = M(0xe8f4ff, { roughness: .2, metalness: .6 }), runa = new THREE.MeshBasicMaterial({ color: 0x7ad8ff });
+      const l = add(inner, new THREE.CylinderGeometry(.05, .05, 4.2, 6), haste, .95, 2.2, .35, false); l.rotation.x = .12;
+      const pt = add(inner, new THREE.ConeGeometry(.14, .7, 6), ponta, .95, 4.55, .6, false); pt.rotation.x = .12;
+      add(inner, new THREE.BoxGeometry(.5, .06, .06), runa, .95, 3.95, .55, false);
+      addS(inner, GEO.box, runa, 0, 2.7, .34, .55, .06, .02);
+      return { g, inner };
+    },
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
-  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza']);   // larvas olham para +x
-  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza']);
+  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga']);   // larvas olham para +x
+  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];

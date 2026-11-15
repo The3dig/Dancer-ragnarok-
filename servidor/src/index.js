@@ -330,6 +330,15 @@ export class Mundo {
         this.mobs.set(o.id, { id: o.id, type: o.type, max, hp: Math.min(max, Number(o.hp) || max), resp: Math.max(5, Math.min(3600, Number(o.resp) || 20)), x: +o.x || 0, z: +o.z || 0, f: 0, st: 0, vivo: o.vivo !== false, volta: 0, dono: d.peer, dano: {} });
       }
       this.todos({ t: "mundo", mobs: this.listaMobs() });
+    } else if (m.t === "semente+" && Array.isArray(m.l) && this.mobs.size) {
+      // monstros de lugares novos (versão nova do jogo) num mundo que já estava rodando: entram sem apagar os outros
+      for (const o of m.l.slice(0, 300)) {
+        if (!o || typeof o.id !== "string" || typeof o.type !== "string" || this.mobs.has(o.id) || this.mobs.size >= 1500) continue;
+        const max = Math.max(1, Math.min(5e6, Number(o.max) || 1));
+        const mob = { id: o.id, type: o.type, max, hp: Math.min(max, Number(o.hp) || max), resp: Math.max(5, Math.min(3600, Number(o.resp) || 20)), x: +o.x || 0, z: +o.z || 0, f: 0, st: 0, vivo: true, volta: 0, dono: d.peer, dano: {} };
+        this.mobs.set(o.id, mob);
+        this.todos({ t: "mundo1", mob: { id: mob.id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono } }, ws);
+      }
     } else if (m.t === "m" && Array.isArray(m.l)) {
       const out = [];
       for (const e of m.l.slice(0, 300)) {

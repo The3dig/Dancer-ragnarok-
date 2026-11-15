@@ -35,6 +35,11 @@ const Vida = (() => {
     pele_cinza: ['Pele Chamuscada', '🧥', 60, 0, 'mat'], ovo_cinza: ['Ovo de Cinza', '🥚', 750, 0, 'mat'],
     brasao: ['Brasão de Valdora', '🎖️', 140, 0, 'mat'], aco_valdora: ['Aço de Valdora', '🔩', 900, 0, 'mat'],
     lamina_carrasco: ['Lâmina do Carrasco', '🪓', 2500, 0, 'mat'],
+    // Floresta Morta e Templo da Primeira Raiz (níveis 40–55)
+    membrana: ['Membrana Alongada', '🫧', 70, 0, 'mat'], osso_raiz: ['Raiz-Osso', '🦴', 75, 0, 'mat'], cristal_carne: ['Cristal de Carne', '🔷', 85, 0, 'mat'],
+    placa_antiga: ['Placa Antiga', '🪙', 90, 0, 'mat'], lembranca: ['Lembrança Presa', '💭', 110, 0, 'mat'],
+    coracao_floresta: ['Coração da Floresta', '🫀', 1500, 0, 'mat'], runa_ordem: ['Runa da Ordem', '🔹', 1800, 0, 'mat'], fragmento_dourado: ['Fragmento Dourado', '✴️', 2000, 0, 'mat'],
+    seiva_branca: ['Seiva Branca', '🥛', 30, 0, 'comida', { heal: 0.25 }],
     // frutas e ervas (curam na hora, como as do Ragnarok)
     maca: ['Maçã Silvestre', '🍎', 4, 0, 'comida', { heal: 0.08 }], mel: ['Mel Escuro', '🍯', 12, 0, 'comida', { heal: 0.15 }],
     folha: ['Folha Verde', '🍃', 3, 0, 'comida', { heal: 0.05 }], erva_vermelha: ['Erva Vermelha', '🌺', 9, 0, 'comida', { heal: 0.2 }],
@@ -87,6 +92,12 @@ const Vida = (() => {
     luvas_valdora: ['Manoplas de Valdora', '🧤', 'luvas', 0, { def: 6, pow: 12 }, 2, 'valdora'],
     botas_valdora: ['Botas de Valdora', '🥾', 'botas', 0, { def: 6, spd: 0.1, hp: 70 }, 2, 'valdora'],
     arma_valdora: ['Espada de Valdora', '⚔️', 'arma', 0, { pow: 34, crit: 0.04 }, 2],
+    // Floresta Morta (Nv 40–55): o conjunto de raiz petrificada e a lança do Guardião Branco
+    elmo_raiz: ['Elmo de Raiz Petrificada', '🪖', 'capacete', 0, { def: 16, hp: 150 }, 2, 'floresta'],
+    manto_floresta: ['Manto da Floresta Morta', '🧥', 'armadura', 0, { def: 32, hp: 300 }, 2, 'floresta'],
+    luvas_cristal: ['Luvas de Cristal Negro', '🧤', 'luvas', 0, { def: 8, pow: 16 }, 2, 'floresta'],
+    botas_raiz: ['Botas de Raiz', '🥾', 'botas', 0, { def: 8, spd: 0.1, hp: 90 }, 2, 'floresta'],
+    lanca_ordem: ['Lança da Ordem', '🔱', 'arma', 0, { pow: 46, crit: 0.06 }, 3],
     // Míticos: só o próprio Kravenox, no topo dos 30 andares, deixa cair (um garantido por vitória)
     arma_soberano: ['Espinho do Soberano', '🗡️', 'arma', 0, { pow: 90, crit: 0.12 }, 4, 'soberano'],
     coroa_soberano: ['Coroa do Soberano', '👑', 'capacete', 0, { def: 26, hp: 350, pow: 22 }, 4, 'soberano'],
@@ -100,6 +111,7 @@ const Vida = (() => {
     sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
     valdora: { name: 'Conjunto da Guarda de Valdora', bonus: { pow: 18, def: 22, hp: 220 } },
+    floresta: { name: 'Conjunto da Floresta Morta', bonus: { pow: 24, def: 28, hp: 300 } },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
   };
   for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
@@ -112,7 +124,7 @@ const Vida = (() => {
   const add = (id, n) => { P.inv[id] = Math.max(0, (P.inv[id] || 0) + n); if (id === 'red' || id === 'blue') buildHotbar(); };
 
   // materiais que cada monstro solta
-  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia' };
+  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.55]);
   // tabela no jeito do Ragnarok: um comum (~20–30%), uma fruta/erva (~10%), um incomum e uma raridade (1–3%)
   const MOB_LOOT = {
@@ -131,6 +143,12 @@ const Vida = (() => {
     larvaCinza: [['pele_cinza', 0.24], ['brasa', 0.12], ['erva_vermelha', 0.1], ['ovo_cinza', 0.012]],
     sentinelaMuralha: [['brasao', 0.1], ['placa_vazio', 0.15], ['aco_valdora', 0.02]],
     carrasco: [['lamina_carrasco', 1], ['aco_valdora', 0.5], ['brasao', 1]],
+    larvaPernalta: [['pele_larva', 0.3], ['seiva_branca', 0.08], ['erva_vermelha', 0.12], ['coracao_floresta', 0.006]],
+    raizOssuda: [['casca', 0.35], ['membrana', 0.12], ['seiva_branca', 0.1], ['coracao_floresta', 0.012]],
+    larvaCristal: [['cristal_puro', 0.03], ['erva_azul', 0.12], ['membrana', 0.15], ['fragmento_dourado', 0.006]],
+    larvaAntiga: [['escama', 0.25], ['placa_vazio', 0.12], ['seiva_branca', 0.1], ['runa_ordem', 0.01]],
+    memoria: [['po_estelar', 0.03], ['erva_azul', 0.15], ['fragmento_dourado', 0.012]],
+    guardiaoBranco: [['runa_ordem', 1], ['coracao_floresta', 0.5], ['fragmento_dourado', 0.4]],
   };
   for (const [t, l] of Object.entries(MOB_LOOT)) if (MOBDEF[t]) for (const d of l) if (ITEMS[d[0]]) MOBDEF[t].drops.push(d);
   // os Alfas (versões grandes) soltam o mesmo, com mais chance
@@ -149,6 +167,9 @@ const Vida = (() => {
     raizNegra: [['botas_valdora', 0.012], ['luvas_valdora', 0.01]],
     ecoCinza: [['elmo_valdora', 0.012], ['colar_sombra', 0.02]],
     larvaCinza: [['luvas_valdora', 0.012], ['couraca_valdora', 0.008]],
+    larvaPernalta: [['botas_raiz', 0.01]], raizOssuda: [['elmo_raiz', 0.01], ['botas_raiz', 0.008]],
+    larvaCristal: [['luvas_cristal', 0.01]], larvaAntiga: [['manto_floresta', 0.008], ['elmo_raiz', 0.008]], memoria: [['luvas_cristal', 0.01], ['manto_floresta', 0.006]],
+    guardiaoBranco: [['lanca_ordem', 0.12], ['manto_floresta', 0.15], ['elmo_raiz', 0.15], ['luvas_cristal', 0.15], ['botas_raiz', 0.15]],
     sentinelaMuralha: [['couraca_valdora', 0.015], ['elmo_valdora', 0.015], ['arma_essencia', 0.02], ['essencia', 0.04]],
     carrasco: [['arma_valdora', 0.35], ['couraca_valdora', 0.25], ['elmo_valdora', 0.25], ['arm_negra', 0.2], ['anel_vazio', 0.15]],
     kravenox: [['marca', 0.5], ['arma_cisma', 0.3], ['coroa_espinhos', 0.25], ['manto_cisma', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.15]],
@@ -548,6 +569,11 @@ const Vida = (() => {
     { out: 'botas_valdora', need: { pele_cinza: 8, fibra: 8 }, z: 3500 },
     { out: 'couraca_valdora', need: { brasao: 5, placa_vazio: 6, aco_valdora: 2 }, z: 6000 },
     { out: 'arma_valdora', need: { lamina_carrasco: 1, aco_valdora: 2, brasa: 6 }, z: 8000 },
+    { out: 'botas_raiz', need: { osso_raiz: 10, membrana: 8 }, z: 6000 },
+    { out: 'elmo_raiz', need: { osso_raiz: 12, placa_antiga: 6, coracao_floresta: 1 }, z: 8000 },
+    { out: 'luvas_cristal', need: { cristal_carne: 12, membrana: 6, fragmento_dourado: 1 }, z: 8000 },
+    { out: 'manto_floresta', need: { placa_antiga: 12, lembranca: 8, coracao_floresta: 1 }, z: 10000 },
+    { out: 'lanca_ordem', need: { runa_ordem: 3, placa_antiga: 15, fragmento_dourado: 2 }, z: 20000 },
   ].filter(r => ITEMS[r.out]);
   const needTxt = r => Object.entries(r.need).map(([id, n]) => `${n} ${it(id).ic}`).join(' + ') + ` + ${r.z} cr`;
   function forge() {

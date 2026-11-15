@@ -16,6 +16,7 @@ const Desafios = (() => {
     anel_algoz: ['Anel do Algoz do Soberano', '💍', 'anel', { pow: 22, crit: 0.07, sp: 60 }],
     armadura_cinzas: ['Armadura das Cinzas', '🔥', 'armadura', { def: 40, hp: 420, pow: 8 }],
     anel_valdora: ['Anel de Valdora Eterna', '💍', 'anel', { def: 10, hp: 180, sp: 40 }],
+    coroa_raiz: ['Coroa da Primeira Raiz', '👑', 'capacete', { def: 26, hp: 280, pow: 14 }],
   };
   for (const [id, [name, ic, slot, mods]] of Object.entries(EQUIP))
     ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar: 3, price: 0, sell: 5000, desafio: true };
@@ -34,6 +35,10 @@ const Desafios = (() => {
     ['aura', 'cinzas', 'Cinzas Vivas', '🌋', { c: [0xff6a20, 0x5a4a48] }],
     ['titulo', 'carrasco', '« Fim do Carrasco »', '🪓', {}],
     ['cor', 'prata', 'Nome Cinza de Prata', '⚪', { css: '#d8dce8' }],
+    ['aura', 'ordem', 'Luz da Ordem', '🔹', { c: [0x7ad8ff, 0xffffff] }],
+    ['titulo', 'lanca', '« Herdeiro da Lança »', '🔱', {}],
+    ['rastro', 'raizes', 'Raízes Douradas', '✴️', { c: [0xffd060, 0xc8a050], spark: true }],
+    ['cor', 'ouro_velho', 'Nome Ouro Velho', '🟤', { css: '#d8b060' }],
   ];
   const visNome = (c, k) => { const v = VIS.find(x => x[0] === c && x[1] === k); return v ? `${v[3]} ${v[2]}` : k; };
 
@@ -55,6 +60,11 @@ const Desafios = (() => {
       { id: 'd7', t: 'Os Cinco da Torre', pede: { m: { larva: 300, verme: 300, esfera: 300, sentinela: 300 }, g: { guardiao: 30 } }, da: { e: ['elmo_guardiao'], v: [['pet', 'rainha']] } },
       { id: 'd8', t: 'Algoz do Soberano', pede: { g: { kravenox: 5 } }, da: { e: ['anel_algoz'], v: [['aura', 'espinhos'], ['titulo', 'algoz']] } },
       { id: 'd9', t: 'Essência do Cisma', pede: { i: { lasca: 300, essencia: 100, placa_vazio: 50, olho_vazio: 5 } }, da: { v: [['rastro', 'cisma']] } },
+    ] },
+    teodor: { nome: 'Andarilho Teodor', fala: 'Eu me perdi nesta floresta há tantos anos que ela parou de tentar me matar. Você ainda é interessante para ela.', lista: [
+      { id: 'd13', t: 'Floresta em Silêncio', pede: { m: { larvaPernalta: 300, raizOssuda: 300, larvaCristal: 300, larvaAntiga: 300, memoria: 300 } }, da: { e: ['coroa_raiz'] } },
+      { id: 'd14', t: 'Herdeiro da Lança', pede: { m: { guardiaoBranco: 5 } }, da: { v: [['aura', 'ordem'], ['titulo', 'lanca']] } },
+      { id: 'd15', t: 'Memória Viva', pede: { i: { lembranca: 300, membrana: 200, fragmento_dourado: 10, coracao_floresta: 5 } }, da: { v: [['rastro', 'raizes'], ['cor', 'ouro_velho']] } },
     ] },
     brigida: { nome: 'Velha Brígida', fala: 'Eu vi Valdora inteira, antes de virar cinza. Traga o que restou dela e eu te conto como ela era.', lista: [
       { id: 'd10', t: 'Cinzas de Valdora', pede: { m: { raizNegra: 300, ecoCinza: 300, larvaCinza: 300, sentinelaMuralha: 300 } }, da: { e: ['armadura_cinzas'] } },
