@@ -185,7 +185,7 @@ const SUN_OFF = new THREE.Vector3(40, 34, 22);
 let LASTDAY = null;
 const DAYC = { horizon: new THREE.Color(), top: new THREE.Color(), sunC: new THREE.Color(), hemiC: new THREE.Color(), sunDir: new THREE.Vector3() };
 const C_ = h => new THREE.Color(h);
-const FLO_H = C_(0x343844), FLO_T = C_(0x0c0a12), DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
+const LUAR = C_(0x9aaad0), FLO_H = C_(0x343844), FLO_T = C_(0x0c0a12), DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
   const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : /dia/.test(location.hash) ? 0.5 : null;
@@ -1924,6 +1924,7 @@ function update(dt) {
   time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
   updatePlayer(dt);
   for (const m of mobs) updateMob(m, dt);
+  separarMobs(dt);
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
   for (const d of drops) {
@@ -1967,6 +1968,8 @@ function update(dt) {
   const DAY = LASTDAY = dayCycle();
   sky.material.uniforms.sunDir.value.copy(DAY.sunDir); sky.material.uniforms.night.value = DAY.night;
   sun.intensity = DAY.sunI; sun.color.copy(DAY.sunC); hemi.intensity = DAY.hemiI; hemi.color.copy(DAY.hemiC);
+  // nos mapas de fora (Valdora, Floresta, Praia) a noite tem luar: antes o chão ficava preto e só sobravam vultos
+  if (inVal(P.z) && DAY.night > 0) { hemi.intensity = Math.max(hemi.intensity, 0.42 + 0.85 * DAY.night); hemi.color.lerp(LUAR, 0.6 * DAY.night); sun.intensity = Math.max(sun.intensity, 0.55 * DAY.night); sun.color.lerp(LUAR, DAY.night); }
   const des = inTower(P.z) ? 0 : smooth(40, 70, P.x);
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
   skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
@@ -2062,6 +2065,17 @@ function updatePlayer(dt) {
   $('t-talk').classList.toggle('hidden', !(nearNpc || nearUse) || dialogOpen);
 }
 
+// monstros que perseguem você se espalham em volta em vez de ocupar o mesmo ponto (os nomes ficavam encavalados)
+function separarMobs(dt) {
+  const perto = mobs.filter(m => !m.dead && (m.state === 'chase' || m.moving) && Math.hypot(m.x - P.x, m.z - P.z) < 22 && !(m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) && m.type !== 'kravenox');
+  for (let i = 0; i < perto.length; i++) for (let j = i + 1; j < perto.length; j++) {
+    const a = perto[i], b = perto[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz) || 0.01, min = 1.1 + (a.d.rad || 0) + (b.d.rad || 0) + (a.d.boss || a.d.mini ? 1 : 0) + (b.d.boss || b.d.mini ? 1 : 0);
+    if (d >= min) continue;
+    const k = Math.min(0.5, (min - d) * 0.5) * Math.min(1, dt * 8), ux = dx / d, uz = dz / d;
+    if (!blocked(a.x - ux * k, a.z - uz * k, 0.4)) { a.x -= ux * k; a.z -= uz * k; }
+    if (!blocked(b.x + ux * k, b.z + uz * k, 0.4)) { b.x += ux * k; b.z += uz * k; }
+  }
+}
 function updateMob(m, dt) {
   if (m.dot) {
     m.dot.t -= dt; m.dot.acc += dt;
