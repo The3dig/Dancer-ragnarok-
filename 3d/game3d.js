@@ -1142,8 +1142,13 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
   { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  // mestres dos Desafios (desafios.js): caçadas e entregas longas com prêmios que só existem lá
+  { id: 'desafio', dsf: 'ivanna', name: 'Caçadora Ivanna', x: VIL.x + 12, z: VIL.z + 2, look: [0x4a6a2a, 0x6a3a1a, 'cap'] },
+  { id: 'desafio', dsf: 'zahir', name: 'Nômade Zahir', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
+  { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
+  { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1185,6 +1190,7 @@ function npcMark(n) {
   if (qm) k = qm; else
   if (false) { }
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
+  else if (n.id === 'desafio' && typeof Desafios !== 'undefined') k = Desafios.mark(n);
   else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
   const live = !!k && !k.endsWith('#7a7a88');
   if (n.beam && n.beam.visible) {                       // pulso do medalhão, coluna de luz e anel no chão
@@ -1410,7 +1416,7 @@ function killMob(m, o = {}) {
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
     const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
     log(`🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
-    if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); }
+    if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
     return;
   }
   drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
@@ -1421,6 +1427,7 @@ function killMob(m, o = {}) {
   if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
+  if (typeof Desafios !== 'undefined') Desafios.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
   if (typeof Quests !== 'undefined') Quests.onKill(m);
   if (typeof Chefes !== 'undefined') Chefes.onKill(m);
@@ -2633,6 +2640,7 @@ function talkBase(n) {
     case 'refugee': dialog(nm, `Você... veio da Passagem? Ninguém vem <i>para</i> cá, ${eu}. Todo mundo foge.<br>Valdora caiu. As muralhas estão no chão, as torres queimam, e as <b>Sentinelas do Vazio</b> andam pelas ruas. No meio da praça desenharam com sangue um símbolo enorme: <b>três espinhos</b>.<br>A estrada até lá está tomada pelas <b>Raízes Negras</b>. Cuidado.`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
     case 'smith': Vida.smith(eu); break;
+    case 'desafio': if (typeof Desafios !== 'undefined') Desafios.talk(n); break;
     case 'warp': if (typeof Quests !== 'undefined') Quests.warp(n.city); break;
     default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
     case 'watch': if (typeof Evo !== 'undefined' && Evo.talk(eu)) break; dialog(nm, `${eu}, você chegou longe. Aquela é a <b>Torre do Cisma</b>. São <b>trinta andares</b> tomados pela Essência: <b>Larvas Alongadas</b>, <b>Larvas Encouraçadas</b>, <b>Fragmentos</b>, <b>Sentinelas</b>... Cada andar só libera a escada quando não sobra nenhum de pé.<br><br>No topo dorme <b>Kravenox</b>, gigante, o Soberano do Reino Quebrado. Ele desperta todo <b>sábado às 20h</b>. Leve amigos.<br><small>A entrada fica na base da torre, ao norte daqui.</small>`); break;
@@ -2754,7 +2762,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

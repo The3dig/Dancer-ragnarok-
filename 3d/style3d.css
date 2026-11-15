@@ -633,3 +633,4 @@ body.touch #kvx { font-size: 9px; max-width: 150px; } body.touch #kvx .wt { font
 body.touch #evocard.mini { font-size: 8.5px; max-width: 160px; } body.touch #evocard.mini .wt { font-size: 8.5px; }
 /* aviso de evolução no alto: menor no celular deitado */
 @media (max-height: 470px) { body.touch #evocard:not(.mini) { font-size: 9px; padding: 3px 9px; max-width: 38vw; } }
+#coswin .cs-dsf { display: block; font-size: 9px; opacity: .7; margin-top: 2px; line-height: 1.2; }

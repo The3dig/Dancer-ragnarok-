@@ -70,7 +70,7 @@ const Cos = (() => {
       const own = st.own[key(tab, k)], on = st.eq[tab] === k;
       const prev = tab === 'cor' ? `<b style="color:${ex.css}">${P.name}</b>` : tab === 'titulo' ? `<small>${nome}</small>` : `<span class="cs-ic">${ic}</span>`;
       return `<div class="cs-card${on ? ' on' : ''}"><div class="cs-prev">${prev}</div><b>${tab === 'titulo' ? '' : nome}</b>
-        ${own ? `<button data-a="eq" data-v="${k}">${on ? '✅ Usando' : 'Usar'}</button>` : `<button data-a="buy" data-v="${k}" ${P.zeny < preco ? 'class="off"' : ''}>💰 ${preco.toLocaleString('pt-BR')} cr</button>`}</div>`;
+        ${own ? `<button data-a="eq" data-v="${k}">${on ? '✅ Usando' : 'Usar'}</button>` : preco == null ? `<button class="off" title="${ex.desafio || ''}">🔒 Desafio</button><small class="cs-dsf">${ex.desafio || ''}</small>` : `<button data-a="buy" data-v="${k}" ${P.zeny < preco ? 'class="off"' : ''}>💰 ${preco.toLocaleString('pt-BR')} cr</button>`}</div>`;
     }).join('');
     win().innerHTML = `<div class="wt">🛍️ Loja de Visuais <small>· ${P.zeny.toLocaleString('pt-BR')} cr</small><span class="x" data-a="x">×</span></div>
       <div class="cs-tabs">${Object.entries(CAT).map(([k, v]) => `<div class="cs-tab${tab === k ? ' on' : ''}" data-a="tab" data-v="${k}">${v.ic} ${v.n}</div>`).join('')}</div>
@@ -83,7 +83,7 @@ const Cos = (() => {
   }
   function buy(c, k) {
     const [nome, , preco] = CAT[c].items[k], st = S();
-    if (st.own[key(c, k)]) return;
+    if (st.own[key(c, k)] || preco == null) return;                   // exclusivo de desafio: não se compra
     if (P.zeny < preco) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
     P.zeny -= preco; st.own[key(c, k)] = 1; st.eq[c] = k; Audio8.sfx('level'); apply(); save();
     log(`🛍️ Comprou <b>${nome}</b>!`, 'gold');
@@ -141,5 +141,9 @@ const Cos = (() => {
     if (!$('btn-shop')) { const b = document.createElement('button'); b.id = 'btn-shop'; b.title = 'Loja de Visuais'; b.textContent = '🛍️'; b.onclick = open; $('menu').insertBefore(b, $('btn-help')); }
     apply();
   }
-  return { init, open, update, apply, pres };
+  // visuais exclusivos dos Desafios (desafios.js): aparecem na loja com 🔒 e só se ganham cumprindo o desafio
+  function exclusivo(c, k, nome, ic, ex) { CAT[c].items[k] = [nome, ic, null, ex]; }
+  function ganhar(c, k) { const st = S(); st.own[key(c, k)] = 1; st.eq[c] = k; apply(); save(); }
+  const tem = (c, k) => !!S().own[key(c, k)];
+  return { init, open, update, apply, pres, exclusivo, ganhar, tem, CAT };
 })();
