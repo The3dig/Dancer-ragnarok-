@@ -2351,8 +2351,69 @@ const BigMap = (() => {
   const area = () => { if (view) return { x0: view.c.x - view.R * 1.6, z0: view.c.z - view.R, w: view.R * 3.2, h: view.R * 2 }; const M = curMap(); return { x0: M.x0, z0: M.z0, w: M.w, h: M.h }; };
   const places = () => curMap().places || PLACES, cities = () => curMap().cities || CITIES;
   const npcsOf = v => NPCS.filter(n => !n.hidden && Math.hypot(n.x - v.c.x, n.z - v.c.z) < v.R * 1.5);
+  // ---------------- Mapa do Mundo: todos os lugares, os níveis, as passagens e "você está aqui"
+  const REG = [
+    { id: 'praia', n: 'Praia de Cômodo', lv: 'sem monstros', x: 0.02, y: 0.44, w: 0.19, h: 0.34, cor: '#c8b478', cid: ['Vila de Cômodo', 'Píer (pesca)', 'Farol'], M: () => typeof Praia !== 'undefined' && Praia.map },
+    { id: 'reino', n: 'Reino Quebrado', lv: 'Nv 1–22', x: 0.27, y: 0.44, w: 0.44, h: 0.46, cor: '#6a8a4a', cid: ['Vila de Solmira · Sítio', 'Campos Dourados · Cratera', 'Areias Rubras · Oásis de Kharum', 'Cidadela do Cisma'], M: () => Object.assign({}, REINO_MAP, { base }) },
+    { id: 'torre', n: 'Torre do Cisma', lv: 'Nv 18–60 · 30 andares', x: 0.77, y: 0.5, w: 0.21, h: 0.3, cor: '#5a3a7a', cid: ['Entrada na Cidadela do Cisma', 'Kravenox no topo (sábado 20h)'] },
+    { id: 'valdora', n: 'Terras de Valdora', lv: 'Nv 24–40', x: 0.3, y: 0.04, w: 0.33, h: 0.3, cor: '#7a5a4a', cid: ['Acampamento · Colina', 'Ruínas de Valdora'], M: () => typeof Valdora !== 'undefined' && Valdora.map },
+    { id: 'floresta', n: 'Floresta Morta', lv: 'Nv 40–55', x: 0.69, y: 0.04, w: 0.29, h: 0.3, cor: '#3e3e52', cid: ['Clareira de Lira', 'Pilares da Ordem', 'Templo da Primeira Raiz'], M: () => typeof Floresta !== 'undefined' && Floresta.map },
+  ];
+  const LIG = [['praia', 'reino', 'arco do oeste (perto do Sítio)'], ['reino', 'valdora', 'Passagem do Norte (Areias Rubras)'], ['valdora', 'floresta', 'arco do leste de Valdora'], ['reino', 'torre', 'porta na Cidadela do Cisma']];
+  const regDe = () => inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
+  // o próximo passo do caminho até um lugar (passagem ou porta)
+  function rota(de, para) {
+    if (de === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'o arco de volta ao Reino' };
+    if (de === 'floresta') return { x: FGATE.x + 4, z: FGATE.z, name: 'o arco de volta a Valdora' };
+    if (de === 'valdora') return para === 'floresta' ? { x: VGATE_VF.x - 4, z: VGATE_VF.z, name: 'o arco do leste (Floresta Morta)' } : { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'a passagem de volta ao Reino' };
+    if (para === 'praia') return { x: RGATE_P.x + 4, z: RGATE_P.z, name: 'o arco do oeste (Praia de Cômodo)' };
+    if (para === 'torre') return { x: Tower.door.x, z: Tower.door.z + 5, name: 'a porta da Torre do Cisma' };
+    return { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'a Passagem do Norte (Valdora)' };
+  }
+  function cliqueMundo(fx, fy) {
+    const r = REG.find(r => fx > r.x && fx < r.x + r.w && fy > r.y && fy < r.y + r.h); if (!r) return;
+    Audio8.sfx('click'); const aqui = regDe();
+    if (r.id === aqui) { if (aqui === 'torre') { log('Você já está na Torre do Cisma.', 'sys'); return; } show(null); return; }
+    if (aqui === 'torre') { log('Saia da Torre primeiro (desça até o 1º andar).', 'sys'); return; }
+    const w = rota(aqui, r.id); go(w.x, w.z, `${w.name}, caminho para ${r.n}`);
+  }
+  function drawMundo() {
+    const W = cv.width, H = cv.height, aqui = regDe(), t = performance.now() / 1000;
+    g.fillStyle = '#16121e'; g.fillRect(0, 0, W, H);
+    const C = r => [(r.x + r.w / 2) * W, (r.y + r.h / 2) * H], f = Math.max(9, W / 70);
+    // ligações (passagens)
+    for (const [a, b, nome] of LIG) {
+      const A = REG.find(r => r.id === a), Bq = REG.find(r => r.id === b), [ax, ay] = C(A), [bx, by] = C(Bq);
+      g.strokeStyle = 'rgba(247,226,168,.55)'; g.lineWidth = Math.max(2, W / 300); g.setLineDash([8, 6]); g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke(); g.setLineDash([]);
+    }
+    for (const r of REG) {
+      const x = r.x * W, y = r.y * H, w = r.w * W, h = r.h * H, eu = r.id === aqui, M = r.M ? r.M() : null;
+      g.fillStyle = r.cor; g.globalAlpha = 0.9; g.fillRect(x, y, w, h); g.globalAlpha = 1;
+      if (M && M.base) { g.globalAlpha = 0.55; g.drawImage(M.base, x, y, w, h); g.globalAlpha = 1; }
+      g.fillStyle = 'rgba(10,6,16,.45)'; g.fillRect(x, y, w, h);
+      g.strokeStyle = eu ? '#ffcf40' : 'rgba(247,226,168,.6)'; g.lineWidth = eu ? Math.max(3, W / 200) : 1.5; g.strokeRect(x, y, w, h);
+      g.textAlign = 'left'; g.fillStyle = '#f7e2a8'; g.font = `800 ${Math.round(f * 1.15)}px Cinzel, serif`; g.fillText(r.n, x + 8, y + f * 1.5);
+      g.fillStyle = '#ffb0d0'; g.font = `700 ${Math.round(f * 0.85)}px Nunito, sans-serif`; g.fillText(r.lv, x + 8, y + f * 2.6);
+      g.fillStyle = '#e8e4dc'; g.font = `600 ${Math.round(f * 0.8)}px Nunito, sans-serif`; r.cid.forEach((c, i) => g.fillText('• ' + c, x + 8, y + f * (3.8 + i * 1.15)));
+      if (eu) {                                                     // você está aqui (posição aproximada dentro do lugar)
+        let px = x + w / 2, py = y + h / 2;
+        if (M && M.w) { px = x + Math.min(1, Math.max(0, (P.x - M.x0) / M.w)) * w; py = y + Math.min(1, Math.max(0, (P.z - M.z0) / M.h)) * h; }
+        const pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(255,79,163,.35)'; g.beginPath(); g.arc(px, py, f * 1.2 * pul, 0, TAU); g.fill();
+        g.fillStyle = '#ff4fa3'; g.beginPath(); g.arc(px, py, f * 0.45, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+        g.textAlign = 'center'; g.font = `800 ${Math.round(f * 0.9)}px Nunito, sans-serif`; const tx = 'VOCÊ ESTÁ AQUI', tw = g.measureText(tx).width + 10;
+        g.fillStyle = '#ff4fa3'; g.fillRect(px - tw / 2, py - f * 2.6, tw, f * 1.25); g.fillStyle = '#fff'; g.fillText(tx, px, py - f * 1.65);
+      }
+    }
+    // nomes das passagens por cima de tudo, no meio do caminho entre os dois lugares
+    for (const [a, b, nome] of LIG) {
+      const [ax, ay] = C(REG.find(r => r.id === a)), [bx, by] = C(REG.find(r => r.id === b)), mx = (ax + bx) / 2, my = (ay + by) / 2;
+      g.font = `700 ${Math.round(f * 0.78)}px Nunito, sans-serif`; g.textAlign = 'center'; const tw = g.measureText('🚪 ' + nome).width + 12;
+      g.fillStyle = 'rgba(16,10,24,.92)'; g.fillRect(mx - tw / 2, my - f * 0.75, tw, f * 1.2); g.strokeStyle = 'rgba(247,226,168,.6)'; g.lineWidth = 1; g.strokeRect(mx - tw / 2, my - f * 0.75, tw, f * 1.2);
+      g.fillStyle = '#e8d8a8'; g.fillText('🚪 ' + nome, mx, my + f * 0.15);
+    }
+  }
   function show(city) {
-    if (inTower(P.z)) { log('Dentro da Torre o mapa grande não funciona.', 'sys'); return; }
+    const mundo = city === 'mundo' || inTower(P.z);
     build();
     if (!box) {
       box = document.createElement('div'); box.id = 'bigmap';
@@ -2360,10 +2421,11 @@ const BigMap = (() => {
       $('hud').appendChild(box); cv = box.querySelector('canvas'); g = cv.getContext('2d');
       box.addEventListener('click', e => {
         if (e.target.closest('.bm-x') || e.target === box) { Audio8.sfx('click'); hide(); return; }
-        if (e.target.closest('.bm-back')) { Audio8.sfx('click'); show(null); return; }
+        if (e.target.closest('.bm-back')) { Audio8.sfx('click'); show(view && view !== 'mundo' ? null : 'mundo'); return; }
         const it = e.target.closest('[data-npc]'); if (it) { const n = NPCS[+it.dataset.npc]; go(n.x, n.z, n.name); return; }
       });
       cv.addEventListener('click', e => {
+        if (view === 'mundo') { const r = cv.getBoundingClientRect(); cliqueMundo((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); return; }
         const r = cv.getBoundingClientRect(), A = area(), wx = A.x0 + (e.clientX - r.left) / r.width * A.w, wz = A.z0 + (e.clientY - r.top) / r.height * A.h;
         if (!view) { const c = cities().find(c => Math.hypot(wx - c.c.x, wz - c.c.z) < 14); if (c) { Audio8.sfx('click'); show(c); return; } }
         if (view) { const n = npcsOf(view).find(n => Math.hypot(n.x - wx, n.z - wz) < 2.5); if (n) { go(n.x, n.z, n.name); return; } }
@@ -2371,10 +2433,12 @@ const BigMap = (() => {
         go(wx, wz, 'o ponto marcado');
       });
     }
+    if (mundo) return showMundo();
+    cv.style.margin = '';
     view = city || null;
-    box.querySelector('.bm-back').style.display = view ? '' : 'none';
+    box.querySelector('.bm-back').style.display = '';
     box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inFlo(P.x, P.z) ? '🗺️ Floresta Morta' : inPraia(P.x, P.z) ? '🗺️ Praia de Cômodo' : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
-    box.querySelector('.bm-back').textContent = inFlo(P.x, P.z) ? '← Floresta' : inPraia(P.x, P.z) ? '← Praia' : inVal(P.z) ? '← Valdora' : '← Reino';
+    box.querySelector('.bm-back').textContent = !view ? '🌍 Mundo' : inFlo(P.x, P.z) ? '← Floresta' : inPraia(P.x, P.z) ? '← Praia' : inVal(P.z) ? '← Valdora' : '← Reino';
     const list = box.querySelector('.bm-list');
     if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
     else list.style.display = 'none';
@@ -2391,8 +2455,20 @@ const BigMap = (() => {
     if (typeof autoStart === 'function') autoStart(); $('quest').dataset.h = '';
   }
   function hide() { if (box) box.classList.add('hidden'); open = false; }
+  function showMundo() {
+    build(); view = 'mundo';
+    box.querySelector('.bm-back').style.display = 'none';
+    box.querySelector('.bm-n').textContent = '🌍 Mapa do Mundo';
+    box.querySelector('.bm-list').style.display = 'none';
+    box.querySelector('.bm-leg').innerHTML = '<span>👆 Toque no lugar onde você está para ver o mapa dele · toque em outro lugar e o personagem vai sozinho até a passagem · 🧭 Guias de Viagem levam entre cidades</span>';
+    const r = Math.min((innerWidth - 40) / 16, (innerHeight - 110) / 9);
+    cv.width = Math.round(16 * r * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * 9 / 16);
+    cv.style.width = Math.round(16 * r) + 'px'; cv.style.height = Math.round(9 * r) + 'px'; cv.style.margin = '0 auto';
+    box.classList.remove('hidden'); open = true; draw();
+  }
   function draw() {
     if (!open) return;
+    if (view === 'mundo') return drawMundo();
     const A = area(), k = cv.width / A.w, X = x => (x - A.x0) * k, Z = z => (z - A.z0) * k, u = view ? 3 : 1;
     const M = curMap(), B = M.base || base; g.imageSmoothingEnabled = true; g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
     g.textAlign = 'center';
@@ -2419,7 +2495,7 @@ const BigMap = (() => {
     g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k / u * (view ? 1.8 : 1), k / u * (view ? 1.8 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
-  return { show: () => show(null), hide, draw, get open() { return open; } };
+  return { show: () => show('mundo'), regiao: () => show(null), hide, draw, get open() { return open; } };
 })();
 function questTarget() {
   if (typeof Quests !== 'undefined') {
