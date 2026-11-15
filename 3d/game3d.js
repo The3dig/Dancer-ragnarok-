@@ -1883,7 +1883,7 @@ function usePotion(id) {
   if (!P.inv[id]) { log(`Sem ${ITEMS[id].name}.`, 'bad'); return; }
   P.inv[id]--; Audio8.sfx('heal');
   if (id === 'red') { P.hp = Math.min(stats.maxHp(), P.hp + 60); floater(P.x, P.y + 2.4, P.z, '+60', 'heal'); }
-  else { P.sp = Math.min(stats.maxSp(), P.sp + 40); floater(P.x, P.y + 2.4, P.z, '+40 SP', 'sp'); }
+  else { const v = 40 + Math.round(stats.maxSp() * 0.08); P.sp = Math.min(stats.maxSp(), P.sp + v); floater(P.x, P.y + 2.4, P.z, '+' + v + ' SP', 'sp'); }
   buildHotbar();
 }
 
@@ -1980,7 +1980,8 @@ function updatePlayer(dt) {
   if (P.regenT >= (P.sit ? 1 : 3)) {
     P.regenT = 0;
     P.hp = Math.min(stats.maxHp(), P.hp + Math.max(1, Math.floor(stats.maxHp() * 0.02 + P.vit * 0.3)));
-    P.sp = Math.min(stats.maxSp(), P.sp + Math.max(1, Math.floor(stats.maxSp() * 0.03 + P.int * 0.2)));
+    // SP volta devagar em pé (1%) e mais rápido sentado (2,5%), como no Ragnarok: na luta, poção azul ou sentar
+    P.sp = Math.min(stats.maxSp(), P.sp + Math.max(1, Math.floor(stats.maxSp() * (P.sit ? 0.025 : 0.01) + P.int * (P.sit ? 0.2 : 0.1))));
   }
   const rg = badd('regen'); if (rg) P.hp = Math.min(stats.maxHp(), P.hp + stats.maxHp() * rg * dt);
 
@@ -2587,7 +2588,7 @@ function scaleSkill(s, L) {
   if (s.life) o.life = Math.round(s.life * (1 + 0.15 * k));
   if (s.poison) o.poison = s.poison * (1 + 0.2 * k);
   if (s.mods) { o.mods = {}; for (const [m, v] of Object.entries(s.mods)) o.mods[m] = ['def', 'crit', 'poison', 'regen'].includes(m) ? v * (1 + 0.25 * k) : 1 + (v - 1) * (1 + 0.25 * k); }
-  o.sp = Math.round(s.sp * (1 + 0.12 * k));
+  o.sp = Math.round(s.sp * (1 + 0.12 * k) * (1 + P.lv / 20));          // custo cresce com o nível do personagem (no 60, 4x), senão o SP nunca acaba
   return o;
 }
 function reqMet(i) { return tierOk(SKILLS[i]) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
