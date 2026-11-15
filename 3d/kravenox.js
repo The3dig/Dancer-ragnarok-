@@ -151,7 +151,8 @@ const Kvx = (() => {
     Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 300);
     log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> no topo da Torre do Cisma! Todos os aventureiros estão subindo!', 'bad');
     log('📍 Ele está no <b>topo da Torre do Cisma</b>, na Cidadela do Cisma (extremo leste). Suba os 30 andares!', 'gold');
-    spawnAllies();
+    // sem bots: o jogo é todo on-line e quem luta são os jogadores de verdade
+    // (os 6 aventureiros de antes batiam nele no aparelho de cada um e o dano contava como se fosse do jogador)
   }
   function sleep(msg) {
     if (boss && !boss.dead) { mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); }
@@ -371,7 +372,7 @@ const Kvx = (() => {
     }
   }
 
-  function curWeek() { return semanaAtual(); }
+  function curWeek() { return semanaAtual() + '-v2'; }                // -v2: zera o dano que os bots deram por você
   function addDmg(d) { const w = curWeek(); if (!P.kvxDmg || P.kvxDmg.w !== w) P.kvxDmg = { w, d: 0 }; P.kvxDmg.d += d; }
   function sharedHp(m) {
     const w = curWeek(), mine = P.kvxDmg && P.kvxDmg.w === w ? P.kvxDmg.d : 0;
@@ -427,7 +428,7 @@ const Kvx = (() => {
     if (boss) {
       boss.hp = Math.min(boss.maxHp, sharedHp(boss));
       if (boss.hp <= 0 && !boss.dead) {
-        boss.hp = 0; const meu = P.kvxDmg && P.kvxDmg.w === semanaAtual() ? P.kvxDmg.d : 0;
+        boss.hp = 0; const meu = P.kvxDmg && P.kvxDmg.w === curWeek() ? P.kvxDmg.d : 0;
         if (meu >= MIN_DANO || forced) killMob(boss);                                   // lutou: prêmio
         else { const b = boss; killMob(b, { semPremio: true }); caiuSemVoce(''); }      // só estava por perto: sem prêmio
       }

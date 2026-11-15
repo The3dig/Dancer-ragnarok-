@@ -1853,7 +1853,7 @@ const ZONES = {
   areias: { name: 'Areias Rubras', music: 'vale' },
   lair: { name: 'Cratera do Cisma', music: 'abismo' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
-  torre: { name: 'Torre do Cisma', music: 'masmorra' },
+  torre: { name: 'Torre do Cisma', music: 'torre' },          // metal gótico (scripts/compor_torre.py); a masmorra.mp4 antiga continua guardada
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'vila' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },

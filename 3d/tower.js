@@ -228,7 +228,7 @@ const Tower = (() => {
   function unbuild() {
     if (!built) return;
     scene.remove(built.g);
-    built.g.traverse(o => { if (o.geometry && o.geometry !== CAIXA) o.geometry.dispose(); if (o.isSprite && o.material) o.material.dispose(); });
+    built.g.traverse(o => { if (o.geometry && o.geometry !== CAIXA && !o.userData.guardada) o.geometry.dispose(); if (o.isSprite && o.material) o.material.dispose(); });
     built.own.forEach(m => m.dispose()); FX.length = 0; built = null;
   }
   // várias cópias da mesma peça num desenho só (degraus, paredes, colunas, corrimão): o celular agradece
@@ -240,6 +240,16 @@ const Tower = (() => {
   }
   const CAIXA = new THREE.BoxGeometry(1, 1, 1);
   // escadaria lateral, colada na parede: 'sobe' (até +7 m, porta do andar de cima) ou 'desce' (por um vão no chão, até -7 m)
+  const PORTAS = new Map();
+  function portaGeo(w) {                     // moldura em arco ogival: largura da passagem w, 7,4 m de altura
+    const k = w.toFixed(2); if (PORTAS.has(k)) return PORTAS.get(k);
+    const L = w / 2 + 0.9, h0 = 4.6, sh = new THREE.Shape();
+    sh.moveTo(-L, 0); sh.lineTo(-w / 2, 0); sh.lineTo(-w / 2, h0); sh.quadraticCurveTo(-w / 2, h0 + 2.2, 0, h0 + 2.8); sh.quadraticCurveTo(w / 2, h0 + 2.2, w / 2, h0);
+    sh.lineTo(w / 2, 0); sh.lineTo(L, 0); sh.lineTo(L, h0 + 1.6); sh.quadraticCurveTo(L - 0.2, h0 + 3.6, 0, h0 + 4.2); sh.quadraticCurveTo(-L + 0.2, h0 + 3.6, -L, h0 + 1.6); sh.lineTo(-L, 0);
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.9, bevelEnabled: true, bevelSize: 0.12, bevelThickness: 0.12, bevelSegments: 2 }); geo.translate(0, 0, -0.45);
+    const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 0.25, uv.getY(i) * 0.25);
+    PORTAS.set(k, geo); return geo;
+  }
   function escadaria(f, g, T, fx, tipo, own) {
     const a0 = tipo === 'sobe' ? RAMPA.sobe : RAMPA.desce, N = 28, H = STAIR_H * (tipo === 'sobe' ? 1 : -1);
     const rin = f.r - RAMPA.larg - 0.3, rout = f.r + 0.3, W = rout - rin, rc = (rin + rout) / 2, tl = rc * RAMPA.volta / N + 0.06;
@@ -262,15 +272,17 @@ const Tower = (() => {
       pw.position.y = -(STAIR_H + 2) / 2; g.add(pw);
       const thf = a0 + RAMPA.volta, fim = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.6, STAIR_H + 2), pw.material); fim.position.set(Math.sin(thf) * rc, -(STAIR_H + 2) / 2, Math.cos(thf) * rc); fim.rotation.y = thf - Math.PI / 2; g.add(fim);
     }
-    // arco e passagem escura no fim (continua subindo/descendo)
-    const the = a0 + RAMPA.volta * 0.985, ye = H, tx = Math.cos(the), tz = -Math.sin(the);
-    const cx = Math.sin(the) * (f.r - 0.1), cz = Math.cos(the) * (f.r - 0.1);
-    for (const o of [-1, 1]) inst(CAIXA, T.colM, [{ x: cx + tx * o * (W / 2 + 0.2), y: ye + 3.4, z: cz + tz * o * (W / 2 + 0.2), ry: the, sx: 0.8, sy: 6.8, sz: 0.8 }], g);
-    inst(CAIXA, T.colM, [{ x: cx, y: ye + 7, z: cz, ry: the + Math.PI / 2, sx: W + 1.4, sy: 0.7, sz: 0.9 }], g);
-    const dk = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.4, 6.6), T.darkM); dk.position.set(Math.sin(the) * (f.r + 0.15), ye + 3.3, Math.cos(the) * (f.r + 0.15)); dk.rotation.y = the + Math.PI; g.add(dk);
-    for (const o of [-1, 1]) {                                                 // tochas no arco
+    // porta no fim da escadaria, DE FRENTE para quem vem (antes ficava de lado, presa na parede de fora):
+    // moldura de pedra em arco ogival atravessando a escada, passagem escura e duas tochas
+    const the = a0 + RAMPA.volta, ye = H, tx = Math.cos(the), tz = -Math.sin(the);      // (tx, tz) = sentido de quem anda na escada
+    const rx = Math.sin(the), rz = Math.cos(the), cx = rx * rc, cz = rz * rc;
+    const Wp = W + 0.2, moldura = portaGeo(Wp);
+    const pm = new THREE.Mesh(moldura, T.colM); pm.position.set(cx + tx * 0.35, ye - 0.2, cz + tz * 0.35); pm.rotation.y = the + Math.PI / 2; pm.userData.guardada = true; g.add(pm);
+    const dk = new THREE.Mesh(new THREE.PlaneGeometry(Wp, 7), T.darkM); dk.position.set(cx + tx * 0.9, ye + 3.3, cz + tz * 0.9); dk.rotation.y = the - Math.PI / 2; g.add(dk);
+    for (const o of [-1, 1]) {                                                 // tochas dos dois lados da porta, do lado de quem chega
+      const px = cx + rx * o * (Wp / 2 + 0.55) - tx * 0.3, pz = cz + rz * o * (Wp / 2 + 0.55) - tz * 0.3;
       const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: FIRE, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: T.fire[0] }));
-      fl.position.set(cx + tx * o * (W / 2 + 0.2) - Math.sin(the) * 0.6, ye + 4.6, cz + tz * o * (W / 2 + 0.2) - Math.cos(the) * 0.6); fl.scale.set(0.6, 1.1, 1); g.add(fl); fx.fires.push(fl);
+      fl.position.set(px, ye + 4.4, pz); fl.scale.set(0.6, 1.1, 1); g.add(fl); fx.fires.push(fl);
       const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.3, color: T.glow[0] })); gl.position.copy(fl.position); gl.scale.setScalar(1.8); g.add(gl); fx.fires.push(gl);
     }
     // placa: o que tem do outro lado

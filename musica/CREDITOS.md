@@ -12,7 +12,8 @@ do próprio Rone, com os pontos de laço de `index.json` de lá.
 | abismo.mp4 | Cratera do Cisma |
 | cidade.mp4 | Oásis de Kharum |
 | fortaleza.mp4 | Cidadela do Cisma |
-| masmorra.mp4 | Torre do Cisma |
+| masmorra.mp4 | (era da Torre do Cisma; guardada) |
+| torre.mp4 | Torre do Cisma: metal gótico composto por `scripts/compor_torre.py` (FluidR3 GM, MIT) |
 | chefe.mp4 | Topo da Torre (Kravenox) |
 
 `composicoes-geradas/`: as 5 trilhas orquestrais compostas antes por
