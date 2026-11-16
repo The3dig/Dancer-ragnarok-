@@ -645,6 +645,9 @@ for (let i = 0; i < 3200 && trees.length < 470; i++) {
   if (!freeSpot(x, z, 6)) continue;
   trees.push({ x, z, s: rr(0.8, 1.4) });
 }
+// nada de árvore na frente das passagens (a árvore nasce em lugar sorteado e às vezes travava o caminho da Praia)
+const longeDasPassagens = o => Math.hypot(o.x - RGATE_P.x, o.z - RGATE_P.z) > 16 && Math.hypot(o.x - VGATE_R.x, o.z - VGATE_R.z) > 16;
+for (let i = trees.length - 1; i >= 0; i--) if (!longeDasPassagens(trees[i])) trees.splice(i, 1);
 trees.forEach(t => addOb(t.x, t.z, 0.7));
 for (let i = 0; i < 1500 && cacti.length < 70; i++) {
   const x = rr(56, WX - 5), z = rr(-WZ + 5, WZ - 5);
@@ -654,6 +657,7 @@ for (let i = 0; i < 1500 && cacti.length < 70; i++) {
 for (let i = 0; i < 1500 && rocks.length < 90; i++) {
   const x = rr(-60, WX - 5), z = rr(-WZ + 5, WZ - 5);
   if (Math.hypot(x - OAS.x, z - OAS.z) < 34 || Math.hypot(x - CIT.x, z - CIT.z) < 30 || !freeSpot(x, z)) continue;
+  if (!longeDasPassagens({ x, z })) continue;
   const s = rr(0.5, x > 50 ? 1.8 : 1); rocks.push({ x, z, s }); addOb(x, z, s * 0.8);
 }
 for (let a = 0; a < TAU; a += TAU / 14) palms.push({ x: OAS.x + Math.cos(a) * 11.5, z: OAS.z + Math.sin(a) * 11.5, s: rr(0.9, 1.2), lean: rr(-0.2, 0.2) });
