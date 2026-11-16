@@ -139,8 +139,8 @@ const Cos = (() => {
   function pres() { const st = S(), cor = pal('cor', st.eq.cor); return { cn: cor ? cor.css : null, ct: st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : null }; }
   function init() {
     if (!$('btn-shop')) { const b = document.createElement('button'); b.id = 'btn-shop'; b.title = 'Loja de Visuais'; b.textContent = '🛍️'; b.onclick = open; $('menu').insertBefore(b, $('btn-help')); }
-    // o Nome Rubi (prêmio do Quebra-Chefes) foi colocado sozinho e parecia vermelho de PK: tira uma vez (continua na loja para usar)
-    const st = S(); if (st.eq.cor === 'rubi' && !st.rubiTirado) { st.eq.cor = null; st.rubiTirado = 1; log('🎨 A cor <b>Nome Rubi</b> saiu do seu nome. Ela continua sua: para usar de novo, 🛍️ Loja de Visuais → Cor do nome.', 'sys'); }
+    // o Nome Âmbar (prêmio do Quebra-Chefes) foi colocado sozinho e parecia vermelho de PK: tira uma vez (continua na loja para usar)
+    const st = S(); if (st.eq.cor === 'rubi' && !st.rubiTirado) { st.eq.cor = null; st.rubiTirado = 1; log('🎨 A cor <b>Nome Âmbar</b> saiu do seu nome. Ela continua sua: para usar de novo, 🛍️ Loja de Visuais → Cor do nome.', 'sys'); }
     apply();
   }
   // visuais exclusivos dos Desafios (desafios.js): aparecem na loja com 🔒 e só se ganham cumprindo o desafio

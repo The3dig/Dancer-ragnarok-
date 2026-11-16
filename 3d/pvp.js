@@ -122,6 +122,10 @@ const PvP = (() => {
     const fl = state(), c = color(fl, F().red - now());
     const pn = $('pname').querySelector('span');
     if (pn) pn.style.color = c || pn.dataset.c || '';
+    // etiqueta ☠ PK ao lado do meu nome enquanto eu for PK (a cor sozinha confundia)
+    let tg = $('pname').querySelector('.pktag');
+    if (fl === 'r' && !tg) { tg = document.createElement('b'); tg.className = 'pktag'; tg.textContent = '☠ PK'; $('pname').insertBefore(tg, $('pname').firstChild); }
+    else if (fl !== 'r' && tg) tg.remove();
   }
   function diedTo(r, s) {
     killedBy = { by: r.peer, n: ++seq, fl: state() };

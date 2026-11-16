@@ -26,7 +26,7 @@ const Desafios = (() => {
     ['titulo', 'flagelo', '« Flagelo dos Campos »', '🐛', {}],
     ['titulo', 'alfa', '« Caçador de Alfas »', '🦴', {}],
     ['aura', 'miragem', 'Aura da Miragem', '🏜️', { c: [0xffb070, 0x9ad8ff] }],
-    ['cor', 'rubi', 'Nome Rubi', '💗', { css: '#ff5fc8' }],          // rosa-rubi: o vermelho (#ff4040) é só de PK
+    ['cor', 'rubi', 'Nome Âmbar', '🟠', { css: '#ffa63a' }],          // âmbar: vermelho é PK e rosa é "em combate" no PvP
     ['titulo', 'quebra', '« Quebra-Chefes »', '💥', {}],
     ['pet', 'rainha', 'Larva Rainha', '👑', { img: 'e_larvaMaeX', h: 0.8 }],
     ['aura', 'espinhos', 'Coroa de Espinhos', '🩸', { c: [0xff2020, 0x2a0008] }],
