@@ -40,6 +40,10 @@ const Vida = (() => {
     placa_antiga: ['Placa Antiga', '🪙', 90, 0, 'mat'], lembranca: ['Lembrança Presa', '💭', 110, 0, 'mat'],
     coracao_floresta: ['Coração da Floresta', '🫀', 1500, 0, 'mat'], runa_ordem: ['Runa da Ordem', '🔹', 1800, 0, 'mat'], fragmento_dourado: ['Fragmento Dourado', '✴️', 2000, 0, 'mat'],
     seiva_branca: ['Seiva Branca', '🥛', 30, 0, 'comida', { heal: 0.25 }],
+    // Praia de Cômodo (Nv 18–34)
+    garra: ['Garra Rubra', '🦀', 40, 0, 'mat'], tentaculo: ['Tentáculo Brilhante', '🪼', 48, 0, 'mat'], casco: ['Casco Espinhoso', '🐢', 60, 0, 'mat'],
+    escama_mar: ['Escama do Mar', '🌊', 70, 0, 'mat'], coral: ['Coral Rubro', '🪸', 900, 0, 'mat'], coroa_caranguejo: ['Coroa do Rei Caranguejo', '👑', 2500, 0, 'mat'],
+    agua_coco: ['Água de Coco', '🥥', 12, 30, 'comida', { heal: 0.12, spH: 0.08 }],
     // frutas e ervas (curam na hora, como as do Ragnarok)
     maca: ['Maçã Silvestre', '🍎', 4, 0, 'comida', { heal: 0.08 }], mel: ['Mel Escuro', '🍯', 12, 0, 'comida', { heal: 0.15 }],
     folha: ['Folha Verde', '🍃', 3, 0, 'comida', { heal: 0.05 }], erva_vermelha: ['Erva Vermelha', '🌺', 9, 0, 'comida', { heal: 0.2 }],
@@ -124,7 +128,7 @@ const Vida = (() => {
   const add = (id, n) => { P.inv[id] = Math.max(0, (P.inv[id] || 0) + n); if (id === 'red' || id === 'blue') buildHotbar(); };
 
   // materiais que cada monstro solta
-  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem' };
+  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem', caranguejo: 'garra', medusa: 'tentaculo', tartaruga: 'casco', serpenteOnda: 'escama_mar', reiCaranguejo: 'coroa_caranguejo' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.55]);
   // tabela no jeito do Ragnarok: um comum (~20–30%), uma fruta/erva (~10%), um incomum e uma raridade (1–3%)
   const MOB_LOOT = {
@@ -149,6 +153,11 @@ const Vida = (() => {
     larvaAntiga: [['escama', 0.25], ['placa_vazio', 0.12], ['seiva_branca', 0.1], ['runa_ordem', 0.01]],
     memoria: [['po_estelar', 0.03], ['erva_azul', 0.15], ['fragmento_dourado', 0.012]],
     guardiaoBranco: [['runa_ordem', 1], ['coracao_floresta', 0.5], ['fragmento_dourado', 0.4]],
+    caranguejo: [['agua_coco', 0.1]],                                              // os peixes e pérolas entram em praia.js
+    medusa: [['erva_azul', 0.15], ['coral', 0.006]],
+    tartaruga: [['agua_coco', 0.15], ['coral', 0.01]],
+    serpenteOnda: [['escama', 0.15], ['coral', 0.012]],
+    reiCaranguejo: [['coral', 0.8]],
   };
   for (const [t, l] of Object.entries(MOB_LOOT)) if (MOBDEF[t]) for (const d of l) if (ITEMS[d[0]]) MOBDEF[t].drops.push(d);
   // os Alfas (versões grandes) soltam o mesmo, com mais chance

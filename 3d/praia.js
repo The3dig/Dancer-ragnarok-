@@ -98,21 +98,95 @@ const Praia = (() => {
     }
   })();
 
-  // ---------------------------------------------------------------- palmeiras (as do Oásis), mais altas e tortas pelo vento do mar
-  (function palmeiras() {
+  // ---------------------------------------------------------------- coqueiros: tronco curvo com anéis, folhas grandes caídas, cocos e vento
+  const coqueiros = (() => {
+    const M4 = (x, y, z, rx, ry, rz, sx = 1, sy = sx, sz = sx) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
+    const juntar = l => { const gs = l.map(([g, m]) => { const q = (g.index ? g.toNonIndexed() : g.clone()); q.applyMatrix4(m); return q; }); const n = gs.reduce((t, g) => t + g.attributes.position.count, 0), pos = new Float32Array(n * 3), nor = new Float32Array(n * 3); let i = 0; for (const g of gs) { pos.set(g.attributes.position.array, i * 3); nor.set(g.attributes.normal.array, i * 3); i += g.attributes.position.count; } const o = new THREE.BufferGeometry(); o.setAttribute('position', new THREE.BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); return o; };
+    // tronco: anéis empilhados ao longo de uma curva (claro e escuro alternados)
+    const curva = t => new THREE.Vector3(Math.pow(t, 1.8) * 2.6, t * 8.2, 0), claros = [], escuros = [], N = 16;
+    for (let i = 0; i < N; i++) { const a = curva(i / N), b = curva((i + 1) / N), d = b.clone().sub(a), L = d.length(), r = 0.3 - 0.13 * i / N;
+      const g = new THREE.CylinderGeometry(r * 0.88, r, L * 1.02, 9); const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+      (i % 2 ? escuros : claros).push([g, new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1))]); }
+    const TOPO = curva(1);
+    // folha: nervura arqueada com folíolos dos dois lados, que caem para as pontas
+    const folha = (() => { const pos = [], K = 18;
+      const P_ = t => new THREE.Vector3(0, Math.sin(t * 2.2) * 1.1 - t * t * 2.6, t * 4.4);
+      for (let k = 0; k < K; k++) { const t = k / K, t2 = (k + 1) / K, a = P_(t), b = P_(t2), w = 0.95 * Math.sin(Math.PI * Math.min(1, t * 1.15)) + 0.1;
+        for (const sd of [-1, 1]) { const ponta = new THREE.Vector3(a.x + sd * w, a.y - 0.35 - t * 0.4, a.z + 0.25); pos.push(a.x, a.y, a.z, b.x, b.y, b.z, ponta.x, ponta.y, ponta.z); } }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); return g; })();
+    const copa = []; for (let k = 0; k < 10; k++) copa.push([folha, M4(0, 0, 0, -0.15 + (k % 2) * 0.25, k / 10 * Math.PI * 2 + (k % 3) * 0.1, 0, 1 - (k % 3) * 0.08)]);
+    const cocos = []; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; cocos.push([new THREE.SphereGeometry(0.2, 8, 6), M4(Math.cos(a) * 0.28, -0.35 - (k % 2) * 0.15, Math.sin(a) * 0.28, 0, 0, 0)]); }
+    const gC = juntar(claros), gE = juntar(escuros), gF = juntar(copa), gK = juntar(cocos);
     const lista = [];
-    for (let i = 0; i < 800 && lista.length < 46; i++) {
-      const z = rand(B.z0 + 10, B.z0 + B.h - 10), x = SHORE(z) + rand(6, 70);
-      if (Math.abs(z - PZ) < 6 || Math.hypot(x - VILA.x, z - VILA.z) < 30 || Math.hypot(x - FAROL.x, z - FAROL.z) < 14 || lista.some(o => Math.hypot(o.x - x, o.z - z) < 7)) continue;
-      lista.push({ x, z, s: rand(1.1, 1.6), lean: rand(0.15, 0.4), r: rand(-0.6, 0.6) });
+    for (let i = 0; i < 1200 && lista.length < 54; i++) {
+      const z = rand(B.z0 + 10, B.z0 + B.h - 10), x = SHORE(z) + rand(7, 75);
+      if (Math.abs(z - PZ) < 7 || Math.hypot(x - VILA.x, z - VILA.z) < 28 || Math.hypot(x - FAROL.x, z - FAROL.z) < 14 || lista.some(o => Math.hypot(o.x - x, o.z - z) < 6.5)) continue;
+      lista.push({ x, z, s: rand(0.95, 1.35), r: Math.PI + rand(-0.9, 0.9), ph: rand(0, 6) });   // inclinados para o mar
     }
-    const casca = PM('casca.jpg', [1, 3], 0xb0a088);
-    for (const p of lista) {
-      const g = new THREE.Group(); g.position.set(p.x, h(p.x, p.z), p.z); g.scale.setScalar(p.s); g.rotation.y = Math.PI / 2 + p.r; G.add(g);
-      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.26, 4.6, 8), casca); tr.position.y = 2.25; tr.rotation.z = p.lean; g.add(tr);
-      const top = new THREE.Mesh(PALM_G, palmMat); top.position.set(-Math.sin(p.lean) * 4.5, 4.45, 0); g.add(top);
-      addOb(p.x, p.z, 0.5);
+    const mk = (geo, mat) => { const im = new THREE.InstancedMesh(geo, mat, lista.length); im.frustumCulled = false; im.castShadow = !TOUCH; G.add(im); return im; };
+    const iC = mk(gC, new THREE.MeshLambertMaterial({ color: 0xa08868 })), iE = mk(gE, new THREE.MeshLambertMaterial({ color: 0x6a5640 }));
+    const iF = mk(gF, new THREE.MeshLambertMaterial({ color: 0x4a9a3a, emissive: 0x10260a, side: THREE.DoubleSide })), iK = mk(gK, new THREE.MeshLambertMaterial({ color: 0x6a4a28 }));
+    const bases = lista.map(o => M4(o.x, h(o.x, o.z) - 0.2, o.z, 0, o.r, 0, o.s));
+    bases.forEach((m, i) => { iC.setMatrixAt(i, m); iE.setMatrixAt(i, m); }); lista.forEach(o => addOb(o.x, o.z, 0.5));
+    const tmp = new THREE.Matrix4(), topoM = new THREE.Matrix4().makeTranslation(TOPO.x, TOPO.y, TOPO.z);
+    function balanca(t) { lista.forEach((o, i) => { tmp.copy(bases[i]).multiply(topoM).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.sin(t * 1.3 + o.ph) * 0.05, 0, Math.sin(t * 0.9 + o.ph) * 0.07))); iF.setMatrixAt(i, tmp); iK.setMatrixAt(i, tmp); }); iF.instanceMatrix.needsUpdate = true; iK.instanceMatrix.needsUpdate = true; }
+    balanca(0); return { balanca };
+  })();
+
+  // ---------------------------------------------------------------- bandeirinhas na vila, guarda-sóis, cadeiras e pranchas na areia
+  (function festa() {
+    const CORES = [0xff4a4a, 0xffcf40, 0x4ac0ff, 0x7dff6a, 0xff8ad8, 0xffffff];
+    const corda = (ax, az, bx, bz, y) => {
+      const n = Math.round(Math.hypot(bx - ax, bz - az) / 0.7), fio = []; const ry = -Math.atan2(bz - az, bx - ax);
+      for (let i = 0; i <= n; i++) { const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t, yy = y - Math.sin(t * Math.PI) * 1.2;
+        fio.push(new THREE.Vector3(x, yy, z));
+        if (i < n) { const f = new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([-0.22, 0, 0, 0.22, 0, 0, 0, -0.45, 0], 3)), new THREE.MeshBasicMaterial({ color: CORES[i % CORES.length], side: THREE.DoubleSide })); f.position.set(x + (bx - ax) / n / 2, yy - 0.02, z + (bz - az) / n / 2); f.rotation.y = ry; G.add(f); } }
+      G.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(fio), new THREE.LineBasicMaterial({ color: 0x3a3028 })));
+    };
+    const y0 = h(VILA.x, VILA.z) + 4.6;
+    corda(VILA.x - 14, VILA.z - 12, VILA.x + 14, VILA.z + 9, y0); corda(VILA.x - 18, VILA.z + 6, VILA.x + 14, VILA.z - 13, y0); corda(VILA.x - 10, VILA.z + 20, VILA.x + 17, VILA.z + 9, y0);
+    // guarda-sóis listrados, cadeiras e pranchas
+    const LIST = c1 => { const c = document.createElement('canvas'); c.width = 128; c.height = 8; const g = c.getContext('2d'); for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#ffffff' : c1; g.fillRect(i * 16, 0, 16, 8); } return new THREE.CanvasTexture(c); };
+    const spots = [[PZ - 24, '#e83a3a'], [PZ - 34, '#2a8ad8'], [PZ + 34, '#e8a020'], [PZ + 46, '#3ab86a'], [PZ - 48, '#d83a9a']];
+    for (const [z, cor] of spots) {
+      const x = SHORE(z) + 13, y = h(x, z), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = rand(0, 6); ARQ.add(g);
+      const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 6), madeiraE); haste.position.y = 1.3; g.add(haste);
+      const lona = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.6, 16, 1, true), new THREE.MeshLambertMaterial({ map: LIST(cor), side: THREE.DoubleSide })); lona.position.y = 2.6; g.add(lona);
+      for (const o of [-0.9, 0.9]) { const cad = new THREE.Group(); cad.position.set(o, 0, 1.1); g.add(cad);
+        const ass = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 1.2), new THREE.MeshLambertMaterial({ color: o > 0 ? 0x3a8ad8 : 0xe8c040 })); ass.position.y = 0.3; ass.rotation.x = 0.1; cad.add(ass);
+        const enc = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.8), ass.material); enc.position.set(0, 0.62, -0.62); enc.rotation.x = -1.0; cad.add(enc); }
+      addOb(x, z, 1.4);
+      const pr = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.6, 4, 10), new THREE.MeshLambertMaterial({ color: [0xff6a3a, 0x3ad8c8, 0xffe040][spots.indexOf(spots.find(s2 => s2[0] === z)) % 3] })); pr.scale.set(1, 1, 0.25); pr.position.set(x - 2.2, y + 1.0, z + 0.6); pr.rotation.z = 0.15; ARQ.add(pr);
     }
+  })();
+
+  // ---------------------------------------------------------------- vida no mar: golfinhos, um veleiro ao longe e peixinhos pulando
+  const mar2 = (() => {
+    const cinza = new THREE.MeshLambertMaterial({ color: 0x6a8aa8 }), barriga = new THREE.MeshLambertMaterial({ color: 0xd8e0e8 });
+    const golfinho = () => { const g = new THREE.Group();
+      const c = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 8), cinza); c.scale.set(0.8, 0.7, 2.4); g.add(c);
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 6), barriga); b.scale.set(0.7, 0.45, 2); b.position.y = -0.12; g.add(b);
+      const fin = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 6), cinza); fin.position.set(0, 0.42, -0.1); fin.rotation.x = -0.5; g.add(fin);
+      const rabo = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.3, 4), cinza); rabo.position.set(0, 0, -1.15); rabo.rotation.x = Math.PI / 2; rabo.scale.set(1.4, 1, 0.3); g.add(rabo);
+      const bico = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 8), cinza); bico.position.set(0, -0.05, 1.2); bico.rotation.x = Math.PI / 2; g.add(bico);
+      G.add(g); return g; };
+    const golfs = Array.from({ length: 3 }, (_, i) => ({ g: golfinho(), z: VILA.z - 40 + i * 35, d: 35 + i * 12, ph: i * 2.1, v: 0.7 + i * 0.15 }));
+    const vela = new THREE.Group(); G.add(vela);
+    const casco = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 5), new THREE.MeshLambertMaterial({ color: 0x6a3a1a })); casco.position.y = 0.2; vela.add(casco);
+    const mastro = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 6, 6), madeiraE); mastro.position.y = 3.3; vela.add(mastro);
+    const pano = new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0.8, 0.1, 0, 6, 0.1, 0, 0.8, -2.6], 3)), new THREE.MeshLambertMaterial({ color: 0xf4f0e6, side: THREE.DoubleSide })); pano.geometry.computeVertexNormals(); vela.add(pano);
+    const pulos = Array.from({ length: 4 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshLambertMaterial({ color: 0xc0d0e0 })); m.scale.set(0.6, 0.6, 1.8); m.visible = false; G.add(m); return { m, t: rand(0, 5) }; });
+    function anima(t, dt) {
+      for (const o of golfs) {                                   // salta em arco, mergulha, nada embaixo d'água e salta de novo
+        const ciclo = (t * o.v + o.ph) % 6, x = SHORE(o.z) - o.d;
+        if (ciclo < 1.6) { const k = ciclo / 1.6; o.g.visible = true; o.g.position.set(x, -0.4 + Math.sin(k * Math.PI) * 2.6, o.z + (k - 0.5) * 6); o.g.rotation.x = -Math.cos(k * Math.PI) * 0.9; }
+        else o.g.visible = false;
+      }
+      vela.position.set(SHORE(VILA.z) - 150, -0.2 + Math.sin(t * 0.8) * 0.15, B.z0 + ((t * 2.2) % (B.h + 120)) - 60); vela.rotation.z = Math.sin(t * 0.7) * 0.05;
+      for (const p of pulos) { p.t -= dt; if (p.t < 0) { p.t = rand(2, 6); p.z = PZ + rand(-12, 12); p.x = PIER.x0 + rand(-8, 6); p.k = 0; }
+        p.k = (p.k || 0) + dt * 1.6; const k = p.k; p.m.visible = k < 1; if (k < 1) { p.m.position.set(p.x, -0.3 + Math.sin(k * Math.PI) * 1.1, p.z + k * 1.5); p.m.rotation.x = -Math.cos(k * Math.PI) * 1.2; } }
+    }
+    return { anima };
   })();
 
   // ---------------------------------------------------------------- píer, barcos e fogueira
@@ -193,6 +267,9 @@ const Praia = (() => {
     concha_rara: ['Concha Rara', '🐚', 800, 'mat'], perola: ['Pérola de Cômodo', '⚪', 2500, 'mat'], garrafa: ['Garrafa com Mensagem', '🍾', 1, 'mat', { use: 'garrafa' }],
   };
   for (const [id, [name, ic, sell, kind, ex]] of Object.entries(NOVOS)) ITEMS[id] = { name, ic, sell, price: sell * 2, kind, ...(ex || {}) };
+  // os bichos do mar soltam o que vem do mar
+  const MAR = { caranguejo: [['sardinha', 0.25], ['concha_rara', 0.01]], medusa: [['tainha', 0.15]], tartaruga: [['robalo', 0.15]], serpenteOnda: [['polvo', 0.12], ['perola', 0.004]], reiCaranguejo: [['perola', 0.3], ['lagosta', 1], ['concha_rara', 0.6]] };
+  for (const [t, l] of Object.entries(MAR)) if (MOBDEF[t]) MOBDEF[t].drops.push(...l);
   let pescando = null;
   const S = () => (P.pesca = P.pesca || { n: 0 });
   function pescar() {
@@ -254,6 +331,7 @@ const Praia = (() => {
     for (const b of barcos) { b.g.position.y = -0.3 + Math.sin(t * 1.3 + b.ph) * 0.12; b.g.rotation.z = Math.sin(t * 1.1 + b.ph) * 0.06; }
     farol.pivo.rotation.y = t * 0.6; farol.feixe.material.opacity = 0.05 + 0.18 * (LASTDAY ? LASTDAY.night : 0.3);
     fogo.scale.set(1.2 * (1 + Math.sin(t * 9) * 0.08), 1.9 * (1 + Math.sin(t * 11) * 0.1), 1);
+    coqueiros.balanca(t); mar2.anima(t, dt);
     for (const g of gaivotas) { g.ph += dt * g.v; g.s.position.set(g.cx + Math.cos(g.ph) * g.r, g.y + Math.sin(g.ph * 3) * 0.6, g.cz + Math.sin(g.ph) * g.r); }
   }
   return { update, map, nearest, talk, abrirGarrafa, get dentro() { return dentro; } };

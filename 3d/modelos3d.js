@@ -72,6 +72,36 @@ const Modelos3D = (() => {
   // Sentinela sem Rosto e Larva-Mãe: as versões de chefe do jogo de plataforma
   function makeSemRosto() { const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner); const S = makeSentinel({ c1: 0x2a2632, c2: 0x16131c, eye: 0xb26bff, faceless: true }); S.g.scale.setScalar(2.0); inner.add(S.g); addS(inner, GEO.box, B(0xb26bff), 0, 2.6, .32, .5, .05, .02); return { g, inner }; }
 
+  // ---------------- bichos do mar da Praia de Cômodo
+  function makeCaranguejo(o) {                                              // carapaça larga, 6 patas, duas pinças e olhos em hastes
+    const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+    const cas = M(o.c1, { roughness: .45 }), esc = M(o.c2, { roughness: .5 }), olho = B(0x111111);
+    addS(inner, GEO.sph, cas, 0, .38, 0, .55, .26, .45); addS(inner, GEO.sph, esc, 0, .3, .05, .5, .16, .4);
+    for (const sx of [-1, 1]) {
+      for (let k = 0; k < 3; k++) { const p1 = addS(inner, GEO.cyl, esc, sx * .55, .26, -.18 + k * .2, .04, .32, .04); p1.rotation.z = sx * 1.0; const p2 = addS(inner, GEO.cyl, cas, sx * .78, .1, -.18 + k * .2, .035, .28, .035); p2.rotation.z = -sx * .35; }
+      const br = addS(inner, GEO.cyl, cas, sx * .42, .36, .42, .06, .3, .06); br.rotation.x = 1.2; br.rotation.z = -sx * .4;
+      addS(inner, GEO.sph, cas, sx * .52, .4, .66, .18, .14, .2); const dedo = addS(inner, GEO.cone, esc, sx * .48, .42, .84, .07, .2, .07); dedo.rotation.x = Math.PI / 2;
+      addS(inner, GEO.cyl, esc, sx * .12, .62, .3, .025, .16, .025); addS(inner, GEO.sph, olho, sx * .12, .71, .3, .05, .05, .05);
+    }
+    if (o.coroa) for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, c = addS(inner, GEO.cone, M(0xffd040, { metalness: .6, roughness: .3, emissive: 0x6a4a00 }), Math.cos(a) * .22, .7, Math.sin(a) * .18, .07, .2, .07); }
+    return { g, inner };
+  }
+  function makeMedusa(o) {                                                  // sino translúcido que brilha e tentáculos pendurados
+    const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+    const sino = M(o.c1, { transparent: true, opacity: .75, emissive: o.c1, emissiveIntensity: .5, roughness: .2, side: THREE.DoubleSide });
+    add(inner, new THREE.SphereGeometry(.45, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), sino, 0, .9, 0);
+    addS(inner, GEO.sph, B(o.c2), 0, 1.0, 0, .18, .12, .18);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, t = addS(inner, GEO.cyl, sino, Math.cos(a) * .28, .55, Math.sin(a) * .28, .025, .7, .025); t.rotation.z = Math.cos(a) * .15; }
+    return { g, inner };
+  }
+  function makeTartaruga(o) {                                               // casco com espinhos, cabeça e nadadeiras
+    const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+    const cas = M(o.c1, { roughness: .6 }), pele = M(o.c2, { roughness: .7 });
+    addS(inner, GEO.sph, cas, 0, .4, 0, .65, .38, .75); addS(inner, GEO.sph, pele, 0, .2, 0, .6, .12, .7);
+    for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, e = addS(inner, GEO.cone, M(0xe8e0c8), Math.cos(a) * .35, .66, Math.sin(a) * .4, .07, .22, .07); e.rotation.z = -Math.cos(a) * .4; }
+    addS(inner, GEO.sph, pele, 0, .35, .85, .2, .18, .25); for (const sx of [-1, 1]) { addS(inner, GEO.sph, B(0x111111), sx * .1, .42, 1.0, .04, .04, .04); const n = addS(inner, GEO.sph, pele, sx * .6, .18, .35, .3, .06, .14); n.rotation.y = sx * .5; const t = addS(inner, GEO.sph, pele, sx * .45, .18, -.5, .2, .06, .12); t.rotation.y = -sx * .5; }
+    return { g, inner };
+  }
   // ---------------- receitas: tipo do MMO → modelo
   const R = {
     pompom: () => makeLarva({ c1: 0x5c6650, c2: 0x8a9476 }),
@@ -110,10 +140,16 @@ const Modelos3D = (() => {
       addS(inner, GEO.box, runa, 0, 2.7, .34, .55, .06, .02);
       return { g, inner };
     },
+    // Praia de Cômodo: bichos do mar na beira d'água
+    caranguejo: () => makeCaranguejo({ c1: 0xd8482a, c2: 0xf0a070 }),
+    reiCaranguejo: () => makeCaranguejo({ c1: 0x9a1a3a, c2: 0xe07a6a, coroa: true }),
+    medusa: () => makeMedusa({ c1: 0x8ad8ff, c2: 0xff8ad8 }),
+    tartaruga: () => makeTartaruga({ c1: 0x4a6a3a, c2: 0x8aa070 }),
+    serpenteOnda: () => { const r = makeLarva({ c1: 0x1a6a7a, c2: 0x5ad0c0, core: 0x9affff, long: true }); r.g.scale.set(1.4, 1.2, 1.4); return r; },
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
-  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga']);   // larvas olham para +x
-  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria']);
+  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'serpenteOnda']);   // larvas olham para +x
+  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];

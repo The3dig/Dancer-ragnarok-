@@ -78,7 +78,7 @@ const Desafios = (() => {
       { id: 'n4', req: 'n3', t: '4. Os três guardiões', pede: { m: { guardiao: 20, carrasco: 10, guardiaoBranco: 10 } }, da: { cr: 60000, it: { essencia: 10 } } },
       { id: 'n5', req: 'n4', t: '5. O topo da Torre', pede: { p: { torre: 30 }, g: { kravenox: 2 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
       { id: 'n6', req: 'n5', t: '6. O tesouro escondido', pede: { i: { gosma: 500, cinza: 300, lembranca: 300, fragmento_dourado: 10, olho_vazio: 10, aco_valdora: 10, perola: 5 } }, da: { cr: 100000 } },
-      { id: 'n7', req: 'n6', t: '7. A armadura da noite', pede: { m: { larvaAntiga: 500, memoria: 500, sentinelaMuralha: 500, raizNegra: 500 } }, da: { e: ['armadura_nosferatur'], v: [['aura', 'nosferatur'], ['titulo', 'amigo_nosfe']], cr: 150000 } },
+      { id: 'n7', req: 'n6', t: '7. A armadura da noite', pede: { m: { larvaAntiga: 500, memoria: 500, sentinelaMuralha: 500, raizNegra: 500 }, p: { kvx: 1500 } }, da: { e: ['armadura_nosferatur'], v: [['aura', 'nosferatur'], ['titulo', 'amigo_nosfe']], cr: 150000 } },
     ] },
     brigida: { nome: 'Velha Brígida', fala: 'Eu vi Valdora inteira, antes de virar cinza. Traga o que restou dela e eu te conto como ela era.', lista: [
       { id: 'd10', t: 'Cinzas de Valdora', pede: { m: { raizNegra: 300, ecoCinza: 300, larvaCinza: 300, sentinelaMuralha: 300 } }, da: { e: ['armadura_cinzas'] } },
@@ -112,7 +112,7 @@ const Desafios = (() => {
     const s = S(), L = [];
     for (const [t, n] of Object.entries(d.pede.m || {})) L.push({ txt: `⚔️ ${nomeMob(t)}`, tem: Math.min(n, s.k[t] || 0), n });
     for (const [g, n] of Object.entries(d.pede.g || {})) L.push({ txt: `☠️ ${GRUPO[g]}`, tem: Math.min(n, s.g[g] || 0), n });
-    for (const [k, n] of Object.entries(d.pede.p || {})) L.push(k === 'pesca' ? { txt: '🎣 peixes pescados em Cômodo', tem: Math.min(n, (P.pesca && P.pesca.n) || 0), n } : { txt: '🗼 andar mais alto da Torre (30 = topo)', tem: Math.min(n, P.towerBest || 0), n });
+    for (const [k, n] of Object.entries(d.pede.p || {})) L.push(k === 'kvx' ? { txt: '☠️ dano no Kravenox acordado (sábado, 20h) depois de abrir esta etapa', tem: Math.min(n, Math.round(S().kvxN || 0)), n } : k === 'pesca' ? { txt: '🎣 peixes pescados em Cômodo', tem: Math.min(n, (P.pesca && P.pesca.n) || 0), n } : { txt: '🗼 andar mais alto da Torre (30 = topo)', tem: Math.min(n, P.towerBest || 0), n });
     for (const [id, n] of Object.entries(d.pede.i || {})) L.push({ txt: `${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id} (entregar)`, tem: Math.min(n, P.inv[id] || 0), n });
     return L;
   }
@@ -155,5 +155,7 @@ const Desafios = (() => {
   function mark(n) { const M = MESTRES[n.dsf]; if (!M) return ''; const s = S(); return M.lista.some(d => !s.feito[d.id] && !(d.req && !s.feito[d.req]) && pronto(d)) ? '★:#ffcf40' : '★:#7a7a88'; }
   // quem já tinha concluído um desafio recebe os visuais que mudaram (sem colocar em uso)
   function repor() { const s = S(); if (typeof Cos === 'undefined' || !Cos.dar) return; for (const d of TODOS) if (s.feito[d.id]) for (const [c, k] of d.da.v || []) if (!Cos.tem(c, k)) Cos.dar(c, k); }
-  return { talk, mark, onKill, repor, MESTRES, S };
+  // dano no Kravenox: só conta para a última etapa do Nosferatur, depois que ela abre
+  function danoKvx(v) { const s = S(); if (s.feito.n6 && !s.feito.n7) s.kvxN = (s.kvxN || 0) + v; }
+  return { talk, mark, onKill, repor, danoKvx, MESTRES, S };
 })();

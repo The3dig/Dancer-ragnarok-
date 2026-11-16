@@ -996,6 +996,12 @@ const MOBDEF = {
   larvaCristal: { name: 'Larva Cristalizada', lv: 46, hp: 6400, atk: 156, def: 50, xp: 3600, zeny: [170, 330], speed: 2.5, aggro: 13, respawn: 24, drops: [['red', 0.5], ['blue', 0.35]] },
   larvaAntiga: { name: 'Larva Antiga', lv: 50, hp: 8000, atk: 170, def: 58, xp: 4400, zeny: [200, 380], speed: 2.3, aggro: 14, respawn: 25, drops: [['red', 0.55], ['blue', 0.35]] },
   memoria: { name: 'Memória Aprisionada', lv: 53, hp: 7600, atk: 186, def: 50, xp: 5000, zeny: [220, 420], speed: 3.0, aggro: 15, respawn: 25, drops: [['blue', 0.5]] },
+  // Praia de Cômodo: bichos do mar na beira d'água (a vila e o píer continuam tranquilos)
+  caranguejo: { name: 'Caranguejo Rubro', lv: 18, hp: 900, atk: 50, def: 18, xp: 330, zeny: [40, 80], speed: 2.2, aggro: 8, respawn: 18, drops: [['red', 0.4], ['blue', 0.15]] },
+  medusa: { name: 'Medusa Errante', lv: 22, hp: 1300, atk: 62, def: 14, xp: 520, zeny: [50, 100], speed: 1.6, aggro: 10, respawn: 18, drops: [['blue', 0.3]] },
+  tartaruga: { name: 'Tartaruga Espinhosa', lv: 26, hp: 2400, atk: 70, def: 30, xp: 900, zeny: [60, 120], speed: 1.2, aggro: 7, respawn: 20, drops: [['red', 0.45], ['blue', 0.2]] },
+  serpenteOnda: { name: 'Serpente das Ondas', lv: 30, hp: 2600, atk: 95, def: 24, xp: 1300, zeny: [80, 160], speed: 3.0, aggro: 13, respawn: 22, drops: [['red', 0.45], ['blue', 0.25]] },
+  reiCaranguejo: { name: 'Rei Caranguejo', lv: 34, hp: 50000, atk: 140, def: 40, xp: 18000, zeny: [2500, 4000], speed: 2.4, aggro: 16, respawn: 300, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
   guardiaoBranco: { name: 'Guardião Branco', lv: 56, hp: 140000, atk: 235, def: 62, xp: 60000, zeny: [6000, 9000], speed: 2.8, aggro: 18, respawn: 420, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
@@ -1112,6 +1118,7 @@ const SPR_MOBS = {
   kravenox:  { set: { kind: 'hero', base: 'k' }, px: 22 / 34 },        // o próprio Kravenox, gigante
   raizNegra: { img: 'e_raizRast', h: 2.4 }, ecoCinza: { img: 'e_eco', h: 2.2, float: true }, larvaCinza: { img: 'e_larvaLonga', h: 2.0 },
   sentinelaMuralha: { img: 'e_sentinela', h: 3.0 }, carrasco: { img: 'e_semRosto', h: 5.6 },
+  caranguejo: { img: 'e_larva', h: 1.1 }, reiCaranguejo: { img: 'e_larva', h: 3.0 }, medusa: { img: 'e_eco', h: 1.8, float: true }, tartaruga: { img: 'e_larva', h: 1.4 }, serpenteOnda: { img: 'e_larvaLonga', h: 2.2 },
   larvaPernalta: { img: 'e_larvaLonga', h: 2.6 }, raizOssuda: { img: 'e_raizRast', h: 2.8 }, larvaCristal: { img: 'e_larvaLonga', h: 2.4 }, larvaAntiga: { img: 'e_larvaLonga', h: 2.8 }, memoria: { img: 'e_eco', h: 2.4, float: true }, guardiaoBranco: { img: 'e_semRosto', h: 5.4 },
 };
 function spriteMob(type, r) {
@@ -1340,6 +1347,12 @@ const SPAWNS = [
   { type: 'larvaCristal', n: 12, area: [420, 530, -760, -680] }, { type: 'larvaAntiga', n: 12, area: [490, 590, -800, -700] },
   { type: 'memoria', n: 6, area: [534, 556, -864, -838] }, { type: 'memoria', n: 3, area: [541, 549, -834, -816] },
   { type: 'guardiaoBranco', n: 1, at: { x: FGUARD.x, z: FGUARD.z - 4 } },
+  // Praia de Cômodo: só na beira do mar (longe da vila e do píer)
+  { type: 'caranguejo', n: 10, area: [-528, -505, -872, -815] }, { type: 'caranguejo', n: 10, area: [-528, -505, -740, -655] },
+  { type: 'medusa', n: 8, area: [-530, -514, -870, -812] }, { type: 'medusa', n: 6, area: [-530, -514, -745, -660] },
+  { type: 'tartaruga', n: 6, area: [-526, -500, -860, -818] }, { type: 'tartaruga', n: 6, area: [-526, -500, -720, -660] },
+  { type: 'serpenteOnda', n: 5, area: [-530, -505, -880, -862] }, { type: 'serpenteOnda', n: 5, area: [-530, -505, -680, -648] },
+  { type: 'reiCaranguejo', n: 1, at: { x: -510, z: -690 } },
 ];
 function spawnMob(type, area, at) {
   const d = MOBDEF[type]; let x, z, t = 0;
@@ -1442,7 +1455,7 @@ function dmgMob(m, base, crit, magic, color) {
   let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
-  if (m.type === 'kravenox') Kvx.addDmg(dmg);
+  if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
   if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
   Audio8.sfx(crit ? 'crit' : 'hit');
@@ -2360,7 +2373,7 @@ const BigMap = (() => {
   const npcsOf = v => NPCS.filter(n => !n.hidden && Math.hypot(n.x - v.c.x, n.z - v.c.z) < v.R * 1.5);
   // ---------------- Mapa do Mundo: todos os lugares, os níveis, as passagens e "você está aqui"
   const REG = [
-    { id: 'praia', n: 'Praia de Cômodo', lv: 'sem monstros', x: 0.02, y: 0.52, w: 0.2, h: 0.36, cor: '#c8b478', cid: ['Vila de Cômodo · Farol', 'Píer (pesca)', '🚪 leste → Reino'], M: () => typeof Praia !== 'undefined' && Praia.map },
+    { id: 'praia', n: 'Praia de Cômodo', lv: 'Nv 18–34 na beira do mar', x: 0.02, y: 0.52, w: 0.2, h: 0.36, cor: '#c8b478', cid: ['Vila de Cômodo · Farol', 'Píer (pesca)', '🚪 leste → Reino'], M: () => typeof Praia !== 'undefined' && Praia.map },
     { id: 'reino', n: 'Reino Quebrado', lv: 'Nv 1–22', x: 0.27, y: 0.5, w: 0.44, h: 0.48, cor: '#6a8a4a', cid: ['Solmira · Sítio · Campos Dourados', 'Areias Rubras · Oásis de Kharum', 'Cidadela do Cisma · Cratera', '🚪 norte (Areias) → Valdora', '🚪 oeste (Sítio) → Praia'], M: () => Object.assign({}, REINO_MAP, { base }) },
     { id: 'torre', n: 'Torre do Cisma', lv: 'Nv 18–60 · 30 andares', x: 0.77, y: 0.54, w: 0.21, h: 0.34, cor: '#5a3a7a', cid: ['Kravenox no topo', '(sábado, 20h)', '🚪 porta na Cidadela'] },
     { id: 'valdora', n: 'Terras de Valdora', lv: 'Nv 24–40', x: 0.3, y: 0.02, w: 0.34, h: 0.4, cor: '#7a5a4a', cid: ['Acampamento · Ruínas', '🚪 sul → Reino', '🚪 leste → Floresta'], M: () => typeof Valdora !== 'undefined' && Valdora.map },
