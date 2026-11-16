@@ -157,6 +157,19 @@ const Modelos3D = (() => {
     medusa: () => makeMedusa({ c1: 0x8ad8ff, c2: 0xff8ad8 }),
     tartaruga: () => makeTartaruga({ c1: 0x4a6a3a, c2: 0x8aa070 }),
     serpenteOnda: () => { const r = makeLarva({ c1: 0x1a6a7a, c2: 0x5ad0c0, core: 0x9affff, long: true }); r.g.scale.set(1.4, 1.2, 1.4); return r; },
+    // Cidade Submersa (livro I, caps. 9 e 10)
+    raizSuspensa: () => makeRoot({ c1: 0x120a1a, c2: 0x2a1a3a, eye: 0xc070ff, eyes: 2, n: 11, mouth: true }),
+    cristalVivo: () => makeCrystalman(),
+    ecoCidade: () => makeGhost({ c1: 0x3a6a9a, eye: 0xaaffff, glow: true }),
+    sentinelaSubmersa: () => makeSentinel({ c1: 0x1a3a4a, c2: 0x0a1a24, eye: 0x5affd0 }),
+    larvaAbismo: () => makeLarva({ c1: 0x1a1030, c2: 0x3a2060, core: 0xb070ff, long: true, crystal: true }),
+    sombraFonte: () => {                                                    // a sombra atrás da Fonte: manto negro, olhos dourados e raízes
+      const r = makeGhost({ c1: 0x05030a, eye: 0xffd040, crystal: true });
+      const raiz = M(0x140a10, { roughness: .9 });
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, pts = [new THREE.Vector3(0, .5, 0), new THREE.Vector3(Math.cos(a) * .4, .2, Math.sin(a) * .4), new THREE.Vector3(Math.cos(a) * .8, -.1, Math.sin(a) * .8)];
+        add(r.inner, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, .04, 5), raiz, 0, 0, 0, false); }
+      return r;
+    },
     // Vale dos Mortos e Ponte dos Mortos
     maoPalida: () => makeMao({ c1: 0xd8d4cc }),
     sussurro: () => makeGhost({ c1: 0xa8b0bc, eye: 0x9ad8ff, glow: true }),
@@ -174,8 +187,8 @@ const Modelos3D = (() => {
     },
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
-  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'serpenteOnda']);   // larvas olham para +x
-  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'sombraVale']);
+  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'serpenteOnda', 'larvaAbismo']);   // larvas olham para +x
+  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'sombraVale', 'ecoCidade', 'sombraFonte']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];

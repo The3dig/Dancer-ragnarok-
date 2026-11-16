@@ -21,6 +21,7 @@ const Desafios = (() => {
     armadura_nosferatur: ['Armadura Noturna de Nosferatur', '🦇', 'armadura', { def: 80, hp: 1100, pow: 25, crit: 0.05 }, 4, 'amigos'],
     // o melhor capacete do jogo: só no fim da Grande Jornada de Rivas (Oásis de Kharum)
     manto_lembrancas: ['Manto das Lembranças', '🌫️', 'armadura', { def: 58, hp: 620, pow: 12 }],
+    capa_suspensa: ['Capa do Vazio Suspenso', '🌌', 'armadura', { def: 66, hp: 760, pow: 16 }],
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
@@ -50,6 +51,8 @@ const Desafios = (() => {
     ['titulo', 'ponte', '« Quem Atravessou a Ponte »', '🦴', {}],
     ['rastro', 'areias', 'Areias de Rivas', '🐪', { c: [0xffd080, 0xe8a040], spark: true }],
     ['titulo', 'amigo_rivas', '« Amigo de Rivas »', '🐪', {}],
+    ['aura', 'lyra', 'Cristal de Lyra', '💠', { c: [0xffc860, 0x9a5aff] }],
+    ['titulo', 'fundo', '« Quem Viu o Fundo »', '🌌', {}],
   ];
   const visNome = (c, k) => { const v = VIS.find(x => x[0] === c && x[1] === k); return v ? `${v[3]} ${v[2]}` : k; };
 
@@ -100,6 +103,10 @@ const Desafios = (() => {
     severo: { nome: 'Vigia Severo', fala: 'Faz trinta anos que eu vigio esse vale. Ninguém atravessa. Se você quer provar o contrário, prove aqui primeiro.', lista: [
       { id: 'd16', t: 'Silêncio no Vale', pede: { m: { maoPalida: 300, sussurro: 300, damaSemOlhos: 300, sombraVale: 300, guardaOssos: 300 } }, da: { e: ['manto_lembrancas'] } },
       { id: 'd17', t: 'Quem Atravessou a Ponte', pede: { m: { primeiroGuardiao: 5 } }, da: { v: [['aura', 'nevoa'], ['titulo', 'ponte']] } },
+    ] },
+    oren: { nome: 'Vidente Oren', fala: 'Eu caí da ponte há tanto tempo que esqueci de que lado fica o céu. Mas vejo o que ninguém vê. Mostre que você também consegue.', lista: [
+      { id: 'd18', t: 'Silêncio no Vazio', pede: { m: { raizSuspensa: 300, cristalVivo: 300, ecoCidade: 300, sentinelaSubmersa: 300, larvaAbismo: 300 } }, da: { e: ['capa_suspensa'] } },
+      { id: 'd19', t: 'Quem Viu o Fundo', pede: { m: { sombraFonte: 5 } }, da: { v: [['aura', 'lyra'], ['titulo', 'fundo']] } },
     ] },
     brigida: { nome: 'Velha Brígida', fala: 'Eu vi Valdora inteira, antes de virar cinza. Traga o que restou dela e eu te conto como ela era.', lista: [
       { id: 'd10', t: 'Cinzas de Valdora', pede: { m: { raizNegra: 300, ecoCinza: 300, larvaCinza: 300, sentinelaMuralha: 300 } }, da: { e: ['armadura_cinzas'] } },

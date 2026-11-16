@@ -197,5 +197,5 @@ const Vale = (() => {
     cicatriz.material.opacity = 0.75 + Math.sin(time * 0.5) * 0.2;
     if (sino.m) { sino.m.rotation.z = Math.sin(time * 1.2) * 0.04; if ((sinoT -= dt) <= 0) { sinoT = rand(40, 90); sino.t = 2; if (Math.hypot(P.x - CAMP.x, P.z - CAMP.z) < 60) log('🔔 <i>Ao longe, um sino tocou. Uma vez. Depois outra.</i>', 'sys'); } if (sino.t > 0) { sino.t -= dt; sino.m.rotation.z = Math.sin(time * 9) * 0.3 * sino.t / 2; } }
   }
-  return { update, map, get dentro() { return dentro; } };
+  return { update, map, G, get dentro() { return dentro; } };
 })();
