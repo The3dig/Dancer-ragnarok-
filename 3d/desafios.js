@@ -22,8 +22,12 @@ const Desafios = (() => {
     // o melhor capacete do jogo: só no fim da Grande Jornada de Rivas (Oásis de Kharum)
     manto_lembrancas: ['Manto das Lembranças', '🌫️', 'armadura', { def: 58, hp: 620, pow: 12 }],
     capa_suspensa: ['Capa do Vazio Suspenso', '🌌', 'armadura', { def: 66, hp: 760, pow: 16 }],
-    // o colar do céu: só no fim da Grande Viagem da Skye (Acampamento de Valdora)
-    colar_skye: ['Colar Celeste de Skye', '☁️', 'colar', { hp: 520, sp: 220, pow: 26, crit: 0.05, spd: 0.06 }, 4, 'amigos'],
+    // o colar da assassina: só no fim da aventura da Skye (Acampamento de Valdora)
+    colar_skye: ['Colar da Lâmina Oculta de Skye', '🗡️', 'colar', { hp: 520, sp: 220, pow: 26, crit: 0.05, spd: 0.06 }, 4, 'amigos'],
+    // a arma do Michel Temmer (Clareira de Lira), o anel do Will Sacer (Vigília do Vale) e as botas do Urakin Star (Refúgio Suspenso)
+    espada_temmer: ['Espada Eterna de Michel Temmer', '⚔️', 'arma', { pow: 96, crit: 0.08, hp: 300, spd: 0.04 }, 4, 'amigos'],
+    anel_sacer: ['Anel Sagrado de Will Sacer', '💍', 'anel', { sp: 320, hp: 460, def: 26, pow: 18 }, 4, 'amigos'],
+    botas_urakin: ['Botas Estelares de Urakin Star', '👢', 'botas', { spd: 0.12, def: 34, hp: 420, crit: 0.04 }, 4, 'amigos'],
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
@@ -53,9 +57,18 @@ const Desafios = (() => {
     ['titulo', 'ponte', '« Quem Atravessou a Ponte »', '🦴', {}],
     ['rastro', 'areias', 'Areias de Rivas', '🐪', { c: [0xffd080, 0xe8a040], spark: true }],
     ['titulo', 'amigo_rivas', '« Amigo de Rivas »', '🐪', {}],
-    ['aura', 'ceu', 'Céu de Skye', '☁️', { c: [0x9ad8ff, 0xffffff] }],
-    ['rastro', 'nuvens', 'Rastro de Nuvens', '☁️', { c: [0xe8f4ff, 0x9ac8ff], smoke: true }],
-    ['titulo', 'amigo_skye', '« Amigo da Skye »', '☁️', {}],
+    ['aura', 'ceu', 'Sombra Assassina de Skye', '🗡️', { c: [0x6a1a8a, 0x1a0a1a] }],
+    ['rastro', 'nuvens', 'Passos nas Sombras', '🌑', { c: [0x2a1a3a, 0x8a4aff], smoke: true }],
+    ['titulo', 'amigo_skye', '« Amigo da Skye »', '🗡️', {}],
+    ['aura', 'temmer', 'Lâmina de Temmer', '⚔️', { c: [0xff8040, 0xffd060] }],
+    ['rastro', 'brasas', 'Rastro de Brasas', '🔥', { c: [0xff6020, 0xffb040], spark: true }],
+    ['titulo', 'amigo_temmer', '« Amigo do Michel Temmer »', '⚔️', {}],
+    ['aura', 'sagrada', 'Luz Sagrada de Will Sacer', '✝️', { c: [0xfff4c0, 0xffffff] }],
+    ['rastro', 'bencao', 'Rastro de Bênçãos', '✨', { c: [0xfff0a0, 0xffffff], spark: true }],
+    ['titulo', 'amigo_sacer', '« Amigo do Will Sacer »', '✝️', {}],
+    ['aura', 'estrelas', 'Céu Estrelado de Urakin', '⭐', { c: [0x6a8aff, 0xfff0a0] }],
+    ['rastro', 'estelar', 'Poeira Estelar', '🌠', { c: [0xb0c8ff, 0xffffff], spark: true }],
+    ['titulo', 'amigo_urakin', '« Amigo do Urakin Star »', '⭐', {}],
     ['aura', 'lyra', 'Cristal de Lyra', '💠', { c: [0xffc860, 0x9a5aff] }],
     ['titulo', 'fundo', '« Quem Viu o Fundo »', '🌌', {}],
   ];
@@ -109,14 +122,41 @@ const Desafios = (() => {
       { id: 'd16', t: 'Silêncio no Vale', pede: { m: { maoPalida: 300, sussurro: 300, damaSemOlhos: 300, sombraVale: 300, guardaOssos: 300 } }, da: { e: ['manto_lembrancas'] } },
       { id: 'd17', t: 'Quem Atravessou a Ponte', pede: { m: { primeiroGuardiao: 5 } }, da: { v: [['aura', 'nevoa'], ['titulo', 'ponte']] } },
     ] },
-    skye: { nome: 'Skye', fala: 'Eu nasci olhando pro céu, sabia? Um dia eu vou voar mais alto que a Torre do Cisma. Mas sozinha não dá... vem comigo nessa viagem? São sete etapas, e no fim eu te dou o meu colar.', lista: [
-      { id: 'sk1', t: '1. As cinzas que voam', pede: { m: { ecoCinza: 150, raizNegra: 150 } }, da: { cr: 20000, it: { blue: 20 } } },
-      { id: 'sk2', req: 'sk1', t: '2. Penas para as asas', pede: { i: { cinza: 100, fibra: 100, membrana: 30 } }, da: { cr: 30000, it: { red: 40 } } },
-      { id: 'sk3', req: 'sk2', t: '3. Céu limpo', pede: { g: { alfa: 40, campo: 10 } }, da: { cr: 40000, it: { fragmento_dourado: 2 } } },
-      { id: 'sk4', req: 'sk3', t: '4. Acima das árvores mortas', pede: { m: { larvaPernalta: 300, raizOssuda: 300, guardiaoBranco: 5 } }, da: { cr: 60000, it: { blue: 40 } } },
-      { id: 'sk5', req: 'sk4', t: '5. Até as nuvens', pede: { p: { torre: 30 }, g: { guardiao: 30 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
-      { id: 'sk6', req: 'sk5', t: '6. Sombras no céu', pede: { m: { sombraVale: 300, primeiroGuardiao: 3 }, i: { osso_ponte: 50 } }, da: { cr: 100000, v: [['rastro', 'nuvens']] } },
-      { id: 'sk7', req: 'sk6', t: '7. O colar do céu', pede: { m: { carrasco: 10, primeiroGuardiao: 5 }, p: { kvx: 1500 } }, da: { e: ['colar_skye'], v: [['aura', 'ceu'], ['titulo', 'amigo_skye']], cr: 150000 } },
+    skye: { nome: 'Skye', fala: 'Sou assassina. Ninguém me vê chegar, e ninguém me vê sair... nem os monstros de Valdora. Quer aprender a andar nas sombras? São sete etapas, e no fim eu te dou o meu colar.', lista: [
+      { id: 'sk1', t: '1. Silêncio nas cinzas', pede: { m: { ecoCinza: 150, raizNegra: 150 } }, da: { cr: 20000, it: { blue: 20 } } },
+      { id: 'sk2', req: 'sk1', t: '2. Veneno e corda', pede: { i: { cinza: 100, fibra: 100, membrana: 30 } }, da: { cr: 30000, it: { red: 40 } } },
+      { id: 'sk3', req: 'sk2', t: '3. Alvos grandes', pede: { g: { alfa: 40, campo: 10 } }, da: { cr: 40000, it: { fragmento_dourado: 2 } } },
+      { id: 'sk4', req: 'sk3', t: '4. Entre as árvores mortas', pede: { m: { larvaPernalta: 300, raizOssuda: 300, guardiaoBranco: 5 } }, da: { cr: 60000, it: { blue: 40 } } },
+      { id: 'sk5', req: 'sk4', t: '5. A Torre, sem ser vista', pede: { p: { torre: 30 }, g: { guardiao: 30 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
+      { id: 'sk6', req: 'sk5', t: '6. Uma sombra entre sombras', pede: { m: { sombraVale: 300, primeiroGuardiao: 3 }, i: { osso_ponte: 50 } }, da: { cr: 100000, v: [['rastro', 'nuvens']] } },
+      { id: 'sk7', req: 'sk6', t: '7. A Lâmina Oculta', pede: { m: { carrasco: 10, primeiroGuardiao: 5 }, p: { kvx: 1500 } }, da: { e: ['colar_skye'], v: [['aura', 'ceu'], ['titulo', 'amigo_skye']], cr: 150000 } },
+    ] },
+    temmer: { nome: 'Michel Temmer', fala: 'Floresta morta, raiz que anda, larva do tamanho de casa... pra mim isso é treino. Vem comigo? Sete etapas. No fim, a minha espada é sua.', lista: [
+      { id: 'mt1', t: '1. Raízes no caminho', pede: { m: { larvaPernalta: 200, raizOssuda: 200 } }, da: { cr: 40000, it: { blue: 30 } } },
+      { id: 'mt2', req: 'mt1', t: '2. O que a floresta deixa', pede: { i: { osso_raiz: 100, cristal_carne: 80 } }, da: { cr: 50000, it: { red: 60 } } },
+      { id: 'mt3', req: 'mt2', t: '3. Larvas antigas', pede: { m: { larvaCristal: 300, larvaAntiga: 300 } }, da: { cr: 60000, it: { fragmento_dourado: 2 } } },
+      { id: 'mt4', req: 'mt3', t: '4. Caçada grande', pede: { g: { alfa: 60, campo: 15 } }, da: { cr: 70000, it: { blue: 40 } } },
+      { id: 'mt5', req: 'mt4', t: '5. Memórias e guardiões', pede: { m: { memoria: 300, guardiaoBranco: 10 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
+      { id: 'mt6', req: 'mt5', t: '6. A forja da espada', pede: { i: { placa_antiga: 60, lembranca: 60, runa_ordem: 20 } }, da: { cr: 100000, v: [['rastro', 'brasas']] } },
+      { id: 'mt7', req: 'mt6', t: '7. A Espada Eterna', pede: { m: { guardiaoBranco: 15, primeiroGuardiao: 5 }, p: { kvx: 1500 } }, da: { e: ['espada_temmer'], v: [['aura', 'temmer'], ['titulo', 'amigo_temmer']], cr: 150000 } },
+    ] },
+    sacer: { nome: 'Will Sacer', fala: 'Sou sacerdote. Vim pro Vale porque aqui os mortos não descansam, e alguém precisa rezar por eles... e às vezes bater neles. Me ajuda? No fim, te dou o meu anel sagrado.', lista: [
+      { id: 'ws1', t: '1. Mãos que não descansam', pede: { m: { maoPalida: 300 } }, da: { cr: 50000, it: { blue: 30 } } },
+      { id: 'ws2', req: 'ws1', t: '2. Silenciar as vozes', pede: { m: { sussurro: 300, damaSemOlhos: 200 } }, da: { cr: 60000, it: { red: 60 } } },
+      { id: 'ws3', req: 'ws2', t: '3. Flores para os túmulos', pede: { i: { unha_palida: 100, veu_branco: 60, flor_tumulo: 30 } }, da: { cr: 70000, it: { fragmento_dourado: 2 } } },
+      { id: 'ws4', req: 'ws3', t: '4. Sombras e ossos', pede: { m: { sombraVale: 300, guardaOssos: 300 } }, da: { cr: 80000, it: { blue: 50 } } },
+      { id: 'ws5', req: 'ws4', t: '5. A oração na Torre', pede: { p: { torre: 30 }, g: { guardiao: 40 } }, da: { cr: 90000, it: { fragmento_dourado: 3 } } },
+      { id: 'ws6', req: 'ws5', t: '6. Bênção sobre a ponte', pede: { m: { primeiroGuardiao: 5 }, i: { sombra_densa: 60, eco_voz: 60 } }, da: { cr: 110000, v: [['rastro', 'bencao']] } },
+      { id: 'ws7', req: 'ws6', t: '7. O Anel Sagrado', pede: { m: { primeiroGuardiao: 10, sombraFonte: 2 }, p: { kvx: 1500 } }, da: { e: ['anel_sacer'], v: [['aura', 'sagrada'], ['titulo', 'amigo_sacer']], cr: 160000 } },
+    ] },
+    urakin: { nome: 'Urakin Star', fala: 'Daqui do Refúgio dá pra ver todas as estrelas. Cada uma é alguém que atravessou o vazio. Quer virar estrela também? Sete etapas, e as minhas botas são suas.', lista: [
+      { id: 'us1', t: '1. Raízes no vazio', pede: { m: { raizSuspensa: 300 } }, da: { cr: 60000, it: { luz_suspensa: 20 } } },
+      { id: 'us2', req: 'us1', t: '2. Cristais que andam', pede: { m: { cristalVivo: 300 }, i: { estilhaco_vivo: 60 } }, da: { cr: 70000, it: { blue: 50 } } },
+      { id: 'us3', req: 'us2', t: '3. Ecos e sentinelas', pede: { m: { ecoCidade: 300, sentinelaSubmersa: 300 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
+      { id: 'us4', req: 'us3', t: '4. Ovos do abismo', pede: { m: { larvaAbismo: 300 }, i: { ovo_abismo: 60, placa_submersa: 60 } }, da: { cr: 90000, it: { red: 80 } } },
+      { id: 'us5', req: 'us4', t: '5. Caçador de estrelas', pede: { g: { alfa: 80, campo: 20 } }, da: { cr: 100000, it: { cristal_tres: 1 } } },
+      { id: 'us6', req: 'us5', t: '6. A luz do fundo', pede: { m: { sombraFonte: 5 } }, da: { cr: 120000, v: [['rastro', 'estelar']] } },
+      { id: 'us7', req: 'us6', t: '7. As Botas Estelares', pede: { m: { sombraFonte: 10, primeiroGuardiao: 10 }, p: { kvx: 2000 } }, da: { e: ['botas_urakin'], v: [['aura', 'estrelas'], ['titulo', 'amigo_urakin']], cr: 180000 } },
     ] },
     oren: { nome: 'Vidente Oren', fala: 'Eu caí da ponte há tanto tempo que esqueci de que lado fica o céu. Mas vejo o que ninguém vê. Mostre que você também consegue.', lista: [
       { id: 'd18', t: 'Silêncio no Vazio', pede: { m: { raizSuspensa: 300, cristalVivo: 300, ecoCidade: 300, sentinelaSubmersa: 300, larvaAbismo: 300 } }, da: { e: ['capa_suspensa'] } },
@@ -198,7 +238,7 @@ const Desafios = (() => {
   }
   // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
   // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
-  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '☁️', 'Acampamento de Valdora']];
+  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso']];
   function sagaInfo(id) {
     const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
     const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);
@@ -210,12 +250,11 @@ const Desafios = (() => {
     for (const [id] of AMIGOS) s.vistos[id] = 1;
     const opts = AMIGOS.map(([id, nome, ic, onde]) => { const I = sagaInfo(id);
       const st = I.fim ? '✅ completa!' : I.ok ? '🏆 etapa pronta para receber!' : I.feitos ? `etapa ${I.feitos + 1} de ${I.total}` : '🆕 ainda não começou';
-      return { label: `${ic} ${nome} — ${st}`, fn: () => { talk({ dsf: id, remoto: true, npcNome: nome }, 'saga'); return true; } }; });
+      return { label: `${ic} ${nome} · ${onde} — ${st}`, fn: () => { talk({ dsf: id, remoto: true, npcNome: nome }, 'saga'); return true; } }; });
     // peças do conjunto
     const pecas = Object.entries(ITEMS).filter(([, it]) => it.set === 'amigos'), tem = pecas.filter(([id]) => (P.inv[id] || 0) > 0 || Object.values(P.equip || {}).includes(id));
     opts.push({ label: 'Fechar' });
-    const lista = AMIGOS.map(([id, nome, ic, onde]) => { const I = sagaInfo(id); return `${ic} <b>${nome}</b> <small>(${onde})</small>: ${I.feitos}/${I.total} etapas${I.prox ? ` · agora: <i>${I.prox.t}</i>` : ' · ✅'}`; }).join('<br>');
-    dialog('🤝 Amigos do Reino', `As grandes aventuras dos amigos. Cada uma termina com uma peça do <b>Conjunto da Irmandade Eterna</b> (${tem.length}/8 peças com você; quanto mais peças, mais bônus).<br><br>${lista}<br><br><small>Toque num amigo para ver o progresso de cada etapa, receber o prêmio ou ir até ele.</small>`, opts);
+    dialog('🤝 Amigos do Reino', `As grandes aventuras dos amigos. Cada uma termina com uma peça do <b>Conjunto da Irmandade Eterna</b> (${tem.length}/8 peças com você; quanto mais peças, mais bônus).<br><small>Toque num amigo para ver cada etapa, receber o prêmio de qualquer lugar ou ir até ele.</small>`, opts);
   }
   // número do botão 🤝: etapas prontas; "!" se tem aventura que você ainda não viu
   function amigosAviso() { const s = S(); const prontas = AMIGOS.filter(([id]) => sagaInfo(id).ok).length; if (prontas) return String(prontas); return AMIGOS.some(([id]) => !(s.vistos || {})[id] && !sagaInfo(id).feitos) ? '!' : ''; }
