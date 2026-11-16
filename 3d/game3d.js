@@ -2389,8 +2389,10 @@ function updateHUD() {
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
   const ui = P.ui || {};
   const qh2 = (ui.quest && typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html(!ui.quest) : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
-  if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
-  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
+  const dsf = typeof Desafios !== 'undefined' && Desafios.painel ? Desafios.painel() : '';                // etapa dos amigos/desafios que você está caçando
+  const qh3 = dsf ? (qh2.endsWith('</div></div>') ? qh2.slice(0, -6) + dsf + '</div>' : qh2 + `<div class="wb">${dsf}</div>`) : qh2;
+  if ($('quest').dataset.h !== qh3) { $('quest').innerHTML = qh3; $('quest').dataset.h = qh3; }
+  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('[data-dsf]') && typeof Desafios !== 'undefined') { Desafios.abrirFoco(); return; } if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo

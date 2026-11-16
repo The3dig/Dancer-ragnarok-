@@ -210,9 +210,15 @@ const Desafios = (() => {
   }
   function onKill(m) {
     const s = S(); s.k[m.type] = (s.k[m.type] || 0) + 1;
-    const F = P.dsfFoco; if (F && F.t === m.type) { const d = TODOS.find(q => q.id === F.id), n = d && (d.pede.m || {})[F.t];
-      if (!d || s.feito[d.id] || !n) P.dsfFoco = null;
-      else { const tem = s.k[m.type]; if (tem >= n) { log(`🎯 <b>${nomeMob(m.type)}</b>: ${n}/${n} ✅ pronto para o desafio <b>${d.t}</b>!`, 'gold'); P.dsfFoco = null; } else if (tem % 10 === 0) log(`🎯 ${nomeMob(m.type)}: <b>${tem}/${n}</b> (${d.t})`, 'sys'); } }
+    // aviso quando um monstro de qualquer etapa aberta chega no número pedido (para não caçar a mais)
+    for (const d of TODOS) { const n = (d.pede.m || {})[m.type]; if (!n || s.feito[d.id] || (d.req && !s.feito[d.req]) || s.k[m.type] !== n) continue;
+      const falta = linhas(d).filter(l => l.tem < l.n);
+      log(`✅ <b>${nomeMob(m.type)}</b> ${n}/${n} em <b>${d.t}</b> (${d.mestre}). ${falta.length ? 'Pode parar de caçar esse! Agora falta: ' + falta.map(l => `${l.txt.replace(/^\S+ /, '')} (${l.n - l.tem})`).join(', ') : '🏆 Etapa pronta: receba o prêmio no 🤝!'}`, 'gold');
+      Audio8.sfx('buff'); }
+    const F = P.dsfFoco; if (F) { const d = TODOS.find(q => q.id === F.id); if (!d || s.feito[d.id]) P.dsfFoco = null;
+      else if (F.t === m.type) { const n = (d.pede.m || {})[F.t], tem = s.k[m.type];
+        if (n && tem >= n) { const prox = Object.entries(d.pede.m || {}).find(([t, q]) => (s.k[t] || 0) < q); F.t = prox ? prox[0] : null; }
+        else if (n && tem % 10 === 0) log(`🎯 ${nomeMob(m.type)}: <b>${tem}/${n}</b> · faltam ${n - tem}`, 'sys'); } }
     if (m.d.alfa) s.g.alfa++;
     if (m.d.field) s.g.campo++;
     if (m.type === 'guardiao' || m.towerGuard) s.g.guardiao++;
@@ -260,12 +266,20 @@ const Desafios = (() => {
     for (const id of d.da.e || []) P.inv[id] = (P.inv[id] || 0) + 1;
     if (d.da.cr) P.zeny += d.da.cr; for (const [id, n] of Object.entries(d.da.it || {})) P.inv[id] = (P.inv[id] || 0) + n;
     for (const [c, k] of d.da.v || []) if (typeof Cos !== 'undefined') Cos.ganhar(c, k);
-    s.feito[d.id] = Date.now();
+    s.feito[d.id] = Date.now(); if (P.dsfFoco && P.dsfFoco.id === d.id) P.dsfFoco = null;
     banner('🏆 DESAFIO CONCLUÍDO 🏆'); Audio8.sfx('level');
     burst(new THREE.Vector3(P.x, P.y + 1.2, P.z), 0xffcf40, 60, 6, 1.2);
     log(`🏆 Desafio <b>${d.t}</b> concluído! Você ganhou:<br>${premioTxt(d)}<br><small>Visuais: 🛍️ Loja de Visuais. Equipamento: 🎒 mochila.</small>`, 'gold');
     save();
   }
+  // ---------------- a etapa que você está caçando aparece no quadro de Missões, com quanto falta
+  function painel() {
+    const F = P.dsfFoco; if (!F) return ''; const d = TODOS.find(q => q.id === F.id); if (!d || S().feito[d.id]) return '';
+    const L = linhas(d), ok = L.every(l => l.tem >= l.n);
+    return `<div class="qi focus" data-dsf="${d.id}"><b style="color:#ffcf40">🎯 ${d.t}</b> <small>(${d.mestre})</small><br>` + (ok ? '🏆 <b>Pronto!</b> Toque para receber o prêmio' :
+      L.map(l => l.tem >= l.n ? `✅ <s>${l.txt.replace(/^\S+ /, '')}</s>` : `${l.txt.replace(/^\S+ /, '')} <b>${l.tem}/${l.n}</b> <small>· faltam ${(l.n - l.tem).toLocaleString('pt-BR')}</small>`).join('<br>')) + `</div>`;
+  }
+  function abrirFoco() { const F = P.dsfFoco; if (!F) return; const d = TODOS.find(q => q.id === F.id); if (!d) return; const id = Object.keys(MESTRES).find(k => MESTRES[k].lista.some(q => q.id === d.id)); const a = AMIGOS.find(x => x[0] === id); Audio8.sfx('click'); ver({ dsf: id, remoto: true, npcNome: a ? a[1] : MESTRES[id].nome }, d); }
   // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
   // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
   const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso'], ['ludivicki', 'Ludivicki', '🧤', 'Vila de Solmira'], ['imperium', 'Imperium', '👑', 'Cidadela do Cisma']];
@@ -280,7 +294,7 @@ const Desafios = (() => {
     for (const m of mobs) if (m.type === t && !m.dead) { const dd = Math.hypot(m.x - P.x, m.z - P.z); if (dd < bd) { bd = dd; best = { x: m.x, z: m.z }; } }
     if (!best) { const sp = SPAWNS.find(q => q.type === t); if (sp) best = sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; }
     if (!best) { log(`Não sei onde aparece <b>${nomeMob(t)}</b> agora.`, 'bad'); return; }
-    P.dsfFoco = { t, id: d.id }; closeDialog();
+    P.dsfFoco = { t, id: d.id }; closeDialog(); log(`🎯 Seguindo <b>${d.t}</b>: o quadro de Missões mostra quanto falta de cada monstro.`, 'sys');
     irAte({ x: best.x, z: best.z, name: `caçar ${nomeMob(t)}` });
   }
   function irAte(npc) { P.qGo = { x: npc.x, z: npc.z, name: npc.name }; if (typeof BigMap !== 'undefined' && BigMap.rota && typeof mapaDe === 'function') { const aqui = mapaDe(P.x, P.z), la = mapaDe(npc.x, npc.z); if (aqui !== la && !inTower(P.z)) { const w = BigMap.rota(aqui, la); P.qGo = { x: w.x, z: w.z, name: w.name, reg: la, regN: npc.name, fim: { x: npc.x, z: npc.z } }; } } log(`🧭 Indo até <b>${npc.name}</b>. Mexa o joystick para parar.`, 'sys'); if (typeof autoStart === 'function') autoStart(); }
@@ -303,5 +317,5 @@ const Desafios = (() => {
   function repor() { const s = S(); if (typeof Cos === 'undefined' || !Cos.dar) return; for (const d of TODOS) if (s.feito[d.id]) for (const [c, k] of d.da.v || []) if (!Cos.tem(c, k)) Cos.dar(c, k); }
   // dano no Kravenox: só conta para a última etapa do Nosferatur, depois que ela abre
   function danoKvx(v) { const s = S(); s.kvx = s.kvx || {}; for (const d of TODOS) if (d.pede.p && d.pede.p.kvx && !s.feito[d.id] && (!d.req || s.feito[d.req])) s.kvx[d.id] = (s.kvx[d.id] || ((d.id === 'n7' && s.kvxN) || 0)) + v; }
-  return { talk, mark, onKill, repor, danoKvx, amigos, amigosAviso, AMIGOS, MESTRES, S };
+  return { painel, abrirFoco, talk, mark, onKill, repor, danoKvx, amigos, amigosAviso, AMIGOS, MESTRES, S };
 })();
