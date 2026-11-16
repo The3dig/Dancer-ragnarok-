@@ -318,6 +318,7 @@ const Valdora = (() => {
     return c;
   }
   let painted = false;
+  map.pintar = () => ensureMaps();
   function ensureMaps() { if (painted) return; painted = true; map.mm = paint(180, 132); map.base = paint(B.w, B.h); }
 
   // ---------------------------------------------------------------- atravessar a passagem

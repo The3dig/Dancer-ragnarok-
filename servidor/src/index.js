@@ -328,13 +328,15 @@ export class Mundo {
     if (m.t === "p" && m.s && typeof m.s === "object") {
       d.s = m.s; try { ws.serializeAttachment(d); } catch (e) { return; }
       this.todos({ t: "p", peer: d.peer, s: m.s }, ws);
-    } else if (m.t === "semente" && Array.isArray(m.l) && !this.mobs.size) {
+    } else if (m.t === "semente" && Array.isArray(m.l)) {
+      const vazio = !this.mobs.size;
       for (const o of m.l.slice(0, 600)) {
         if (!o || typeof o.id !== "string" || typeof o.type !== "string") continue;
         const max = Math.max(1, Math.min(5e6, Number(o.max) || 1));
+        if (this.mobs.has(o.id) || this.mobs.size >= 1500) continue;                    // já conhecia: fica como está
         this.mobs.set(o.id, { id: o.id, type: o.type, max, hp: Math.min(max, Number(o.hp) || max), resp: Math.max(5, Math.min(3600, Number(o.resp) || 20)), x: +o.x || 0, z: +o.z || 0, f: 0, st: 0, vivo: o.vivo !== false, volta: 0, dono: d.peer, dano: {} });
       }
-      this.todos({ t: "mundo", mobs: this.listaMobs() });
+      if (vazio) this.todos({ t: "mundo", mobs: this.listaMobs() });
     } else if (m.t === "semente+" && Array.isArray(m.l)) {      // também num mundo vazio (a semente chegou antes dos monstros existirem)
       // monstros de lugares novos (versão nova do jogo) num mundo que já estava rodando: entram sem apagar os outros
       for (const o of m.l.slice(0, 300)) {
@@ -354,7 +356,10 @@ export class Mundo {
       if (out.length) this.todos({ t: "m", l: out }, ws);
     } else if (m.t === "d" && typeof m.id === "string") {
       const mob = this.mobs.get(m.id), v = Math.max(0, Math.min(1e6, Number(m.v) || 0));
-      if (!mob || !mob.vivo) { this.enviar(ws, { t: "some", id: m.id }); return; }        // já morreu aqui: o jogo de quem bateu tira o monstro
+      // monstro que o servidor não conhece (o servidor dormiu e esqueceu a lista, ou ela chegou incompleta):
+      // pede a lista de novo em vez de sumir com o monstro (antes ele sumia sem dar drop)
+      if (!mob) { if (!d.pediu || agora - d.pediu > 5000) { d.pediu = agora; try { ws.serializeAttachment(d); } catch (e) {} this.enviar(ws, { t: "semente?" }); } return; }
+      if (!mob.vivo) { this.enviar(ws, { t: "some", id: m.id }); return; }        // já morreu aqui: o jogo de quem bateu tira o monstro
       if (!v) return;
       mob.hp -= v; mob.dano[d.peer] = (mob.dano[d.peer] || 0) + v;
       if (mob.hp <= 0) {

@@ -240,7 +240,7 @@ const Quests = (() => {
   function target() {
     if (P.qGo && P.qGo.reg) {                        // indo para outro mapa (Mapa do Mundo): passagem por passagem até chegar
       const G = P.qGo, aqui = inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
-      if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }
+      if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { if (G.fim && Math.hypot(P.x - G.fim.x, P.z - G.fim.z) > 4) { G.x = G.fim.x; G.z = G.fim.z; G.name = `o ponto marcado (${G.regN})`; return G; } log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }
       const w = BigMap.rota(aqui, G.reg); G.x = w.x; G.z = w.z; G.name = `${w.name}, caminho para ${G.regN}`; return G;
     }
     if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < 4) { log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); P.qGo = null; } else return P.qGo; }

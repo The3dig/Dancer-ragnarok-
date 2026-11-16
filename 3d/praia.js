@@ -257,6 +257,7 @@ const Praia = (() => {
     x.putImageData(img, 0, 0); return c;
   }
   let painted = false;
+  map.pintar = () => ensureMaps();
   function ensureMaps() { if (painted) return; painted = true; map.mm = paint(180, 144); map.base = paint(B.w, B.h); }
 
   // ---------------------------------------------------------------- pesca no píer (como no Ragnarok: fica parado, a vara balança e vem o peixe)

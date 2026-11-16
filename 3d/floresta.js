@@ -256,6 +256,7 @@ const Floresta = (() => {
     return c;
   }
   let painted = false;
+  map.pintar = () => ensureMaps();
   function ensureMaps() { if (painted) return; painted = true; map.mm = paint(180, 144); map.base = paint(B.w, B.h); }
 
   // ---------------------------------------------------------------- atravessar as passagens (Valdora ↔ Floresta)
