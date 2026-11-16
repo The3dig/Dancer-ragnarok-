@@ -1997,7 +1997,7 @@ const ZONES = {
   areias: { name: 'Areias Rubras', music: 'alem' },
   lair: { name: 'Cratera do Cisma', music: 'abismo' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
-  torre: { name: 'Torre do Cisma', music: 'torre' },          // metal ópera (scripts/compor_torre.py); a masmorra.mp4 antiga continua guardada
+  torre: { name: 'Torre do Cisma', music: 'torre_doom' },          // doom gótico (scripts/compor_torre2.py, versão B); a metal ópera ficou em torre_opera.mp4
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'semNome' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },

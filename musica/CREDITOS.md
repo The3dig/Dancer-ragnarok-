@@ -14,7 +14,8 @@ do próprio Rone, com os pontos de laço de `index.json` de lá.
 | cidade.mp4 | Oásis de Kharum |
 | abismo.mp4 | Cratera do Cisma |
 | fortaleza.mp4 | Cidadela do Cisma |
-| torre.mp4 | Torre do Cisma: metal ópera composto por `scripts/compor_torre.py` (FluidR3 GM, MIT) |
+| torre_doom.mp4 | Torre do Cisma: doom gótico (versão B de `scripts/compor_torre2.py`, FluidR3 GM, MIT), escolhida pelo Rone |
+| torre_opera.mp4 | a Torre antes (metal ópera de `scripts/compor_torre.py`); guardada |
 | chefe.mp4 | Topo da Torre (Kravenox) |
 | guerra.mp4 | Estrada de Valdora |
 | valdora.mp4 | Ruínas de Valdora |
