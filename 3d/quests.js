@@ -217,13 +217,17 @@ const Quests = (() => {
     if (q.board) { const b = BOARDS[q.board]; return { x: b.x, z: b.z, name: 'Quadro de Caça · ' + placeOf(b.x, b.z) }; }
     const n = npcByName(q.giver); return n ? { x: n.x, z: n.z, name: n.name + ' · ' + placeOf(n.x, n.z) } : null;
   }
+  // missões novas (que você ainda não pegou nem viu no diário): o 📜 mostra "!"
+  const novas = () => Q.filter(q => (q.type === 'principal' || q.type === 'secundaria') && available(q) && giverPos(q));
+  function novasCount() { const v = S().vistas || {}; return novas().filter(q => !v[q.id]).length; }
   function journal() {
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const avail = Q.filter(q => q.type !== 'oculta' && available(q));
+    const sv = S(); sv.vistas = sv.vistas || {}; const novo = new Set(novas().filter(q => !sv.vistas[q.id]).map(q => q.id)); for (const id of novo) sv.vistas[id] = 1;
     const done = Object.keys(S().done).length;
     const opts = [];
     for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; } });
-    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = g; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; } }); }
+    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${novo.has(q.id) ? '🆕 ' : ''}${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = g; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; } }); }
     opts.push({ label: 'Fechar' });
     dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
   }
@@ -331,6 +335,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { quadroPerto, warp, readyCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { quadroPerto, warp, readyCount, novasCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();

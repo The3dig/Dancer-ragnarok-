@@ -1613,7 +1613,7 @@ function evoCard(dt) {
     el.addEventListener('click', () => { const t = Evo.target(); if (!t) return; Audio8.sfx('click'); const c = Evo.card(); if (c) P.evoMini = c.k; P.qGo = { ...t }; log(`🧭 A seta leva até <b>${t.name}</b>.`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) autoStart(); $('quest').dataset.h = ''; evoT = 0; });
   }
   const c = Evo.card();
-  if (!c) { el.classList.add('hidden'); return; }
+  if (!c || dialogOpen) { el.classList.add('hidden'); return; }                       // não cobre as janelas de conversa
   const mini = c.k === 'hunt' || P.evoMini === c.k;
   if (mini && !(P.ui && P.ui.evo)) { el.classList.add('hidden'); return; }
   const html = mini ? `<div class="wb">⭐ ${c.mini} <b class="ev-ir">›</b></div>` : c.txt;
@@ -1652,9 +1652,9 @@ function railTick(dt) {
   let r = $('rail');
   if (!r) {
     r = document.createElement('div'); r.id = 'rail'; $('hud').appendChild(r);
-    r.innerHTML = '<button data-p="quest" title="Missões">📜<b></b></button><button data-p="evo" title="Evolução de classe">⭐<b></b></button><button data-p="kvx" title="Kravenox">☠️<b></b></button>';
+    r.innerHTML = '<button data-p="quest" title="Missões">📜<b></b></button><button data-p="evo" title="Evolução de classe">⭐<b></b></button><button data-p="amigos" title="Amigos">🤝<b></b></button><button data-p="kvx" title="Kravenox">☠️<b></b></button>';
     r.addEventListener('pointerdown', e => { const b = e.target.closest('[data-p]'); if (!b) return; e.preventDefault(); e.stopPropagation(); Audio8.sfx('click');
-      const k = b.dataset.p; if (k === 'quest') { if (typeof Quests !== 'undefined') Quests.journal(); return; }
+      const k = b.dataset.p; if (k === 'quest') { if (typeof Quests !== 'undefined') Quests.journal(); return; } if (k === 'amigos') { if (typeof Desafios !== 'undefined') Desafios.amigos(); railT = 0; return; }
       const was = P.ui[k]; P.ui.kvx = P.ui.evo = false; P.ui[k] = !was;
       if (k === 'evo' && P.ui.evo && typeof Evo !== 'undefined') { const c = Evo.card(); if (c) P.evoMini = c.k; }
       $('quest').dataset.h = ''; evoT = 0; railT = 0; });
@@ -1663,7 +1663,9 @@ function railTick(dt) {
   r.style.top = (st.bottom + 6) + 'px'; r.style.left = st.left + 'px';
   const set = (k, txt) => { const b = r.querySelector(`[data-p="${k}"]`); b.classList.toggle('on', !!P.ui[k]); const d = b.querySelector('b'); d.textContent = txt || ''; d.style.display = txt ? '' : 'none'; };
   const ready = typeof Quests !== 'undefined' && Quests.readyCount ? Quests.readyCount() : 0;
-  set('quest', ready ? String(ready) : ''); r.querySelector('[data-p="quest"]').classList.remove('on');
+  const novasQ = !ready && typeof Quests !== 'undefined' && Quests.novasCount ? Quests.novasCount() : 0;
+  set('quest', ready ? String(ready) : novasQ ? '!' : '');
+  set('amigos', typeof Desafios !== 'undefined' && Desafios.amigosAviso ? Desafios.amigosAviso() : ''); r.querySelector('[data-p="quest"]').classList.remove('on');
   const c = typeof Evo !== 'undefined' && Evo.card ? Evo.card() : null;
   r.querySelector('[data-p="evo"]').style.display = c ? '' : 'none';
   set('evo', c && c.k !== 'hunt' ? '!' : '');

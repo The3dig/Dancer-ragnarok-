@@ -158,7 +158,8 @@ const Desafios = (() => {
       const trava = d.req && !s.feito[d.req], ok = !trava && pronto(d), feito = s.feito[d.id];
       return { label: `${feito ? '✅' : trava ? '🔒' : ok ? '🏆' : '▫️'} ${d.t}${feito ? ' (concluído)' : trava ? ' — termine a anterior' : ok ? ' — pronto para receber!' : ''}`, fn: () => { ver(n, d); return true; } };
     });
-    opts.push({ label: 'Até mais' });
+    if (n.remoto) { const npc = NPCS.find(q => q.name === n.npcNome); if (npc) opts.push({ label: `🧭 Ir até ${n.npcNome}`, fn: () => irAte(npc) }); opts.push({ label: '← Amigos', fn: () => { amigos(); return true; } }); }
+    else opts.push({ label: 'Até mais' });
     dialog(`🏆 ${M.nome}`, `${M.fala}<br><small>Cada desafio vale uma vez. A contagem de mortes inclui o que você já caçou.</small>`, opts);
   }
   function ver(n, d) {
@@ -181,11 +182,34 @@ const Desafios = (() => {
     log(`🏆 Desafio <b>${d.t}</b> concluído! Você ganhou:<br>${premioTxt(d)}<br><small>Visuais: 🛍️ Loja de Visuais. Equipamento: 🎒 mochila.</small>`, 'gold');
     save();
   }
+  // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
+  // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
+  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum']];
+  function sagaInfo(id) {
+    const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
+    const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);
+    return { M, feitos, total: L.length, prox, ok, fim: !prox };
+  }
+  function irAte(npc) { P.qGo = { x: npc.x, z: npc.z, name: npc.name }; if (typeof BigMap !== 'undefined' && BigMap.rota && typeof mapaDe === 'function') { const aqui = mapaDe(P.x, P.z), la = mapaDe(npc.x, npc.z); if (aqui !== la && !inTower(P.z)) { const w = BigMap.rota(aqui, la); P.qGo = { x: w.x, z: w.z, name: w.name, reg: la, regN: npc.name, fim: { x: npc.x, z: npc.z } }; } } log(`🧭 Indo até <b>${npc.name}</b>. Mexa o joystick para parar.`, 'sys'); if (typeof autoStart === 'function') autoStart(); }
+  function amigos() {
+    const s = S(); s.vistos = s.vistos || {};
+    for (const [id] of AMIGOS) s.vistos[id] = 1;
+    const opts = AMIGOS.map(([id, nome, ic, onde]) => { const I = sagaInfo(id);
+      const st = I.fim ? '✅ completa!' : I.ok ? '🏆 etapa pronta para receber!' : I.feitos ? `etapa ${I.feitos + 1} de ${I.total}` : '🆕 ainda não começou';
+      return { label: `${ic} ${nome} — ${st}`, fn: () => { talk({ dsf: id, remoto: true, npcNome: nome }, 'saga'); return true; } }; });
+    // peças do conjunto
+    const pecas = Object.entries(ITEMS).filter(([, it]) => it.set === 'amigos'), tem = pecas.filter(([id]) => (P.inv[id] || 0) > 0 || Object.values(P.equip || {}).includes(id));
+    opts.push({ label: 'Fechar' });
+    const lista = AMIGOS.map(([id, nome, ic, onde]) => { const I = sagaInfo(id); return `${ic} <b>${nome}</b> <small>(${onde})</small>: ${I.feitos}/${I.total} etapas${I.prox ? ` · agora: <i>${I.prox.t}</i>` : ' · ✅'}`; }).join('<br>');
+    dialog('🤝 Amigos do Reino', `As grandes aventuras dos amigos. Cada uma termina com uma peça do <b>Conjunto da Irmandade Eterna</b> (${tem.length}/8 peças com você; quanto mais peças, mais bônus).<br><br>${lista}<br><br><small>Toque num amigo para ver o progresso de cada etapa, receber o prêmio ou ir até ele.</small>`, opts);
+  }
+  // número do botão 🤝: etapas prontas; "!" se tem aventura que você ainda não viu
+  function amigosAviso() { const s = S(); const prontas = AMIGOS.filter(([id]) => sagaInfo(id).ok).length; if (prontas) return String(prontas); return AMIGOS.some(([id]) => !(s.vistos || {})[id] && !sagaInfo(id).feitos) ? '!' : ''; }
   // marca acima da cabeça: ★ dourada quando algum desafio está pronto
   function mark(n) { const M = MESTRES[n.dsf]; if (!M) return ''; const s = S(); return [...M.lista, ...(M.saga ? MESTRES[M.saga].lista : [])].some(d => !s.feito[d.id] && !(d.req && !s.feito[d.req]) && pronto(d)) ? '★:#ffcf40' : '★:#7a7a88'; }
   // quem já tinha concluído um desafio recebe os visuais que mudaram (sem colocar em uso)
   function repor() { const s = S(); if (typeof Cos === 'undefined' || !Cos.dar) return; for (const d of TODOS) if (s.feito[d.id]) for (const [c, k] of d.da.v || []) if (!Cos.tem(c, k)) Cos.dar(c, k); }
   // dano no Kravenox: só conta para a última etapa do Nosferatur, depois que ela abre
   function danoKvx(v) { const s = S(); s.kvx = s.kvx || {}; for (const d of TODOS) if (d.pede.p && d.pede.p.kvx && !s.feito[d.id] && (!d.req || s.feito[d.req])) s.kvx[d.id] = (s.kvx[d.id] || ((d.id === 'n7' && s.kvxN) || 0)) + v; }
-  return { talk, mark, onKill, repor, danoKvx, MESTRES, S };
+  return { talk, mark, onKill, repor, danoKvx, amigos, amigosAviso, AMIGOS, MESTRES, S };
 })();
