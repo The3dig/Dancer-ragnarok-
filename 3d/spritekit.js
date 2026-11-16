@@ -41,6 +41,7 @@ const SpriteKit = (() => {
   //      { kind: 'hero', base: 'k' }      (Kravenox/Thornox: + 4 quadros de andar de lado e fúria)
   //      { kind: 'one', img: 'e_eco' }    (inimigo de um quadro só; espelha conforme o lado)
   // opt: { h (altura em metros, para 'one'), px (escala), shadow, float, faceRight }
+  const _OURO = new THREE.Color();
   function actor(set, opt = {}) {
     const root = new THREE.Group();
     const mat = new THREE.SpriteMaterial({ map: null, alphaTest: 0.5, transparent: false, fog: true, toneMapped: false });
@@ -114,11 +115,20 @@ const SpriteKit = (() => {
     // cor: luz da região, golpe recebido, sono
     a.tint.copy(light);
     if (st.sleeping) a.tint.multiplyScalar(0.35);
+    if (st.dourado) a.tint.lerp(_OURO.setRGB(1.3, 1.1, 0.6), st.dourado > 1 ? 0.5 : 0.25);   // Irmandade Eterna: corpo dourado
     if (st.flash) a.tint.setRGB(1, 0.35, 0.35);
     if (st.beam) a.tint.lerp(new THREE.Color(1, 0.4, 0.4), Math.min(1, st.beam));
     a.mat.color.copy(a.tint);
     const op = st.fade ?? 1;
     a.mat.transparent = op < 1; a.mat.opacity = op;
+    // silhueta dourada por cima (funciona até com roupa preta): mesma imagem, pintada de ouro e somada à luz
+    if (st.dourado && !st.dead) {
+      if (!a.ouro) { const m = new THREE.SpriteMaterial({ color: 0xffb428, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
+        m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = diffuse;'); };
+        a.ouro = new THREE.Sprite(m); a.ouro.renderOrder = 2; a.root.add(a.ouro); }
+      a.ouro.visible = true; a.ouro.material.map = a.mat.map; a.ouro.center.copy(a.spr.center); a.ouro.scale.copy(a.spr.scale); a.ouro.position.copy(a.spr.position); a.ouro.material.rotation = a.mat.rotation;
+      a.ouro.material.opacity = (st.dourado > 1 ? 0.36 : 0.15) * (0.75 + Math.sin(a.t * 3) * 0.25) * op;
+    } else if (a.ouro) a.ouro.visible = false;
   }
   const lerpA = (c, t, k) => c + (t - c) * Math.min(1, k);
 

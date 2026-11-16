@@ -115,6 +115,7 @@ const Cos = (() => {
       pet.a.update(dt, { face: pet.face, moving: mv });
       pet.g.visible = !P.dead;
     }
+    brilho(eu, nivelIrmandade(), P.x, P.y, P.z, dt, !P.dead);
     if (P.dead) return;
     // aura em volta dos pés
     const au = pal('aura', st.eq.aura);
@@ -129,8 +130,27 @@ const Cos = (() => {
       VFX.particle(new THREE.Vector3(P.x + rand(-0.2, 0.2), P.y + 0.15, P.z + rand(-0.2, 0.2)), ra.c[irand(0, 1)], { map: ra.smoke ? VFX.T.smoke : ra.spark ? VFX.T.spark : VFX.T.glow, size: ra.smoke ? 0.6 : 0.25, speed: 0.4, life: rand(0.5, 0.9), grow: ra.smoke ? 1 : 0, spin: true, op: 0.8 });
     }
   }
-  // para os outros jogadores (presença): só o título
-  function pres() { const st = S(); return { cn: null, ct: st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : null }; }
+  // ---------------- Irmandade Eterna: quem veste as peças dos amigos brilha dourado (todos veem)
+  // 4 a 7 peças: faíscas douradas; as 8 peças: o corpo todo envolto em luz dourada
+  const nivelIrmandade = () => { let n = 0; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set === 'amigos') n++; } return n >= 8 ? 2 : n >= 4 ? 1 : 0; };
+  function brilho(dono, nivel, x, y, z, dt, visivel = true) {
+    if (!dono._dour && nivel) {
+      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: VFX.T.glow, color: 0xffc830, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+      scene.add(m); dono._dour = { m, acc: 0 };
+    }
+    const D = dono._dour; if (!D) return;
+    D.m.visible = !!nivel && visivel; if (!nivel || !visivel) return;
+    const pul = 1 + Math.sin(time * 3) * 0.08;
+    D.m.position.set(x, y + 1.05, z); D.m.scale.set(2.6 * pul * (nivel === 2 ? 1.25 : 0.9), 3.4 * pul * (nivel === 2 ? 1.25 : 0.9), 1);
+    D.m.material.opacity = nivel === 2 ? 0.55 : 0.22;
+    if ((D.acc += dt) > (nivel === 2 ? (TOUCH ? 0.06 : 0.035) : 0.18)) {
+      D.acc = 0; const a = rand(0, TAU), r = rand(0.2, 0.75);
+      VFX.particle(new THREE.Vector3(x + Math.cos(a) * r, y + rand(0.1, 1.9), z + Math.sin(a) * r), Math.random() < 0.7 ? 0xffd860 : 0xffffff, { map: VFX.T.spark, size: rand(0.12, 0.24), v: new THREE.Vector3(0, rand(0.6, 1.4), 0), drag: 0.4, life: rand(0.6, 1.0), op: 0.95 });
+    }
+  }
+  const eu = {};
+  // para os outros jogadores (presença): o título e o brilho da Irmandade
+  function pres() { const st = S(); return { cn: null, ct: st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : null, ir: nivelIrmandade() || null }; }
   function init() {
     if (!$('btn-shop')) { const b = document.createElement('button'); b.id = 'btn-shop'; b.title = 'Loja de Visuais'; b.textContent = '🛍️'; b.onclick = open; $('menu').insertBefore(b, $('btn-help')); }
     // o Nome Âmbar (prêmio do Quebra-Chefes) foi colocado sozinho e parecia vermelho de PK: tira uma vez (continua na loja para usar)
@@ -147,5 +167,5 @@ const Cos = (() => {
   function ganhar(c, k) { const st = S(); st.own[key(c, k)] = 1; if (c !== 'cor') st.eq[c] = k; apply(); save(); }   // cor do nome: a pessoa escolhe se quer usar
   const tem = (c, k) => !!S().own[key(c, k)];
   function dar(c, k) { S().own[key(c, k)] = 1; }
-  return { init, open, update, apply, pres, exclusivo, ganhar, dar, tem, CAT };
+  return { init, open, update, apply, pres, exclusivo, ganhar, dar, tem, brilho, nivelIrmandade, CAT };
 })();

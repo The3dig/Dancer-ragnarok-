@@ -33,7 +33,7 @@ const Desafios = (() => {
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
-    ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar: rar || 3, set, price: 0, sell: rar === 4 ? 20000 : 5000, desafio: true };
+    ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar: rar || 3, set, price: 0, sell: set === 'amigos' ? 0 : rar === 4 ? 20000 : 5000, desafio: true, preso: set === 'amigos' };   // peça dos amigos: só de quem fez a aventura (não troca, não vende)
   const VIS = [   // [categoria, chave, nome, ícone, extra]
     ['aura', 'trigo', 'Aura do Trigo Dourado', '🌾', { c: [0xffd860, 0xc8a040] }],
     ['rastro', 'outono', 'Folhas de Outono', '🍂', { c: [0xe08030, 0xc04020], smoke: true }],

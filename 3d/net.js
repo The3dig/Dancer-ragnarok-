@@ -86,7 +86,7 @@ const Net = (() => {
     let r = remotes.get(p.peer);
     const lookKey = JSON.stringify(s.look || {});
     if (!r || r.lookKey !== lookKey) {
-      if (r) { scene.remove(r.g); r.lab.remove(); r.bub.remove(); }
+      if (r) { scene.remove(r.g); if (r._dour) scene.remove(r._dour.m); r.lab.remove(); r.bub.remove(); }
       const g = new THREE.Group(); scene.add(g);
       const look = { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, ...(s.look || {}) };
       if (!RACES[look.race]) look.race = 'humano';
@@ -110,7 +110,7 @@ const Net = (() => {
   function drop(peer) {
     const r = remotes.get(peer); if (!r) return;
     if (r.s && r.s.n) log(`<b>${esc(r.s.n)}</b> saiu do mundo.`, 'sys');
-    scene.remove(r.g); r.lab.remove(); r.bub.remove(); remotes.delete(peer);
+    scene.remove(r.g); if (r._dour) scene.remove(r._dour.m); r.lab.remove(); r.bub.remove(); remotes.delete(peer);
   }
   function updateBadge() {
     const el = $('online'); if (!el) return;
@@ -161,7 +161,7 @@ const Net = (() => {
       if (r.L.sprite) {
         if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.3; }
         r.atkT = Math.max(0, (r.atkT || 0) - dt);
-        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's' });
+        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's', dourado: s.ir | 0 });
       } else if (r.L.model) {
         const C = CLASSES[r.look.cls] || CLASSES.dancarina;
         let anim = s.st === 'd' ? 'Death' : s.st === 'r' ? 'Roll' : (moving || s.st === 'm') ? 'Run' : s.st === 's' ? 'Interact' : (C.ranged || C.weapon === 'ribbon' ? 'Idle' : 'Idle_Sword');
@@ -171,6 +171,7 @@ const Net = (() => {
         r.L.inst.play(anim, { once, restart, speed: anim === 'Run' ? 1 : 1.5 });
         r.L.inst.update(dt); updateFollow(r.L);
       }
+      if (typeof Cos !== 'undefined' && Cos.brilho && typeof VFX !== 'undefined') Cos.brilho(r, s.ir | 0, r.x, r.g.position.y, r.z, dt, r.g.visible && s.st !== 'd');
       // nome, classe e vida
       const sp = toScreen(r.x, r.g.position.y + 2.15, r.z);
       const near = Math.hypot(r.x - P.x, r.z - P.z) < 45;

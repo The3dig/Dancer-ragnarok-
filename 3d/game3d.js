@@ -2284,7 +2284,7 @@ function animateLyra(dt) {
 
 function animateSprite(dt) {
   lyra.position.set(P.x, P.y, P.z); lyra.rotation.y = P.face;
-  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
+  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, dourado: typeof Cos !== 'undefined' && Cos.nivelIrmandade ? Cos.nivelIrmandade() : 0, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
   lyra.visible = true;
 }
 function animateModel(dt) {
