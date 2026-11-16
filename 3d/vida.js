@@ -116,7 +116,8 @@ const Vida = (() => {
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
     valdora: { name: 'Conjunto da Guarda de Valdora', bonus: { pow: 18, def: 22, hp: 220 } },
     floresta: { name: 'Conjunto da Floresta Morta', bonus: { pow: 24, def: 28, hp: 300 } },
-    amigos: { name: 'Conjunto dos Amigos', bonus: { pow: 50, def: 40, hp: 700, crit: 0.08, spd: 0.08 } },   // uma peça por amigo do Rone (desafios.js)
+    // uma peça por amigo do Rone (desafios.js); bônus em níveis: 2, 4 e as 8 peças (o completo é muito mais forte)
+    amigos: { name: 'Conjunto da Irmandade Eterna', pecas: 8, tiers: [[2, { pow: 15, def: 15, hp: 250 }], [4, { pow: 40, def: 35, hp: 600, crit: 0.05 }], [8, { pow: 120, def: 90, hp: 1800, crit: 0.15, spd: 0.15, sp: 300 }]] },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
   };
   for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
@@ -648,12 +649,15 @@ const Vida = (() => {
   }
 
   // ---------------------------------------------------------------- mochila (inventário com o personagem)
+  // bônus que vale agora: conjuntos normais com 4 peças; os de níveis (Irmandade Eterna) pelo maior nível alcançado
+  function setBonus(st, n) { const S_ = SETS[st]; if (!S_) return null; if (!S_.tiers) return n >= 4 ? S_.bonus : null; let b = null; for (const [q, bb] of S_.tiers) if (n >= q) b = bb; return b; }
+  const setTxt = st => SETS[st].tiers ? SETS[st].tiers.map(([q, b]) => `${q === SETS[st].pecas ? 'completo' : q} peças: ${modTxt(b)}`).join(' · ') : `4 peças: ${modTxt(SETS[st].bonus)}`;
   function setCount() { const c = {}; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set) c[I.set] = (c[I.set] || 0) + 1; } return c; }
   const gear = k => {
     let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1); }
     for (const sl in (P.cards || {})) { const c = P.cards[sl]; if (c && P.equip && P.equip[sl] && ITEMS[c]) v += ITEMS[c].mods[k] || 0; }   // carta só vale com peça no espaço
     if (k === 'pow' || k === 'def' || k === 'hp' || k === 'sp') v = Math.round(v);
-    const sc = setCount(); for (const st in sc) if (sc[st] >= 4) v += SETS[st].bonus[k] || 0;
+    const sc = setCount(); for (const st in sc) { const B = setBonus(st, sc[st]); if (B) v += B[k] || 0; }
     return v;
   };
   let sel = null, tab = 'tudo', trashArm = null;
@@ -718,7 +722,7 @@ const Vida = (() => {
         const I = it(id);
         view = `<div class="iview"><div class="iv-art">${bigArt(I, id)}${cd ? `<div class="iv-mini">${cardArt(it(cd))}</div>` : ''}</div><div class="iv-txt">
           <b class="iv-n" style="color:${RARITY[I.rar || 0].c}">${nameOf(id)}</b><small>${RARITY[I.rar || 0].n} · ${slotName(sl.startsWith('anel') ? 'anel' : sl)} · equipado</small>
-          <p>${modTxt(I.mods)}${refOf(id) ? `<br>🔨 Refino +${refOf(id)}: +${refOf(id) * 10}% de dano, defesa e HP` : ''}${I.set ? `<br>🔗 ${SETS[I.set].name} (4 peças: ${modTxt(SETS[I.set].bonus)})` : ''}${cd ? `<br>🃏 ${it(cd).name}: ${modTxt(it(cd).mods)}` : `<br><small>🃏 Espaço de carta vazio</small>`}</p>
+          <p>${modTxt(I.mods)}${refOf(id) ? `<br>🔨 Refino +${refOf(id)}: +${refOf(id) * 10}% de dano, defesa e HP` : ''}${I.set ? `<br>🔗 ${SETS[I.set].name} (${setTxt(I.set)})` : ''}${cd ? `<br>🃏 ${it(cd).name}: ${modTxt(it(cd).mods)}` : `<br><small>🃏 Espaço de carta vazio</small>`}</p>
           <div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}<button data-a="unsel">Fechar</button></div></div></div>`;
       } else det = `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
     } else if (sel && P.inv[sel] > 0) {
@@ -745,7 +749,7 @@ const Vida = (() => {
       <div class="invb">
         <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div><div class="eslots">${slots}</div>
           <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div>
-          ${Object.entries(setCount()).map(([st, n]) => `<div class="dset ${n >= 4 ? 'on' : ''}">${SETS[st].name}: ${n}/4${n >= 4 ? ' ✅ ' + modTxt(SETS[st].bonus) : ''}</div>`).join('')}</div>
+          ${Object.entries(setCount()).map(([st, n]) => { const B = setBonus(st, n); return `<div class="dset ${B ? 'on' : ''}">${SETS[st].name}: ${n}/${SETS[st].pecas || 4}${B ? ' ✅ ' + modTxt(B) : ''}</div>`; }).join('')}</div>
         <div class="invr"><div class="invc"><div class="igrid">${cells}</div><div class="idet">${det}</div>
           <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>${tabsHtml}</div>${view}
       </div>`;
