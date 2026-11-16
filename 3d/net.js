@@ -24,13 +24,15 @@ function salaServidor(url, aoMsg) {
     const tk = typeof Nuvem !== 'undefined' && Nuvem.token ? (url.includes('?') ? '&' : '?') + 'token=' + Nuvem.token : '';
     try { ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
     ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) mandar(JSON.stringify({ t: 'p', s: pend })); };
+    // os nomes de personagem são únicos: alguém com o meu nome é uma conexão velha minha (o fantasma de mim mesmo)
+    const souEu = s => !!(s && typeof P !== 'undefined' && P.name && s.n === P.name);
     ws.onmessage = e => {
       uso.in += (e.data.length || 0) + 4;
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
       if (m.t === 'eu') { me = m.peer; emit(); }
-      else if (m.t === 'todos') { const velhos = [...peers.keys()]; peers.clear(); for (const p of m.peers || []) peers.set(p.peer, p.s); emit([], velhos.filter(k => !peers.has(k)).map(peer => ({ peer }))); }
-      else if (m.t === 'p') { const novo = !peers.has(m.peer); peers.set(m.peer, m.s); emit(novo ? [{ peer: m.peer, presence: m.s, sameTab: false }] : []); }
+      else if (m.t === 'todos') { const velhos = [...peers.keys()]; peers.clear(); for (const p of m.peers || []) if (!souEu(p.s)) peers.set(p.peer, p.s); emit([], velhos.filter(k => !peers.has(k)).map(peer => ({ peer }))); }
+      else if (m.t === 'p') { if (souEu(m.s)) return; const novo = !peers.has(m.peer); peers.set(m.peer, m.s); emit(novo ? [{ peer: m.peer, presence: m.s, sameTab: false }] : []); }
       else if (m.t === 'saiu') { if (peers.delete(m.peer)) emit([], [{ peer: m.peer }]); }
       else if (m.t === 'erro' && typeof log === 'function') log('🌐 ' + String(m.msg).slice(0, 120), 'sys');
       if (aoMsg) aoMsg(m);                                                      // monstros compartilhados e o resto

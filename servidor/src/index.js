@@ -302,7 +302,12 @@ export class Mundo {
     }
     const usuario = url.searchParams.get("usuario") || "";
     // a mesma conta entrando de novo derruba a conexão antiga
-    for (const ws of this.vivos()) if (this.dados(ws).usuario === usuario) { this.enviar(ws, { t: "erro", msg: "Sua conta entrou em outro aparelho." }); try { ws.close(4001, "outro aparelho"); } catch (e) {} }
+    for (const ws of this.vivos()) if (this.dados(ws).usuario === usuario) {
+      // a conexão velha da mesma conta sai: avisa todo mundo (antes ela ficava na lista e virava um "fantasma" do jogador)
+      const d = this.dados(ws); if (d.peer) this.todos({ t: "saiu", peer: d.peer }, ws);
+      try { ws.serializeAttachment({ ...d, peer: null, s: null }); } catch (e) {}
+      this.enviar(ws, { t: "erro", msg: "Sua conta entrou em outro aparelho." }); try { ws.close(4001, "outro aparelho"); } catch (e) {}
+    }
     const peer = crypto.randomUUID().slice(0, 8);
     this.state.acceptWebSocket(servidor);
     servidor.serializeAttachment({ peer, usuario, s: null });
