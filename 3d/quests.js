@@ -94,13 +94,19 @@ const Quests = (() => {
   const available = q => !S().act[q.id] && (q.repeat || !S().done[q.id]) && (!q.req || S().done[q.req]) && (!q.lv || P.lv >= q.lv);
   const npcByName = n => NPCS.find(o => o.name === n);
 
+  // contratos do Quadro de Caça: no máximo 6 por dia (somando os aceitos e os já entregues hoje)
+  const LIM_CACA = 6, hoje = () => new Date().toLocaleDateString('pt-BR');
+  function cacas() { const s = S(); if (!s.caca || s.caca.d !== hoje()) s.caca = { d: hoje(), n: 0 }; return s.caca; }
+  const cacasUsadas = () => cacas().n + Object.keys(S().act).filter(id => byId[id] && byId[id].type === 'caca').length;
   function accept(q) {
+    if (q.type === 'caca' && cacasUsadas() >= LIM_CACA) { log(`📋 Você já pegou os <b>${LIM_CACA} contratos de caça de hoje</b>. O quadro abre de novo amanhã.`, 'bad'); Audio8.sfx('miss'); return; }
     P.qGo = null;
     S().act[q.id] = { k: {} }; Audio8.sfx('buff');
     log(`${TYPE[q.type].dot} Missão aceita: <b style="color:${colorOf(q)}">${q.title}</b>`, 'gold'); save();
   }
   function finish(q) {
     for (const st of q.steps) if (st.item) P.inv[st.item] = Math.max(0, (P.inv[st.item] || 0) - st.n);
+    if (q.type === 'caca') cacas().n++;
     delete S().act[q.id]; S().done[q.id] = (S().done[q.id] || 0) + 1;
     const r = q.rw || {}; P.zeny += r.zeny || 0;
     const got = [];
@@ -137,12 +143,13 @@ const Quests = (() => {
     for (const q of qs) {
       if (S().act[q.id] && ready(q)) opts.push({ label: `✅ Receber: ${q.title}`, fn: () => { finish(q); setTimeout(() => boardTalk(city), 50); } });
       else if (S().act[q.id]) opts.push({ label: `⏳ ${q.title} (${prog(q, 0)}/${q.steps[0].n})`, fn: () => true });
+      else if (cacasUsadas() >= LIM_CACA) opts.push({ label: `🔒 ${q.title} — amanhã`, fn: () => true });
       else opts.push({ label: `🟢 ${q.title} — ${rewardTxt(q)}`, fn: () => { accept(q); setTimeout(() => boardTalk(city), 50); } });
     }
     P.warps = P.warps || {}; P.warps[city] = 1;            // memória de viagem: só leva a cidades já visitadas
     opts.push({ label: '🧭 Viagem rápida', fn: () => { travel(city); return true; } });
     opts.push({ label: 'Fechar' });
-    dialog('📋 Quadro de Caça', 'Contratos de caça da cidade. Pode repetir quantas vezes quiser.', opts);
+    dialog('📋 Quadro de Caça', `Contratos de caça da cidade. <b>Até ${LIM_CACA} por dia</b> (somando todos os quadros).<br><small>Hoje: <b>${cacasUsadas()} de ${LIM_CACA}</b>${cacasUsadas() >= LIM_CACA ? ' · o quadro abre de novo amanhã' : ''}</small>`, opts);
   }
   const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora', clareira: 'Clareira de Lira', praia: 'Praia de Cômodo' };
   function travel(from) {
