@@ -22,6 +22,8 @@ const Desafios = (() => {
     // o melhor capacete do jogo: só no fim da Grande Jornada de Rivas (Oásis de Kharum)
     manto_lembrancas: ['Manto das Lembranças', '🌫️', 'armadura', { def: 58, hp: 620, pow: 12 }],
     capa_suspensa: ['Capa do Vazio Suspenso', '🌌', 'armadura', { def: 66, hp: 760, pow: 16 }],
+    // o colar do céu: só no fim da Grande Viagem da Skye (Acampamento de Valdora)
+    colar_skye: ['Colar Celeste de Skye', '☁️', 'colar', { hp: 520, sp: 220, pow: 26, crit: 0.05, spd: 0.06 }, 4, 'amigos'],
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
@@ -51,6 +53,9 @@ const Desafios = (() => {
     ['titulo', 'ponte', '« Quem Atravessou a Ponte »', '🦴', {}],
     ['rastro', 'areias', 'Areias de Rivas', '🐪', { c: [0xffd080, 0xe8a040], spark: true }],
     ['titulo', 'amigo_rivas', '« Amigo de Rivas »', '🐪', {}],
+    ['aura', 'ceu', 'Céu de Skye', '☁️', { c: [0x9ad8ff, 0xffffff] }],
+    ['rastro', 'nuvens', 'Rastro de Nuvens', '☁️', { c: [0xe8f4ff, 0x9ac8ff], smoke: true }],
+    ['titulo', 'amigo_skye', '« Amigo da Skye »', '☁️', {}],
     ['aura', 'lyra', 'Cristal de Lyra', '💠', { c: [0xffc860, 0x9a5aff] }],
     ['titulo', 'fundo', '« Quem Viu o Fundo »', '🌌', {}],
   ];
@@ -103,6 +108,15 @@ const Desafios = (() => {
     severo: { nome: 'Vigia Severo', fala: 'Faz trinta anos que eu vigio esse vale. Ninguém atravessa. Se você quer provar o contrário, prove aqui primeiro.', lista: [
       { id: 'd16', t: 'Silêncio no Vale', pede: { m: { maoPalida: 300, sussurro: 300, damaSemOlhos: 300, sombraVale: 300, guardaOssos: 300 } }, da: { e: ['manto_lembrancas'] } },
       { id: 'd17', t: 'Quem Atravessou a Ponte', pede: { m: { primeiroGuardiao: 5 } }, da: { v: [['aura', 'nevoa'], ['titulo', 'ponte']] } },
+    ] },
+    skye: { nome: 'Skye', fala: 'Eu nasci olhando pro céu, sabia? Um dia eu vou voar mais alto que a Torre do Cisma. Mas sozinha não dá... vem comigo nessa viagem? São sete etapas, e no fim eu te dou o meu colar.', lista: [
+      { id: 'sk1', t: '1. As cinzas que voam', pede: { m: { ecoCinza: 150, raizNegra: 150 } }, da: { cr: 20000, it: { blue: 20 } } },
+      { id: 'sk2', req: 'sk1', t: '2. Penas para as asas', pede: { i: { cinza: 100, fibra: 100, membrana: 30 } }, da: { cr: 30000, it: { red: 40 } } },
+      { id: 'sk3', req: 'sk2', t: '3. Céu limpo', pede: { g: { alfa: 40, campo: 10 } }, da: { cr: 40000, it: { fragmento_dourado: 2 } } },
+      { id: 'sk4', req: 'sk3', t: '4. Acima das árvores mortas', pede: { m: { larvaPernalta: 300, raizOssuda: 300, guardiaoBranco: 5 } }, da: { cr: 60000, it: { blue: 40 } } },
+      { id: 'sk5', req: 'sk4', t: '5. Até as nuvens', pede: { p: { torre: 30 }, g: { guardiao: 30 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
+      { id: 'sk6', req: 'sk5', t: '6. Sombras no céu', pede: { m: { sombraVale: 300, primeiroGuardiao: 3 }, i: { osso_ponte: 50 } }, da: { cr: 100000, v: [['rastro', 'nuvens']] } },
+      { id: 'sk7', req: 'sk6', t: '7. O colar do céu', pede: { m: { carrasco: 10, primeiroGuardiao: 5 }, p: { kvx: 1500 } }, da: { e: ['colar_skye'], v: [['aura', 'ceu'], ['titulo', 'amigo_skye']], cr: 150000 } },
     ] },
     oren: { nome: 'Vidente Oren', fala: 'Eu caí da ponte há tanto tempo que esqueci de que lado fica o céu. Mas vejo o que ninguém vê. Mostre que você também consegue.', lista: [
       { id: 'd18', t: 'Silêncio no Vazio', pede: { m: { raizSuspensa: 300, cristalVivo: 300, ecoCidade: 300, sentinelaSubmersa: 300, larvaAbismo: 300 } }, da: { e: ['capa_suspensa'] } },
@@ -184,7 +198,7 @@ const Desafios = (() => {
   }
   // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
   // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
-  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum']];
+  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '☁️', 'Acampamento de Valdora']];
   function sagaInfo(id) {
     const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
     const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);
