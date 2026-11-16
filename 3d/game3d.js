@@ -1167,7 +1167,7 @@ const NPCS = [
   { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
   // Nosferatur: menino da Praia de Cômodo (pedido do Rone, nome escrito assim mesmo)
-  { id: 'nosferatur', name: 'Nosferatur', crianca: true, x: PVILA.x - 3, z: PVILA.z + 4, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
+  { id: 'nosferatur', dsf: 'nosferatur', name: 'Nosferatur', crianca: true, x: PVILA.x - 3, z: PVILA.z + 4, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
   // Clareira de Lira (Floresta Morta)
   { id: 'lira', name: 'Lira', x: FCLAR.x - 4, z: FCLAR.z - 5, look: [0x2a2430, 0x0a0a0a, 'veil'] },
   { id: 'healer', name: 'Eremita Odila', x: FCLAR.x + 5, z: FCLAR.z - 4, look: [0xd8d0c0, 0x8a8a8a, 'veil'] },
@@ -1228,7 +1228,7 @@ function npcMark(n) {
   if (qm) k = qm; else
   if (false) { }
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
-  else if (n.id === 'desafio' && typeof Desafios !== 'undefined') k = Desafios.mark(n);
+  else if ((n.id === 'desafio' || n.id === 'nosferatur') && typeof Desafios !== 'undefined') k = Desafios.mark(n);
   else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
   const live = !!k && !k.endsWith('#7a7a88');
   if (n.beam && n.beam.visible) {                       // pulso do medalhão, coluna de luz e anel no chão
@@ -2819,7 +2819,7 @@ function talkBase(n) {
         'Eu treino com espada de madeira todo dia na areia. Olha: zás! zás! ...ai, entrou areia no meu olho.'];
       let txt = falas[Math.floor(Math.random() * falas.length)];
       if (!P.nosfe) { P.nosfe = 1; P.inv.maca = (P.inv.maca || 0) + 3; txt += '<br><br>Toma, pega essas <b>3 Maçãs Silvestres</b>. É pra você não ficar com fome na aventura!'; Audio8.sfx('pick'); }
-      dialog(`💬 ${n.name}`, txt, [{ label: 'Valeu, Nosferatur!' }]); break;
+      dialog(`💬 ${n.name}`, txt, [{ label: '🦇 A Grande Aventura do Nosferatur', fn: () => { if (typeof Desafios !== 'undefined') Desafios.talk(n); return true; } }, { label: 'Valeu, Nosferatur!' }]); break;
     }
     case 'pescador': case 'faroleira': if (typeof Praia !== 'undefined') Praia.talk(n); break;
     case 'lira': dialog(nm, `— Essa pergunta é engraçada vindo de você, <b>${eu}</b>.<br>As árvores contam tudo. Algumas coisas continuam falando depois de morrer.<br><small>O Templo da Primeira Raiz fica ao norte, depois dos pilares da Ordem.</small>`); break;
