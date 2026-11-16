@@ -1158,20 +1158,20 @@ const NPCS = [
   { id: 'healer', name: 'Irmã Celina', x: VIL.x - 6, z: VIL.z - 6, look: [0xffffff, 0xf2e6c9, 'veil'] },
   { id: 'shop', name: 'Mercador Bento', x: VIL.x + 6, z: VIL.z - 6, look: [0x7a5a2a, 0x5a3a1a, 'cap'] },
   { id: 'guard', name: 'Guarda Tobias', x: VIL.x + 40, z: VIL.z - 5, look: [0x6a6f7a, 0x333333, 'helm'] },
-  { id: 'healer', name: 'Curandeira Samira', x: OAS.x - 10, z: OAS.z - 18, look: [0xf4f0e6, 0x1a1a1a, 'veil'] },
+  { id: 'healer', name: 'Curandeira Samira', x: OAS.x - 4, z: OAS.z - 27, look: [0xf4f0e6, 0x1a1a1a, 'veil'] },
   { id: 'shop', name: 'Mercador Farid', x: OAS.x + 4, z: OAS.z - 21, look: [0xb5651d, 0x2a1a0a, 'turban'] },
   { id: 'watch', name: 'Vigia Morvan', x: CIT.x + 2, z: CIT.z - 16, look: [0x2a2430, 0x1a1a1a, 'helm'] },
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
-  { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 6, z: VIL.z + 10, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
-  { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 15, z: OAS.z - 17, look: [0xb5651d, 0x1a1a1a, 'veil'] },
-  { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 7, z: CIT.z - 4, look: [0x3a3442, 0x1a1a1a, 'helm'] },
+  { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 2, z: VIL.z + 13, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
+  { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 20, z: OAS.z - 12, look: [0xb5651d, 0x1a1a1a, 'veil'] },
+  { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 12, z: CIT.z - 6, look: [0x3a3442, 0x1a1a1a, 'helm'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
   // Acampamento dos refugiados de Valdora
   { id: 'refugee', name: 'Arlen, o Refugiado', x: VCAMP.x + 5, z: VCAMP.z - 4, look: [0x5a4a3a, 0x2a1a0a, 'cap'] },
   { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
-  { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
+  { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 4, z: VCAMP.z + 9, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
   // Nosferatur: menino da Praia de Cômodo (pedido do Rone, nome escrito assim mesmo)
   { id: 'nosferatur', dsf: 'nosferatur', name: 'Nosferatur', crianca: true, x: PVILA.x - 3, z: PVILA.z + 4, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
@@ -2074,6 +2074,8 @@ function updatePlayer(dt) {
 
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
+  // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
+  if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
   nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }

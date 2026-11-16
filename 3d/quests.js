@@ -273,6 +273,7 @@ const Quests = (() => {
       }
     }
   }
+  const quadroPerto = () => Math.min(...Object.values(BOARDS).map(b => Math.hypot(b.x - P.x, b.z - P.z)));
   function nearest() {
     for (const [city, b] of Object.entries(BOARDS)) if (Math.hypot(b.x - P.x, b.z - P.z) < 2.6) return { label: 'Ler o Quadro de Caça', fn: () => boardTalk(city) };
     for (const s of SECRETS) if (s.kind === 'bau' && !opened()[s.id] && Math.hypot(s.x - P.x, s.z - P.z) < 2.2) return { label: `Abrir: ${s.name}`, fn: () => openChest(s) };
@@ -306,6 +307,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { warp, readyCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { quadroPerto, warp, readyCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();
