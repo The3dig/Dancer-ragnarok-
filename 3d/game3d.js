@@ -2726,7 +2726,8 @@ function scaleSkill(s, L) {
   if (s.life) o.life = Math.round(s.life * (1 + 0.15 * k));
   if (s.poison) o.poison = s.poison * (1 + 0.2 * k);
   if (s.mods) { o.mods = {}; for (const [m, v] of Object.entries(s.mods)) o.mods[m] = ['def', 'crit', 'poison', 'regen'].includes(m) ? v * (1 + 0.25 * k) : 1 + (v - 1) * (1 + 0.25 * k); }
-  o.sp = Math.round(s.sp * (1 + 0.12 * k) * (1 + P.lv / 20));          // custo cresce com o nível do personagem (no 60, 4x), senão o SP nunca acaba
+  // custo cresce com o nível do personagem (no 60, ~2,2x), mas nenhuma habilidade passa de 20% do SP máximo
+  o.sp = Math.max(s.sp, Math.round(Math.min(s.sp * (1 + 0.1 * k) * (1 + P.lv / 50), stats.maxSp() * 0.2)));
   return o;
 }
 function reqMet(i) { return tierOk(SKILLS[i]) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
