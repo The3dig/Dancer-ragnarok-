@@ -28,6 +28,7 @@ const Desafios = (() => {
     espada_temmer: ['Espada Eterna de Michel Temmer', '⚔️', 'arma', { pow: 96, crit: 0.08, hp: 300, spd: 0.04 }, 4, 'amigos'],
     anel_sacer: ['Anel Sagrado de Will Sacer', '💍', 'anel', { sp: 320, hp: 460, def: 26, pow: 18 }, 4, 'amigos'],
     botas_urakin: ['Botas Estelares de Urakin Star', '👢', 'botas', { spd: 0.12, def: 34, hp: 420, crit: 0.04 }, 4, 'amigos'],
+    luvas_ludivicki: ['Luvas Eternas de Ludivicki', '🧤', 'luvas', { pow: 40, crit: 0.07, def: 22, hp: 300 }, 4, 'amigos'],
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
@@ -69,6 +70,9 @@ const Desafios = (() => {
     ['aura', 'estrelas', 'Céu Estrelado de Urakin', '⭐', { c: [0x6a8aff, 0xfff0a0] }],
     ['rastro', 'estelar', 'Poeira Estelar', '🌠', { c: [0xb0c8ff, 0xffffff], spark: true }],
     ['titulo', 'amigo_urakin', '« Amigo do Urakin Star »', '⭐', {}],
+    ['aura', 'ludivicki', 'Fúria de Ludivicki', '🧤', { c: [0x40e080, 0xffe060] }],
+    ['rastro', 'trevos', 'Rastro de Trevos', '🍀', { c: [0x40c060, 0xb0ff90], spark: true }],
+    ['titulo', 'amigo_ludi', '« Amigo do Ludivicki »', '🧤', {}],
     ['aura', 'lyra', 'Cristal de Lyra', '💠', { c: [0xffc860, 0x9a5aff] }],
     ['titulo', 'fundo', '« Quem Viu o Fundo »', '🌌', {}],
   ];
@@ -158,6 +162,15 @@ const Desafios = (() => {
       { id: 'us6', req: 'us5', t: '6. A luz do fundo', pede: { m: { sombraFonte: 5 } }, da: { cr: 120000, v: [['rastro', 'estelar']] } },
       { id: 'us7', req: 'us6', t: '7. As Botas Estelares', pede: { m: { sombraFonte: 10, primeiroGuardiao: 10 }, p: { kvx: 2000 } }, da: { e: ['botas_urakin'], v: [['aura', 'estrelas'], ['titulo', 'amigo_urakin']], cr: 180000 } },
     ] },
+    ludivicki: { nome: 'Ludivicki', fala: 'E aí! Cheguei agora no Reino também. Bora começar do zero, junto? Sete etapas, do primeiro bichinho até o Kravenox. No fim eu te dou as minhas luvas.', lista: [
+      { id: 'ld1', t: '1. Os primeiros bichinhos', pede: { m: { pompom: 200, zunzum: 200 } }, da: { cr: 5000, it: { red: 20 } } },
+      { id: 'ld2', req: 'ld1', t: '2. Material de iniciante', pede: { i: { gosma: 50, po_eco: 50, raiz: 50 } }, da: { cr: 10000, it: { blue: 10 } } },
+      { id: 'ld3', req: 'ld2', t: '3. As Areias Rubras', pede: { m: { besouro: 200, serpe: 200 } }, da: { cr: 20000, it: { red: 40 } } },
+      { id: 'ld4', req: 'ld3', t: '4. Subindo a Torre', pede: { p: { torre: 10 }, g: { guardiao: 10 } }, da: { cr: 30000, it: { fragmento_dourado: 1 } } },
+      { id: 'ld5', req: 'ld4', t: '5. As muralhas de Valdora', pede: { m: { raizNegra: 300, sentinelaMuralha: 200 } }, da: { cr: 50000, it: { blue: 30 } } },
+      { id: 'ld6', req: 'ld5', t: '6. Carrasco e caranguejo', pede: { m: { carrasco: 5, reiCaranguejo: 3 } }, da: { cr: 80000, v: [['rastro', 'trevos']] } },
+      { id: 'ld7', req: 'ld6', t: '7. As Luvas Eternas', pede: { m: { guardiaoBranco: 10, primeiroGuardiao: 3 }, p: { kvx: 1000 } }, da: { e: ['luvas_ludivicki'], v: [['aura', 'ludivicki'], ['titulo', 'amigo_ludi']], cr: 120000 } },
+    ] },
     oren: { nome: 'Vidente Oren', fala: 'Eu caí da ponte há tanto tempo que esqueci de que lado fica o céu. Mas vejo o que ninguém vê. Mostre que você também consegue.', lista: [
       { id: 'd18', t: 'Silêncio no Vazio', pede: { m: { raizSuspensa: 300, cristalVivo: 300, ecoCidade: 300, sentinelaSubmersa: 300, larvaAbismo: 300 } }, da: { e: ['capa_suspensa'] } },
       { id: 'd19', t: 'Quem Viu o Fundo', pede: { m: { sombraFonte: 5 } }, da: { v: [['aura', 'lyra'], ['titulo', 'fundo']] } },
@@ -242,7 +255,7 @@ const Desafios = (() => {
   }
   // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
   // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
-  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso']];
+  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso'], ['ludivicki', 'Ludivicki', '🧤', 'Vila de Solmira']];
   function sagaInfo(id) {
     const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
     const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);

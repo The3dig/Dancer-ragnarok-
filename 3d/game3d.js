@@ -1241,6 +1241,7 @@ const NPCS = [
   { id: 'warp', city: 'refugio', name: 'Guia de Viagem Elói', x: CREF.x + 2, z: CREF.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
   { id: 'desafio', dsf: 'oren', name: 'Vidente Oren', x: CREF.x + 9, z: CREF.z + 1, look: [0x2a1a3a, 0x9a9aa8, 'veil'] },
   // mestres dos Desafios (desafios.js): caçadas e entregas longas com prêmios que só existem lá
+  { id: 'desafio', dsf: 'ludivicki', name: 'Ludivicki', x: VIL.x + 8, z: VIL.z + 13, look: [0x3a7a4a, 0x2a1a0a, 'cap'] },   // amigo do Rone
   { id: 'desafio', dsf: 'ivanna', name: 'Caçadora Ivanna', x: VIL.x + 12, z: VIL.z + 2, look: [0x4a6a2a, 0x6a3a1a, 'cap'] },
   { id: 'desafio', dsf: 'zahir', name: 'Rivas', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
   { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
@@ -1250,7 +1251,7 @@ const NPCS = [
   { id: 'desafio', dsf: 'urakin', name: 'Urakin Star', x: CREF.x - 2, z: CREF.z - 10, look: [0x2a3a6a, 0xfff0a0, 'cap'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho', 'Ludivicki': 'aldeao' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -2419,7 +2420,7 @@ function drawBeat() {
 }
 // minimapa
 const mm = $('minimap'), mg = mm.getContext('2d');
-mm.addEventListener('click', e => { e.stopPropagation(); Audio8.sfx('click'); BigMap.show(); });
+mm.addEventListener('click', e => { e.stopPropagation(); Audio8.sfx('click'); fecharJanelas('bigmap'); BigMap.show(); });
 const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase.height = mm.height;
 {
   const x = mmBase.getContext('2d'), c = new THREE.Color();
@@ -3060,6 +3061,29 @@ function showHelp() {
   <b>F</b> falar / usar · <b>C</b> atributos · <b>K</b> habilidades · <b>X</b> sentar · <b>M</b> música<br><br>${extra}<br><br>
   Caminho: Solmira → Campos Dourados → Areias Rubras → Cidadela do Cisma. O jogo salva sozinho.`, HELP_OPTS());
 }
+// ---------------- uma janela de cada vez: abrir uma fecha as outras (antes ficavam empilhadas: mochila + diário + guilda + loja...)
+const JANELAS = ['statwin', 'skillwin', 'invwin', 'bestwin', 'coswin', 'guildwin', 'bauwin', 'chatbox', 'dialog', 'bigmap', 'avisos', 'kvx'];
+function fecharJanelas(exceto) {
+  for (const id of JANELAS) {
+    if (id === exceto) continue; const el = $(id); if (!el) continue;
+    if (id === 'dialog') { if (dialogOpen) closeDialog(); continue; }
+    if (id === 'bigmap') { if (typeof BigMap !== 'undefined' && BigMap.open) BigMap.hide(); continue; }
+    if (id === 'kvx') { if (P.ui) P.ui.kvx = false; continue; }
+    if (id === 'chatbox') { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); $('chat-in').blur(); } continue; }
+    el.classList.add('hidden');
+  }
+}
+// qual janela cada botão abre (as outras fecham antes)
+const JANELA_DO_BOTAO = { 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog' };
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('#menu button'); if (!b || !(b.id in JANELA_DO_BOTAO)) return;
+  fecharJanelas(JANELA_DO_BOTAO[b.id]);
+}, true);
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest && e.target.closest('#rail [data-p]'); if (!b) return;
+  const k = b.dataset.p; if (k === 'evo') return;
+  fecharJanelas(k === 'kvx' ? 'kvx' : 'dialog');
+}, true);
 function openChat() { $('chatbox').classList.remove('hidden'); $('chat-in').focus(); for (const k in keys) keys[k] = false; }
 function sendChat() { const i = $('chat-in'); Net.say(i.value); i.value = ''; $('chatbox').classList.add('hidden'); i.blur(); setTimeout(fitScreen, 400); }
 $('btn-chat').onclick = openChat;
