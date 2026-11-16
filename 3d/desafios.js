@@ -26,7 +26,7 @@ const Desafios = (() => {
     ['titulo', 'flagelo', '« Flagelo dos Campos »', '🐛', {}],
     ['titulo', 'alfa', '« Caçador de Alfas »', '🦴', {}],
     ['aura', 'miragem', 'Aura da Miragem', '🏜️', { c: [0xffb070, 0x9ad8ff] }],
-    ['cor', 'rubi', 'Nome Âmbar', '🟠', { css: '#ffa63a' }],          // âmbar: vermelho é PK e rosa é "em combate" no PvP
+    ['aura', 'chefes', 'Aura Quebra-Chefes', '💥', { c: [0xffb040, 0xff6020] }],
     ['titulo', 'quebra', '« Quebra-Chefes »', '💥', {}],
     ['pet', 'rainha', 'Larva Rainha', '👑', { img: 'e_larvaMaeX', h: 0.8 }],
     ['aura', 'espinhos', 'Coroa de Espinhos', '🩸', { c: [0xff2020, 0x2a0008] }],
@@ -34,11 +34,11 @@ const Desafios = (() => {
     ['rastro', 'cisma', 'Chamas do Cisma', '🟣', { c: [0x9a40ff, 0xff40c0], spark: true }],
     ['aura', 'cinzas', 'Cinzas Vivas', '🌋', { c: [0xff6a20, 0x5a4a48] }],
     ['titulo', 'carrasco', '« Fim do Carrasco »', '🪓', {}],
-    ['cor', 'prata', 'Nome Cinza de Prata', '⚪', { css: '#d8dce8' }],
+    ['rastro', 'prata', 'Rastro de Prata', '⚪', { c: [0xd8dce8, 0xffffff], spark: true }],
     ['aura', 'ordem', 'Luz da Ordem', '🔹', { c: [0x7ad8ff, 0xffffff] }],
     ['titulo', 'lanca', '« Herdeiro da Lança »', '🔱', {}],
     ['rastro', 'raizes', 'Raízes Douradas', '✴️', { c: [0xffd060, 0xc8a050], spark: true }],
-    ['cor', 'ouro_velho', 'Nome Ouro Velho', '🟤', { css: '#d8b060' }],
+    ['titulo', 'memoria', '« Memória Viva »', '✴️', {}],
   ];
   const visNome = (c, k) => { const v = VIS.find(x => x[0] === c && x[1] === k); return v ? `${v[3]} ${v[2]}` : k; };
 
@@ -54,7 +54,7 @@ const Desafios = (() => {
     zahir: { nome: 'Rivas', fala: 'A areia guarda tudo, viajante. Até o que você ainda não conquistou.', lista: [
       { id: 'd4', t: 'Senhor das Dunas', pede: { m: { besouro: 300, serpe: 300 } }, da: { v: [['aura', 'miragem']] } },
       { id: 'd5', t: 'Lâmina da Miragem', pede: { i: { areia_rubra: 200, carapaca: 100, veu: 100, cristal_puro: 3, lagrima: 2 } }, da: { e: ['lamina_miragem'] } },
-      { id: 'd6', t: 'Quebra-Chefes', pede: { g: { campo: 5 } }, da: { v: [['cor', 'rubi'], ['titulo', 'quebra']] } },
+      { id: 'd6', t: 'Quebra-Chefes', pede: { g: { campo: 5 } }, da: { v: [['aura', 'chefes'], ['titulo', 'quebra']] } },
     ] },
     vex: { nome: 'Arauto Vex', fala: 'A Torre não perdoa. Quem sobe e desce trinta andares vezes sem conta merece ser lembrado.', lista: [
       { id: 'd7', t: 'Os Cinco da Torre', pede: { m: { larva: 300, verme: 300, esfera: 300, sentinela: 300 }, g: { guardiao: 30 } }, da: { e: ['elmo_guardiao'], v: [['pet', 'rainha']] } },
@@ -64,12 +64,12 @@ const Desafios = (() => {
     teodor: { nome: 'Andarilho Teodor', fala: 'Eu me perdi nesta floresta há tantos anos que ela parou de tentar me matar. Você ainda é interessante para ela.', lista: [
       { id: 'd13', t: 'Floresta em Silêncio', pede: { m: { larvaPernalta: 300, raizOssuda: 300, larvaCristal: 300, larvaAntiga: 300, memoria: 300 } }, da: { e: ['coroa_raiz'] } },
       { id: 'd14', t: 'Herdeiro da Lança', pede: { m: { guardiaoBranco: 5 } }, da: { v: [['aura', 'ordem'], ['titulo', 'lanca']] } },
-      { id: 'd15', t: 'Memória Viva', pede: { i: { lembranca: 300, membrana: 200, fragmento_dourado: 10, coracao_floresta: 5 } }, da: { v: [['rastro', 'raizes'], ['cor', 'ouro_velho']] } },
+      { id: 'd15', t: 'Memória Viva', pede: { i: { lembranca: 300, membrana: 200, fragmento_dourado: 10, coracao_floresta: 5 } }, da: { v: [['rastro', 'raizes'], ['titulo', 'memoria']] } },
     ] },
     brigida: { nome: 'Velha Brígida', fala: 'Eu vi Valdora inteira, antes de virar cinza. Traga o que restou dela e eu te conto como ela era.', lista: [
       { id: 'd10', t: 'Cinzas de Valdora', pede: { m: { raizNegra: 300, ecoCinza: 300, larvaCinza: 300, sentinelaMuralha: 300 } }, da: { e: ['armadura_cinzas'] } },
       { id: 'd11', t: 'O Fim do Carrasco', pede: { m: { carrasco: 5 } }, da: { v: [['aura', 'cinzas'], ['titulo', 'carrasco']] } },
-      { id: 'd12', t: 'Memória de Valdora', pede: { i: { cinza: 300, fibra: 300, brasao: 50, aco_valdora: 5 } }, da: { e: ['anel_valdora'], v: [['cor', 'prata']] } },
+      { id: 'd12', t: 'Memória de Valdora', pede: { i: { cinza: 300, fibra: 300, brasao: 50, aco_valdora: 5 } }, da: { e: ['anel_valdora'], v: [['rastro', 'prata']] } },
     ] },
   };
   const TODOS = Object.values(MESTRES).flatMap(M => M.lista.map(d => ({ ...d, mestre: M.nome })));
@@ -103,7 +103,7 @@ const Desafios = (() => {
   }
   const pronto = d => linhas(d).every(l => l.tem >= l.n);
   const premioTxt = d => [...(d.da.e || []).map(id => `<b style="color:#ffb640">${ITEMS[id].ic} ${ITEMS[id].name}</b> <small>(lendário: ${Object.entries(ITEMS[id].mods).map(([k, v]) => `${{ pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' }[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(', ')})</small>`),
-    ...(d.da.v || []).map(([c, k]) => `<b>${visNome(c, k)}</b> <small>(${{ aura: 'aura', rastro: 'rastro', pet: 'mascote', titulo: 'título', cor: 'cor do nome' }[c]})</small>`)].join('<br>');
+    ...(d.da.v || []).map(([c, k]) => `<b>${visNome(c, k)}</b> <small>(${{ aura: 'aura', rastro: 'rastro', pet: 'mascote', titulo: 'título', cor: 'cor' }[c]})</small>`)].join('<br>');
 
   // ---------------- conversa
   function talk(n) {
@@ -137,5 +137,7 @@ const Desafios = (() => {
   }
   // marca acima da cabeça: ★ dourada quando algum desafio está pronto
   function mark(n) { const M = MESTRES[n.dsf]; if (!M) return ''; const s = S(); return M.lista.some(d => !s.feito[d.id] && pronto(d)) ? '★:#ffcf40' : '★:#7a7a88'; }
-  return { talk, mark, onKill, MESTRES, S };
+  // quem já tinha concluído um desafio recebe os visuais que mudaram (sem colocar em uso)
+  function repor() { const s = S(); if (typeof Cos === 'undefined' || !Cos.dar) return; for (const d of TODOS) if (s.feito[d.id]) for (const [c, k] of d.da.v || []) if (!Cos.tem(c, k)) Cos.dar(c, k); }
+  return { talk, mark, onKill, repor, MESTRES, S };
 })();

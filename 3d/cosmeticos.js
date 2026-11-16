@@ -1,6 +1,6 @@
 // =====================================================================
 //  Loja de Visuais (🛍️): só aparência, nenhum bônus em combate.
-//  Auras, rastros ao andar, mascotes que seguem você, cor do nome e
+//  Auras, rastros ao andar, mascotes que seguem você e
 //  títulos. Comprados com coroas; ficam na conta da vaga do personagem.
 // =====================================================================
 'use strict';
@@ -28,13 +28,7 @@ const Cos = (() => {
       fragmento: ['Fragmentinho', '💠', 9000, { img: 'e_fragmento', h: 0.7, float: true }],
       sombrinha: ['Sombrinha', '🌑', 12000, { img: 'e_sombra', h: 0.8, float: true }],
     } },
-    cor: { n: 'Cor do nome', ic: '🎨', items: {
-      ouro: ['Nome Dourado', '🟡', 1500, { css: '#ffcf40' }],
-      ceu: ['Nome Celeste', '🔵', 1500, { css: '#7ac8ff' }],
-      jade: ['Nome Jade', '🟢', 1500, { css: '#7dffb0' }],
-      ametista: ['Nome Ametista', '🟣', 2000, { css: '#c890ff' }],
-      rosa: ['Nome Rosa', '🌸', 2000, { css: '#ff9ad0' }],
-    } },
+    // (cor do nome saiu em 16/11: o nome só muda de cor no PvP, como nas regras antigas — rosa em combate, vermelho PK)
     titulo: { n: 'Títulos', ic: '🏷️', items: {
       andarilho: ['« Andarilho do Reino »', '🥾', 1000, {}],
       sitiante: ['« Senhor do Sítio »', '🌾', 1500, {}],
@@ -68,7 +62,7 @@ const Cos = (() => {
     const c = CAT[tab], st = S();
     const cards = Object.entries(c.items).map(([k, [nome, ic, preco, ex]]) => {
       const own = st.own[key(tab, k)], on = st.eq[tab] === k;
-      const prev = tab === 'cor' ? `<b style="color:${ex.css}">${P.name}</b>` : tab === 'titulo' ? `<small>${nome}</small>` : `<span class="cs-ic">${ic}</span>`;
+      const prev = tab === 'titulo' ? `<small>${nome}</small>` : `<span class="cs-ic">${ic}</span>`;
       return `<div class="cs-card${on ? ' on' : ''}"><div class="cs-prev">${prev}</div><b>${tab === 'titulo' ? '' : nome}</b>
         ${own ? `<button data-a="eq" data-v="${k}">${on ? '✅ Usando' : 'Usar'}</button>` : preco == null ? `<button class="off" title="${ex.desafio || ''}">🔒 Desafio</button><small class="cs-dsf">${ex.desafio || ''}</small>` : `<button data-a="buy" data-v="${k}" ${P.zeny < preco ? 'class="off"' : ''}>💰 ${preco.toLocaleString('pt-BR')} cr</button>`}</div>`;
     }).join('');
@@ -93,7 +87,7 @@ const Cos = (() => {
   let pet = null, petKey = '', acc = 0, tAcc = 0;
   const pal = (c, k) => { const v = CAT[c] && CAT[c].items[k]; return v ? v[3] : null; };
   function apply() {
-    const st = S(), cor = pal('cor', st.eq.cor), tit = st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : '';
+    const st = S(), cor = null, tit = st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : '';
     const t = P.title ? `« ${P.title} »` : tit;
     $('pname').innerHTML = `<span data-c="${cor ? cor.css : ''}" style="${cor ? 'color:' + cor.css : ''}">${P.name}</span>${t ? `<small>${t}</small>` : ''}`;
     $('pname').dataset.h = '';
@@ -135,17 +129,23 @@ const Cos = (() => {
       VFX.particle(new THREE.Vector3(P.x + rand(-0.2, 0.2), P.y + 0.15, P.z + rand(-0.2, 0.2)), ra.c[irand(0, 1)], { map: ra.smoke ? VFX.T.smoke : ra.spark ? VFX.T.spark : VFX.T.glow, size: ra.smoke ? 0.6 : 0.25, speed: 0.4, life: rand(0.5, 0.9), grow: ra.smoke ? 1 : 0, spin: true, op: 0.8 });
     }
   }
-  // para os outros jogadores (presença): só cor do nome e título
-  function pres() { const st = S(), cor = pal('cor', st.eq.cor); return { cn: cor ? cor.css : null, ct: st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : null }; }
+  // para os outros jogadores (presença): só o título
+  function pres() { const st = S(); return { cn: null, ct: st.eq.titulo ? CAT.titulo.items[st.eq.titulo][0] : null }; }
   function init() {
     if (!$('btn-shop')) { const b = document.createElement('button'); b.id = 'btn-shop'; b.title = 'Loja de Visuais'; b.textContent = '🛍️'; b.onclick = open; $('menu').insertBefore(b, $('btn-help')); }
     // o Nome Âmbar (prêmio do Quebra-Chefes) foi colocado sozinho e parecia vermelho de PK: tira uma vez (continua na loja para usar)
-    const st = S(); if (st.eq.cor === 'rubi' && !st.rubiTirado) { st.eq.cor = null; st.rubiTirado = 1; log('🎨 A cor <b>Nome Âmbar</b> saiu do seu nome. Ela continua sua: para usar de novo, 🛍️ Loja de Visuais → Cor do nome.', 'sys'); }
+    // a cor do nome saiu do jogo: quem comprou recebe as coroas de volta (uma vez)
+    const st = S(), PRECO = { ouro: 1500, ceu: 1500, jade: 1500, ametista: 2000, rosa: 2000 };
+    if (!st.corDevolvida) { let cr = 0; for (const [k, v] of Object.entries(PRECO)) if (st.own['cor:' + k]) cr += v;
+      for (const k of Object.keys(st.own)) if (k.startsWith('cor:')) delete st.own[k];
+      st.eq.cor = null; st.corDevolvida = 1; if (cr) { P.zeny += cr; log(`🎨 A cor do nome saiu do jogo (agora o nome só muda de cor no PvP). Você recebeu de volta <b>${cr.toLocaleString('pt-BR')} cr</b>.`, 'gold'); } }
+    if (typeof Desafios !== 'undefined' && Desafios.repor) Desafios.repor();
     apply();
   }
   // visuais exclusivos dos Desafios (desafios.js): aparecem na loja com 🔒 e só se ganham cumprindo o desafio
   function exclusivo(c, k, nome, ic, ex) { CAT[c].items[k] = [nome, ic, null, ex]; }
   function ganhar(c, k) { const st = S(); st.own[key(c, k)] = 1; if (c !== 'cor') st.eq[c] = k; apply(); save(); }   // cor do nome: a pessoa escolhe se quer usar
   const tem = (c, k) => !!S().own[key(c, k)];
-  return { init, open, update, apply, pres, exclusivo, ganhar, tem, CAT };
+  function dar(c, k) { S().own[key(c, k)] = 1; }
+  return { init, open, update, apply, pres, exclusivo, ganhar, dar, tem, CAT };
 })();

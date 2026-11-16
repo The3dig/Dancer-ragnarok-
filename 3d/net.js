@@ -180,7 +180,7 @@ const Net = (() => {
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;
       const pvc = typeof PvP !== 'undefined' && (s.fl === 'r' || s.fl === 'p') ? PvP.color(s.fl, (s.pk || 0) - Date.now()) : null;
-      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : /^#[0-9a-f]{6}$/i.test(s.cn || '') ? 'color:' + s.cn : ''}">${s.fl === 'r' ? '<b class="pktag">☠ PK</b> ' : ''}${s.gt ? `<em class="gtag${typeof Guilda !== 'undefined' && Guilda.aliado(s) ? ' aliada' : ''}">[${esc(s.gt)}]</em> ` : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
+      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : ''}">${s.fl === 'r' ? '<b class="pktag">☠ PK</b> ' : ''}${s.gt ? `<em class="gtag${typeof Guilda !== 'undefined' && Guilda.aliado(s) ? ' aliada' : ''}">[${esc(s.gt)}]</em> ` : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
       if (r.lab.dataset.h !== html) { r.lab.innerHTML = html; r.lab.dataset.h = html; }
       if (r.bubT > 0) {
         r.bubT -= dt; r.bub.classList.remove('hidden');
