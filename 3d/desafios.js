@@ -184,6 +184,9 @@ const Desafios = (() => {
   }
   function onKill(m) {
     const s = S(); s.k[m.type] = (s.k[m.type] || 0) + 1;
+    const F = P.dsfFoco; if (F && F.t === m.type) { const d = TODOS.find(q => q.id === F.id), n = d && (d.pede.m || {})[F.t];
+      if (!d || s.feito[d.id] || !n) P.dsfFoco = null;
+      else { const tem = s.k[m.type]; if (tem >= n) { log(`🎯 <b>${nomeMob(m.type)}</b>: ${n}/${n} ✅ pronto para o desafio <b>${d.t}</b>!`, 'gold'); P.dsfFoco = null; } else if (tem % 10 === 0) log(`🎯 ${nomeMob(m.type)}: <b>${tem}/${n}</b> (${d.t})`, 'sys'); } }
     if (m.d.alfa) s.g.alfa++;
     if (m.d.field) s.g.campo++;
     if (m.type === 'guardiao' || m.towerGuard) s.g.guardiao++;
@@ -221,6 +224,7 @@ const Desafios = (() => {
     const prog = L.map(l => `${l.tem >= l.n ? '✅' : '▫️'} ${l.txt}: <b>${l.tem.toLocaleString('pt-BR')}</b> / ${l.n.toLocaleString('pt-BR')}`).join('<br>');
     const opts = [];
     if (!feito && ok) opts.push({ label: '🏆 Receber o prêmio', fn: () => { receber(d); return; } });
+    if (!feito && !trava) for (const [t, n] of Object.entries(d.pede.m || {})) { const tem = Math.min(n, S().k[t] || 0); if (tem < n) opts.push({ label: `🎯 Caçar ${nomeMob(t)} (${tem}/${n})`, fn: () => { cacar(t, d); } }); }
     opts.push({ label: '← Voltar', fn: () => { talk(n); return true; } });
     dialog(`🏆 ${d.t}`, `${trava ? '🔒 <b>Termine a etapa anterior primeiro.</b><br><br>' : ''}${prog}<br><br>🎁 Prêmio (só existe aqui):<br>${premioTxt(d)}${feito ? '<br><br>✅ <b>Você já concluiu este desafio.</b>' : ''}`, opts);
   }
@@ -243,6 +247,15 @@ const Desafios = (() => {
     const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
     const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);
     return { M, feitos, total: L.length, prox, ok, fim: !prox };
+  }
+  // ir caçar um monstro do desafio: vai até o lugar mais perto onde ele aparece (atravessando os mapas)
+  function cacar(t, d) {
+    let best = null, bd = 1e9;
+    for (const m of mobs) if (m.type === t && !m.dead) { const dd = Math.hypot(m.x - P.x, m.z - P.z); if (dd < bd) { bd = dd; best = { x: m.x, z: m.z }; } }
+    if (!best) { const sp = SPAWNS.find(q => q.type === t); if (sp) best = sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; }
+    if (!best) { log(`Não sei onde aparece <b>${nomeMob(t)}</b> agora.`, 'bad'); return; }
+    P.dsfFoco = { t, id: d.id }; closeDialog();
+    irAte({ x: best.x, z: best.z, name: `caçar ${nomeMob(t)}` });
   }
   function irAte(npc) { P.qGo = { x: npc.x, z: npc.z, name: npc.name }; if (typeof BigMap !== 'undefined' && BigMap.rota && typeof mapaDe === 'function') { const aqui = mapaDe(P.x, P.z), la = mapaDe(npc.x, npc.z); if (aqui !== la && !inTower(P.z)) { const w = BigMap.rota(aqui, la); P.qGo = { x: w.x, z: w.z, name: w.name, reg: la, regN: npc.name, fim: { x: npc.x, z: npc.z } }; } } log(`🧭 Indo até <b>${npc.name}</b>. Mexa o joystick para parar.`, 'sys'); if (typeof autoStart === 'function') autoStart(); }
   function amigos() {
