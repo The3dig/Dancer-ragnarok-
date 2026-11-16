@@ -161,7 +161,7 @@ const Cidade = (() => {
     const dQ = Math.hypot(P.x - VGATE_C.x, P.z - VGATE_C.z), dS = Math.hypot(P.x - CGATE.x, P.z - CGATE.z);
     if (!armada && (v ? dS : dQ) > 6) armada = true;
     if (!P.dead && cool <= 0 && armada) {
-      if (!v && inVale(P.x, P.z) && dQ < 2.4) { if (P.lv < 68) { log('🌌 O abismo te devolve para a ponte. <b>A Cidade Submersa é para o nível 70</b> (a partir do 68).', 'bad'); P.z += 3; cool = 1.5; } else { cool = 1.5; armada = false; go('cidade'); return; } }
+      if (!v && inVale(P.x, P.z) && dQ < 2.4) { if (P.lv < 68) { if (typeof autoStop === 'function') autoStop(''); log('🌌 O abismo te devolve para a ponte. <b>A Cidade Submersa é para o nível 70</b> (a partir do 68).', 'bad'); P.z += 3; cool = 1.5; } else { cool = 1.5; armada = false; go('cidade'); return; } }
       if (v && dS < 2.6) { cool = 1.5; armada = false; go('vale'); return; }
     }
     if (!v) return;

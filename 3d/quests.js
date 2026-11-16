@@ -238,6 +238,11 @@ const Quests = (() => {
   }
   // destino da seta: missão principal ativa (ou a primeira)
   function target() {
+    if (P.qGo && P.qGo.reg) {                        // indo para outro mapa (Mapa do Mundo): passagem por passagem até chegar
+      const G = P.qGo, aqui = inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
+      if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }
+      const w = BigMap.rota(aqui, G.reg); G.x = w.x; G.z = w.z; G.name = `${w.name}, caminho para ${G.regN}`; return G;
+    }
     if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < 4) { log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); P.qGo = null; } else return P.qGo; }
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const q = byId[focusId()]; if (!q) return null;

@@ -335,7 +335,7 @@ export class Mundo {
         this.mobs.set(o.id, { id: o.id, type: o.type, max, hp: Math.min(max, Number(o.hp) || max), resp: Math.max(5, Math.min(3600, Number(o.resp) || 20)), x: +o.x || 0, z: +o.z || 0, f: 0, st: 0, vivo: o.vivo !== false, volta: 0, dono: d.peer, dano: {} });
       }
       this.todos({ t: "mundo", mobs: this.listaMobs() });
-    } else if (m.t === "semente+" && Array.isArray(m.l) && this.mobs.size) {
+    } else if (m.t === "semente+" && Array.isArray(m.l)) {      // também num mundo vazio (a semente chegou antes dos monstros existirem)
       // monstros de lugares novos (versão nova do jogo) num mundo que já estava rodando: entram sem apagar os outros
       for (const o of m.l.slice(0, 300)) {
         if (!o || typeof o.id !== "string" || typeof o.type !== "string" || this.mobs.has(o.id) || this.mobs.size >= 1500) continue;

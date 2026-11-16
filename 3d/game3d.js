@@ -156,13 +156,16 @@ function autoWaypoint(T) {
   if (Math.abs(P.z - bz) > 1.4 || Math.abs(P.x - bx) > 8) return { x: bx + sp * 7.5, z: bz };
   return { x: bx - sp * 8, z: bz };
 }
+// passagens entre mapas: quem anda sozinho vai até o meio do arco (e atravessa), não para na frente
+const PORTAS = () => [PGATE, RGATE_P, VGATE_R, VGATE_V, VGATE_VF, FGATE, FGATE_V, VALE_GATE, VGATE_C, CGATE];
+function portaPerto(T) { if (!T) return null; for (const g of PORTAS()) if (Math.hypot(T.x - g.x, T.z - g.z) < 6) return g; return null; }
 function autoDir(dt) {
   if ((AUTO.tgT -= dt) <= 0) { AUTO.tgT = 0.4; AUTO.tg = questTarget(); }
   const T = AUTO.tg;
   if (!T) { autoStop('🚶 Objetivo concluído.'); return null; }
   if (P.hp < AUTO.hp - 1) { autoStop('⚠️ Você foi atacado: parou de andar sozinho.'); return null; }
   AUTO.hp = Math.max(AUTO.hp, P.hp);
-  const W = autoWaypoint(T), dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
+  const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
   if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
   let a = Math.atan2(dx, dz);
   // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
@@ -2466,7 +2469,7 @@ const BigMap = (() => {
     Audio8.sfx('click'); const aqui = regDe();
     if (r.id === aqui) { if (aqui === 'torre') { log('Você já está na Torre do Cisma.', 'sys'); return; } show(null); return; }
     if (aqui === 'torre') { log('Saia da Torre primeiro (desça até o 1º andar).', 'sys'); return; }
-    const w = rota(aqui, r.id); go(w.x, w.z, `${w.name}, caminho para ${r.n}`);
+    const w = rota(aqui, r.id); go(w.x, w.z, `${w.name}, caminho para ${r.n}`, { reg: r.id, regN: r.n });
   }
   function drawMundo() {
     const W = cv.width, H = cv.height, aqui = regDe(), t = performance.now() / 1000;
@@ -2543,9 +2546,9 @@ const BigMap = (() => {
     cv.style.width = Math.round(A.w * r) + 'px'; cv.style.height = Math.round(A.h * r) + 'px';
     box.classList.remove('hidden'); open = true; draw();
   }
-  function go(x, z, name) {
+  function go(x, z, name, extra) {
     Audio8.sfx('click'); hide();
-    P.qGo = { x, z, name }; log(`🧭 Indo até <b>${name}</b>. Mexa o joystick para parar.`, 'sys');
+    P.qGo = { x, z, name, ...(extra || {}) }; log(`🧭 Indo até <b>${name}</b>. Mexa o joystick para parar.`, 'sys');
     if (typeof autoStart === 'function') autoStart(); $('quest').dataset.h = '';
   }
   function hide() { if (box) box.classList.add('hidden'); open = false; }
@@ -2590,7 +2593,7 @@ const BigMap = (() => {
     g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k / u * (view ? 1.8 : 1), k / u * (view ? 1.8 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
-  return { show: () => show('mundo'), regiao: () => show(null), hide, draw, get open() { return open; } };
+  return { rota, show: () => show('mundo'), regiao: () => show(null), hide, draw, get open() { return open; } };
 })();
 function questTarget() {
   if (typeof Quests !== 'undefined') {

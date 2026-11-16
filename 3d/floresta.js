@@ -275,7 +275,7 @@ const Floresta = (() => {
     const dV = Math.hypot(P.x - VGATE_VF.x, P.z - VGATE_VF.z), dF = Math.hypot(P.x - FGATE.x, P.z - FGATE.z);
     if (!armada && (v ? dF : dV) > 7) armada = true;
     if (!P.dead && cool <= 0 && armada) {
-      if (!v && inVal(P.z) && dV < 3.4) { if (P.lv < 38) { if (dV < 2) { log('🌲 Uma força fria te empurra de volta. <b>A Floresta Morta é para o nível 40</b> (a partir do 38).', 'bad'); P.x -= 3; } } else { cool = 1.5; armada = false; go('floresta'); return; } }
+      if (!v && inVal(P.z) && dV < 3.4) { if (P.lv < 38) { if (dV < 2) { if (typeof autoStop === 'function') autoStop(''); log('🌲 Uma força fria te empurra de volta. <b>A Floresta Morta é para o nível 40</b> (a partir do 38).', 'bad'); P.x -= 3; } } else { cool = 1.5; armada = false; go('floresta'); return; } }
       if (v && dF < 3.4) { cool = 1.5; armada = false; go('valdora'); return; }
     }
     if (!v) return;

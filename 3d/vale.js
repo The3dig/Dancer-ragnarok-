@@ -187,7 +187,7 @@ const Vale = (() => {
     const dF = Math.hypot(P.x - FGATE_V.x, P.z - FGATE_V.z), dV = Math.hypot(P.x - VALE_GATE.x, P.z - VALE_GATE.z);
     if (!armada && (v ? dV : dF) > 7) armada = true;
     if (!P.dead && cool <= 0 && armada) {
-      if (!v && inFlo(P.x, P.z) && dF < 3.4) { if (P.lv < 53) { if (dF < 2) { log('🌫️ A névoa te empurra de volta. <b>O Vale dos Mortos é para o nível 55</b> (a partir do 53).', 'bad'); P.x -= 3; } } else { cool = 1.5; armada = false; go('vale'); return; } }
+      if (!v && inFlo(P.x, P.z) && dF < 3.4) { if (P.lv < 53) { if (dF < 2) { if (typeof autoStop === 'function') autoStop(''); log('🌫️ A névoa te empurra de volta. <b>O Vale dos Mortos é para o nível 55</b> (a partir do 53).', 'bad'); P.x -= 3; } } else { cool = 1.5; armada = false; go('vale'); return; } }
       if (v && dV < 3.4) { cool = 1.5; armada = false; go('floresta'); return; }
     }
     if (!v) return;
