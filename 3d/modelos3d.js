@@ -102,6 +102,17 @@ const Modelos3D = (() => {
     addS(inner, GEO.sph, pele, 0, .35, .85, .2, .18, .25); for (const sx of [-1, 1]) { addS(inner, GEO.sph, B(0x111111), sx * .1, .42, 1.0, .04, .04, .04); const n = addS(inner, GEO.sph, pele, sx * .6, .18, .35, .3, .06, .14); n.rotation.y = sx * .5; const t = addS(inner, GEO.sph, pele, sx * .45, .18, -.5, .2, .06, .12); t.rotation.y = -sx * .5; }
     return { g, inner };
   }
+  // ---------------- Vale dos Mortos: a mão pálida que sai da terra (com um montinho de terra em volta)
+  function makeMao(o) {
+    const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+    const pele = M(o.c1, { roughness: .7 }), terra = M(0x3a3430, { roughness: 1 });
+    addS(inner, GEO.sph, terra, 0, .05, 0, .6, .15, .6);
+    const braco = addS(inner, GEO.cyl, pele, 0, .5, 0, .12, .9, .12); braco.rotation.z = .1;
+    addS(inner, GEO.sph, pele, .05, 1.0, 0, .2, .24, .09);
+    for (let k = 0; k < 4; k++) { const d = addS(inner, GEO.cyl, pele, -.12 + k * .08 + .05, 1.32 - Math.abs(k - 1.5) * .05, 0, .03, .3, .03); d.rotation.z = (k - 1.5) * .12; }
+    const pol = addS(inner, GEO.cyl, pele, .22, 1.06, .02, .03, .2, .03); pol.rotation.z = -.9;
+    return { g, inner };
+  }
   // ---------------- receitas: tipo do MMO → modelo
   const R = {
     pompom: () => makeLarva({ c1: 0x5c6650, c2: 0x8a9476 }),
@@ -146,10 +157,25 @@ const Modelos3D = (() => {
     medusa: () => makeMedusa({ c1: 0x8ad8ff, c2: 0xff8ad8 }),
     tartaruga: () => makeTartaruga({ c1: 0x4a6a3a, c2: 0x8aa070 }),
     serpenteOnda: () => { const r = makeLarva({ c1: 0x1a6a7a, c2: 0x5ad0c0, core: 0x9affff, long: true }); r.g.scale.set(1.4, 1.2, 1.4); return r; },
+    // Vale dos Mortos e Ponte dos Mortos
+    maoPalida: () => makeMao({ c1: 0xd8d4cc }),
+    sussurro: () => makeGhost({ c1: 0xa8b0bc, eye: 0x9ad8ff, glow: true }),
+    damaSemOlhos: () => makeGhost({ c1: 0xf0eee8, eye: 0x050505, glow: true }),
+    sombraVale: () => makeGhost({ c1: 0x14101a, eye: 0xff3030 }),
+    guardaOssos: () => makeSentinel({ c1: 0xd8ccb0, c2: 0x8a7e68, eye: 0x9affd8 }),
+    primeiroGuardiao: () => {                                               // armadura branca, cajado e olhos dourados (livro I, cap. 8)
+      const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+      const S = makeSentinel({ c1: 0xf4f4f8, c2: 0xc8c8d4, eye: 0xffd040 }); S.g.scale.setScalar(2.2); inner.add(S.g);
+      const haste = M(0xe8d8a0, { roughness: .3, metalness: .5 }), orbe = new THREE.MeshBasicMaterial({ color: 0xffd860 });
+      add(inner, new THREE.CylinderGeometry(.06, .06, 4.4, 8), haste, 1.0, 2.2, .3, false);
+      addS(inner, GEO.sph, orbe, 1.0, 4.5, .3, .26, .26, .26);
+      for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2, c = add(inner, new THREE.TorusGeometry(.32, .03, 6, 16), haste, 1.0, 4.5, .3, false); c.rotation.set(a, a * .5, 0); }
+      return { g, inner };
+    },
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
   const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'serpenteOnda']);   // larvas olham para +x
-  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa']);
+  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'sombraVale']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];

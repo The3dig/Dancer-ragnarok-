@@ -40,6 +40,11 @@ const Vida = (() => {
     placa_antiga: ['Placa Antiga', '🪙', 90, 0, 'mat'], lembranca: ['Lembrança Presa', '💭', 110, 0, 'mat'],
     coracao_floresta: ['Coração da Floresta', '🫀', 1500, 0, 'mat'], runa_ordem: ['Runa da Ordem', '🔹', 1800, 0, 'mat'], fragmento_dourado: ['Fragmento Dourado', '✴️', 2000, 0, 'mat'],
     seiva_branca: ['Seiva Branca', '🥛', 30, 0, 'comida', { heal: 0.25 }],
+    // Vale dos Mortos e Ponte dos Mortos (Nv 55–72)
+    unha_palida: ['Unha Pálida', '🫳', 95, 0, 'mat'], eco_voz: ['Eco de Voz', '🗣️', 100, 0, 'mat'], veu_branco: ['Véu Branco', '🤍', 120, 0, 'mat'],
+    sombra_densa: ['Sombra Densa', '🌑', 125, 0, 'mat'], osso_ponte: ['Osso da Ponte', '🦴', 130, 0, 'mat'],
+    cristal_memoria: ['Cristal de Memória', '🔮', 2200, 0, 'mat'], lasca_cajado: ['Lasca do Cajado Dourado', '✨', 4000, 0, 'mat'],
+    flor_tumulo: ['Flor de Túmulo', '🥀', 40, 0, 'comida', { heal: 0.3, spH: 0.1 }],
     // Praia de Cômodo (Nv 18–34)
     garra: ['Garra Rubra', '🦀', 40, 0, 'mat'], tentaculo: ['Tentáculo Brilhante', '🪼', 48, 0, 'mat'], casco: ['Casco Espinhoso', '🐢', 60, 0, 'mat'],
     escama_mar: ['Escama do Mar', '🌊', 70, 0, 'mat'], coral: ['Coral Rubro', '🪸', 900, 0, 'mat'], coroa_caranguejo: ['Coroa do Rei Caranguejo', '👑', 2500, 0, 'mat'],
@@ -96,6 +101,12 @@ const Vida = (() => {
     luvas_valdora: ['Manoplas de Valdora', '🧤', 'luvas', 0, { def: 6, pow: 12 }, 2, 'valdora'],
     botas_valdora: ['Botas de Valdora', '🥾', 'botas', 0, { def: 6, spd: 0.1, hp: 70 }, 2, 'valdora'],
     arma_valdora: ['Espada de Valdora', '⚔️', 'arma', 0, { pow: 34, crit: 0.04 }, 2],
+    // Vale dos Mortos (Nv 55–72): o conjunto da névoa e o cajado do Primeiro Guardião (lendários)
+    capuz_vale: ['Capuz do Vale dos Mortos', '🧕', 'capacete', 0, { def: 22, hp: 240 }, 3, 'vale'],
+    manto_vale: ['Manto da Névoa', '🌫️', 'armadura', 0, { def: 46, hp: 460 }, 3, 'vale'],
+    luvas_vale: ['Luvas de Osso', '🧤', 'luvas', 0, { def: 12, pow: 24 }, 3, 'vale'],
+    botas_vale: ['Botas da Ponte', '🥾', 'botas', 0, { def: 12, spd: 0.12, hp: 140 }, 3, 'vale'],
+    cajado_guardiao: ['Cajado do Primeiro Guardião', '🪄', 'arma', 0, { pow: 64, crit: 0.08 }, 3],
     // Floresta Morta (Nv 40–55): o conjunto de raiz petrificada e a lança do Guardião Branco
     elmo_raiz: ['Elmo de Raiz Petrificada', '🪖', 'capacete', 0, { def: 16, hp: 150 }, 2, 'floresta'],
     manto_floresta: ['Manto da Floresta Morta', '🧥', 'armadura', 0, { def: 32, hp: 300 }, 2, 'floresta'],
@@ -115,6 +126,7 @@ const Vida = (() => {
     sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
     valdora: { name: 'Conjunto da Guarda de Valdora', bonus: { pow: 18, def: 22, hp: 220 } },
+    vale: { name: 'Conjunto do Vale dos Mortos', bonus: { pow: 34, def: 38, hp: 420, crit: 0.04 } },
     floresta: { name: 'Conjunto da Floresta Morta', bonus: { pow: 24, def: 28, hp: 300 } },
     // uma peça por amigo do Rone (desafios.js); bônus em níveis: 2, 4 e as 8 peças (o completo é muito mais forte)
     amigos: { name: 'Conjunto da Irmandade Eterna', pecas: 8, tiers: [[2, { pow: 15, def: 15, hp: 250 }], [4, { pow: 40, def: 35, hp: 600, crit: 0.05 }], [8, { pow: 120, def: 90, hp: 1800, crit: 0.15, spd: 0.15, sp: 300 }]] },
@@ -130,7 +142,7 @@ const Vida = (() => {
   const add = (id, n) => { P.inv[id] = Math.max(0, (P.inv[id] || 0) + n); if (id === 'red' || id === 'blue') buildHotbar(); };
 
   // materiais que cada monstro solta
-  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem', caranguejo: 'garra', medusa: 'tentaculo', tartaruga: 'casco', serpenteOnda: 'escama_mar', reiCaranguejo: 'coroa_caranguejo' };
+  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem', maoPalida: 'unha_palida', sussurro: 'eco_voz', damaSemOlhos: 'veu_branco', sombraVale: 'sombra_densa', guardaOssos: 'osso_ponte', primeiroGuardiao: 'lasca_cajado', caranguejo: 'garra', medusa: 'tentaculo', tartaruga: 'casco', serpenteOnda: 'escama_mar', reiCaranguejo: 'coroa_caranguejo' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.55]);
   // tabela no jeito do Ragnarok: um comum (~20–30%), uma fruta/erva (~10%), um incomum e uma raridade (1–3%)
   const MOB_LOOT = {
@@ -155,6 +167,12 @@ const Vida = (() => {
     larvaAntiga: [['escama', 0.25], ['placa_vazio', 0.12], ['seiva_branca', 0.1], ['runa_ordem', 0.01]],
     memoria: [['po_estelar', 0.03], ['erva_azul', 0.15], ['fragmento_dourado', 0.012]],
     guardiaoBranco: [['runa_ordem', 1], ['coracao_floresta', 0.5], ['fragmento_dourado', 0.4]],
+    maoPalida: [['flor_tumulo', 0.1], ['osso_raiz', 0.2], ['cristal_memoria', 0.006]],
+    sussurro: [['erva_azul', 0.15], ['lembranca', 0.2], ['cristal_memoria', 0.01]],
+    damaSemOlhos: [['flor_tumulo', 0.12], ['veu', 0.2], ['cristal_memoria', 0.012]],
+    sombraVale: [['essencia', 0.06], ['erva_azul', 0.12], ['cristal_memoria', 0.012]],
+    guardaOssos: [['placa_antiga', 0.2], ['flor_tumulo', 0.1], ['nucleo_ferro', 0.02]],
+    primeiroGuardiao: [['cristal_memoria', 0.8], ['fragmento_dourado', 0.5], ['runa_ordem', 1]],
     caranguejo: [['agua_coco', 0.1]],                                              // os peixes e pérolas entram em praia.js
     medusa: [['erva_azul', 0.15], ['coral', 0.006]],
     tartaruga: [['agua_coco', 0.15], ['coral', 0.01]],
@@ -178,6 +196,9 @@ const Vida = (() => {
     raizNegra: [['botas_valdora', 0.012], ['luvas_valdora', 0.01]],
     ecoCinza: [['elmo_valdora', 0.012], ['colar_sombra', 0.02]],
     larvaCinza: [['luvas_valdora', 0.012], ['couraca_valdora', 0.008]],
+    maoPalida: [['luvas_vale', 0.008]], sussurro: [['capuz_vale', 0.008]], damaSemOlhos: [['manto_vale', 0.006], ['capuz_vale', 0.006]],
+    sombraVale: [['botas_vale', 0.008]], guardaOssos: [['luvas_vale', 0.008], ['manto_vale', 0.006]],
+    primeiroGuardiao: [['cajado_guardiao', 0.12], ['manto_vale', 0.15], ['capuz_vale', 0.15], ['luvas_vale', 0.15], ['botas_vale', 0.15]],
     larvaPernalta: [['botas_raiz', 0.01]], raizOssuda: [['elmo_raiz', 0.01], ['botas_raiz', 0.008]],
     larvaCristal: [['luvas_cristal', 0.01]], larvaAntiga: [['manto_floresta', 0.008], ['elmo_raiz', 0.008]], memoria: [['luvas_cristal', 0.01], ['manto_floresta', 0.006]],
     guardiaoBranco: [['lanca_ordem', 0.12], ['manto_floresta', 0.15], ['elmo_raiz', 0.15], ['luvas_cristal', 0.15], ['botas_raiz', 0.15]],
@@ -585,6 +606,11 @@ const Vida = (() => {
     { out: 'luvas_cristal', need: { cristal_carne: 12, membrana: 6, fragmento_dourado: 1 }, z: 8000 },
     { out: 'manto_floresta', need: { placa_antiga: 12, lembranca: 8, coracao_floresta: 1 }, z: 10000 },
     { out: 'lanca_ordem', need: { runa_ordem: 3, placa_antiga: 15, fragmento_dourado: 2 }, z: 20000 },
+    { out: 'botas_vale', need: { osso_ponte: 12, sombra_densa: 8 }, z: 14000 },
+    { out: 'luvas_vale', need: { unha_palida: 14, osso_ponte: 8, cristal_memoria: 1 }, z: 16000 },
+    { out: 'capuz_vale', need: { veu_branco: 14, eco_voz: 10, cristal_memoria: 1 }, z: 16000 },
+    { out: 'manto_vale', need: { veu_branco: 16, sombra_densa: 12, cristal_memoria: 2 }, z: 22000 },
+    { out: 'cajado_guardiao', need: { lasca_cajado: 2, cristal_memoria: 3, runa_ordem: 2 }, z: 40000 },
   ].filter(r => ITEMS[r.out]);
   const needTxt = r => Object.entries(r.need).map(([id, n]) => `${n} ${it(id).ic}`).join(' + ') + ` + ${r.z} cr`;
   function forge() {

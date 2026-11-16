@@ -114,7 +114,7 @@ const Floresta = (() => {
     const lista = [];
     for (let i = 0; i < 6000 && lista.length < (TOUCH ? 140 : 210); i++) {
       const x = rand(B.x0 + 10, B.x0 + B.w - 10), z = rand(MONTE + 6, B.z0 + B.h - 10);
-      if (dRoad(x, z) < 5 || Math.hypot(x - CLAR.x, z - CLAR.z) < 18 || Math.hypot(x - GUARD.x, z - GUARD.z) < 19 || Math.hypot(x - FGATE.x, z - FGATE.z) < 12 || Math.abs(x - WALL.x) < 14 && z < WALL.z + 12 || lista.some(o => Math.hypot(o.x - x, o.z - z) < 6.5)) continue;
+      if (dRoad(x, z) < 5 || Math.hypot(x - CLAR.x, z - CLAR.z) < 18 || Math.hypot(x - GUARD.x, z - GUARD.z) < 19 || Math.hypot(x - FGATE.x, z - FGATE.z) < 12 || Math.hypot(x - FGATE_V.x, z - FGATE_V.z) < 12 || Math.abs(x - WALL.x) < 14 && z < WALL.z + 12 || lista.some(o => Math.hypot(o.x - x, o.z - z) < 6.5)) continue;
       lista.push({ x, z, s: rand(1.0, 1.7), r: rand(0, TAU), c: Math.random() < 0.6 });
     }
     const mk = (geo, mat, l) => { const im = new THREE.InstancedMesh(geo, mat, l.length); im.castShadow = !TOUCH; im.frustumCulled = false; l.forEach((o, i) => im.setMatrixAt(i, M4(o.x, h(o.x, o.z) - 0.3, o.z, rand(-0.05, 0.05), o.r, rand(-0.05, 0.05), o.s))); G.add(im); return im; };
@@ -286,5 +286,5 @@ const Floresta = (() => {
     const E = esporos; for (let i = 0; i < E.N; i++) { const s = E.sd[i]; E.pos[i * 3] = P.x + s[0] + Math.sin(time * 0.2 + i) * 0.4; E.pos[i * 3 + 1] = P.y + s[1] + Math.sin(time * 0.3 + s[3]) * 0.3; E.pos[i * 3 + 2] = P.z + s[2]; }
     E.pts.geometry.attributes.position.needsUpdate = true;
   }
-  return { h, out, zona, update, map, get dentro() { return dentro; } };
+  return { h, out, zona, update, map, G, get dentro() { return dentro; } };
 })();

@@ -20,6 +20,7 @@ const Desafios = (() => {
     // a melhor armadura do jogo: só no fim da Grande Aventura do Nosferatur (Praia de Cômodo)
     armadura_nosferatur: ['Armadura Noturna de Nosferatur', '🦇', 'armadura', { def: 80, hp: 1100, pow: 25, crit: 0.05 }, 4, 'amigos'],
     // o melhor capacete do jogo: só no fim da Grande Jornada de Rivas (Oásis de Kharum)
+    manto_lembrancas: ['Manto das Lembranças', '🌫️', 'armadura', { def: 58, hp: 620, pow: 12 }],
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
@@ -45,6 +46,8 @@ const Desafios = (() => {
     ['titulo', 'memoria', '« Memória Viva »', '✴️', {}],
     ['aura', 'nosferatur', 'Aura Noturna de Nosferatur', '🦇', { c: [0xc0103a, 0x6a1aa0] }],
     ['titulo', 'amigo_nosfe', '« Amigo do Nosferatur »', '🦇', {}],
+    ['aura', 'nevoa', 'Névoa dos Mortos', '🌫️', { c: [0xd8dce4, 0x8a8a9a] }],
+    ['titulo', 'ponte', '« Quem Atravessou a Ponte »', '🦴', {}],
     ['rastro', 'areias', 'Areias de Rivas', '🐪', { c: [0xffd080, 0xe8a040], spark: true }],
     ['titulo', 'amigo_rivas', '« Amigo de Rivas »', '🐪', {}],
   ];
@@ -93,6 +96,10 @@ const Desafios = (() => {
       { id: 'r5', req: 'r4', t: '5. Miragem na Torre', pede: { p: { torre: 30 }, g: { guardiao: 40 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
       { id: 'r6', req: 'r5', t: '6. O tesouro do deserto', pede: { i: { cristal_puro: 10, lagrima: 10, coral: 10, coroa_caranguejo: 5, runa_ordem: 10 } }, da: { cr: 100000 } },
       { id: 'r7', req: 'r6', t: '7. O elmo das mil areias', pede: { m: { guardiaoBranco: 15, reiCaranguejo: 10 }, p: { kvx: 1500 } }, da: { e: ['elmo_rivas'], v: [['rastro', 'areias'], ['titulo', 'amigo_rivas']], cr: 150000 } },
+    ] },
+    severo: { nome: 'Vigia Severo', fala: 'Faz trinta anos que eu vigio esse vale. Ninguém atravessa. Se você quer provar o contrário, prove aqui primeiro.', lista: [
+      { id: 'd16', t: 'Silêncio no Vale', pede: { m: { maoPalida: 300, sussurro: 300, damaSemOlhos: 300, sombraVale: 300, guardaOssos: 300 } }, da: { e: ['manto_lembrancas'] } },
+      { id: 'd17', t: 'Quem Atravessou a Ponte', pede: { m: { primeiroGuardiao: 5 } }, da: { v: [['aura', 'nevoa'], ['titulo', 'ponte']] } },
     ] },
     brigida: { nome: 'Velha Brígida', fala: 'Eu vi Valdora inteira, antes de virar cinza. Traga o que restou dela e eu te conto como ela era.', lista: [
       { id: 'd10', t: 'Cinzas de Valdora', pede: { m: { raizNegra: 300, ecoCinza: 300, larvaCinza: 300, sentinelaMuralha: 300 } }, da: { e: ['armadura_cinzas'] } },
