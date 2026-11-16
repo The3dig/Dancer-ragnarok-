@@ -18,10 +18,12 @@ const Desafios = (() => {
     anel_valdora: ['Anel de Valdora Eterna', '💍', 'anel', { def: 10, hp: 180, sp: 40 }],
     coroa_raiz: ['Coroa da Primeira Raiz', '👑', 'capacete', { def: 26, hp: 280, pow: 14 }],
     // a melhor armadura do jogo: só no fim da Grande Aventura do Nosferatur (Praia de Cômodo)
-    armadura_nosferatur: ['Armadura Noturna de Nosferatur', '🦇', 'armadura', { def: 80, hp: 1100, pow: 25, crit: 0.05 }, 4],
+    armadura_nosferatur: ['Armadura Noturna de Nosferatur', '🦇', 'armadura', { def: 80, hp: 1100, pow: 25, crit: 0.05 }, 4, 'amigos'],
+    // o melhor capacete do jogo: só no fim da Grande Jornada de Rivas (Oásis de Kharum)
+    elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
-  for (const [id, [name, ic, slot, mods, rar]] of Object.entries(EQUIP))
-    ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar: rar || 3, price: 0, sell: rar === 4 ? 20000 : 5000, desafio: true };
+  for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
+    ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar: rar || 3, set, price: 0, sell: rar === 4 ? 20000 : 5000, desafio: true };
   const VIS = [   // [categoria, chave, nome, ícone, extra]
     ['aura', 'trigo', 'Aura do Trigo Dourado', '🌾', { c: [0xffd860, 0xc8a040] }],
     ['rastro', 'outono', 'Folhas de Outono', '🍂', { c: [0xe08030, 0xc04020], smoke: true }],
@@ -43,6 +45,8 @@ const Desafios = (() => {
     ['titulo', 'memoria', '« Memória Viva »', '✴️', {}],
     ['aura', 'nosferatur', 'Aura Noturna de Nosferatur', '🦇', { c: [0xc0103a, 0x6a1aa0] }],
     ['titulo', 'amigo_nosfe', '« Amigo do Nosferatur »', '🦇', {}],
+    ['rastro', 'areias', 'Areias de Rivas', '🐪', { c: [0xffd080, 0xe8a040], spark: true }],
+    ['titulo', 'amigo_rivas', '« Amigo de Rivas »', '🐪', {}],
   ];
   const visNome = (c, k) => { const v = VIS.find(x => x[0] === c && x[1] === k); return v ? `${v[3]} ${v[2]}` : k; };
 
@@ -55,7 +59,7 @@ const Desafios = (() => {
       { id: 'd2', t: 'Colheita Sombria', pede: { i: { gosma: 300, po_eco: 300, raiz: 300, nucleo_lumen: 3 } }, da: { v: [['rastro', 'outono']] } },
       { id: 'd3', t: 'O Grande Alfa', pede: { g: { alfa: 50 } }, da: { e: ['colar_alfa'], v: [['titulo', 'alfa']] } },
     ] },
-    zahir: { nome: 'Rivas', fala: 'A areia guarda tudo, viajante. Até o que você ainda não conquistou.', lista: [
+    zahir: { nome: 'Rivas', saga: 'rivas', sagaNome: '🐪 A Grande Jornada de Rivas', fala: 'A areia guarda tudo, viajante. Até o que você ainda não conquistou.', lista: [
       { id: 'd4', t: 'Senhor das Dunas', pede: { m: { besouro: 300, serpe: 300 } }, da: { v: [['aura', 'miragem']] } },
       { id: 'd5', t: 'Lâmina da Miragem', pede: { i: { areia_rubra: 200, carapaca: 100, veu: 100, cristal_puro: 3, lagrima: 2 } }, da: { e: ['lamina_miragem'] } },
       { id: 'd6', t: 'Quebra-Chefes', pede: { g: { campo: 5 } }, da: { v: [['aura', 'chefes'], ['titulo', 'quebra']] } },
@@ -79,6 +83,16 @@ const Desafios = (() => {
       { id: 'n5', req: 'n4', t: '5. O topo da Torre', pede: { p: { torre: 30 }, g: { kravenox: 2 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
       { id: 'n6', req: 'n5', t: '6. O tesouro escondido', pede: { i: { gosma: 500, cinza: 300, lembranca: 300, fragmento_dourado: 10, olho_vazio: 10, aco_valdora: 10, perola: 5 } }, da: { cr: 100000 } },
       { id: 'n7', req: 'n6', t: '7. A armadura da noite', pede: { m: { larvaAntiga: 500, memoria: 500, sentinelaMuralha: 500, raizNegra: 500 }, p: { kvx: 1500 } }, da: { e: ['armadura_nosferatur'], v: [['aura', 'nosferatur'], ['titulo', 'amigo_nosfe']], cr: 150000 } },
+    ] },
+    // a Grande Jornada de Rivas: sete etapas em sequência, com o melhor capacete do jogo no fim (pedido do Rone)
+    rivas: { nome: 'Rivas', fala: 'Eu atravessei estas areias mais vezes do que tem estrela no céu. Quer o meu elmo? Então caminhe o que eu caminhei. Uma etapa de cada vez.', lista: [
+      { id: 'r1', t: '1. As areias do Rivas', pede: { m: { besouro: 400, serpe: 400 } }, da: { cr: 25000, it: { blue: 30 } } },
+      { id: 'r2', req: 'r1', t: '2. A caravana perdida', pede: { i: { areia_rubra: 300, carapaca: 150, veu: 150 } }, da: { cr: 35000, it: { agua_coco: 20 } } },
+      { id: 'r3', req: 'r2', t: '3. Os senhores das dunas', pede: { g: { campo: 20, alfa: 40 } }, da: { cr: 45000, it: { cristal_puro: 2 } } },
+      { id: 'r4', req: 'r3', t: '4. As muralhas caídas', pede: { m: { sentinelaMuralha: 400, carrasco: 10 } }, da: { cr: 60000, it: { aco_valdora: 2 } } },
+      { id: 'r5', req: 'r4', t: '5. Miragem na Torre', pede: { p: { torre: 30 }, g: { guardiao: 40 } }, da: { cr: 80000, it: { fragmento_dourado: 3 } } },
+      { id: 'r6', req: 'r5', t: '6. O tesouro do deserto', pede: { i: { cristal_puro: 10, lagrima: 10, coral: 10, coroa_caranguejo: 5, runa_ordem: 10 } }, da: { cr: 100000 } },
+      { id: 'r7', req: 'r6', t: '7. O elmo das mil areias', pede: { m: { guardiaoBranco: 15, reiCaranguejo: 10 }, p: { kvx: 1500 } }, da: { e: ['elmo_rivas'], v: [['rastro', 'areias'], ['titulo', 'amigo_rivas']], cr: 150000 } },
     ] },
     brigida: { nome: 'Velha Brígida', fala: 'Eu vi Valdora inteira, antes de virar cinza. Traga o que restou dela e eu te conto como ela era.', lista: [
       { id: 'd10', t: 'Cinzas de Valdora', pede: { m: { raizNegra: 300, ecoCinza: 300, larvaCinza: 300, sentinelaMuralha: 300 } }, da: { e: ['armadura_cinzas'] } },
@@ -112,7 +126,7 @@ const Desafios = (() => {
     const s = S(), L = [];
     for (const [t, n] of Object.entries(d.pede.m || {})) L.push({ txt: `⚔️ ${nomeMob(t)}`, tem: Math.min(n, s.k[t] || 0), n });
     for (const [g, n] of Object.entries(d.pede.g || {})) L.push({ txt: `☠️ ${GRUPO[g]}`, tem: Math.min(n, s.g[g] || 0), n });
-    for (const [k, n] of Object.entries(d.pede.p || {})) L.push(k === 'kvx' ? { txt: '☠️ dano no Kravenox acordado (sábado, 20h) depois de abrir esta etapa', tem: Math.min(n, Math.round(S().kvxN || 0)), n } : k === 'pesca' ? { txt: '🎣 peixes pescados em Cômodo', tem: Math.min(n, (P.pesca && P.pesca.n) || 0), n } : { txt: '🗼 andar mais alto da Torre (30 = topo)', tem: Math.min(n, P.towerBest || 0), n });
+    for (const [k, n] of Object.entries(d.pede.p || {})) L.push(k === 'kvx' ? { txt: '☠️ dano no Kravenox acordado (sábado, 20h) depois de abrir esta etapa', tem: Math.min(n, Math.round((S().kvx || {})[d.id] || (d.id === 'n7' ? S().kvxN || 0 : 0))), n } : k === 'pesca' ? { txt: '🎣 peixes pescados em Cômodo', tem: Math.min(n, (P.pesca && P.pesca.n) || 0), n } : { txt: '🗼 andar mais alto da Torre (30 = topo)', tem: Math.min(n, P.towerBest || 0), n });
     for (const [id, n] of Object.entries(d.pede.i || {})) L.push({ txt: `${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id} (entregar)`, tem: Math.min(n, P.inv[id] || 0), n });
     return L;
   }
@@ -121,8 +135,10 @@ const Desafios = (() => {
     ...(d.da.v || []).map(([c, k]) => `<b>${visNome(c, k)}</b> <small>(${{ aura: 'aura', rastro: 'rastro', pet: 'mascote', titulo: 'título', cor: 'cor' }[c]})</small>`)].join('<br>');
 
   // ---------------- conversa
-  function talk(n) {
-    const M = MESTRES[n.dsf]; if (!M) return;
+  function talk(n, direto) {
+    const M0 = MESTRES[n.dsf]; if (!M0) return;
+    if (M0.saga && !direto) { dialog(`💬 ${M0.nome}`, M0.fala, [{ label: '🏆 Desafios', fn: () => { talk(n, 'desafios'); return true; } }, { label: M0.sagaNome, fn: () => { talk({ ...n, dsf: M0.saga }, 'saga'); return true; } }, { label: 'Até mais' }]); return; }
+    const M = M0;
     const s = S();
     const opts = M.lista.map(d => {
       const trava = d.req && !s.feito[d.req], ok = !trava && pronto(d), feito = s.feito[d.id];
@@ -152,10 +168,10 @@ const Desafios = (() => {
     save();
   }
   // marca acima da cabeça: ★ dourada quando algum desafio está pronto
-  function mark(n) { const M = MESTRES[n.dsf]; if (!M) return ''; const s = S(); return M.lista.some(d => !s.feito[d.id] && !(d.req && !s.feito[d.req]) && pronto(d)) ? '★:#ffcf40' : '★:#7a7a88'; }
+  function mark(n) { const M = MESTRES[n.dsf]; if (!M) return ''; const s = S(); return [...M.lista, ...(M.saga ? MESTRES[M.saga].lista : [])].some(d => !s.feito[d.id] && !(d.req && !s.feito[d.req]) && pronto(d)) ? '★:#ffcf40' : '★:#7a7a88'; }
   // quem já tinha concluído um desafio recebe os visuais que mudaram (sem colocar em uso)
   function repor() { const s = S(); if (typeof Cos === 'undefined' || !Cos.dar) return; for (const d of TODOS) if (s.feito[d.id]) for (const [c, k] of d.da.v || []) if (!Cos.tem(c, k)) Cos.dar(c, k); }
   // dano no Kravenox: só conta para a última etapa do Nosferatur, depois que ela abre
-  function danoKvx(v) { const s = S(); if (s.feito.n6 && !s.feito.n7) s.kvxN = (s.kvxN || 0) + v; }
+  function danoKvx(v) { const s = S(); s.kvx = s.kvx || {}; for (const d of TODOS) if (d.pede.p && d.pede.p.kvx && !s.feito[d.id] && (!d.req || s.feito[d.req])) s.kvx[d.id] = (s.kvx[d.id] || ((d.id === 'n7' && s.kvxN) || 0)) + v; }
   return { talk, mark, onKill, repor, danoKvx, MESTRES, S };
 })();
