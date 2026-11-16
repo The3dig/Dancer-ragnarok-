@@ -635,3 +635,5 @@ body.touch #evocard.mini { font-size: 8.5px; max-width: 160px; } body.touch #evo
 @media (max-height: 470px) { body.touch #evocard:not(.mini) { font-size: 9px; padding: 3px 9px; max-width: 38vw; } }
 #coswin .cs-dsf { display: block; font-size: 9px; opacity: .7; margin-top: 2px; line-height: 1.2; }
 #statwin .srow button small { font-size: 9px; margin-left: 1px; opacity: .8; }
+.dmg.item { color: #ffe08a; font-size: 13px; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,.8); }
+body.touch .dmg.item { font-size: 11px; }

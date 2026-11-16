@@ -1494,6 +1494,7 @@ function killMob(m, o = {}) {
 const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: new THREE.SphereGeometry(0.16, 10, 8), blue: new THREE.SphereGeometry(0.16, 10, 8) };
 dropGeo.mat = new THREE.BoxGeometry(0.26, 0.26, 0.26);
 const dropMat = { mat: new THREE.MeshLambertMaterial({ color: 0xc8b070, emissive: 0x302810 }), zeny: new THREE.MeshLambertMaterial({ color: 0xf5c518, emissive: 0x604000 }), red: new THREE.MeshLambertMaterial({ color: 0xe8312f, emissive: 0x400000 }), blue: new THREE.MeshLambertMaterial({ color: 0x2f7ae8, emissive: 0x001840 }) };
+let pegouN = 0;                                        // escalona os nomes que sobem da cabeça quando vários itens chegam juntos
 function makeDrop(id, n, x, z) {
   const m = typeof Vida !== 'undefined' && Vida.dropMesh ? Vida.dropMesh(id, n) : new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
   if (id === 'zeny' && m.isMesh) m.rotation.x = Math.PI / 2;
@@ -1934,7 +1935,7 @@ function update(dt) {
     d.t += dt; d.m.rotation.y += dt * (d.m.userData.flat ? 0.6 : 3);
     // pega sozinho: depois de meio segundo no chão, o item voa direto para você (até 60 m de distância)
     const dd = Math.hypot(P.x - d.x, P.z - d.z);
-    if (d.t > 0.5 && !P.dead && dd < 60) { const k = Math.min(1, dt * (6 + d.t * 6)); d.x += (P.x - d.x) * k; d.z += (P.z - d.z) * k; d.m.position.set(d.x, P.y + 0.8 + Math.min(1.5, dd * 0.15), d.z); }
+    if (d.t > 1.1 && !P.dead && dd < 60) { const k = Math.min(1, dt * (6 + d.t * 6)); d.x += (P.x - d.x) * k; d.z += (P.z - d.z) * k; d.m.position.set(d.x, P.y + 0.8 + Math.min(1.5, dd * 0.15), d.z); }
     else d.m.position.y = groundY(d.x, d.z) + 0.4 + (d.m.userData.flat ? 0 : Math.sin(d.t * 4) * 0.1);
   }
   if (typeof Vida !== 'undefined') Vida.update(dt);
@@ -2050,10 +2051,10 @@ function updatePlayer(dt) {
   if (P.y <= gy) { P.y = gy; P.vy = 0; P.onGround = true; } else P.onGround = P.y - gy < 0.05;
   if (Object.keys(P.buffs).length && Math.random() < 0.2) burst(new THREE.Vector3(P.x, P.y + rand(0.3, 1.5), P.z), CLS().colors.accent, 1, 0.8, 0.5);
 
-  for (const d of drops) if (d.t > 0.4 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
+  for (const d of drops) if (d.t > 1.1 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
     d.taken = true; scene.remove(d.m);
     if (d.id === 'zeny') { P.zeny += d.n; Audio8.sfx('coin'); floater(d.x, P.y + 1.5, d.z, `+${d.n} cr`, 'zeny'); }
-    else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
+    else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); floater(P.x, P.y + 2.2 + (pegouN++ % 3) * 0.45, P.z, `+${ITEMS[d.id].ic || '📦'} ${ITEMS[d.id].name}`, 'item'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
   }
   drops = drops.filter(d => !d.taken);
   checkGrave();
