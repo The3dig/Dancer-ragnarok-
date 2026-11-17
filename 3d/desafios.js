@@ -257,6 +257,13 @@ const Desafios = (() => {
     const opts = [];
     if (!feito && ok) opts.push({ label: '🏆 Receber o prêmio', fn: () => { receber(d); return; } });
     if (!feito && !trava) for (const [t, n] of Object.entries(d.pede.m || {})) { const tem = Math.min(n, S().k[t] || 0); if (tem < n) opts.push({ label: `🎯 Caçar ${nomeMob(t)} (${tem}/${n})`, fn: () => { cacar(t, d); } }); }
+    // item para entregar: vai caçar o monstro que dropa (o de nível mais perto do seu, com mais chance)
+    if (!feito && !trava) for (const [id, q] of Object.entries(d.pede.i || {})) { const tem = Math.min(q, P.inv[id] || 0); if (tem >= q) continue;
+      const dropa = boss => Object.entries(MOBDEF).filter(([t, D]) => !!D.boss === boss && !t.startsWith('alfa_') && SPAWNS.some(q => q.type === t) && (D.drops || []).some(([i]) => i === id))
+        .sort((a, b) => Math.abs(a[1].lv - P.lv) - Math.abs(b[1].lv - P.lv))[0];
+      const quem = dropa(false) || dropa(true);          // monstro comum; se só chefe dropa, vai até o chefe
+      if (quem) opts.push({ label: `🎯 Caçar ${nomeMob(quem[0])} (dropa ${ITEMS[id] ? ITEMS[id].name : id}: ${tem}/${q})`, fn: () => { cacar(quem[0], d); } });
+      else if (ITEMS[id]) opts.push({ label: `ℹ️ ${ITEMS[id].name}: vem de chefe, pesca ou forja (${tem}/${q})`, fn: () => { ver(n, d); return true; } }); }
     opts.push({ label: '← Voltar', fn: () => { talk(n); return true; } });
     dialog(`🏆 ${d.t}`, `${trava ? '🔒 <b>Termine a etapa anterior primeiro.</b><br><br>' : ''}${prog}<br><br>🎁 Prêmio (só existe aqui):<br>${premioTxt(d)}${feito ? '<br><br>✅ <b>Você já concluiu este desafio.</b>' : ''}`, opts);
   }
