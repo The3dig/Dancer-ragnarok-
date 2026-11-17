@@ -1564,7 +1564,10 @@ function killMob(m, o = {}) {
   }
   drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
   const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1) * (1 + gBon('drop'));
-  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) {          // em grupo: cada item é sorteado entre quem está perto
+    const para = typeof Grupo !== 'undefined' && m.nid ? Grupo.sortear(m) : null;
+    if (para) Grupo.enviar(para, it, 1, m.d.name); else drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+  }
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
   const xp = Math.round(m.d.xp * mult * (o.parte ?? 1) * (1 + gBon('xp')));
   if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
