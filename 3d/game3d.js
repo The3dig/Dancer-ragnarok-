@@ -362,13 +362,18 @@ const TZ = 420;                                                   // andares da 
 // por um vão no chão até o andar de baixo (as duas dão a volta pela beira do salão).
 const TOP = 30, STAIR_L = 14, STAIR_W = 2.4, STAIR_H = 7;
 const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 38 : 30 }));
+// Abismo do Cisma: a Torre ao contrário, descendo pela Cratera. 30 andares (id 100 a 129) e o Fundo (id 130), onde dorme o Verme Colossal
+const AB_N = 30, AB_FUNDO = 100 + AB_N;
+const ABF = Array.from({ length: AB_N + 1 }, (_, k) => ({ i: 100 + k, k, ab: true, fundo: k === AB_N, x: -250 + (k % 10) * 100, z: TZ + 140 + (4 + Math.floor(k / 10)) * 110, y: -10 - k * STAIR_H, r: k === AB_N ? 40 : 30 }));
+const FL = id => id >= 100 ? ABF[id - 100] : FLOORS[id];
 // escadarias laterais: ângulo (θ: x = sen θ, z = cos θ) onde começam, quanto da volta ocupam e a largura
 const RAMPA = { sobe: 0.55 * Math.PI, desce: -0.45 * Math.PI, volta: 0.5 * Math.PI, larg: 4.2 };
 function rampa(f, x, z) {
   if (!f || f.casa) return null;
   const dx = x - f.x, dz = z - f.z, r = Math.hypot(dx, dz); if (r < f.r - RAMPA.larg - 0.3 || r > f.r + 0.6) return null;
   const th = Math.atan2(dx, dz), em = a0 => { const d = ((th - a0) % TAU + TAU) % TAU; return d <= RAMPA.volta ? d / RAMPA.volta : -1; };
-  if (f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
+  if (f.ab || f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
+  if (f.fundo) return null;
   const p = em(RAMPA.desce); if (p >= 0) return { tipo: 'desce', p };
   return null;
 }
@@ -377,7 +382,7 @@ function pontoRampa(f, tipo, p) { const th = (tipo === 'sobe' ? RAMPA.sobe : RAM
 const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
 function floorAt(x, z) {
-  const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? FLOORS[row * 10 + col] : null;
+  const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
   if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
   if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null;
 }
@@ -393,7 +398,7 @@ function dRoad(x, z) {
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
-  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === TOP ? 'topo' : 'torre'; }
+  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.fundo ? 'abfundo' : f && f.ab ? 'abismo' : f && f.i === TOP ? 'topo' : 'torre'; }
   if (z < -300 && x > 1000) return CID_ZONA ? CID_ZONA(x, z) : 'cidade';
   if (z < -300 && x > 650) return VALE_ZONA ? VALE_ZONA(x, z) : 'vale';
   if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.zona(x, z) : 'floresta';
@@ -1004,6 +1009,7 @@ const MOBDEF = {
   besouro:   { name: 'Larva Cristalina', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Sombra Errante', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
   kravenox:  { name: 'Kravenox', lv: 60, hp: 300000, atk: 140, def: 42, xp: 90000, zeny: [8000, 12000], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
+  vermeColosso: { name: 'Verme Colossal', lv: 100, hp: 900000, atk: 400, def: 85, xp: 260000, zeny: [15000, 25000], speed: 0, aggro: 0, rad: 6, respawn: 1e9, boss: true, world: true, drops: [['presa_verme', 1], ['presa_verme', 1], ['quitina_colossal', 0.5], ['blue', 1], ['red', 1]] },
   larva:     { name: 'Larva Alongada', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
   esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
@@ -1050,6 +1056,7 @@ function mobModel(type) {
   const mt = c => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
   const ms = c => { const m = new THREE.MeshToonMaterial({ color: c }); mats.push(m); return m; };
   const r = { g, mats };
+  if (type === 'vermeColosso' && typeof Verme !== 'undefined') return Verme.modelo(r, mt);
   if (typeof Modelos3D !== 'undefined' && Modelos3D.has(type)) return Modelos3D.mob(type, r);   // monstros 3D do jogo de plataforma
   if (typeof SpriteKit !== 'undefined' && SpriteKit.ready && SPR_MOBS[type]) return spriteMob(type, r);
   if (['larva', 'verme', 'esfera', 'sentinela'].includes(type)) return towerMobModel(type, r, mt);
@@ -1522,9 +1529,11 @@ function applyRhythm(r) {
 function dmgMob(m, base, crit, magic, color) {
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
+  if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
   let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
+  if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.addDmg(dmg);
   if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
   if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
@@ -1571,6 +1580,7 @@ function killMob(m, o = {}) {
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
   if (m.type === 'guardiao') log('🏆 <b>A Sentinela sem Rosto caiu!</b> As ruínas estão livres.', 'gold');
   if (m.type === 'kravenox') { Kvx.onKill(m); return; }
+  if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') { Verme.onKill(m); return; }
   if (m.noRespawn || m.nid) return;                                     // os compartilhados renascem pelo servidor
   respawnQ.push({ type: m.type, area: m.area, at: m.at, t: m.d.respawn });
 }
@@ -1726,7 +1736,8 @@ function buildGraves() {
     scene.add(g); graveObjs.push(g);
   }
   const last = (P.graves || [])[P.graves ? P.graves.length - 1 : 0];
-  if (last && last.andar != null) P.qGo = { x: Tower.door.x, z: Tower.door.z, name: `sua sacola (${last.andar === TOP ? 'topo' : last.andar + 1 + 'º andar'} da Torre)`, grave: true };   // na Torre: a seta leva até a porta
+  if (last && last.andar >= 100) P.qGo = { x: LAIR.x, z: LAIR.z + 3, name: `sua sacola (${last.andar === AB_FUNDO ? 'Fundo' : last.andar - 99 + 'º andar'} do Abismo)`, grave: true };   // no Abismo: a seta leva até a cratera
+  else if (last && last.andar != null) P.qGo = { x: Tower.door.x, z: Tower.door.z, name: `sua sacola (${last.andar === TOP ? 'topo' : last.andar + 1 + 'º andar'} da Torre)`, grave: true };   // na Torre: a seta leva até a porta
   else if (last) P.qGo = { x: last.x, z: last.z, name: 'sua sacola', grave: true };
   else if (P.qGo && P.qGo.grave) P.qGo = null;
 }
@@ -1995,7 +2006,9 @@ const ZONES = {
   sitio: { name: 'Sítio de Solmira', music: 'escolha' },
   campos: { name: 'Campos Dourados', music: 'reino' },
   areias: { name: 'Areias Rubras', music: 'alem' },
-  lair: { name: 'Cratera do Cisma', music: 'abismo' },
+  lair: { name: 'Cratera do Cisma', music: 'origem' },
+  abismo: { name: 'Abismo do Cisma', music: 'abismo' },
+  abfundo: { name: 'Ninho do Verme Colossal', music: 'reiVazio' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
   torre: { name: 'Torre do Cisma', music: 'torre_doom' },          // doom gótico (scripts/compor_torre2.py, versão B); a metal ópera ficou em torre_opera.mp4
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
@@ -2033,7 +2046,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -2189,6 +2202,7 @@ function updateMob(m, dt) {
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
   if (m.type === 'kravenox') Kvx.ai(m, dt);
+  else if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.ai(m, dt);
   if (m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) Partilha.mover(m, dt);
   else if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
@@ -2315,7 +2329,7 @@ function animateModel(dt) {
 
 // ---------------------------------------------------------------- câmera
 function updateCamera(dt) {
-  const big = inTower(P.z) && Tower.floor === TOP;                   // topo da torre: câmera para o gigante
+  const big = inTower(P.z) && (Tower.floor === TOP || Tower.floor === AB_FUNDO);                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
   // a câmera nunca gira sozinha: só quem joga vira a câmera (antes ela se alinhava nas escadarias da Torre e trocava a direção do joystick)
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
@@ -2437,7 +2451,7 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
 // ---------------------------------------------------------------- mapa grande (toque no minimapa)
 const BigMap = (() => {
   let open = false, base = null, box = null, cv = null, g = null, view = null, vm = null;   // vm: lugar aberto no mapa (null = onde a pessoa está)   // view: null = reino inteiro; senão a cidade aberta
-  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma'], [RUIN, 'Ruínas'], [VGATE_R, 'Passagem do Norte ↑']];
+  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma ↓ Abismo'], [RUIN, 'Ruínas'], [VGATE_R, 'Passagem do Norte ↑']];
   const CITIES = [{ c: VIL, z: 'solmira', n: 'Vila de Solmira', R: 32 }, { c: OAS, z: 'kharum', n: 'Oásis de Kharum', R: 36 }, { c: CIT, z: 'cidadela', n: 'Cidadela do Cisma', R: 34 }, { c: FARM, z: 'sitio', n: 'Sítio de Solmira', R: 24 }];
   const ICON = { master: '📘', healer: '✚', shop: '🛒', guard: '🛡️', watch: '👁️', elder: '🧓', farm: '🌾', smith: '⚒️', warp: '🧭' };
   function build() {

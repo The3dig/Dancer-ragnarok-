@@ -28,6 +28,7 @@ const Vida = (() => {
     // Torre do Cisma
     presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
     estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
+    presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
     seiva: ['Seiva Negra', '🫗', 62, 0, 'mat'], espinho_negro: ['Espinho Negro', '🥀', 700, 0, 'mat'],
@@ -112,6 +113,10 @@ const Vida = (() => {
     luvas_cidade: ['Luvas de Cristal Vivo', '🧤', 'luvas', 0, { def: 15, pow: 30 }, 3, 'cidade'],
     botas_cidade: ['Botas do Caminho Invisível', '🥾', 'botas', 0, { def: 15, spd: 0.13, hp: 170 }, 3, 'cidade'],
     lamina_raiz: ['Lâmina de Raiz Negra', '🗡️', 'arma', 0, { pow: 78, crit: 0.09 }, 3],
+    // Abismo do Cisma: dos Guardiões dos andares e do Verme Colossal
+    lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 104, crit: 0.08, spd: 0.04 }, 4],
+    couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 74, hp: 900 }, 3],
+    anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 22, hp: 320, crit: 0.05 }, 4],
     // Vale dos Mortos (Nv 55–72): o conjunto da névoa e o cajado do Primeiro Guardião (lendários)
     capuz_vale: ['Capuz do Vale dos Mortos', '🧕', 'capacete', 0, { def: 22, hp: 240 }, 3, 'vale'],
     manto_vale: ['Manto da Névoa', '🌫️', 'armadura', 0, { def: 46, hp: 460 }, 3, 'vale'],

@@ -188,6 +188,21 @@ const Tower = (() => {
   addOb(TOWER.x, TOWER.z, 10.4); for (const sx of [-1, 1]) addOb(TOWER.x + sx * 3.4, TOWER.z + dz + 0.4, 1.0);
   const DOOR = { x: TOWER.x, z: TOWER.z + dz + 1.2 };
   decor(ext, 120);                                              // a torre alta aparece de mais longe
+  // ---------------- a boca do Abismo, no fundo da Cratera do Cisma (o contrário da Torre: desce)
+  const BOCA = (() => {
+    const g = new THREE.Group(), y = groundY(LAIR.x, LAIR.z); g.position.set(LAIR.x, y + 0.08, LAIR.z); scene.add(g);
+    const sw = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 64); const r = x.createRadialGradient(0, 0, 0, 0, 0, 64); r.addColorStop(0, 'rgba(0,0,0,1)'); r.addColorStop(0.55, 'rgba(40,0,0,.95)'); r.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = r; x.fillRect(-64, -64, 128, 128);
+      for (let k = 0; k < 5; k++) { x.rotate(TAU / 5); x.beginPath(); for (let t = 0.15; t < 1; t += 0.02) x.lineTo(Math.cos(t * 5) * t * 60, Math.sin(t * 5) * t * 60); x.strokeStyle = 'rgba(255,70,20,.75)'; x.lineWidth = 4; x.stroke(); }
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+    const disco = new THREE.Mesh(new THREE.CircleGeometry(3.4, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: sw, transparent: true, depthWrite: false, toneMapped: false })); g.add(disco);
+    const borda = new THREE.Mesh(new THREE.TorusGeometry(3.5, 0.45, 8, 28).rotateX(Math.PI / 2), lam(0x2a1612)); g.add(borda);
+    for (let k = 0; k < 9; k++) { const a = k / 9 * TAU, d = mesh(new THREE.ConeGeometry(0.5, 2.2 + (k % 3) * 0.7, 5), lam(0x1a0e0c), Math.sin(a) * 3.9, 0.8, Math.cos(a) * 3.9, g); d.rotation.x = Math.cos(a) * 0.35; d.rotation.z = -Math.sin(a) * 0.35; }
+    const brilho = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO_E, color: 0xff3a10, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.55, toneMapped: false })); brilho.position.y = 1.2; brilho.scale.setScalar(9); g.add(brilho);
+    const pc = document.createElement('canvas'); pc.width = 512; pc.height = 128; const x2 = pc.getContext('2d'); x2.fillStyle = 'rgba(20,6,4,.9)'; x2.fillRect(0, 0, 512, 128); x2.strokeStyle = '#ff7a40'; x2.lineWidth = 6; x2.strokeRect(3, 3, 506, 122);
+    x2.fillStyle = '#ffd0a0'; x2.font = 'bold 46px Georgia'; x2.textAlign = 'center'; x2.fillText('ABISMO DO CISMA ↓', 256, 58); x2.font = 'bold 30px Georgia'; x2.fillStyle = '#ff9a60'; x2.fillText('30 andares · Nv 60–100', 256, 102);
+    const pt = new THREE.CanvasTexture(pc); pt.encoding = THREE.sRGBEncoding; const pl = new THREE.Sprite(new THREE.SpriteMaterial({ map: pt, transparent: true, depthWrite: false })); pl.position.y = 5.2; pl.scale.set(5.6, 1.4, 1); g.add(pl);
+    return { g, disco, brilho };
+  })();
 
   // ---------------- andares (fora do mapa, em z ≈ 420)
   const ctex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
@@ -209,17 +224,21 @@ const Tower = (() => {
     { wall: [1.45, 1.38, 1.6], rune: PURPLE, rune2: 0xc890ff, fire: [0xffffff, 0xc080ff], glow: [0x9a4dff, 0xff7a30], crys: [0x8a40ff, 0x4a10a0], ember: [0xb070ff, 0xff5a3a] },
     { wall: [1.5, 1.15, 1.05], rune: 0xff5a20, rune2: 0xffb060, fire: [0xffffff, 0xffa040], glow: [0xff5a20, 0xffa040], crys: [0xff4020, 0x801000], ember: [0xff7a30, 0xffd060] },
     { wall: [1.1, 1.3, 1.6], rune: 0x40c0ff, rune2: 0xa0e8ff, fire: [0xa0e0ff, 0xffffff], glow: [0x40a0ff, 0x80e0ff], crys: [0x60d0ff, 0x104080], ember: [0x80e0ff, 0xd0f0ff] },
+    // Abismo do Cisma (descendo): 1–10 rocha em brasa, 11–20 veneno da terra, 21–30 e o Fundo: o vazio negro
+    { wall: [0.95, 0.62, 0.5], rune: 0xff3a10, rune2: 0xff9040, fire: [0xffffff, 0xff7020], glow: [0xff4010, 0xff9040], crys: [0xff3010, 0x600800], ember: [0xff5020, 0xffb050] },
+    { wall: [0.62, 0.8, 0.5], rune: 0x60ff40, rune2: 0xc0ff80, fire: [0xe0ffc0, 0x80ff40], glow: [0x50e030, 0xa0ff60], crys: [0x50e030, 0x104008], ember: [0x80ff50, 0xd0ffa0] },
+    { wall: [0.5, 0.42, 0.62], rune: 0xc040ff, rune2: 0xff40a0, fire: [0xffffff, 0xd060ff], glow: [0x9030ff, 0xff3080], crys: [0x9030ff, 0x200040], ember: [0xb050ff, 0xff60c0] },
   ];
   const TH = {};
   function theme(f) {
-    const t = f.i === TOP ? 0 : Math.min(2, Math.floor(f.i / 10));
+    const t = f.ab ? 3 + (f.fundo ? 2 : Math.min(2, Math.floor(f.k / 10))) : f.i === TOP ? 0 : Math.min(2, Math.floor(f.i / 10));
     if (TH[t]) return TH[t];
     const d = THEMES[t], C3 = (a, k = 1) => new THREE.Color(a[0] * k, a[1] * k, a[2] * k);
     return (TH[t] = { ...d,
       floorM: PM('calcada.jpg', [7, 7], C3(d.wall, 1.02)), wallM: PM('pedra.jpg', [1.4, 2.4], C3(d.wall)), wallM2: PM('pedra.jpg', [1.4, 2.4], C3(d.wall, 0.86)),
       colM: PM('pedra.jpg', [1, 3], C3(d.wall, 1.1)), trimM: PM('pedra.jpg', [3, 0.3], C3(d.wall, 0.7)), stepM: PM('pedra.jpg', [2, 0.2], C3(d.wall, 0.75)), corrM: PM('pedra.jpg', [5, 4], C3(d.wall, 0.8)),
       sideM: PM('pedra.jpg', [8, 0.4], 0x4a4458), topM: PM('calcada.jpg', [9, 9], 0x6a5a62),
-      winM: new THREE.MeshBasicMaterial({ map: WINDOW, toneMapped: false, color: t === 1 ? 0xffd0a0 : t === 2 ? 0xa0d0ff : 0xffffff }),
+      winM: new THREE.MeshBasicMaterial({ map: WINDOW, toneMapped: false, color: t === 1 || t === 3 ? 0xffd0a0 : t === 2 ? 0xa0d0ff : t === 4 ? 0xb0ff90 : t === 5 ? 0xd090ff : 0xffffff }),
       banM: new THREE.MeshLambertMaterial({ map: BANNER, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide }),
       crM: new THREE.MeshPhongMaterial({ color: d.crys[0], emissive: d.crys[1], shininess: 90 }), darkM: new THREE.MeshBasicMaterial({ color: 0x000000 }), spikeM: lam(0x120e16) });
   }
@@ -288,7 +307,7 @@ const Tower = (() => {
     // placa: o que tem do outro lado
     const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x2 = c.getContext('2d'); x2.fillStyle = 'rgba(16,8,24,.85)'; x2.fillRect(0, 0, 256, 64); x2.strokeStyle = '#f2c86a'; x2.lineWidth = 3; x2.strokeRect(2, 2, 252, 60);
     x2.fillStyle = '#f2e0ff'; x2.font = 'bold 32px Georgia'; x2.textAlign = 'center';
-    x2.fillText(tipo === 'sobe' ? (f.i + 1 === TOP ? '↑ TOPO' : `↑ ${f.i + 2}º andar`) : (f.i === 0 ? '↓ Saída' : `↓ ${f.i}º andar`), 128, 44);
+    x2.fillText(f.ab ? (tipo === 'desce' ? (f.k + 1 === AB_N ? '↓ O FUNDO' : `↓ ${f.k + 2}º andar`) : (f.k === 0 ? '↑ Saída' : `↑ ${f.k}º andar`)) : tipo === 'sobe' ? (f.i + 1 === TOP ? '↑ TOPO' : `↑ ${f.i + 2}º andar`) : (f.i === 0 ? '↓ Saída' : `↓ ${f.i}º andar`), 128, 44);
     const txp = new THREE.CanvasTexture(c); own.push(txp); const pl = new THREE.Sprite(new THREE.SpriteMaterial({ map: txp, transparent: true, depthWrite: false })); own.push(pl.material);
     const pp = pontoRampa(f, tipo, 0.02); pl.position.set(pp.x - f.x, 3.2, pp.z - f.z); pl.scale.set(2.6, 0.65, 1); g.add(pl);
   }
@@ -297,7 +316,7 @@ const Tower = (() => {
     unbuild();
     const T = theme(f), own = [];
     const g = new THREE.Group(); g.position.set(f.x, f.y, f.z); scene.add(g);
-    const top = f.i === TOP, fx = { f, runes: [], fires: [], embers: [], own, barrier: null }; FX[0] = fx;
+    const top = f.i === TOP || f.fundo, fx = { f, runes: [], fires: [], embers: [], own, barrier: null }; FX[0] = fx;
     // chão: miolo inteiro + faixa da beira com o vão da escadaria que desce
     const rin = f.r - RAMPA.larg - 0.3;
     const miolo = new THREE.Mesh(new THREE.CylinderGeometry(rin, rin, 1.2, 64), [T.sideM, top ? T.topM : T.floorM, T.floorM]); miolo.position.y = -0.6; miolo.receiveShadow = true; g.add(miolo);
@@ -340,17 +359,19 @@ const Tower = (() => {
     }
     for (let k = 0; k < (top ? 22 : 14); k++) { const e = new THREE.Sprite(new THREE.SpriteMaterial({ map: BRILHO, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: T.ember[k % 3 ? 0 : 1] })); e.scale.setScalar(rand(0.15, 0.3)); e.userData = { a: rand(0, TAU), r: rand(2, rin - 1), y: rand(0, 8), v: rand(0.4, 1) }; g.add(e); fx.embers.push(e); }
     // escadarias laterais: a que sobe fica selada (barreira vermelha) até o andar ficar limpo
+    // escadaria que AVANÇA (Torre: a que sobe; Abismo: a que desce) fica selada até o andar ficar limpo
+    const av = avanca(f);
+    if (f.ab || !top) escadaria(f, g, T, fx, 'sobe', own);
+    if (!f.fundo) escadaria(f, g, T, fx, 'desce', own);
     if (!top) {
-      escadaria(f, g, T, fx, 'sobe', own);
       const bm = add_(SWIRL, 0xff3a3a, { opacity: 0.6 }); own.push(bm);
-      const pb = pontoRampa(f, 'sobe', 0.1), bar = new THREE.Mesh(new THREE.PlaneGeometry(RAMPA.larg + 0.8, 5), bm);
-      bar.position.set(pb.x - f.x, 2.5 + 0.1 * STAIR_H, pb.z - f.z); bar.rotation.y = pb.th + Math.PI / 2; g.add(bar); fx.barrier = bar;
+      const pb = pontoRampa(f, av, 0.1), bar = new THREE.Mesh(new THREE.PlaneGeometry(RAMPA.larg + 0.8, 5), bm);
+      bar.position.set(pb.x - f.x, 2.5 + 0.1 * (av === 'sobe' ? STAIR_H : -STAIR_H), pb.z - f.z); bar.rotation.y = pb.th + Math.PI / 2; g.add(bar); fx.barrier = bar;
     }
-    escadaria(f, g, T, fx, 'desce', own);
     f.obs = true;
     // número do andar no alto da parede
     const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x2 = c.getContext('2d'); x2.fillStyle = 'rgba(16,8,24,.8)'; x2.fillRect(0, 0, 256, 96); x2.strokeStyle = '#' + new THREE.Color(T.rune).getHexString(); x2.lineWidth = 5; x2.strokeRect(3, 3, 250, 90);
-    x2.fillStyle = '#f2e0ff'; x2.font = 'bold 50px Georgia'; x2.textAlign = 'center'; x2.fillText(top ? 'TOPO' : `${f.i + 1}º`, 128, 66);
+    x2.fillStyle = '#f2e0ff'; x2.font = 'bold 50px Georgia'; x2.textAlign = 'center'; x2.fillText(f.fundo ? 'FUNDO' : f.ab ? `${f.k + 1}º ↓` : top ? 'TOPO' : `${f.i + 1}º`, 128, 66);
     const tx = new THREE.CanvasTexture(c), sm = new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false }); own.push(tx);
     const sign = new THREE.Sprite(sm); sign.scale.set(3.4, 1.25, 1); sign.position.set(0, top ? 5 : 12.5, top ? f.r - 1 : -f.r + 0.5); g.add(sign);
     built = { f, g, own };
@@ -382,15 +403,20 @@ const Tower = (() => {
 
   // ---------------- monstros dos andares
   // nível sobe do 18 (1º andar) ao 58 (30º); a cada 5 andares um Guardião; no 10º, 20º e 30º um chefe de verdade
-  const lvOf = i => 18 + Math.round(i * 40 / 29);
+  const lvOf = i => i >= 100 ? 60 + Math.round(Math.min(29, i - 100) * 40 / 29) : 18 + Math.round(i * 40 / 29);
+  const avanca = f => f.ab ? 'desce' : 'sobe';                      // a escadaria que leva adiante
   function waveOf(i) {
+    if (i >= 100) { const k = i - 100, pool = k < 10 ? ['larvaAntiga', 'raizOssuda', 'larvaCristal', 'memoria'] : k < 20 ? ['maoPalida', 'sombraVale', 'guardaOssos', 'damaSemOlhos'] : ['larvaAbismo', 'ecoCidade', 'sentinelaSubmersa', 'cristalVivo'];
+      return Array.from({ length: Math.min(18, 11 + Math.floor(k / 3)) }, (_, j) => pool[(j * 7 + k) % pool.length]); }
     const pool = i < 4 ? ['larva', 'verme'] : i < 10 ? ['larva', 'verme', 'esfera'] : i < 20 ? ['verme', 'esfera', 'sentinela', 'larva'] : ['sentinela', 'esfera', 'sentinela', 'verme'];
     const n = Math.min(18, 10 + Math.floor(i / 2));
     return Array.from({ length: n }, (_, k) => pool[(k * 7 + i) % pool.length]);
   }
+  const GUARD_AB = { 4: 'Escavador de Pedra', 9: 'Mãe das Larvas Rubras', 14: 'Devorador Ácido', 19: 'Serpente das Profundezas', 24: 'Boca do Vazio', 29: 'Guardião do Ninho' };
+  const guardOf = i => i >= 100 ? GUARD_AB[i - 100] : GUARD[i];
   const GUARD = { 4: 'Guardião do Portão', 9: 'Carcereiro do Cisma', 14: 'Guardião das Brasas', 19: 'Arauto do Soberano', 24: 'Guardião do Gelo Vazio', 29: 'Mão de Kravenox' };
   const RESPAWN = 90;                          // segundos até o andar se encher de novo
-  let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1, portaArmada = true;
+  let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1, portaArmada = true, crateraArmada = true;
   function clearFloorMobs() {
     for (const m of mobs.filter(m => m.towerFloor !== undefined)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
     mobs = mobs.filter(m => m.towerFloor === undefined);
@@ -401,20 +427,20 @@ const Tower = (() => {
     m.hp = m.maxHp = m.d.hp; const sm = m.lab.querySelector('small'); if (sm) sm.textContent = 'Nv ' + L;
   }
   function spawnFloor(i) {
-    if (i >= TOP || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
-    const f = FLOORS[i], list = waveOf(i);
+    if (i === TOP || i === AB_FUNDO || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
+    const f = FL(i), list = waveOf(i), GN = guardOf(i), kk = i >= 100 ? i - 100 : i;
     list.forEach((type, k) => {
       const rin = f.r - RAMPA.larg - 0.3, a = (k / list.length) * TAU + i * 0.7, r = rin * (0.25 + (k % 3) * 0.22);
       const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r });
       m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), 1);
     });
-    if (GUARD[i]) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
-      const big = i % 10 === 9;
-      const pg = pontoRampa(f, 'sobe', 0), m = spawnMob('guardiao', null, { x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 });   // guarda a escadaria que sobe
+    if (GN) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
+      const big = kk % 10 === 9;
+      const pg = pontoRampa(f, avanca(f), 0), m = spawnMob(f.ab ? 'verme' : 'guardiao', null, { x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 });   // guarda a escadaria que sobe
       m.towerFloor = i; m.noRespawn = true; m.towerGuard = true; scaleMob(m, lvOf(i) + 3, big ? 1.6 : 0.9);
-      m.d.name = GUARD[i]; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8));
-      m.d.drops = [...m.d.drops, ['essencia', 1], ...(big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
-      const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GUARD[i]} <small>Nv ${m.d.lv}</small>`;
+      m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8));
+      m.d.drops = [...m.d.drops, ['essencia', 1], ...(f.ab ? [['presa_verme', 1], ...(big ? [['lamina_verme', 0.15], ['couraca_verme', 0.15], ['anel_ninho', 0.1]] : [['couraca_verme', 0.06]])] : []), ...(f.ab ? [] : big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
+      const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GN} <small>Nv ${m.d.lv}</small>`;
       m.model.g.scale.multiplyScalar(big ? 1.5 : 1.2);
     }
     clearedAt[i] = 0;
@@ -423,7 +449,7 @@ const Tower = (() => {
   function blackout() { fade.style.transition = 'none'; fade.style.opacity = 1; void fade.offsetWidth; fade.style.transition = 'opacity .6s'; requestAnimationFrame(() => requestAnimationFrame(() => { fade.style.opacity = 0; })); }
   // ponto de retorno: depois de vencer o chefe do 10º/20º andar, a entrada deixa começar do 11º/21º
   function enterFromDoor() {
-    const cp = P.towerCp || 0, sac = (P.graves || []).filter(gv => gv.andar != null).pop();
+    const cp = P.towerCp || 0, sac = (P.graves || []).filter(gv => gv.andar != null && gv.andar < 100).pop();
     if (!cp && !sac) { enter(0); return; }
     const opts = [{ label: '🗼 1º andar', fn: () => enter(0) }];
     if (sac) opts.unshift({ label: `🎒 Voltar até a sua sacola (${sac.andar === TOP ? 'topo' : sac.andar + 1 + 'º andar'})`, fn: () => { enter(sac.andar); log('🎒 Sua sacola está neste andar, onde você caiu. Cuidado: os monstros voltaram.', 'gold'); } });
@@ -431,21 +457,46 @@ const Tower = (() => {
     opts.push({ label: 'Agora não', fn: () => { } });
     dialog('🗼 Torre do Cisma', 'Por onde você quer começar a subida?', opts);
   }
+  function enterFromCrater() {
+    if (P.lv < 58) { log('🕳️ Um calor podre sobe da Cratera. <b>O Abismo do Cisma é para o nível 60</b> (a partir do 58).', 'bad'); P.z = LAIR.z + 6; return; }
+    const cp = P.abismoCp || 0, sac = (P.graves || []).filter(gv => gv.andar >= 100).pop();
+    const opts = [{ label: '🕳️ 1º andar do Abismo', fn: () => enter(100) }];
+    if (sac) opts.unshift({ label: `🎒 Voltar até a sua sacola (${sac.andar === AB_FUNDO ? 'Fundo' : sac.andar - 99 + 'º andar'})`, fn: () => { enter(sac.andar); log('🎒 Sua sacola está neste andar, onde você caiu. Cuidado: os monstros voltaram.', 'gold'); } });
+    for (const c of [10, 20]) if (cp >= c) opts.push({ label: `🕳️ ${c + 1}º andar (ponto de retorno)`, fn: () => enter(100 + c) });
+    opts.push({ label: 'Agora não', fn: () => { P.z = LAIR.z + 6; } });
+    dialog('🕳️ Abismo do Cisma', 'A Torre sobe para o céu; o Abismo desce para dentro da terra. São <b>30 andares</b> (monstros nível 60 a 100) até o <b>Fundo</b>, o ninho do <b>Verme Colossal</b>.<br>Por onde você quer começar a descida?', opts);
+  }
   function enter(i, fromAbove) {
     clearFloorMobs();
+    if (i === 99) {                                                    // sai do Abismo pela Cratera
+      cur = -1; unbuild(); P.x = LAIR.x; P.z = LAIR.z + 7; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; crateraArmada = false; blackout();
+      log('Você subiu de volta para a <b>Cratera do Cisma</b>.', 'sys'); return;
+    }
     if (i < 0) {                                                       // sai da torre
       cur = -1; unbuild(); P.x = DOOR.x; P.z = DOOR.z + 6; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; portaArmada = false; blackout();   // sai bem à frente do portal
       log('Você saiu da Torre do Cisma.', 'sys'); return;
     }
-    cur = i; const f = FLOORS[i]; buildFloor(f);
-    if (fromAbove) opened[i] = true;                                    // quem desce já passou por aqui: a escadaria fica aberta
-    // subiu: chega no começo da escadaria que desce (no chão do andar novo); desceu: chega no alto da que sobe
-    const pc = fromAbove ? pontoRampa(f, 'sobe', 0.9) : pontoRampa(f, 'desce', 0.06);
+    cur = i; const f = FL(i); buildFloor(f);
+    if (fromAbove) opened[i] = true;                                    // quem volta já passou por aqui: a escadaria fica aberta
+    // avançou: chega no começo da escadaria de volta (no chão do andar novo); voltou: chega no fim da que avança
+    const av = avanca(f), volta = av === 'sobe' ? 'desce' : 'sobe';
+    const pc = fromAbove ? pontoRampa(f, av, 0.9) : pontoRampa(f, volta, 0.06);
     P.x = pc.x; P.z = pc.z; P.face = Math.atan2(f.x - P.x, f.z - P.z);
     P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.cur = 3; camS.pitch = Math.max(camS.pitch, 0.42);
     P.protT = time + 3;                                                 // 3 s sem apanhar ao chegar (dá para se situar)
-    if (i === TOP) { camS.dist = Math.max(camS.dist, 24); camS.pitch = Math.max(camS.pitch, 0.32); }
+    if (i === TOP || i === AB_FUNDO) { camS.dist = Math.max(camS.dist, 24); camS.pitch = Math.max(camS.pitch, 0.32); }
     blackout();
+    if (f.ab) {
+      const k = i - 100;
+      if ((k === 10 || k === 20) && (P.abismoCp || 0) < k) { P.abismoCp = k; log(`📍 <b>Ponto de retorno</b> liberado: a Cratera agora deixa começar no <b>${k + 1}º andar do Abismo</b>.`, 'gold'); }
+      if (k > (P.abismoBest || 0)) P.abismoBest = k;
+      banner(f.fundo ? 'O FUNDO DO ABISMO' : `${k + 1}º ANDAR DO ABISMO`);
+      if (k === 0 && !fromAbove) log('⚔️ <b>O Abismo, como a Torre, é zona de guerra:</b> PvP livre (menos com a sua guilda).', 'bad');
+      spawnFloor(i);
+      if (f.fundo) log(typeof Verme !== 'undefined' ? Verme.msgFundo() : '🐛 O ninho do Verme Colossal.', 'gold');
+      else log(`🕳️ Abismo do Cisma — <b>${k + 1}º andar</b> (monstros nível ${lvOf(i)}).${guardOf(i) ? ` ☠ <b>${guardOf(i)}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria que desce.`, guardOf(i) ? 'bad' : 'sys');
+      lastCount = -1; return;
+    }
     if (i === 10 || i === 20) if ((P.towerCp || 0) < i) { P.towerCp = i; log(`📍 <b>Ponto de retorno</b> liberado: a entrada da Torre agora deixa começar no <b>${i + 1}º andar</b>.`, 'gold'); }
     if (i > (P.towerBest || 0)) P.towerBest = i;
     banner(i === TOP ? 'TOPO DA TORRE' : `${i + 1}º ANDAR`);
@@ -455,10 +506,11 @@ const Tower = (() => {
     else log(`🗼 Torre do Cisma — <b>${i + 1}º andar</b> (monstros nível ${lvOf(i)}).${GUARD[i] ? ` ☠ <b>${GUARD[i]}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria que sobe pela paredee.`, GUARD[i] ? 'bad' : 'sys');
     lastCount = -1;
   }
-  function selada(f, x, z) { if (f.casa || f.i >= TOP || opened[f.i]) return false; const r = rampa(f, x, z); return !!r && r.tipo === 'sobe' && r.p < 0.16; }
+  function selada(f, x, z) { if (f.casa || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); return !!r && r.tipo === avanca(f) && r.p < 0.16; }
   function corridor() { return false; }
 
   function update(dt) {
+    BOCA.disco.rotation.y -= dt * 0.8; BOCA.brilho.material.opacity = 0.45 + Math.sin(time * 2.2) * 0.15;
     beacon.rotation.y += dt; beacon.position.y = ty + 4 + Math.sin(time * 2) * 0.4;
     NEVOA.offset.set(time * 0.03, time * 0.08); doorGlow.material.opacity = 0.7 + Math.sin(time * 2) * 0.15;     // névoa da passagem se mexendo devagar
     for (const f of fires) f.scale.set(1.1 + Math.sin(time * 11 + f.position.x) * 0.08, 1.9 + Math.sin(time * 8 + f.position.x) * 0.2, 1);
@@ -472,24 +524,34 @@ const Tower = (() => {
     const dPorta = Math.hypot(P.x - DOOR.x, P.z - DOOR.z);
     if (!inTower(P.z) && !portaArmada && dPorta > 5) portaArmada = true;
     if (!inTower(P.z) && portaArmada && dPorta < 3.2) { leaveT = 2.5; portaArmada = false; P.z = DOOR.z + 4; enterFromDoor(); return; }
+    // a boca do Abismo, no meio da Cratera do Cisma
+    const dCrat = Math.hypot(P.x - LAIR.x, P.z - LAIR.z);
+    if (!inTower(P.z) && !crateraArmada && dCrat > 6) crateraArmada = true;
+    if (!inTower(P.z) && crateraArmada && dCrat < 2.8) { leaveT = 2.5; crateraArmada = false; enterFromCrater(); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); unbuild(); } return; }
     const f = floorAt(P.x, P.z); if (!f || f.casa) return;
     if (f.i !== cur) { cur = f.i; buildFloor(f); }                  // asa de mosca / volta de outro jeito
     animFloor(dt);
     // escadaria norte: abre quando o andar está limpo e fica aberta
     const left = mobs.filter(m => m.towerFloor === cur).length;
-    if (cur < TOP) {
+    if (cur !== TOP && cur !== AB_FUNDO) {
       if (left === 0 && !clearedAt[cur]) clearedAt[cur] = time;
       if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN && Math.hypot(P.x - f.x, P.z - f.z) < f.r) { spawnFloor(cur); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
-      if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(`✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu (a que sobe pela parede).`, 'gold'); }
-      const pe = pontoRampa(f, 'sobe', 0.08);
+      if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(f.ab ? `✨ Andar limpo! A escadaria para o <b>${cur + 1 === AB_FUNDO ? 'Fundo' : (cur - 98) + 'º andar'}</b> do Abismo se abriu (a que desce pelo vão).` : `✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu (a que sobe pela parede).`, 'gold'); }
+      const pe = pontoRampa(f, avanca(f), 0.08);
       if (!opened[cur] && Math.hypot(P.x - pe.x, P.z - pe.z) < 4 && left !== lastCount) { lastCount = left; log(`A escadaria está selada. Faltam <b>${left}</b> inimigos neste andar.`, 'bad'); }
     }
     const rp = rampa(f, P.x, P.z);                                       // chegou no fim de uma escadaria: troca de andar
-    if (rp && rp.p > 0.97) { leaveT = 1; enter(rp.tipo === 'sobe' ? cur + 1 : cur - 1, rp.tipo === 'desce'); }
+    if (rp && rp.p > 0.97) { leaveT = 1; const fwd = rp.tipo === avanca(f); enter(fwd ? cur + 1 : cur - 1, !fwd); }
   }
   function minimap(g) {
     const W = g.canvas.width, H = g.canvas.height, x0 = W / 2 - 42, bw = 84 / (TOP + 1);
+    if (cur >= 100) {                                                   // Abismo: barras que descem
+      const k = cur - 100; g.fillStyle = '#140a08'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.fillStyle = '#ff9050'; g.font = 'bold 12px Georgia'; g.fillText('Abismo do Cisma', W / 2, H / 2 - 26);
+      for (let j = 0; j <= AB_N; j++) { g.globalAlpha = j === k ? 1 : j < k ? 0.6 : 0.25; g.fillStyle = j === AB_N ? '#ff3a3a' : ['#ff6020', '#70e040', '#b050ff'][Math.floor(j / 10)]; const h = 6 + j * 0.8; g.fillRect(x0 + j * bw, H / 2 - 18, Math.max(1, bw - 0.6), h); }
+      g.globalAlpha = 1; g.fillStyle = '#ece6f6'; g.font = 'bold 13px sans-serif'; g.fillText(k === AB_N ? 'O Fundo' : `${k + 1}º andar`, W / 2, H / 2 + 28);
+      g.fillStyle = '#d0a890'; g.font = '11px sans-serif'; if (k < AB_N) g.fillText(`monstros Nv ${lvOf(cur)}`, W / 2, H / 2 + 41); g.textAlign = 'left'; return;
+    }
     g.fillStyle = '#1a1020'; g.fillRect(0, 0, W, H);
     g.textAlign = 'center'; g.fillStyle = '#f2c86a'; g.font = 'bold 12px Georgia';
     g.fillText('Torre do Cisma', W / 2, H / 2 - 26);
