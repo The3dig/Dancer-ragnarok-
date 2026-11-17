@@ -2980,6 +2980,11 @@ function buy(id, n) {
 }
 
 // ---------------------------------------------------------------- entrada
+// nada de zoom da página: toque duplo, pinça do iPhone (gesture) e Ctrl+roda
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1 && !e.target.closest('#chat-hist, .dtext, #avisos')) e.preventDefault(); }, { passive: false });
+let _ultToque = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - _ultToque < 300 && (e.target.tagName === 'CANVAS' || e.target === document.body || e.target.id === 'hud' || e.target.id === 'labels')) e.preventDefault(); _ultToque = t; }, { passive: false });
 const cvEl = renderer.domElement;
 let drag = null;
 cvEl.addEventListener('contextmenu', e => e.preventDefault());
