@@ -1263,7 +1263,7 @@ const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador 
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
-    for (const c of [...n.g.children]) if (c !== n.bang) n.g.remove(c);
+    for (const c of [...n.g.children]) if (c !== n.bang && c !== n.papel) n.g.remove(c);
     n.g.add(a.root); n.spr = a; n.face0 = n.g.rotation.y; n.bangY = a.h + 0.45;
   }
 }
@@ -1272,7 +1272,7 @@ function upgradeNPCs() {
     const [cloth, hair, hat] = n.look, fem = ['veil', 'flower'].includes(hat);
     const inst = ModelKit.instance(fem ? 'hooded_adventurer' : 'worker', 1.72);
     if (!inst) return;
-    for (const c of [...n.g.children]) if (c !== n.bang) n.g.remove(c);
+    for (const c of [...n.g.children]) if (c !== n.bang && c !== n.papel) n.g.remove(c);
     if (fem) { inst.tint('DarkBrown', cloth); inst.tint('LightBrown', 0xe8d8b0); const sw = inst.obj.getObjectByName('Sword') || inst.mesh('Sword'); if (sw) sw.visible = false; }
     else { inst.tint('Shirt', cloth); inst.tint('Hair', hair); inst.tint('Pants', 0x4a3a2a); }
     inst.play(fem ? 'Idle' : 'Man_Idle');
@@ -1316,6 +1316,15 @@ function npcMark(n) {
   }
   if (n.beam) { n.beam.visible = n.ring.visible = live; if (live) { const c = new THREE.Color(k.split(':')[1]); n.beam.material.color.copy(c); n.ring.material.color.copy(c); } }
 }
+// o que cada NPC de serviço faz, em cima da cabeça (ideia do Ludi): 🧪 consumíveis e equipamentos, ❤️ cura, ⚒️ ferreiro, 🧭 viagem
+const PAPEL = { shop: '🧪', healer: '❤️', smith: '⚒️', warp: '🧭', pescador: '🎣' };
+function iconeSprite(em) {
+  const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(16,10,24,.78)'; x.beginPath(); x.arc(48, 48, 44, 0, TAU); x.fill(); x.lineWidth = 5; x.strokeStyle = '#f2c86a'; x.stroke();
+  x.font = '54px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(em, 48, 52);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: true, fog: false, toneMapped: false, transparent: true })); s.scale.setScalar(0.55); return s;
+}
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
   x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText('!', 32, 52); x.fillStyle = '#ffcf40'; x.fillText('!', 32, 52);
@@ -1337,6 +1346,7 @@ for (const n of NPCS) {
   if (hat === 'turban') mesh(new THREE.TorusGeometry(0.15, 0.08, 8, 14), toon(0xf4d03f), 0, 1.72, 0, g).rotation.x = Math.PI / 2;
   if (hat === 'flower') for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.035, 6, 4), toon(0xff8ac0), 0.12 + Math.cos(k * TAU / 5) * 0.04, 1.72 + Math.sin(k * TAU / 5) * 0.04, 0.05, g, false);
   const bang = bangSprite(); bang.position.y = 2.3; g.add(bang); n.bang = bang; n.g = g;
+  const pap = PAPEL[n.id]; if (pap) { const ps = iconeSprite(pap); ps.position.y = 2.45; g.add(ps); n.papel = ps; }   // ícone do que ele faz (🧪 loja, ❤️ cura...)
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   addOutline(g);
   addOb(n.x, n.z, 1.6);
@@ -1360,7 +1370,7 @@ refreshSkills();
 // bônus de buffs: multiplicativos (atk, matk, aspd, speed) e aditivos (def, crit, poison, regen)
 function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
 function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
-const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0);
+const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
 const gBon = k => typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0;
 const stats = {
@@ -2051,7 +2061,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); if (typeof Mascotes !== 'undefined') Mascotes.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -2069,7 +2079,7 @@ function update(dt) {
       fx.push({ m, v: new THREE.Vector3(rand(-0.2, 0.2), 0.8, rand(-0.2, 0.2)), life: 2.5, max: 2.5, kind: 'note', own: m.geometry });
     }
   }
-  for (const n of NPCS) { n.bang.position.y = (n.bangY || 2.3) + 0.35 + Math.sin(time * 3) * 0.15; npcMark(n); }
+  for (const n of NPCS) { n.bang.position.y = (n.bangY || 2.3) + 0.35 + (n.papel ? 0.75 : 0) + Math.sin(time * 3) * 0.15; if (n.papel) n.papel.position.y = (n.bangY || 2.3) + 0.25; npcMark(n); }
   const z = zoneOf(P.x, P.z);
   if (z !== zone) {
     zone = z; Audio8.play(ZONES[z].music); banner(ZONES[z].name); $('zonename').textContent = ZONES[z].name;
@@ -2175,7 +2185,7 @@ function updatePlayer(dt) {
   // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
   if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -3166,7 +3176,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

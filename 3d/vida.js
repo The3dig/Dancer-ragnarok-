@@ -839,6 +839,7 @@ const Vida = (() => {
   function use(id) {
     if (ITEMS[id].use === 'pot') return usePotion(id);
     if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
+    if (ITEMS[id].use === 'isca') { closeInv(); if (typeof Mascotes !== 'undefined') Mascotes.capturar(id); return; }
     if (ITEMS[id].use === 'garrafa') { closeInv(); if (typeof Praia !== 'undefined') Praia.abrirGarrafa(); return; }
     if (!has(id)) return;
     add(id, -1); Audio8.sfx('heal');

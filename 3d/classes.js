@@ -8,7 +8,7 @@ const STAT_KEYS = ['str', 'agi', 'vit', 'int', 'dex', 'luk'];
 const STAT_NAMES = { str: 'FOR', agi: 'AGI', vit: 'VIT', int: 'INT', dex: 'DES', luk: 'SOR' };
 const STAT_INFO = {
   str: 'Dano corpo a corpo', agi: 'Vel. de ataque e esquiva', vit: 'HP e defesa',
-  int: 'SP e dano mágico', dex: 'Dano à distância e velocidade', luk: 'Crítico e sorte nos drops',
+  int: 'SP e dano mágico', dex: 'Dano à distância e velocidade', luk: 'Crítico, esquiva e um pouco de dano',
 };
 
 const RACES = {
