@@ -232,7 +232,8 @@ body.touch #skillwin { width: min(560px, 62vw); }
 #chat-hist { max-height: 32vh; overflow-y: auto; background: rgba(10,8,18,.88); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font: 600 13px 'Nunito', sans-serif; color: #e6e0f0; }
 #chat-hist:empty::before { content: 'Nenhuma conversa ainda. O que você escrever aqui aparece para todos.'; opacity: .6; }
 #chat-hist .grupo { color: #8affb0; } #chat-hist .guild { color: #8affb0; } #chat-hist small { opacity: .55; }
-#chat-canal, #chat-x { padding: 0 10px !important; background: rgba(40,30,60,.95) !important; color: #fff !important; border: 1px solid var(--line) !important; white-space: nowrap; }
+#chat-hist .itemlink { font-weight: 800; text-decoration: underline; cursor: pointer; }
+#chat-canal, #chat-item, #chat-x { padding: 0 10px !important; background: rgba(40,30,60,.95) !important; color: #fff !important; border: 1px solid var(--line) !important; white-space: nowrap; }
 /* o iPhone dá zoom sozinho em campo com letra menor que 16 px */
 input, textarea, select { font-size: 16px !important; }
 /* toque duplo rápido não dá zoom na página (Android e iPhone): só a câmera do jogo se mexe */

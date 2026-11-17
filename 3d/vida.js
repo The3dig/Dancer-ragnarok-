@@ -1129,5 +1129,32 @@ const Vida = (() => {
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  // ficha de um item mostrado no chat (o amigo toca no nome e vê tudo)
+  function ficha(id, dono) {
+    const I = ITEMS[id]; if (!I) return;
+    const cor = I.kind === 'equip' ? RARITY[I.rar || 0].c : I.kind === 'carta' ? '#ffb640' : '#e8e4dc';
+    const de = Object.entries(MOBDEF).filter(([t, D]) => (D.drops || []).some(([i]) => i === id) && !t.startsWith('alfa_')).slice(0, 4).map(([, D]) => `${D.name} (Nv ${D.lv})`);
+    const linhas = [];
+    if (I.kind === 'equip') {
+      linhas.push(`${RARITY[I.rar || 0].n} · ${I.slot === 'anel' ? 'Anel' : SLOTS[I.slot] || I.slot}`);
+      if (I.mods) linhas.push(`<b>${modTxt(I.mods)}</b>`);
+      if (I.set && SETS[I.set]) linhas.push(`🔗 ${SETS[I.set].name} (${SETS[I.set].pecas || '?'} peças)`);
+    } else if (I.desc) linhas.push(I.desc);
+    if (I.desafio) linhas.push(I.preso ? '🔒 Só de quem fez a aventura do amigo: não troca nem vende.' : '🏆 Só se ganha num desafio.');
+    else if (de.length) linhas.push(`📍 Cai de: ${de.join(', ')}`);
+    else if (I.price) linhas.push(`🛒 Vende nas lojas por ${I.price.toLocaleString('pt-BR')} cr`);
+    if (I.sell) linhas.push(`💰 Vende por ${I.sell.toLocaleString('pt-BR')} cr`);
+    dialog(`${I.ic} <span style="color:${cor}">${I.name}</span>`, `${dono ? `<small>Mostrado por <b>${dono}</b> no chat</small><br>` : ''}${linhas.join('<br>')}`, [{ label: 'Fechar' }]);
+  }
+  // escolher um item da mochila (ou equipado) para mostrar no chat
+  function escolherParaChat(fn) {
+    const eq = [...new Set(Object.values(P.equip || {}).filter(Boolean))];
+    const inv = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && !eq.includes(id));
+    const ord = id => { const I = ITEMS[id]; return (I.kind === 'equip' ? 0 : I.kind === 'carta' ? 1 : 2) * 10 - (I.rar || 0); };
+    const lista = [...eq.map(id => [id, true]), ...inv.sort((a, b) => ord(a) - ord(b)).map(id => [id, false])].slice(0, 40);
+    const opts = lista.map(([id, usando]) => { const I = ITEMS[id]; return { label: `${I.ic} ${I.name}${usando ? ' (equipado)' : P.inv[id] > 1 ? ' ×' + P.inv[id] : ''}`, fn: () => { fn(id); } }; });
+    opts.push({ label: 'Cancelar' });
+    dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
+  }
+  return { ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

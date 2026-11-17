@@ -3111,7 +3111,15 @@ document.addEventListener('pointerdown', e => {
 }, true);
 // ---------------- chat: 🌍 mundo todo, 👥 grupo e 🛡️ guilda, com histórico só das conversas
 const CHAT_HIST = []; let chatCanal = 'mundo', chatNovas = 0;
+const semTokens = t => String(t || '').replace(/\[\[i:([a-z0-9_]{1,40})\]\]/g, (m, id) => ITEMS[id] ? `[${ITEMS[id].name}]` : '');   // balão em cima da cabeça
+// item no chat: [[i:id]] vira o nome do item, colorido, que abre a ficha
+function itemLinks(html, dono) {
+  return html.replace(/\[\[i:([a-z0-9_]{1,40})\]\]/g, (m, id) => { const I = ITEMS[id]; if (!I) return ''; const c = typeof Vida !== 'undefined' && I.kind === 'equip' ? Vida.RARITY[I.rar || 0].c : I.kind === 'carta' ? '#ffb640' : '#ffe9a8';
+    return `<a class="itemlink" data-item="${id}" data-dono="${dono || ''}" style="color:${c}">[${I.ic} ${I.name}]</a>`; });
+}
 function chatMsg(html, cls, eu = false) {
+  const dono = (html.match(/<b>(?:\[[^\]]*\] )?([^<:]{1,24})<\/b>:/) || [])[1] || '';
+  html = itemLinks(html, dono);
   log(html, cls);
   const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   CHAT_HIST.push(`<div class="${cls}"><small>${hora}</small> ${html}</div>`); while (CHAT_HIST.length > 60) CHAT_HIST.shift();
@@ -3135,6 +3143,8 @@ function openChat() {
 function sendChat() { const i = $('chat-in'); if (i.value.trim()) Net.say(i.value, chatCanal); i.value = ''; i.focus(); }
 function fecharChat() { $('chatbox').classList.add('hidden'); $('chat-in').blur(); setTimeout(fitScreen, 400); }
 $('chat-canal').onclick = trocarCanal; $('chat-x').onclick = fecharChat;
+$('chat-item').onclick = () => { if (typeof Vida === 'undefined') return; Vida.escolherParaChat(id => { const i = $('chat-in'); if ((i.value.match(/\[\[i:/g) || []).length >= 2) { log('Até 2 itens por mensagem.', 'bad'); return; } i.value = (i.value.trim() + ' [[i:' + id + ']]').trim().slice(0, 80); setTimeout(() => i.focus(), 50); }); };
+$('chat-hist').addEventListener('click', e => { const a = e.target.closest('.itemlink'); if (a && typeof Vida !== 'undefined') Vida.ficha(a.dataset.item, a.dataset.dono); });
 $('btn-chat').onclick = openChat;
 $('chat-send').onclick = sendChat;
 $('chat-in').addEventListener('blur', () => setTimeout(fitScreen, 400));

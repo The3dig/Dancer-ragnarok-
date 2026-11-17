@@ -104,7 +104,7 @@ const Net = (() => {
       if (Date.now() - s.say.at < 15000 && (!daGuilda || (typeof Guilda !== 'undefined' && Guilda.minha() === s.say.g))) {
         if (daGuilda) chatMsg(`🛡️ <b>[Guilda] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'guild');
         else if (s.say.gp) { if (s.say.gp === P.grupo) chatMsg(`👥 <b>[Grupo] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'grupo'); }
-        else { chatMsg(`🌍 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = String(s.say.t).slice(0, 80); r.bubT = 6; }
+        else { chatMsg(`🌍 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = semTokens(s.say.t).slice(0, 80); r.bubT = 6; }
       }
     }
   }
@@ -211,7 +211,7 @@ const Net = (() => {
     if (canal === 'guilda' && typeof Guilda !== 'undefined' && Guilda.minha()) { P.say = { t: text, at: Date.now(), g: Guilda.minha() }; chatMsg(`🛡️ <b>[Guilda] ${esc(P.name)}</b>: ${esc(text)}`, 'guild', true); return; }
     P.say = { t: text, at: Date.now() };
     chatMsg(`🌍 <b>${esc(P.name)}</b>: ${esc(text)}`, 'chat', true);
-    const b = $('mybubble'); b.textContent = text; b.classList.remove('hidden'); myBubT = 6;
+    const b = $('mybubble'); b.textContent = semTokens(text); b.classList.remove('hidden'); myBubT = 6;
     if (!room) log('Você está jogando sozinho agora (sem internet). O chat aparece para os amigos online.', 'sys');
   }
   let myBubT = 0;
