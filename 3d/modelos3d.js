@@ -126,7 +126,7 @@ const Modelos3D = (() => {
     esfera: () => makeGhost({ c1: 0x5a3a8a, eye: 0xff5a2a, crystal: true }),
     sentinela: () => makeSentinel({ c1: 0x2a2632, c2: 0x16131c, eye: 0xb26bff }),
     guardiao: () => makeSemRosto(),
-    fungolino: () => makeRoot({ c1: 0x1a1214, c2: 0x2a1a20, eye: 0xff3c3c, eyes: 1, n: 6 }),
+    fungolino: () => makeRoot({ c1: 0x7a5232, c2: 0x9a7048, eye: 0xff3c3c, eyes: 1, n: 6 }),   // cor de madeira (antes quase preta: sumia no trigo de dia)
     raizPetra: () => makeRoot({ c1: 0x4a3a30, c2: 0x2a201a, eye: 0xe0c060, eyes: 2, n: 8, mouth: true }),
     cristalizado: () => makeCrystalman(),
     // Valdora

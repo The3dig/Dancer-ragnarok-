@@ -8,6 +8,7 @@
 const Avisos = (() => {
   // novidades importantes, a mais nova no topo. Para avisar algo novo: põe aqui com um id novo.
   const NOVIDADES = [
+    { id: 'n59', data: '17/11', t: '🌙 Raízes Rastejantes: tronco de dia, monstro de noite', d: 'As <b>Raízes Rastejantes</b> dos Campos Dourados agora têm cor de madeira (antes eram quase pretas e sumiam no trigo) e são <b>15</b> em vez de 9. <b>De dia</b> ficam paradas, disfarçadas de tronco (💤 no nome). <b>À noite</b> acordam (🌙): andam, atacam quem passa perto e dão <b>50% a mais de XP</b>.' },
     { id: 'n58', data: '17/11', t: '🎤 Rádio do grupo e fim do leech', d: 'Em grupo aparece o botão <b>🎤</b> perto do pulo: <b>segure, fale e solte</b> (até 10 s). O recado chega só para o seu grupo, toca sozinho e fica no chat para ouvir de novo (▶). E a divisão do grupo agora é só entre <b>níveis parecidos</b>: até 10 níveis de diferença, parte inteira; de 10 a 20, vai caindo; mais de 20, nada (é o "leech").' },
     { id: 'n57', data: '17/11', t: '👥 Grupo divide o XP', d: 'Em <b>grupo</b>, o XP de cada monstro agora é <b>dividido igualmente</b> entre quem está perto, com <b>+10% de bônus por companheiro</b>: 2 no grupo = 55% para cada; 4 = 32,5% para cada. O monstro continua contando nas missões de todos.' },
     { id: 'n56', data: '17/11', t: '👥 Grupo divide os itens', d: 'Caçando em <b>grupo</b>, cada item que cai é <b>sorteado</b> entre quem está perto do monstro (até 45 m), inclusive quem matou. Aparece no chat para quem foi cada item. Os créditos (cr) continuam com quem deu o último golpe.' },

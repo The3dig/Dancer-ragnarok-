@@ -1401,7 +1401,7 @@ const camS = { yaw: Math.PI, pitch: 0.42, dist: 9, x: 0, y: 0, z: 0 };
 
 const SPAWNS = [
   { type: 'pompom', n: 16, area: [-58, 14, -84, 84] }, { type: 'zunzum', n: 9, area: [-58, 14, -84, 84] },
-  { type: 'fungolino', n: 9, area: [-40, 45, -84, 84] },
+  { type: 'fungolino', n: 15, area: [-40, 45, -84, 84] },
   { type: 'besouro', n: 14, area: [55, 145, -84, 84] }, { type: 'serpe', n: 10, area: [62, 145, -84, 84] },
   { type: 'guardiao', n: 1, at: RUIN },
   // Valdora
@@ -2206,6 +2206,11 @@ function updateMob(m, dt) {
     if (m.dot && m.dot.t <= 0) m.dot = null;
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
+  // Raiz Rastejante: de dia fica parada, disfarçada de tronco; à noite acorda, anda, ataca e vale mais XP
+  if (m.type === 'fungolino') {
+    const noite = !!(LASTDAY && LASTDAY.night > 0.35);
+    if (noite !== m.noite) { m.noite = noite; const b = MOBDEF.fungolino; m.d = noite ? { ...b, aggro: 9, speed: 2.0, xp: Math.round(b.xp * 1.5) } : { ...b, speed: 0.01 }; const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${b.name}${noite ? ' 🌙' : ' 💤'} <small>Nv ${b.lv}</small>`; }
+  }
   if (m.type === 'kravenox') Kvx.ai(m, dt);
   else if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.ai(m, dt);
   if (m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) Partilha.mover(m, dt);
