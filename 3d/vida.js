@@ -248,6 +248,21 @@ const Vida = (() => {
     ITEMS[id] = { name: 'Carta ' + (D.name.startsWith('Kravenox') ? 'de ' : 'da ') + D.name, ic: '🃏', kind: 'carta', mods, mob: t, cslot: CARD_SLOT[t], sell: D.boss ? 900 : 300, price: 0 };
     D.drops.push([id, t === 'kravenox' ? 0.2 : D.boss || t === 'guardiao' ? 0.04 : 0.004]);
   }
+  // os monstros que ainda não tinham carta ganham uma (atributo e peça sorteados pelo nome, sempre iguais)
+  { const KS = ['pow', 'def', 'hp', 'sp', 'crit', 'spd'], SL = ['arma', 'armadura', 'capacete', 'luvas', 'botas', 'colar'], hs = t => { let h = 11; for (const c of t) h = (h * 33 + c.charCodeAt(0)) >>> 0; return h; };
+    for (const t of Object.keys(MOBDEF)) {
+      if (t.startsWith('alfa_') || ITEMS['carta_' + t] || t === 'vermeColosso') continue;
+      const D = MOBDEF[t], h = hs(t), k = KS[h % 6], lv = D.lv || 1, f = D.boss || D.mini ? 1.6 : 1;
+      const v = { pow: 2 + lv * 0.18, def: 1 + lv * 0.12, hp: 20 + lv * 5, sp: 10 + lv * 2.5, crit: 0.01 + lv * 0.0003, spd: 0.01 + lv * 0.0003 }[k] * f;
+      ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: SL[(h >> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };
+      D.drops.push(['carta_' + t, D.boss || D.mini ? 0.04 : 0.004]);
+    } }
+  // ---------------- caçadas do bestiário: 10 níveis por monstro; no nível 10 a carta dele é sua.
+  // cada nível também deixa a carta dele um pouco mais fácil de cair (+10% da chance por nível). Nada de facilidade: chegar no 10 é longo.
+  const NIV_COMUM = [10, 30, 60, 100, 200, 350, 500, 800, 1200, 2000], NIV_CHEFE = [1, 2, 3, 5, 8, 12, 16, 20, 25, 30];
+  const nivTab = t => { const D = MOBDEF[t] || {}; return D.boss || D.mini || D.field ? NIV_CHEFE : NIV_COMUM; };
+  function nivelCaca(t) { const n = (P.bestiary || {})[t] || 0, T = nivTab(t); let lv = 0; while (lv < 10 && n >= T[lv]) lv++; return { lv, n, prox: lv < 10 ? T[lv] : null, ant: lv ? T[lv - 1] : 0 }; }
+  const bonusCarta = t => 1 + nivelCaca(t).lv * 0.1;
   // refino (+1 a +7): cada nível soma 10% do dano/defesa/HP da peça; falhar só volta um nível, nunca quebra
   const REF = [[100, 1], [200, 1], [400, 1], [800, 1], [1500, 0.6], [2500, 0.4], [4000, 0.25]];
   const refOf = id => (P.refine && P.refine[id]) || 0;
@@ -1034,19 +1049,29 @@ const Vida = (() => {
       w.addEventListener('click', e => { const t = e.target.closest('[data-b]'); if (!t) return; Audio8.sfx('click'); if (t.dataset.b === 'x') w.classList.add('hidden'); else bestiary(t.dataset.b); });
     }
     if (dialogOpen) closeDialog(); $('invwin') && $('invwin').classList.add('hidden');
-    const types = Object.keys(REGION).filter(t => MOBDEF[t]).sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
+    const types = Object.keys(MOBDEF).filter(t => !t.startsWith('alfa_') && !t.startsWith('fb_') && t !== 'vermeColosso' && (REGION[t] || SPAWNS.some(q => q.type === t) || MOBDEF[t].boss)).sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
+    const regiao = t => { if (REGION[t]) return REGION[t]; const sp = SPAWNS.find(q => q.type === t); if (sp) { try { return ZONES[zoneOf(sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2)].name; } catch (e) { } } return MOBDEF[t].boss ? 'Chefe' : '—'; };
     sel = sel || w.dataset.sel || types[0]; w.dataset.sel = sel;
     const seen = P.bestiary || {}, d = MOBDEF[sel];
     const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : '❔'); };
-    const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}</small></span></div>`).join('');
+    const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}${seen[t] ? ` · ⚔️ ${seen[t].toLocaleString('pt-BR')} · ★${nivelCaca(t).lv}` : ''}</small></span></div>`).join('');
     const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.01 ? 2 : ch < 0.1 ? 1 : 0).replace('.', ',') + '%'}</em></div>`; }).join('');
     w.innerHTML = `<div class="wt">📖 Bestiário <small>· ${Object.keys(seen).length}/${types.length} conhecidos</small><button class="x" data-b="x">×</button></div>
       <div class="bb"><div class="blist">${list}</div>
-      <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${REGION[sel]}</small><br><small>Abatidos: ${seen[sel]}</small></div></div><div class="bdl">${drops}</div>`
-        : `<div class="bh">${img(sel)}<div><b>???</b><br><small>Nv ${d.lv} · ${REGION[sel]}</small></div></div><p class="bq">Derrote um para registrar o que ele solta.</p>`}</div></div>`;
+      <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${regiao(sel)}</small><br>${(() => { const c = nivelCaca(sel), pc = c.prox ? Math.floor((c.n - c.ant) / (c.prox - c.ant) * 100) : 100, cd = ITEMS['carta_' + sel];
+        return `<small>⚔️ Abatidos: <b>${c.n.toLocaleString('pt-BR')}</b> · Nível de caça <b>${c.lv}/10</b>${c.prox ? ` (próximo: ${c.prox.toLocaleString('pt-BR')})` : ' ✅'}</small><div style="height:6px;background:#2a2036;border-radius:3px;margin:3px 0"><div style="width:${pc}%;height:6px;background:#ffb640;border-radius:3px"></div></div><small>${cd ? `🃏 No nível 10: <b>${cd.name}</b>${(P.bestCard || {})[sel] ? ' (já recebida ✅)' : ''} · cada nível deixa ela +10% mais fácil de cair` : ''}</small>`; })()}</div></div><div class="bdl">${drops}</div>`
+        : `<div class="bh">${img(sel)}<div><b>???</b><br><small>Nv ${d.lv} · ${regiao(sel)}</small></div></div><p class="bq">Derrote um para registrar o que ele solta.</p>`}</div></div>`;
     w.classList.remove('hidden');
   }
-  function onKill(m) { P.bestiary = P.bestiary || {}; P.bestiary[m.type] = (P.bestiary[m.type] || 0) + 1; }
+  function onKill(m) {
+    P.bestiary = P.bestiary || {}; const antes = nivelCaca(m.type).lv; P.bestiary[m.type] = (P.bestiary[m.type] || 0) + 1;
+    const c = nivelCaca(m.type); if (c.lv <= antes) return;
+    const D = MOBDEF[m.type], cd = ITEMS['carta_' + m.type];
+    if (c.lv < 10) { log(`📖 Bestiário: <b>${D.name}</b> chegou ao <b>nível ${c.lv}</b> de caça (${c.n.toLocaleString('pt-BR')} abatidos). Próximo: ${c.prox.toLocaleString('pt-BR')}.`, 'sys'); return; }
+    P.bestCard = P.bestCard || {};
+    if (cd && !P.bestCard[m.type]) { P.bestCard[m.type] = 1; P.inv[cd.id || 'carta_' + m.type] = (P.inv['carta_' + m.type] || 0) + 1; banner(`🃏 ${cd.name}`); Audio8.sfx('level');
+      log(`📖 Bestiário: <b>${D.name}</b> no <b>nível 10</b> de caça (${c.n.toLocaleString('pt-BR')} abatidos)! Você ganhou a <b>🃏 ${cd.name}</b>.`, 'gold'); }
+  }
 
   // ---------------------------------------------------------------- interface com o jogo
   function nearest() {
@@ -1157,5 +1182,5 @@ const Vida = (() => {
     opts.push({ label: 'Cancelar' });
     dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
   }
-  return { ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();
