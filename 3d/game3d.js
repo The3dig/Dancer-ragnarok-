@@ -1559,7 +1559,7 @@ function killMob(m, o = {}) {
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
     const dif = P.lv - m.d.lv, pen = o.grupo ? (dif > 8 ? 0.3 : dif > 5 ? 0.6 : 1) : 1;   // no grupo vale o mesmo desconto de nível de quem matou
     const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * pen * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
-    log(o.grupo ? `👥 O grupo derrotou <b>${m.d.name}</b>! +${xp} XP <small>(dividido entre ${o.n || 2})</small>` : `🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
+    log(o.grupo ? `👥 O grupo derrotou <b>${m.d.name}</b>! +${xp} XP <small>(dividido entre ${o.n || 2}${o.w < 1 ? ', menos pela diferença de nível' : ''})</small>` : `🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
     if (o.ajuda >= 0.25 || o.grupo) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
     return;
   }

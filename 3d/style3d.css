@@ -49,6 +49,10 @@ html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hid
 #t-atk { right: 0; bottom: 0; width: 92px; height: 92px; font-size: 38px !important; background: rgba(255,79,163,.45) !important; }
 #t-jump { right: 100px; bottom: 6px; width: 60px; height: 60px; }
 #t-dash { right: 20px; bottom: 100px; width: 60px; height: 60px; }
+#t-voz { right: 168px; bottom: 8px; width: 52px; height: 52px; font-size: 22px !important; background: rgba(40,120,70,.6) !important; }
+#t-voz.rec { background: rgba(230,40,40,.85) !important; box-shadow: 0 0 0 4px rgba(255,80,80,.4); }
+#vozaviso { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); background: rgba(160,20,20,.9); color: #fff; font: 800 15px 'Nunito', sans-serif; padding: 8px 14px; border-radius: 12px; pointer-events: none; z-index: 50; }
+#chat-hist .vozlink { color: #8affb0; font-weight: 800; text-decoration: underline; cursor: pointer; }
 #t-talk { right: 96px; bottom: 82px; width: 60px; height: 60px; background: rgba(255,207,64,.55) !important; }
 body.touch #chat { top: 6px; bottom: auto; left: 50%; transform: translateX(-50%); width: 36vw; height: 56px; font-size: 10px; pointer-events: none; opacity: .85; }
 body.touch #status { transform: scale(.8); transform-origin: top left; }
@@ -263,6 +267,7 @@ body.touch #chat-hist { max-height: 34vh; }
   body.touch #tbtns { right: calc(10px + env(safe-area-inset-right)); bottom: 10px; width: 136px; height: 136px; }
   body.touch #t-atk { width: 72px; height: 72px; font-size: 30px !important; }
   body.touch #t-jump { right: 78px; bottom: 2px; width: 48px; height: 48px; font-size: 20px; }
+  body.touch #t-voz { right: 134px; bottom: 2px; width: 46px; height: 46px; font-size: 20px !important; }
   body.touch #t-dash { right: 12px; bottom: 80px; width: 48px; height: 48px; font-size: 20px; }
   body.touch #t-talk { right: 70px; bottom: 62px; width: 48px; height: 48px; }
   body.touch #bottom { bottom: 6px; gap: 3px; }

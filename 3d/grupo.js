@@ -22,14 +22,26 @@ const Grupo = (() => {
   function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); return { gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null }; }
   // ---------------- divisão dos itens da caçada (como o "dividir itens" do Ragnarok)
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
+  // anti-leech (como o Ragnarok): só divide com quem tem nível parecido.
+  // até 10 níveis de diferença: parte inteira; de 10 a 20: vai caindo; mais de 20: nada da caçada do outro
+  const peso = (a, b) => { const g = Math.abs((a || 1) - (b || 1)); return g <= 10 ? 1 : g >= 20 ? 0 : (20 - g) / 10; };
+  const pertoDe = (m, ref) => membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO && peso(ref, r.s.lv) > 0);
+  // quem mata sorteia cada item entre quem é do grupo, está perto e tem nível parecido (inclusive ele mesmo)
   function sortear(m) {
     if (!gp() || !online()) return null;
-    const lista = [null, ...membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO)];
+    const lista = [null, ...pertoDe(m, P.lv)];
     return lista.length > 1 ? lista[Math.floor(Math.random() * lista.length)] : null;
   }
-  // XP dividido igual entre quem está perto (com +10% por companheiro): 2 no grupo = 55% para cada; 4 = 32,5%; 8 = 21%
-  function quantosPerto(m) { if (!gp() || !online()) return 1; return 1 + membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO).length; }
-  function parteXp(m) { const n = quantosPerto(m); return n > 1 ? (1 + 0.1 * (n - 1)) / n : 1; }
+  // XP dividido igual (com +10% por companheiro): 2 no grupo = 55% para cada; 4 = 32,5%; 8 = 21%
+  function quantosPerto(m, ref = P.lv) { if (!gp() || !online()) return 1; return 1 + pertoDe(m, ref).length; }
+  function parteXp(m, ref = P.lv) { const n = quantosPerto(m, ref); return n > 1 ? (1 + 0.1 * (n - 1)) / n : 1; }
+  // do lado de quem NÃO matou: a parte dele, já com o desconto de diferença de nível (0 = leech: não ganha)
+  function parteDoMatador(m, peer) {
+    const k = Net.peers().find(r => r.peer === peer); if (!k) return { parte: 0 };
+    const w = peso(P.lv, k.s.lv); if (w <= 0) return { parte: 0, lvK: k.s.lv };
+    const n = 1 + pertoDe(m, k.s.lv).length;                           // eu + os do grupo perto (o matador entra aqui)
+    return { parte: (n > 1 ? (1 + 0.1 * (n - 1)) / n : 1) * w, n, w };
+  }
   function enviar(r, id, n, de) {
     envios.push({ to: r.peer, id, n, de, k: Math.random().toString(36).slice(2, 9), at: Date.now() });
     const I = ITEMS[id]; if (I) log(`👥 ${I.ic} <b>${I.name}</b> foi para <b>${r.n}</b> (sorteio do grupo).`, 'sys');
@@ -54,7 +66,7 @@ const Grupo = (() => {
     for (const r of M) opts.push({ label: `🧭 Ir até ${r.n}`, fn: () => { P.qGo = { x: r.x, z: r.z, name: r.n }; log(`🧭 Indo até <b>${r.n}</b>.`, 'sys'); if (typeof autoStart === 'function') autoStart(); } });
     if (gp()) opts.push({ label: '🚪 Sair do grupo', fn: () => { sair(); } });
     opts.push({ label: 'Fechar' });
-    dialog('👥 Grupo', `${lista}<br><br><small>No grupo, quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> (com bônus de 10% por companheiro) e o monstro <b>conta nas missões, desafios e aventuras dos amigos dos dois</b>. Os <b>itens são sorteados</b> entre quem está perto.</small>${fora.length ? '' : '<br><br><i>Não tem mais ninguém on-line agora para chamar.</i>'}`, opts);
+    dialog('👥 Grupo', `${lista}<br><br><small>No grupo, quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> (com bônus de 10% por companheiro; só com quem tem nível parecido: até 10 níveis de diferença, parte inteira; mais de 20, nada) e o monstro <b>conta nas missões, desafios e aventuras dos amigos dos dois</b>. Os <b>itens são sorteados</b> entre quem está perto.</small>${fora.length ? '' : '<br><br><i>Não tem mais ninguém on-line agora para chamar.</i>'}`, opts);
   }
   // convites recebidos e quem entrou/saiu do grupo
   function update(dt) {
@@ -84,14 +96,66 @@ const Grupo = (() => {
       for (const n of a) if (!b.has(n)) log(`👥 <b>${n}</b> saiu do grupo (ou ficou off-line).`, 'sys');
     }
     nomesAntes = nomes;
+    const bv = $('t-voz'); if (bv) bv.style.display = nomes ? '' : 'none';
   }
   // os companheiros no quadro de Missões
   function html() {
     const M = membros(); if (!M.length) return '';
     return `<div class="qi" data-grupo="1"><b style="color:#7dff6a">👥 Grupo</b><br>` + M.map(r => { const hp = Math.max(0, Math.min(100, r.s.hp ?? 100)); return `${r.n} <span style="display:inline-block;width:46px;height:6px;background:#3a2030;border-radius:3px;vertical-align:middle"><span style="display:block;width:${hp}%;height:6px;background:${hp > 40 ? '#5ae07a' : '#ff5a5a'};border-radius:3px"></span></span> <small>${perto(r) ? 'perto' : Math.round(Math.hypot(r.x - P.x, r.z - P.z)) + ' m'}</small>`; }).join('<br>') + '</div>';
   }
+  // ---------------- rádio do grupo: segure 🎤, fale e solte (até 10 s); chega só para o grupo
+  let mic = null, rec = null, pedacos = [], recIni = 0, recTimer = null, vozN = 0;
+  const VOZES = new Map();
+  const mimeOk = () => typeof MediaRecorder === 'undefined' ? null : ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+  async function gravar() {
+    if (rec || !online() || !membros().length) { if (!membros().length) log('🎤 O rádio fala com o seu grupo: chame alguém no 👥 primeiro.', 'sys'); return; }
+    if (mimeOk() === null || !navigator.mediaDevices) { log('🎤 Este navegador não grava áudio.', 'bad'); return; }
+    try { mic = mic && mic.active ? mic : await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+    catch (e) { log('🎤 Sem permissão para usar o microfone. Libere nas configurações do navegador.', 'bad'); return; }
+    const t = mimeOk(); pedacos = [];
+    try { rec = new MediaRecorder(mic, { ...(t ? { mimeType: t } : {}), audioBitsPerSecond: 24000 }); } catch (e) { rec = new MediaRecorder(mic); }
+    rec.ondataavailable = e => { if (e.data && e.data.size) pedacos.push(e.data); };
+    rec.onstop = mandar;
+    rec.start(); recIni = Date.now(); $('t-voz') && $('t-voz').classList.add('rec');
+    let av = $('vozaviso'); if (!av) { av = document.createElement('div'); av.id = 'vozaviso'; $('hud').appendChild(av); } av.style.display = ''; av.textContent = '🎙️ Gravando... solte para mandar ao grupo';
+    recTimer = setTimeout(parar, 10000);
+  }
+  function parar() { clearTimeout(recTimer); if (rec && rec.state === 'recording') rec.stop(); $('t-voz') && $('t-voz').classList.remove('rec'); const av = $('vozaviso'); if (av) av.style.display = 'none'; }
+  function mandar() {
+    const r = rec; rec = null; const seg = (Date.now() - recIni) / 1000;
+    if (seg < 0.5 || !pedacos.length) return;
+    const blob = new Blob(pedacos, { type: r && r.mimeType || pedacos[0].type || 'audio/webm' }), fr = new FileReader();
+    fr.onload = () => {
+      const a = String(fr.result).split(',')[1] || ''; if (a.length > 150000) { log('🎤 Recado muito longo. Fale um pouco menos.', 'bad'); return; }
+      Net.send({ t: 'voz', para: membros().map(x => x.peer), n: P.name, a, mime: blob.type, seg: Math.round(seg) });
+      guardar(blob, P.name, Math.round(seg), true);
+    };
+    fr.readAsDataURL(blob);
+  }
+  function guardar(blob, nome, seg, eu) {
+    const id = 'v' + (++vozN), url = URL.createObjectURL(blob); VOZES.set(id, url); if (VOZES.size > 20) { const [k, u] = VOZES.entries().next().value; URL.revokeObjectURL(u); VOZES.delete(k); }
+    chatMsg(`👥 <b>[Grupo] ${esc(nome)}</b>: <a class="vozlink" data-v="${id}">🎤 recado de voz (${seg || 1} s) ▶</a>`, 'grupo', eu);
+    return url;
+  }
+  function tocar(id) { const u = VOZES.get(id); if (!u) return; const au = new window.Audio(u); au.play().catch(() => log('🎤 Toque no ▶ do recado no chat para ouvir.', 'sys')); }
+  function recebeu(m) {
+    if (!m || !m.a || !doGrupo(m.de)) return;
+    try {
+      const bin = atob(m.a), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      const url = guardar(new Blob([u8], { type: m.mime || 'audio/webm' }), m.n || '?', m.seg);
+      const au = new window.Audio(url); au.play().catch(() => log('🎤 Chegou recado de voz: toque no ▶ no chat para ouvir.', 'sys'));
+    } catch (e) { }
+  }
   function init() {
+    if (typeof Net !== 'undefined' && Net.on) Net.on('voz', recebeu);
+    if (!$('t-voz') && $('tbtns')) {
+      const b = document.createElement('button'); b.id = 't-voz'; b.title = 'Rádio do grupo: segure e fale'; b.textContent = '🎤'; b.style.display = 'none'; $('tbtns').appendChild(b);
+      b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); gravar(); });
+      for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, e => { e.preventDefault(); parar(); });
+    }
+    if ($('chat-hist')) $('chat-hist').addEventListener('click', e => { const a = e.target.closest('.vozlink'); if (a) tocar(a.dataset.v); });
+
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, PERTO };
+  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, PERTO };
 })();

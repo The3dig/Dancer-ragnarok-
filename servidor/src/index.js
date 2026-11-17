@@ -36,6 +36,7 @@ const CORS = {
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "content-type": "application/json; charset=utf-8" } });
 const MAX = 50;          // jogadores por mundo
 const MAX_MSG = 24000;   // tamanho máximo de uma mensagem (bytes)
+const MAX_VOZ = 160000;  // recado de voz do grupo (até ~10 s de áudio comprimido)
 
 export default {
   async fetch(req, env) {
@@ -320,7 +321,7 @@ export class Mundo {
   }
 
   async webSocketMessage(ws, msg) {
-    if (typeof msg !== "string" || msg.length > MAX_MSG) return;
+    if (typeof msg !== "string" || msg.length > (msg.startsWith('{"t":"voz"') ? MAX_VOZ : MAX_MSG)) return;
     let m; try { m = JSON.parse(msg); } catch (e) { return; }
     if (!m || typeof m.t !== "string") return;
     const d = this.dados(ws); if (!d.peer) return;
@@ -346,6 +347,12 @@ export class Mundo {
         this.mobs.set(o.id, mob);
         this.todos({ t: "mundo1", mob: { id: mob.id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono } }, ws);
       }
+    } else if (m.t === "voz" && typeof m.a === "string" && Array.isArray(m.para)) {
+      // recado de voz do grupo: vai só para os companheiros escolhidos (no máximo 7), um a cada 2 s por jogador
+      if (d.vozT && agora - d.vozT < 2000) return; d.vozT = agora; try { ws.serializeAttachment(d); } catch (e) {}
+      const para = new Set(m.para.slice(0, 7).filter((x) => typeof x === "string"));
+      const out = JSON.stringify({ t: "voz", de: d.peer, n: String(m.n || "").slice(0, 24), a: m.a, mime: String(m.mime || "").slice(0, 40), seg: Math.min(15, Number(m.seg) || 0) });
+      for (const w of this.vivos()) if (para.has(this.dados(w).peer)) this.enviar(w, out);
     } else if (m.t === "m" && Array.isArray(m.l)) {
       const out = [];
       for (const e of m.l.slice(0, 300)) {

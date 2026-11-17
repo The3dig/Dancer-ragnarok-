@@ -70,9 +70,11 @@ const Partilha = (() => {
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
-      const grupo = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO;
+      const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO ? Grupo.parteDoMatador(mb, m.by) : null;
+      const grupo = gq && gq.parte > 0;
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
-      else if (grupo) killMob(mb, { ajuda: Grupo.parteXp(mb), grupo: true, n: Grupo.quantosPerto(mb) });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
+      else if (grupo) killMob(mb, { ajuda: gq.parte, grupo: true, n: gq.n, w: gq.w });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
+      else if (gq && gq.lvK && !P.leechAviso) { P.leechAviso = 1; log(`👥 Diferença de nível grande demais (mais de 20) com quem matou: no grupo, a caçada só se divide entre níveis parecidos.`, 'sys'); killMob(mb, parte > 0.02 ? { ajuda: parte } : { semPremio: true }); }
       else if (parte > 0.02) killMob(mb, { ajuda: parte });
       else killMob(mb, { semPremio: true });
     });
