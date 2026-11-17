@@ -1549,7 +1549,7 @@ function killMob(m, o = {}) {
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
     const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
-    log(`🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
+    log(o.grupo ? `👥 O grupo derrotou <b>${m.d.name}</b>! +${xp} XP` : `🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
     if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
     return;
   }
@@ -2033,7 +2033,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -2389,10 +2389,10 @@ function updateHUD() {
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
   const ui = P.ui || {};
   const qh2 = (ui.quest && typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html(!ui.quest) : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
-  const dsf = typeof Desafios !== 'undefined' && Desafios.painel ? Desafios.painel() : '';                // etapa dos amigos/desafios que você está caçando
+  const dsf = (typeof Grupo !== 'undefined' ? Grupo.html() : '') + (typeof Desafios !== 'undefined' && Desafios.painel ? Desafios.painel() : '');                // etapa dos amigos/desafios que você está caçando
   const qh3 = dsf ? (qh2.endsWith('</div></div>') ? qh2.slice(0, -6) + dsf + '</div>' : qh2 + `<div class="wb">${dsf}</div>`) : qh2;
   if ($('quest').dataset.h !== qh3) { $('quest').innerHTML = qh3; $('quest').dataset.h = qh3; }
-  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('[data-dsf]') && typeof Desafios !== 'undefined') { Desafios.abrirFoco(); return; } if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
+  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('[data-grupo]') && typeof Grupo !== 'undefined') { Grupo.painel(); return; } if (e.target.closest('[data-dsf]') && typeof Desafios !== 'undefined') { Desafios.abrirFoco(); return; } if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo
@@ -2618,7 +2618,7 @@ const BigMap = (() => {
       if (view) { const x = X(n.x), z = Z(n.z); g.font = `${Math.round(13 * k / 2.2)}px sans-serif`; g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.arc(x, z, 7 * k / 2.2, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.fillText(ICON[n.id] || '•', x, z + 4 * k / 2.2); }
       else { g.fillStyle = '#ffcf40'; g.fillRect(X(n.x) - 1.5 * k, Z(n.z) - 1.5 * k, 3 * k, 3 * k); }
     }
-    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k / u, 0, TAU); g.fill(); }
+    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = r.s && r.s.gp && r.s.gp === P.grupo ? '#7dff6a' : '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k / u, 0, TAU); g.fill(); }
     const qt = questTarget(), px = X(P.x), pz = Z(P.z);
     if (qt) {
       const tx = X(qt.x), tz = Z(qt.z), q = k / u;
@@ -2684,6 +2684,9 @@ function drawMinimap() {
   if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } Tower.minimap(mg); return; }
   if (!inVal(P.z)) Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { const mk = n.markK || '', nw = mk.startsWith('!'), rd = mk.startsWith('?') && !mk.endsWith('#7a7a88'), s = nw || rd ? 5 : 3; mg.fillStyle = nw ? '#7dff6a' : rd ? '#6ab0ff' : '#ffcf40'; mg.fillRect((n.x - M.x0) * sx - s / 2, (n.z - M.z0) * sz - s / 2, s, s); }
+  if (typeof Net !== 'undefined' && Net.peers && !inTower(P.z)) for (const r of Net.peers()) {            // outros jogadores (verde = do seu grupo)
+    const gr = r.s && r.s.gp && r.s.gp === P.grupo, x = (r.x - M.x0) * sx, z = (r.z - M.z0) * sz; if (x < 0 || z < 0 || x > mm.width || z > mm.height) continue;
+    mg.fillStyle = gr ? '#7dff6a' : '#6ab0ff'; mg.beginPath(); mg.arc(x, z, gr ? 3.5 : 2.5, 0, TAU); mg.fill(); if (gr) { mg.strokeStyle = '#000'; mg.lineWidth = 1; mg.stroke(); } }
   const px = (P.x - M.x0) * sx, pz = (P.z - M.z0) * sz;
   const qt = questTarget();
   if (qt) {                                                     // destino da missão: linha tracejada e estrela dourada
@@ -3077,7 +3080,7 @@ function fecharJanelas(exceto) {
   }
 }
 // qual janela cada botão abre (as outras fecham antes)
-const JANELA_DO_BOTAO = { 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog' };
+const JANELA_DO_BOTAO = { 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'dialog' };
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('#menu button'); if (!b || !(b.id in JANELA_DO_BOTAO)) return;
   fecharJanelas(JANELA_DO_BOTAO[b.id]);
@@ -3143,7 +3146,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   SPAWNS.forEach((s, si) => { for (let i = 0; i < s.n; i++) { const m = spawnMob(s.type, s.area, s.at); m.nid = si + '-' + i; } });
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof Grupo !== 'undefined') Grupo.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }

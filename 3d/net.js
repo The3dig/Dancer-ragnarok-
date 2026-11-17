@@ -145,7 +145,7 @@ const Net = (() => {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
         kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null,
-        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}),
+        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}),
       };
       const j = JSON.stringify(pres);
       if (j !== lastSent) { lastSent = j; room.presence(pres).catch(() => { }); }

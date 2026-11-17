@@ -70,7 +70,9 @@ const Partilha = (() => {
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
+      const grupo = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO;
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
+      else if (grupo) killMob(mb, { ajuda: Math.max(parte, 0.6), grupo: true });   // companheiro de grupo perto: XP e conta nas missões
       else if (parte > 0.02) killMob(mb, { ajuda: parte });
       else killMob(mb, { semPremio: true });
     });
