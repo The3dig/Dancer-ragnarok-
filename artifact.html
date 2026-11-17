@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2a1d52">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -50,7 +50,7 @@
     <canvas id="beatcv" width="300" height="40"></canvas>
     <div id="hotbar"></div>
   </div>
-  <div id="chatbox" class="hidden"><input id="chat-in" maxlength="80" placeholder="Escreva uma mensagem para os amigos…" autocomplete="off"><button id="chat-send">Enviar</button></div>
+  <div id="chatbox" class="hidden"><div id="chat-hist"></div><div class="chat-linha"><button id="chat-canal" title="Para quem vai a mensagem">🌍 Mundo</button><input id="chat-in" maxlength="80" placeholder="Mensagem para o mundo todo…" autocomplete="off"><button id="chat-send">Enviar</button><button id="chat-x" title="Fechar">✕</button></div></div>
   <div id="statwin" class="win hidden"></div>
   <div id="skillwin" class="win hidden"></div>
   <div id="dialog" class="win hidden"></div>
@@ -84,7 +84,7 @@
       <button id="btn-new">✨ Novo Jogo</button>
       <button id="btn-cont">▶ Continuar</button>
     </div>
-    <p class="hint"><a href="#" onclick="MaisJogos.mostrar();return false" style="font-weight:800">🎮 Mais jogos</a> · <a href="2d.html">Jogar a versão 2D original</a> · <span class="ver">versão 17/11 · 1</span></p>
+    <p class="hint"><a href="#" onclick="MaisJogos.mostrar();return false" style="font-weight:800">🎮 Mais jogos</a> · <a href="2d.html">Jogar a versão 2D original</a> · <span class="ver">versão 17/11 · 2</span></p>
   </div>
 </div>
 

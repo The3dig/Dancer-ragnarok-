@@ -140,7 +140,7 @@ const Guilda = (() => {
     }
     if (tipo === 'aviso') { if (await acao('aviso', { texto: d.texto })) log('📌 Aviso da guilda salvo.', 'sys'); }
     if (tipo === 'convidar') { if (await acao('convidar', { alvo: d.alvo })) log(`📨 Convite enviado para <b>${esc(d.alvo)}</b>.`, 'sys'); }
-    if (tipo === 'chat') { const t = String(d.texto || '').trim().slice(0, 80); if (!t || !minha()) return; P.say = { t, at: Date.now(), g: minha() }; log(`🛡️ <b>[Guilda] ${esc(P.name)}</b>: ${esc(t)}`, 'guild'); f.reset(); }
+    if (tipo === 'chat') { const t = String(d.texto || '').trim().slice(0, 80); if (!t || !minha()) return; P.say = { t, at: Date.now(), g: minha() }; chatMsg(`🛡️ <b>[Guilda] ${esc(P.name)}</b>: ${esc(t)}`, 'guild', true); f.reset(); }
   }
   // Chamado da guilda: viaja até um membro online
   function chamado(nome) {

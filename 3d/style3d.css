@@ -227,11 +227,20 @@ body.touch #skillwin { width: min(560px, 62vw); }
 .plabel .lv { color: #9fe0ff; font-size: 10px; }
 .bubble { position: absolute; left: 0; top: 0; max-width: 220px; padding: 6px 10px; background: rgba(255,255,255,.95); color: #1a1428; border-radius: 12px; font: 700 12px 'Nunito', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,.35); white-space: normal; text-align: center; }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-top-color: rgba(255,255,255,.95); border-bottom: 0; }
-#chatbox { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); display: flex; gap: 6px; z-index: 40; width: min(460px, 80vw); }
-#chatbox input { flex: 1; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(16,14,28,.9); color: var(--txt); font: 700 14px 'Nunito', sans-serif; }
+#chatbox { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 40; width: min(560px, 86vw); }
+#chatbox .chat-linha { display: flex; gap: 6px; }
+#chat-hist { max-height: 32vh; overflow-y: auto; background: rgba(10,8,18,.88); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font: 600 13px 'Nunito', sans-serif; color: #e6e0f0; }
+#chat-hist:empty::before { content: 'Nenhuma conversa ainda. O que você escrever aqui aparece para todos.'; opacity: .6; }
+#chat-hist .grupo { color: #8affb0; } #chat-hist .guild { color: #8affb0; } #chat-hist small { opacity: .55; }
+#chat-canal, #chat-x { padding: 0 10px !important; background: rgba(40,30,60,.95) !important; color: #fff !important; border: 1px solid var(--line) !important; white-space: nowrap; }
+/* o iPhone dá zoom sozinho em campo com letra menor que 16 px */
+input, textarea, select { font-size: 16px !important; }
+body { touch-action: manipulation; }
+#chatbox input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(16,14,28,.9); color: var(--txt); font: 700 16px 'Nunito', sans-serif; }
 #chatbox button { padding: 0 14px; border-radius: 12px; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; font-weight: 800; }
 #chat .chat { color: #fff; }
-body.touch #chatbox { bottom: auto; top: 60px; }
+body.touch #chatbox { bottom: auto; top: 54px; }
+body.touch #chat-hist { max-height: 34vh; }
 .cname input.err { border-color: #ff6a6a; box-shadow: 0 0 0 2px rgba(255,90,90,.4); }
 
 /* ---------- celular deitado com pouca altura (Safari com barras) ---------- */

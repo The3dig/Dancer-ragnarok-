@@ -100,10 +100,11 @@ const Net = (() => {
     r.s = s; r.tx = s.x; r.tz = s.z; r.ty = s.y || 0; r.tf = s.f || 0;
     if (s.say && s.say.at && seenSay.get(p.peer) !== s.say.at) {
       seenSay.set(p.peer, s.say.at);
-      const daGuilda = !!s.say.g;                                            // mensagem só para a guilda: os outros não veem
+      const daGuilda = !!s.say.g;                                            // mensagem só para a guilda (ou só para o grupo): os outros não veem
       if (Date.now() - s.say.at < 15000 && (!daGuilda || (typeof Guilda !== 'undefined' && Guilda.minha() === s.say.g))) {
-        if (daGuilda) log(`🛡️ <b>[Guilda] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'guild');
-        else { log(`💬 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = String(s.say.t).slice(0, 80); r.bubT = 6; }
+        if (daGuilda) chatMsg(`🛡️ <b>[Guilda] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'guild');
+        else if (s.say.gp) { if (s.say.gp === P.grupo) chatMsg(`👥 <b>[Grupo] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'grupo'); }
+        else { chatMsg(`🌍 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = String(s.say.t).slice(0, 80); r.bubT = 6; }
       }
     }
   }
@@ -204,10 +205,12 @@ const Net = (() => {
     for (const r of remotes.values()) { const fb = r.s && r.s.fb; if (fb && fb.s === slot && typeof fb.d === 'number') t += Math.max(0, Math.min(1e7, fb.d)); }
     return t;
   }
-  function say(text) {
+  function say(text, canal = 'mundo') {
     text = String(text || '').trim().slice(0, 80); if (!text) return;
+    if (canal === 'grupo' && P.grupo) { P.say = { t: text, at: Date.now(), gp: P.grupo }; chatMsg(`👥 <b>[Grupo] ${esc(P.name)}</b>: ${esc(text)}`, 'grupo', true); return; }
+    if (canal === 'guilda' && typeof Guilda !== 'undefined' && Guilda.minha()) { P.say = { t: text, at: Date.now(), g: Guilda.minha() }; chatMsg(`🛡️ <b>[Guilda] ${esc(P.name)}</b>: ${esc(text)}`, 'guild', true); return; }
     P.say = { t: text, at: Date.now() };
-    log(`💬 <b>${esc(P.name)}</b>: ${esc(text)}`, 'chat');
+    chatMsg(`🌍 <b>${esc(P.name)}</b>: ${esc(text)}`, 'chat', true);
     const b = $('mybubble'); b.textContent = text; b.classList.remove('hidden'); myBubT = 6;
     if (!room) log('Você está jogando sozinho agora (sem internet). O chat aparece para os amigos online.', 'sys');
   }

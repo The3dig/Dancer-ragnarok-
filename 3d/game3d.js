@@ -1619,7 +1619,7 @@ function evoCard(dt) {
     el.addEventListener('click', () => { const t = Evo.target(); if (!t) return; Audio8.sfx('click'); const c = Evo.card(); if (c) P.evoMini = c.k; P.qGo = { ...t }; log(`🧭 A seta leva até <b>${t.name}</b>.`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) autoStart(); $('quest').dataset.h = ''; evoT = 0; });
   }
   const c = Evo.card();
-  if (!c || dialogOpen) { el.classList.add('hidden'); return; }                       // não cobre as janelas de conversa
+  if (!c || dialogOpen || !$('chatbox').classList.contains('hidden')) { el.classList.add('hidden'); return; }                       // não cobre as janelas de conversa
   const mini = c.k === 'hunt' || P.evoMini === c.k;
   if (mini && !(P.ui && P.ui.evo)) { el.classList.add('hidden'); return; }
   const html = mini ? `<div class="wb">⭐ ${c.mini} <b class="ev-ir">›</b></div>` : c.txt;
@@ -3090,12 +3090,36 @@ document.addEventListener('pointerdown', e => {
   const k = b.dataset.p; if (k === 'evo') return;
   fecharJanelas(k === 'kvx' ? 'kvx' : 'dialog');
 }, true);
-function openChat() { $('chatbox').classList.remove('hidden'); $('chat-in').focus(); for (const k in keys) keys[k] = false; }
-function sendChat() { const i = $('chat-in'); Net.say(i.value); i.value = ''; $('chatbox').classList.add('hidden'); i.blur(); setTimeout(fitScreen, 400); }
+// ---------------- chat: 🌍 mundo todo, 👥 grupo e 🛡️ guilda, com histórico só das conversas
+const CHAT_HIST = []; let chatCanal = 'mundo', chatNovas = 0;
+function chatMsg(html, cls, eu = false) {
+  log(html, cls);
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  CHAT_HIST.push(`<div class="${cls}"><small>${hora}</small> ${html}</div>`); while (CHAT_HIST.length > 60) CHAT_HIST.shift();
+  const h = $('chat-hist'); if (h) { h.innerHTML = CHAT_HIST.join(''); h.scrollTop = h.scrollHeight; }
+  if ($('chatbox').classList.contains('hidden') && !eu) { chatNovas++; $('btn-chat').classList.add('badge'); $('btn-chat').dataset.n = chatNovas; }
+}
+function canalTxt() { return chatCanal === 'grupo' ? '👥 Grupo' : chatCanal === 'guilda' ? '🛡️ Guilda' : '🌍 Mundo'; }
+function trocarCanal() {
+  const ok = ['mundo', ...(P.grupo ? ['grupo'] : []), ...(typeof Guilda !== 'undefined' && Guilda.minha() ? ['guilda'] : [])];
+  chatCanal = ok[(ok.indexOf(chatCanal) + 1) % ok.length] || 'mundo';
+  $('chat-canal').textContent = canalTxt(); $('chat-in').placeholder = chatCanal === 'grupo' ? 'Mensagem só para o seu grupo…' : chatCanal === 'guilda' ? 'Mensagem só para a sua guilda…' : 'Mensagem para o mundo todo…';
+  if (ok.length === 1) log('💬 Entre num grupo (👥) ou numa guilda (🛡️) para falar só com eles.', 'sys');
+}
+function openChat() {
+  if ((chatCanal === 'grupo' && !P.grupo) || (chatCanal === 'guilda' && !(typeof Guilda !== 'undefined' && Guilda.minha()))) chatCanal = 'mundo';
+  $('chat-canal').textContent = canalTxt();
+  chatNovas = 0; $('btn-chat').classList.remove('badge');
+  $('chatbox').classList.remove('hidden'); const h = $('chat-hist'); h.innerHTML = CHAT_HIST.join(''); h.scrollTop = h.scrollHeight;
+  $('chat-in').focus(); for (const k in keys) keys[k] = false;
+}
+function sendChat() { const i = $('chat-in'); if (i.value.trim()) Net.say(i.value, chatCanal); i.value = ''; i.focus(); }
+function fecharChat() { $('chatbox').classList.add('hidden'); $('chat-in').blur(); setTimeout(fitScreen, 400); }
+$('chat-canal').onclick = trocarCanal; $('chat-x').onclick = fecharChat;
 $('btn-chat').onclick = openChat;
 $('chat-send').onclick = sendChat;
 $('chat-in').addEventListener('blur', () => setTimeout(fitScreen, 400));
-$('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') { $('chatbox').classList.add('hidden'); e.target.blur(); } });
+$('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') fecharChat(); });
 $('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
 $('btn-sit').onclick = () => { P.sit = !P.sit; };
 
