@@ -124,10 +124,44 @@ const Mascotes = (() => {
   }
 
   // ---------------- escolher no quintal
+  // ---------------- Livro de Mascotes: quais monstros dá para capturar, onde vivem e o que dão
+  const TORRE = ['larva', 'verme', 'esfera', 'sentinela'];
+  function ondeVive(t) {
+    const D = MOBDEF[t], sp = SPAWNS.find(q => q.type === t);
+    if (sp) { const x = sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, z = sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2; let nome = ''; try { nome = ZONES[zoneOf(x, z)].name; } catch (e) { } return { txt: nome || 'no mapa', x, z }; }
+    if (TORRE.includes(t)) return { txt: 'Torre do Cisma (andares)' };
+    if (D.field) return { txt: 'Chefe de campo (aparece de tempos em tempos para todos)' };
+    return { txt: 'aparece em lugares especiais (Torre, Abismo ou eventos)' };
+  }
+  const chanceIsca = t => { const D = MOBDEF[t]; return D.boss || D.mini ? 8 : D.field ? 5 : 1; };
+  function livro(pag = 0) {
+    const ts = tipos().sort((a, b) => (MOBDEF[a].lv || 0) - (MOBDEF[b].lv || 0)), POR = 12, n = Math.ceil(ts.length / POR), fat = ts.slice(pag * POR, pag * POR + POR);
+    const tem = Object.keys(S()).length;
+    const opts = fat.map(t => { const D = MOBDEF[t], c = S()[t], is = P.inv['isca_' + t] || 0;
+      return { label: `${c ? '✅' : '⬜'} ${D.name} · Nv ${D.lv} — ${txtBonus(bonusDe(t))}${is ? ` · 🪤×${is}` : ''}`, fn: () => { ficha(t, pag); return true; } }; });
+    if (pag > 0) opts.push({ label: '◀ Página anterior', fn: () => { livro(pag - 1); return true; } });
+    if (pag < n - 1) opts.push({ label: '▶ Próxima página', fn: () => { livro(pag + 1); return true; } });
+    opts.push({ label: 'Fechar' });
+    dialog(`📖 Livro de Mascotes (${pag + 1}/${n})`, `Você capturou <b>${tem}</b> de <b>${ts.length}</b>. ✅ = já é seu · 🪤 = iscas que você tem.<br><small>Todos estes monstros viram mascote (só o Kravenox e o Verme Colossal não). Toque num para ver onde ele vive e ir caçar.</small>`, opts);
+  }
+  function ficha(t, pag) {
+    const D = MOBDEF[t], o = ondeVive(t), is = P.inv['isca_' + t] || 0, c = S()[t];
+    const opts = [];
+    if (o.x != null) opts.push({ label: `🧭 Ir até onde ele vive`, fn: () => { irPara(o.x, o.z, D.name); } });
+    if (c && P.petAtivo !== t) opts.push({ label: '🐾 Levar este mascote junto', fn: () => { escolher(t); montarMoradores(); } });
+    opts.push({ label: '◀ Voltar à lista', fn: () => { livro(pag); return true; } });
+    dialog(`🐾 ${D.name}`, `${c ? '✅ <b>Já é seu mascote.</b><br>' : ''}Nível ${D.lv}${D.boss || D.mini ? ' · <b>chefe</b>' : ''}<br>Mascote dá: <b>${txtBonus(bonusDe(t))}</b><br>📍 Vive em: <b>${o.txt}</b><br>🪤 A <b>Isca de ${D.name}</b> cai dele mesmo: ${chanceIsca(t)}% de chance. Você tem: <b>${is}</b>.<br><small>Para capturar: deixe ele com pouca vida e use a isca (mochila → Usáveis) a até 7 m. ${D.boss || D.mini ? 'Chefe: no máximo 34% de chance.' : 'Quase morto: até 72% de chance.'}</small>`, opts);
+  }
+  function irPara(x, z, nome) {
+    let G = { x, z, name: nome };
+    if (typeof BigMap !== 'undefined' && BigMap.rota && !inTower(P.z)) { const aqui = mapaDe(P.x, P.z), la = mapaDe(x, z); if (aqui !== la) { const w = BigMap.rota(aqui, la); G = { x: w.x, z: w.z, name: w.name, reg: la, regN: nome, fim: { x, z } }; } }
+    P.qGo = G; log(`🧭 Indo até onde vive <b>${nome}</b>. Mexa o joystick para parar.`, 'sys'); if (typeof autoStart === 'function') autoStart();
+  }
   function painel() {
     const meus = Object.keys(S()).filter(t => MOBDEF[t]);
     const opts = meus.map(t => ({ label: `${P.petAtivo === t ? '✅' : '🐾'} ${MOBDEF[t].name} — ${txtBonus(bonusDe(t))}${P.petAtivo === t ? ' (com você)' : ''}`, fn: () => { escolher(t); montarMoradores(); } }));
     if (P.petAtivo) opts.push({ label: '🏡 Deixar todos no quintal', fn: () => { guardarTodos(); montarMoradores(); } });
+    opts.push({ label: '📖 Livro de Mascotes (quais dá para capturar)', fn: () => { livro(); return true; } });
     opts.push({ label: 'Fechar' });
     dialog('🐾 Quintal dos Mascotes', `${meus.length ? `Você tem <b>${meus.length}</b> mascote(s). Escolha <b>um</b> para andar com você: o bônus só vale para o que está junto.` : 'Você ainda não tem mascotes.'}<br><small>Todo monstro do jogo vira mascote. Cada um deixa cair a sua <b>🪤 Isca</b> (rara). Use a isca (mochila → Usáveis) perto de um monstro daquele tipo: quanto menos vida ele tiver, maior a chance. Chefes são bem mais difíceis.</small>`, opts);
   }
@@ -156,5 +190,5 @@ const Mascotes = (() => {
       }
     } else if (P.petAtivo && S()[P.petAtivo]) montarSeg();
   }
-  return { capturar, bonus, update, nearest, painel, bonusDe, txtBonus };
+  return { capturar, bonus, update, nearest, painel, livro, bonusDe, txtBonus };
 })();
