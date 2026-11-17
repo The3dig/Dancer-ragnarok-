@@ -1557,9 +1557,10 @@ function killMob(m, o = {}) {
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
-    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
-    log(o.grupo ? `👥 O grupo derrotou <b>${m.d.name}</b>! +${xp} XP` : `🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
-    if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
+    const dif = P.lv - m.d.lv, pen = o.grupo ? (dif > 8 ? 0.3 : dif > 5 ? 0.6 : 1) : 1;   // no grupo vale o mesmo desconto de nível de quem matou
+    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * pen * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
+    log(o.grupo ? `👥 O grupo derrotou <b>${m.d.name}</b>! +${xp} XP <small>(dividido entre ${o.n || 2})</small>` : `🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
+    if (o.ajuda >= 0.25 || o.grupo) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
     return;
   }
   drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
@@ -1569,9 +1570,10 @@ function killMob(m, o = {}) {
     if (para) Grupo.enviar(para, it, 1, m.d.name); else drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   }
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
-  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1) * (1 + gBon('xp')));
+  const nGrupo = typeof Grupo !== 'undefined' && m.nid ? Grupo.quantosPerto(m) : 1;               // em grupo: XP dividido igual entre quem está perto
+  const xp = Math.round(m.d.xp * mult * (nGrupo > 1 ? Grupo.parteXp(m) : (o.parte ?? 1)) * (1 + gBon('xp')));
   if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
-  log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
+  log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${nGrupo > 1 ? ` <small>(dividido no grupo entre ${nGrupo})</small>` : o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Desafios !== 'undefined') Desafios.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);

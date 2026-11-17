@@ -27,6 +27,9 @@ const Grupo = (() => {
     const lista = [null, ...membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO)];
     return lista.length > 1 ? lista[Math.floor(Math.random() * lista.length)] : null;
   }
+  // XP dividido igual entre quem está perto (com +10% por companheiro): 2 no grupo = 55% para cada; 4 = 32,5%; 8 = 21%
+  function quantosPerto(m) { if (!gp() || !online()) return 1; return 1 + membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO).length; }
+  function parteXp(m) { const n = quantosPerto(m); return n > 1 ? (1 + 0.1 * (n - 1)) / n : 1; }
   function enviar(r, id, n, de) {
     envios.push({ to: r.peer, id, n, de, k: Math.random().toString(36).slice(2, 9), at: Date.now() });
     const I = ITEMS[id]; if (I) log(`👥 ${I.ic} <b>${I.name}</b> foi para <b>${r.n}</b> (sorteio do grupo).`, 'sys');
@@ -51,7 +54,7 @@ const Grupo = (() => {
     for (const r of M) opts.push({ label: `🧭 Ir até ${r.n}`, fn: () => { P.qGo = { x: r.x, z: r.z, name: r.n }; log(`🧭 Indo até <b>${r.n}</b>.`, 'sys'); if (typeof autoStart === 'function') autoStart(); } });
     if (gp()) opts.push({ label: '🚪 Sair do grupo', fn: () => { sair(); } });
     opts.push({ label: 'Fechar' });
-    dialog('👥 Grupo', `${lista}<br><br><small>No grupo, quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>os dois ganham XP</b> e o monstro <b>conta nas missões, desafios e aventuras dos amigos dos dois</b>. Os <b>itens são sorteados</b> entre quem está perto.</small>${fora.length ? '' : '<br><br><i>Não tem mais ninguém on-line agora para chamar.</i>'}`, opts);
+    dialog('👥 Grupo', `${lista}<br><br><small>No grupo, quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> (com bônus de 10% por companheiro) e o monstro <b>conta nas missões, desafios e aventuras dos amigos dos dois</b>. Os <b>itens são sorteados</b> entre quem está perto.</small>${fora.length ? '' : '<br><br><i>Não tem mais ninguém on-line agora para chamar.</i>'}`, opts);
   }
   // convites recebidos e quem entrou/saiu do grupo
   function update(dt) {
@@ -90,5 +93,5 @@ const Grupo = (() => {
   function init() {
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, PERTO };
+  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, PERTO };
 })();
