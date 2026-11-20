@@ -258,7 +258,7 @@ const Vida = (() => {
       if (t.startsWith('alfa_') || ITEMS['carta_' + t] || t === 'vermeColosso') continue;
       const D = MOBDEF[t], h = hs(t), k = KS[h % 6], lv = D.lv || 1, f = D.boss || D.mini ? 1.6 : 1;
       const v = { pow: 2 + lv * 0.18, def: 1 + lv * 0.12, hp: 20 + lv * 5, sp: 10 + lv * 2.5, crit: 0.01 + lv * 0.0003, spd: 0.01 + lv * 0.0003 }[k] * f;
-      ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: SL[(h >> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };
+      ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: SL[(h >>> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };
       D.drops.push(['carta_' + t, D.boss || D.mini ? 0.04 : 0.004]);
     } }
   // ---------------- cartas em 4 níveis (ideia do Rone): Simples, Forte, Invocada e Suprema; cada uma bem mais rara que a anterior
@@ -811,7 +811,7 @@ const Vida = (() => {
     const tabsHtml = `<div class="itabs">${TABS.map(([k, ic, nm, f]) => { const n = allIds.filter(id => f(ITEMS[id], id)).length; return `<div class="itab${tab === k ? ' on' : ''}" data-a="tab" data-v="${k}"><span>${ic}</span><small>${nm}</small>${k !== 'tudo' && n ? `<b>${n}</b>` : ''}</div>`; }).join('')}</div>`;
     const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b>${better(id) ? '<em class="better">▲</em>' : ''}</div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
     let det = '<small>Toque num item para ver de perto.</small>', view = '';
-    const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl];
+    const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl] || 'Peça';
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : `<span class="nopic">${iconeMob(t)}</span>`; };
     // carta desenhada: moldura dourada, retrato do monstro, bônus e onde encaixa
     const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
