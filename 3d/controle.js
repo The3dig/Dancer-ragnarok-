@@ -25,7 +25,7 @@ const Controle = (() => {
   const jogando = () => typeof running !== 'undefined' && running;
 
   // ---------------------------------------------------------------- o que dá para apertar na tela
-  const SEL = 'button, a[href], input, select, textarea, [onclick], [role=button], [data-a], [data-b], [data-st], [data-learn], [data-pin], [data-reset], [data-share], [data-x], [data-n], [data-v], [data-q], .qmore, .icell, .itab, .eslot, .rail-btn, .sl-row';
+  const SEL = 'button, a[href], input, select, textarea, [onclick], [role=button], [data-a], [data-b], [data-st], [data-learn], [data-pin], [data-reset], [data-share], [data-x], [data-n], [data-v], [data-q], .qmore, .icell, .snode, .itab, .eslot, .rail-btn, .sl-row';
   // rolagem que esconde o item (mochila, listas): vale se a lista em si aparece
   function caixaRolagem(el) {
     let e = el.parentElement;
@@ -36,6 +36,7 @@ const Controle = (() => {
     const h = document.elementFromPoint(Math.min(innerWidth - 1, Math.max(0, x)), Math.min(innerHeight - 1, Math.max(0, y))); if (!h) return false;
     return h === el || el.contains(h) || h.contains(el) && h.closest(SEL) === el;   // não está tampado por outra janela
   }
+  const emTela = el => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
   function visivel(el) {
     if (el.disabled || el.closest('[disabled]')) return false;
     const r = el.getBoundingClientRect(); if (r.width < 6 || r.height < 6) return false;
@@ -82,16 +83,23 @@ const Controle = (() => {
     const meio = { x: innerWidth / 2, y: innerHeight / 2 };
     foco = l.reduce((a, b) => { const ca = centro(a), cb = centro(b); return Math.hypot(cb.x - meio.x, cb.y - meio.y) < Math.hypot(ca.x - meio.x, ca.y - meio.y) ? b : a; });
   }
-  function mover(dx, dy) {
+  function mover(dx, dy, reajuste) {
     const l = alvos(); if (!l.length) { foco = null; return; }
+    if (reajuste) { if (foco && !emTela(foco)) { const c = centro(foco), y0 = c.y; foco = l.filter(emTela).reduce((a, b) => !a || Math.abs(centro(b).y - y0) < Math.abs(centro(a).y - y0) ? b : a, null) || foco; } desenhar(); return; }
     if (!foco || !l.includes(foco)) { escolherInicial(); return; }
+    const jt = janelaTopo(), dentro = jt && jt.contains(foco) ? l.filter(e => jt.contains(e)) : l;   // com janela aberta, o cursor não foge dela
     const c = centro(foco); let melhor = null, mv = Infinity;
-    for (const el of l) {
+    for (const el of dentro) {
       if (el === foco) continue;
       const o = centro(el), vx = o.x - c.x, vy = o.y - c.y, ao = vx * dx + vy * dy;   // avanço na direção
       if (ao <= 4) continue;
       const lado = Math.abs(vx * dy - vy * dx), v = ao + lado * 2.2;                     // de lado conta mais caro
       if (v < mv) { mv = v; melhor = el; }
+    }
+    if (!melhor && dy) {                                                                // nada mais embaixo/em cima: rola a lista ou a janela
+      let e = foco.parentElement; while (e && e !== document.body) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2) break; e = e.parentElement; }
+      if (e && e !== document.body) { const antes = e.scrollTop; e.scrollTop += dy * e.clientHeight * 0.6; if (e.scrollTop !== antes) { setTimeout(() => mover(0, 0, true), 60); } }
+      return;
     }
     if (melhor) { foco = melhor; try { foco.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { } setTimeout(desenhar, 30); if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); }
   }
@@ -115,7 +123,7 @@ const Controle = (() => {
     for (const s of JAN) { const e = document.querySelector(s); if (e && !e.classList.contains('hidden') && e.style.display !== 'none' && e.offsetParent !== null) return e; }
     return null;
   }
-  let topoAnt = null;
+  let topoAnt = null, procT = 0;
   function janelaAberta() {
     if (typeof dialogOpen !== 'undefined' && dialogOpen) return true;
     for (const s of JAN) { const e = document.querySelector(s); if (e && !e.classList.contains('hidden') && e.style.display !== 'none' && e.offsetParent !== null) return true; }
@@ -167,7 +175,7 @@ const Controle = (() => {
   function update(dt) {
     const p = pad();
     if (!p) { st.x = st.y = 0; if (caixa) caixa.style.display = 'none'; if (ligado) { ligado = false; if (jogando()) log('🎮 Controle desconectado.', 'sys'); } return; }
-    if (!ligado) { ligado = true; ant = []; if (jogando()) { if (!avisou) { avisou = true; log('🎮 <b>Controle conectado!</b> <b>A</b> fala com quem está perto ou ataca · <b>B</b> esquiva · <b>X</b> pula · <b>LB RB LT RT</b> e <b>setas</b> = atalhos · <b>☰</b> = cursor para usar qualquer botão da tela · <b>⧉</b> mapa. Lista completa na ajuda ❓.', 'gold'); } else log('🎮 Controle conectado.', 'sys'); } }
+    if (!ligado) { ligado = true; ant = []; if (jogando()) { if (typeof Audio8 !== 'undefined' && !Audio8.tocando) log('🔊 Se o jogo estiver sem som, <b>toque uma vez na tela</b>: o iPhone só libera o som depois de um toque (o controle não conta).', 'sys'); if (!avisou) { avisou = true; log('🎮 <b>Controle conectado!</b> <b>A</b> fala com quem está perto ou ataca · <b>B</b> esquiva · <b>X</b> pula · <b>LB RB LT RT</b> e <b>setas</b> = atalhos · <b>☰</b> = cursor para usar qualquer botão da tela · <b>⧉</b> mapa. Lista completa na ajuda ❓.', 'gold'); } else log('🎮 Controle conectado.', 'sys'); } }
     const ax = p.axes || [], bt = p.buttons || [];
     const cur = modoCursor();
     if (cur !== estavaCursor) { estavaCursor = cur; if (cur) { foco = null; escolherInicial(); } }
@@ -181,7 +189,7 @@ const Controle = (() => {
       const d = Math.hypot(lx, ly) > 0.5 ? (Math.abs(lx) > Math.abs(ly) ? [Math.sign(lx), 0] : [0, Math.sign(ly)]) : null;
       if (d) { const k = d.join(); if (k !== moveDir) { moveDir = k; moveT = 0.32; mover(...d); } else if ((moveT -= dt) <= 0) { moveT = 0.12; mover(...d); } } else moveDir = null;
       if (ry) rolar(ry * dt * 900);
-      if (!foco || !document.contains(foco)) escolherInicial();
+      if ((!foco || !document.contains(foco)) && (procT -= dt) <= 0) { procT = 0.3; escolherInicial(); }
       desenhar();
       return;
     }

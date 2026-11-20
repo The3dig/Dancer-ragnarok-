@@ -124,20 +124,27 @@ const Audio8 = (() => {
     t.dr = t.drums.split(/\s+/);
   }
 
-  // iPhone: sem isto o som some com a chave do silencioso ligada (e no espelhamento para a TV)
+  // iPhone: sem isto o som some com a chave do silencioso ligada (e no cabo/espelhamento para a TV)
+  function wavMudo(seg) {          // 1 s de silêncio de verdade (um arquivo curtinho em repetição pesa no iPhone)
+    const n = Math.round(8000 * seg), b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+    b.fill(128, 44); return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+  }
+  let mudo = null;
   function sessaoPlayback() {
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
-    // iOS mais antigo: um <audio> mudo tocando faz o sistema tratar o jogo como "mídia"
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) { }
+    if (navigator.audioSession) return;                    // iOS 16.4+ já resolve só com a linha acima
     try {
-      if (!window.__somMudo && /iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document) {
-        const a = document.createElement('audio');
-        a.src = 'data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==';
-        a.loop = true; a.setAttribute('playsinline', ''); a.volume = 0.01;
-        const pr = a.play(); if (pr) pr.catch(() => { });
-        window.__somMudo = a;
-      } else if (window.__somMudo && window.__somMudo.paused) { const pr = window.__somMudo.play(); if (pr) pr.catch(() => { }); }
+      if (!/iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) || !('ontouchend' in document)) return;
+      if (!mudo) { mudo = document.createElement('audio'); mudo.src = wavMudo(1); mudo.loop = true; mudo.setAttribute('playsinline', ''); }
+      if (mudo.paused) { const pr = mudo.play(); if (pr) pr.catch(() => { }); }
     } catch (e) { }
   }
+  // qualquer toque/tecla destrava o som de novo (o iPhone suspende ao trocar a saída, ex.: ligar o cabo da TV)
+  const destravar = () => { if (ctx && ctx.state !== 'running') { sessaoPlayback(); try { ctx.resume(); } catch (e) { } } };
+  ['pointerdown', 'touchend', 'keydown', 'click'].forEach(ev => addEventListener(ev, destravar, true));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) destravar(); });
   function init() {
     sessaoPlayback();
     if (ctx) { if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume(); return; }
@@ -382,5 +389,5 @@ const Audio8 = (() => {
   }
   function footstep(sand) { if (!ctx || !ambOn) return; noise(sfxBus, ctx.currentTime, 0.06, sand ? 0.08 : 0.05, 'bandpass', sand ? 900 : 500); }
 
-  return { init, play, stop, toggleMusic, sfx, beat, ambient, step: footstep, get musicOn() { return musicOn; } };
+  return { init, play, stop, toggleMusic, sfx, beat, ambient, step: footstep, get musicOn() { return musicOn; }, get tocando() { return !!ctx && ctx.state === 'running'; } };
 })();
