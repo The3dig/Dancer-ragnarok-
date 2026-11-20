@@ -165,8 +165,8 @@ function autoDir(dt) {
   if ((AUTO.tgT -= dt) <= 0) { AUTO.tgT = 0.4; AUTO.tg = questTarget(); }
   const T = AUTO.tg;
   if (!T) { autoStop('🚶 Objetivo concluído.'); return null; }
-  if (P.hp < AUTO.hp - 1) { autoStop('⚠️ Você foi atacado: parou de andar sozinho.'); return null; }
-  AUTO.hp = Math.max(AUTO.hp, P.hp);
+  // levar um golpe não para mais a caminhada; só para se a vida ficar baixa (aí é hora de lutar ou tomar poção)
+  if (P.hp < stats.maxHp() * 0.3) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }
   const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
   if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
   let a = Math.atan2(dx, dz);
@@ -1414,17 +1414,17 @@ const keys = {};
 const camS = { yaw: Math.PI, pitch: 0.42, dist: 9, x: 0, y: 0, z: 0 };
 
 const SPAWNS = [
-  { type: 'pompom', n: 16, area: [-58, 14, -84, 84] }, { type: 'zunzum', n: 9, area: [-58, 14, -84, 84] },
-  { type: 'fungolino', n: 15, area: [-40, 45, -84, 84] },
-  { type: 'besouro', n: 14, area: [55, 145, -84, 84] }, { type: 'serpe', n: 10, area: [62, 145, -84, 84] },
+  { type: 'pompom', n: 26, area: [-58, 14, -84, 84] }, { type: 'zunzum', n: 15, area: [-58, 14, -84, 84] },
+  { type: 'fungolino', n: 25, area: [-40, 45, -84, 84] },
+  { type: 'besouro', n: 24, area: [55, 145, -84, 84] }, { type: 'serpe', n: 17, area: [62, 145, -84, 84] },
   { type: 'guardiao', n: 1, at: RUIN },
   // Valdora
-  { type: 'raizNegra', n: 12, area: [-125, -25, -730, -660] }, { type: 'ecoCinza', n: 10, area: [-70, 30, -790, -700] },
-  { type: 'larvaCinza', n: 10, area: [-40, 120, -720, -665] }, { type: 'ecoCinza', n: 6, area: [-140, -60, -840, -740] },
-  { type: 'sentinelaMuralha', n: 12, area: [VCITY.x - 26, VCITY.x + 26, VCITY.z - 26, VCITY.z + 26] }, { type: 'carrasco', n: 1, at: { x: VCITY.x, z: VCITY.z + 9 } },
+  { type: 'raizNegra', n: 20, area: [-125, -25, -730, -660] }, { type: 'ecoCinza', n: 17, area: [-70, 30, -790, -700] },
+  { type: 'larvaCinza', n: 17, area: [-40, 120, -720, -665] }, { type: 'ecoCinza', n: 10, area: [-140, -60, -840, -740] },
+  { type: 'sentinelaMuralha', n: 18, area: [VCITY.x - 26, VCITY.x + 26, VCITY.z - 26, VCITY.z + 26] }, { type: 'carrasco', n: 1, at: { x: VCITY.x, z: VCITY.z + 9 } },
   // Floresta Morta (níveis 40–55) e Templo da Primeira Raiz
-  { type: 'larvaPernalta', n: 12, area: [330, 430, -800, -690] }, { type: 'raizOssuda', n: 10, area: [380, 470, -730, -660] },
-  { type: 'larvaCristal', n: 12, area: [420, 530, -760, -680] }, { type: 'larvaAntiga', n: 12, area: [490, 590, -800, -700] },
+  { type: 'larvaPernalta', n: 20, area: [330, 430, -800, -690] }, { type: 'raizOssuda', n: 15, area: [380, 470, -730, -660] },
+  { type: 'larvaCristal', n: 19, area: [420, 530, -760, -680] }, { type: 'larvaAntiga', n: 20, area: [490, 590, -800, -700] },
   { type: 'memoria', n: 6, area: [534, 556, -864, -838] }, { type: 'memoria', n: 3, area: [541, 549, -834, -816] },
   { type: 'guardiaoBranco', n: 1, at: { x: FGUARD.x, z: FGUARD.z - 4 } },
   // Praia de Cômodo: só na beira do mar (longe da vila e do píer)
@@ -1434,8 +1434,8 @@ const SPAWNS = [
   { type: 'serpenteOnda', n: 5, area: [-530, -505, -880, -862] }, { type: 'serpenteOnda', n: 5, area: [-530, -505, -680, -648] },
   { type: 'reiCaranguejo', n: 1, at: { x: -510, z: -690 } },
   // Vale dos Mortos (névoa e túmulos) e Ponte dos Mortos
-  { type: 'maoPalida', n: 14, area: [770, 880, -790, -690] }, { type: 'sussurro', n: 12, area: [790, 930, -820, -700] },
-  { type: 'damaSemOlhos', n: 10, area: [840, 960, -800, -670] }, { type: 'sombraVale', n: 10, area: [860, 980, -830, -760] },
+  { type: 'maoPalida', n: 24, area: [770, 880, -790, -690] }, { type: 'sussurro', n: 20, area: [790, 930, -820, -700] },
+  { type: 'damaSemOlhos', n: 17, area: [840, 960, -800, -670] }, { type: 'sombraVale', n: 17, area: [860, 980, -830, -760] },
   { type: 'guardaOssos', n: 6, area: [897, 903, -868, -840] }, { type: 'guardaOssos', n: 6, area: [870, 930, -834, -812] },
   { type: 'primeiroGuardiao', n: 1, at: { x: VGUARD.x, z: VGUARD.z } },
   // Cidade Submersa: cada ilha com os seus (o Refúgio, a primeira, fica tranquilo)
@@ -2060,7 +2060,12 @@ const ZONES = {
 function update(dt) {
   time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
   updatePlayer(dt);
-  for (const m of mobs) updateMob(m, dt);
+  // monstro muito longe (outro mapa): não pensa nem desenha (agora há mais monstros por mapa)
+  for (const m of mobs) {
+    const longe = !m.d.boss && !m.d.mini && Math.abs(m.x - P.x) + Math.abs(m.z - P.z) > 170;
+    if (longe !== !!m.longe) { m.longe = longe; if (m.model && m.model.g) m.model.g.visible = !longe; }
+    if (!longe) updateMob(m, dt);
+  }
   separarMobs(dt);
   for (const r of respawnQ) r.t -= dt;
   respawnQ = respawnQ.filter(r => { if (r.t <= 0) { spawnMob(r.type, r.area, r.at); return false; } return true; });
@@ -3197,7 +3202,7 @@ const joy = { x: 0, y: 0, id: null };
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
 const HELP_OPTS = () => [{ label: 'Fechar' }, { label: MODO_LEVE ? '🐢 Modo leve: LIGADO (toque para voltar ao normal)' : '🐢 Modo leve: desligado (ligue se travar ao espelhar na TV)', fn: () => { try { localStorage.setItem('modoLeve', MODO_LEVE ? '0' : '1'); } catch (e) { } save(); location.reload(); } }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
-  const extra = `🎮 <b>Controle (Xbox, PlayStation…):</b> analógico esquerdo anda, direito gira a câmera · <b>A</b> fala com NPC/quadro/baú perto, senão ataca (segure) · <b>B</b> esquiva · <b>X</b> pula · <b>Y</b> ataca · <b>LB RB LT RT</b> e <b>setas</b> = atalhos 1 a 8 · <b>⧉</b> mapa · <b>L3</b> senta · <b>R3</b> mira.<br>🎯 <b>☰ = modo cursor:</b> um quadrado amarelo anda pelos botões da tela (analógico ou setas), <b>A</b> aperta, <b>B</b> volta. Ele liga sozinho nas telas, janelas e conversas, e dá para usar tudo: botões de cima, painel de missões, quadros, lojas e a tela de entrar.<br>${!TOUCH ? `⌨️ <b>No PC:</b> <b>WASD</b> anda · <b>clique no chão</b> anda até lá · <b>clique no monstro</b> vai até ele e ataca até cair · <b>clique no NPC</b> conversa · <b>arraste</b> para girar a câmera · <b>roda do mouse</b> aproxima/afasta · <b>J</b> ataca · <b>1 a 8</b> atalhos · <b>Espaço</b> pula · <b>Shift</b> esquiva · <b>F</b> fala/usa · <b>Tab</b> mira o monstro mais perto · <b>I</b> ou <b>B</b> mochila · <b>C</b> atributos · <b>K</b> habilidades · <b>Q</b> diário · <b>M</b> mapa · <b>L</b> bestiário · <b>G</b> grupo · <b>O</b> amigos · <b>P</b> mascotes · <b>Enter</b> chat · <b>X</b> senta · <b>U</b> música · <b>H</b> ajuda · <b>Esc</b> fecha tudo<br>` : ''}📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
+  const extra = `🎮 <b>Controle (Xbox, PlayStation…):</b> analógico esquerdo anda, direito gira a câmera · <b>A</b> fala com NPC/quadro/baú perto, senão ataca (segure) · <b>B</b> esquiva · <b>X</b> pula · <b>Y</b> anda sozinho até a missão (de novo para parar) · <b>LB RB LT RT</b> e <b>setas</b> = atalhos 1 a 8 · <b>⧉</b> mapa · <b>L3</b> senta · <b>R3</b> mira.<br>🎯 <b>☰ = modo cursor:</b> um quadrado amarelo anda pelos botões da tela (analógico ou setas), <b>A</b> aperta, <b>B</b> volta. Ele liga sozinho nas telas, janelas e conversas, e dá para usar tudo: botões de cima, painel de missões, quadros, lojas e a tela de entrar.<br>${!TOUCH ? `⌨️ <b>No PC:</b> <b>WASD</b> anda · <b>clique no chão</b> anda até lá · <b>clique no monstro</b> vai até ele e ataca até cair · <b>clique no NPC</b> conversa · <b>arraste</b> para girar a câmera · <b>roda do mouse</b> aproxima/afasta · <b>J</b> ataca · <b>1 a 8</b> atalhos · <b>Espaço</b> pula · <b>Shift</b> esquiva · <b>F</b> fala/usa · <b>Tab</b> mira o monstro mais perto · <b>I</b> ou <b>B</b> mochila · <b>C</b> atributos · <b>K</b> habilidades · <b>Q</b> diário · <b>M</b> mapa · <b>L</b> bestiário · <b>G</b> grupo · <b>O</b> amigos · <b>P</b> mascotes · <b>Enter</b> chat · <b>X</b> senta · <b>U</b> música · <b>H</b> ajuda · <b>Esc</b> fecha tudo<br>` : ''}📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>

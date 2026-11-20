@@ -163,7 +163,7 @@ const Controle = (() => {
     if (i === 0) { if (nearNpc) talk(nearNpc); else if (nearUse) nearUse.fn(); else attack(); return; }
     if (i === 1) doDash();
     if (i === 2) doJump();
-    if (i === 3) attack();
+    if (i === 3) { if (AUTO.on) autoStop('🚶 Parou.'); else autoStart(); return; }   // Y: anda sozinho até a missão seguida (o ataque já está no A)
     if (i in ATALHOS) barUse(ensureBar()[ATALHOS[i]]);
     if (i === 8 && typeof BigMap !== 'undefined') { fecharJanelas('bigmap'); BigMap.show(); }
     if (i === 9) { cursorManual = true; foco = null; escolherInicial(); log('🎮 <b>Modo cursor:</b> analógico escolhe o botão, <b>A</b> aperta, <b>B</b> ou <b>☰</b> volta a jogar.', 'sys'); }
@@ -175,7 +175,7 @@ const Controle = (() => {
   function update(dt) {
     const p = pad();
     if (!p) { st.x = st.y = 0; if (caixa) caixa.style.display = 'none'; if (ligado) { ligado = false; if (jogando()) log('🎮 Controle desconectado.', 'sys'); } return; }
-    if (!ligado) { ligado = true; ant = []; if (jogando()) { if (typeof Audio8 !== 'undefined' && !Audio8.tocando) log('🔊 Se o jogo estiver sem som, <b>toque uma vez na tela</b>: o iPhone só libera o som depois de um toque (o controle não conta).', 'sys'); if (!avisou) { avisou = true; log('🎮 <b>Controle conectado!</b> <b>A</b> fala com quem está perto ou ataca · <b>B</b> esquiva · <b>X</b> pula · <b>LB RB LT RT</b> e <b>setas</b> = atalhos · <b>☰</b> = cursor para usar qualquer botão da tela · <b>⧉</b> mapa. Lista completa na ajuda ❓.', 'gold'); } else log('🎮 Controle conectado.', 'sys'); } }
+    if (!ligado) { ligado = true; ant = []; if (jogando()) { if (typeof Audio8 !== 'undefined' && !Audio8.tocando) log('🔊 Se o jogo estiver sem som, <b>toque uma vez na tela</b>: o iPhone só libera o som depois de um toque (o controle não conta).', 'sys'); if (!avisou) { avisou = true; log('🎮 <b>Controle conectado!</b> <b>A</b> fala com quem está perto ou ataca · <b>B</b> esquiva · <b>X</b> pula · <b>Y</b> anda até a missão · <b>LB RB LT RT</b> e <b>setas</b> = atalhos · <b>☰</b> = cursor para usar qualquer botão da tela · <b>⧉</b> mapa. Lista completa na ajuda ❓.', 'gold'); } else log('🎮 Controle conectado.', 'sys'); } }
     const ax = p.axes || [], bt = p.buttons || [];
     const cur = modoCursor();
     if (cur !== estavaCursor) { estavaCursor = cur; if (cur) { foco = null; escolherInicial(); } }
@@ -197,7 +197,7 @@ const Controle = (() => {
     st.x = lx; st.y = ly;
     if (st.x || st.y) { if (typeof AUTO !== 'undefined' && AUTO.on) autoStop(''); P.caca = null; }
     if (rx || ry) { camS.yaw -= rx * dt * 2.6; camS.pitch = Math.max(0.08, Math.min(1.25, camS.pitch + ry * dt * 1.4)); }
-    if ((bt[3] && bt[3].pressed) || (bt[0] && bt[0].pressed && !nearNpc && !nearUse)) attack();   // segurar ataca sem parar
+    if (bt[0] && bt[0].pressed && !nearNpc && !nearUse) attack();   // segurar ataca sem parar
   }
   return { update, get x() { return st.x; }, get y() { return st.y; }, get ligado() { return ligado; }, get cursor() { return modoCursor(); }, quemAberto, get manual() { return cursorManual; } };
 })();
