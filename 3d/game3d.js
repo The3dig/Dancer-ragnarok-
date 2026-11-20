@@ -2155,6 +2155,15 @@ function updatePlayer(dt) {
   P.moving = false;
   let vx = 0, vz = 0;
   if ((ix || iz) && AUTO.on) autoStop('');
+  if ((ix || iz) && P.caca) P.caca = null;
+  if ((ix || iz) && P.falarCom) P.falarCom = null;
+  if (P.falarCom && !dialogOpen && Math.hypot(P.falarCom.x - P.x, P.falarCom.z - P.z) < 3.2) { const n = P.falarCom; P.falarCom = null; if (AUTO.on) autoStop(''); talk(n); }
+  if (!ix && !iz && P.caca && !dialogOpen) {                       // PC: monstro clicado — vai até ele e ataca até cair
+    const m = P.caca, d = Math.hypot(m.x - P.x, m.z - P.z);
+    if (m.dead || !mobs.includes(m) || d > 45 || P.dead) P.caca = null;
+    else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range + 0.2 + (m.d.rad ?? (m.d.boss ? 1.6 : 0));
+      if (d > alc) { const sp = stats.speed(); vx = (m.x - P.x) / d * sp; vz = (m.z - P.z) / d * sp; P.moving = true; P.sit = false; } else attack(); }
+  }
   if (!ix && !iz && AUTO.on && !dialogOpen) {                      // andando sozinho até o objetivo da missão
     const d = autoDir(dt);
     if (d) {
@@ -3057,8 +3066,7 @@ cvEl.addEventListener('contextmenu', e => e.preventDefault());
 cvEl.addEventListener('pointerdown', e => {
   if (!running) return;
   Audio8.init();
-  drag = { x: e.clientX, y: e.clientY, b: e.button, id: e.pointerId };
-  if (e.button === 0 && e.pointerType === 'mouse') attack();
+  drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), b: e.button, id: e.pointerId, mouse: e.pointerType === 'mouse' };
 });
 addEventListener('pointermove', e => {
   if (!drag || e.pointerId !== drag.id) return;
@@ -3066,19 +3074,46 @@ addEventListener('pointermove', e => {
   camS.yaw -= (e.clientX - drag.x) * 0.006 * ts; camS.pitch += (e.clientY - drag.y) * 0.005;
   drag.x = e.clientX; drag.y = e.clientY;
 });
-addEventListener('pointerup', e => { if (drag && e.pointerId === drag.id) drag = null; });
+addEventListener('pointerup', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const d = drag; drag = null;
+  // PC: clique rápido (sem arrastar) = clicar no mundo, como no Ragnarok. Arrastar continua girando a câmera.
+  if (d.mouse && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 7 && performance.now() - d.t0 < 450) cliqueMundo(e.clientX, e.clientY);
+});
+// o que está debaixo do mouse: monstro (o mais perto do cursor na tela) ou NPC
+function soMouse(cx, cy) {
+  let best = null, bd = 46;
+  for (const m of mobs) { if (m.dead || m.isPeer) continue; const sp = toScreen(m.x, groundY(m.x, m.z) + (m.model.h || 1.5) * 0.55, m.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < bd) { bd = d; best = { tipo: 'mob', o: m }; } }
+  if (!best) for (const n of NPCS) { if (n.hidden) continue; const sp = toScreen(n.x, groundY(n.x, n.z) + 1.1, n.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < 40 && d < bd) { bd = d; best = { tipo: 'npc', o: n }; } }
+  return best;
+}
+const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _pt = new THREE.Vector3();
+function cliqueMundo(cx, cy) {
+  if (P.dead || dialogOpen) return;
+  const alvo = soMouse(cx, cy);
+  if (alvo && alvo.tipo === 'mob') { if (AUTO.on) autoStop(''); P.caca = alvo.o; P.face = Math.atan2(alvo.o.x - P.x, alvo.o.z - P.z); return; }        // clicou no monstro: vai até ele e ataca até cair
+  if (alvo && alvo.tipo === 'npc') { const n = alvo.o; P.caca = null; if (Math.hypot(n.x - P.x, n.z - P.z) < 3.2) talk(n); else { P.qGo = { x: n.x, z: n.z, name: n.name }; P.falarCom = n; if (typeof autoStart === 'function') autoStart(); } return; }
+  // clicou no chão: anda até lá
+  const r = cvEl.getBoundingClientRect(); _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  _ray.setFromCamera(_ndc, camera); _plano.constant = -P.y; if (!_ray.ray.intersectPlane(_plano, _pt)) return;
+  if (Math.hypot(_pt.x - P.x, _pt.z - P.z) > 80) return;
+  P.caca = null; P.qGo = { x: _pt.x, z: _pt.z, name: 'o ponto marcado' }; ring(_pt.x, _pt.z, 0.8, 0xffcf40, 0.4);
+  if (typeof autoStart === 'function') autoStart();
+}
+// cursor muda em cima de monstro (mira) e de NPC (mão)
+cvEl.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag || !running) return; const a = soMouse(e.clientX, e.clientY); cvEl.style.cursor = !a ? 'default' : a.tipo === 'mob' ? 'crosshair' : 'pointer'; });
 addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) drag = null; });
 cvEl.addEventListener('wheel', e => { camS.dist += e.deltaY * 0.01; e.preventDefault(); }, { passive: false });
 addEventListener('keydown', e => {
   if (!running || e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
   if (k === ' ' || k.startsWith('arrow')) e.preventDefault();
-  if (k === 'escape') { closeDialog(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); return; }
+  if (k === 'escape') { if (typeof fecharJanelas === 'function') fecharJanelas(null); else closeDialog(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); P.caca = null; if (AUTO.on) autoStop(''); return; }
   if (dialogOpen) return;
   keys[k] = true;
   if (e.repeat) return;
   { const bi = BAR_KEYS.indexOf(k.toUpperCase()); if (bi >= 0) barUse(ensureBar()[bi]); }
-  if (k === 'j' || k === 'k') attack();
+  if (k === 'j') attack();
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
@@ -3086,7 +3121,15 @@ addEventListener('keydown', e => {
   if (k === 'enter') { e.preventDefault(); openChat(); return; }
   if (k === 'k') toggleSkills();
   if (k === 'x') { P.sit = !P.sit; log(P.sit ? 'Você se sentou para descansar.' : 'Você se levantou.', 'sys'); }
-  if (k === 'm') toggleMusic();
+  if (k === 'm') { fecharJanelas('bigmap'); BigMap.show(); }
+  if (k === 'u') toggleMusic();
+  if (k === 'q' && typeof Quests !== 'undefined') { fecharJanelas('dialog'); Quests.journal(); }
+  if (k === 'g' && typeof Grupo !== 'undefined') { fecharJanelas('dialog'); Grupo.painel(); }
+  if (k === 'o' && typeof Desafios !== 'undefined') { fecharJanelas('dialog'); Desafios.amigos(); }
+  if (k === 'i') { fecharJanelas('invwin'); if (typeof Vida !== 'undefined') Vida.bag(); }
+  if (k === 'l') { fecharJanelas('bestwin'); if (typeof Vida !== 'undefined') Vida.bestiary(); }
+  if (k === 'p' && typeof Mascotes !== 'undefined') { fecharJanelas('dialog'); Mascotes.livro(); }
+  if (k === 'tab') { e.preventDefault(); const m = nearestMob(18, false); if (m) { P.caca = m; if (AUTO.on) autoStop(''); log(`🎯 Alvo: <b>${m.d.name}</b>`, 'sys'); } }
   if (k === 'h') showHelp();
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -3118,7 +3161,7 @@ const joy = { x: 0, y: 0, id: null };
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
 const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
-  const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
+  const extra = `${!TOUCH ? `⌨️ <b>No PC:</b> <b>WASD</b> anda · <b>clique no chão</b> anda até lá · <b>clique no monstro</b> vai até ele e ataca até cair · <b>clique no NPC</b> conversa · <b>arraste</b> para girar a câmera · <b>roda do mouse</b> aproxima/afasta · <b>J</b> ataca · <b>1 a 8</b> atalhos · <b>Espaço</b> pula · <b>Shift</b> esquiva · <b>F</b> fala/usa · <b>Tab</b> mira o monstro mais perto · <b>I</b> ou <b>B</b> mochila · <b>C</b> atributos · <b>K</b> habilidades · <b>Q</b> diário · <b>M</b> mapa · <b>L</b> bestiário · <b>G</b> grupo · <b>O</b> amigos · <b>P</b> mascotes · <b>Enter</b> chat · <b>X</b> senta · <b>U</b> música · <b>H</b> ajuda · <b>Esc</b> fecha tudo<br>` : ''}📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
@@ -3254,8 +3297,9 @@ function start(fromSave) {
   applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof Grupo !== 'undefined') Grupo.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
+  if (!TOUCH) log('🖱️ <b>No PC:</b> clique no chão para andar, clique no monstro para atacar até ele cair, arraste para girar a câmera. <b>H</b> mostra todas as teclas.', 'sys');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
-  else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
+  else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); }
 }
 
 // ---------------------------------------------------------------- criação de personagem
