@@ -71,6 +71,18 @@ const Floresta = (() => {
   const GLOW = ctex(64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.3, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
   const brilho = (x, y, z, cor, s, op = 0.5) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: cor, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: op, toneMapped: false })); m.position.set(x, y, z); m.scale.setScalar(s); G.add(m); return m; };
   const casca = new THREE.MeshLambertMaterial({ color: 0x4a4038, emissive: 0x100c10 }), osso = new THREE.MeshLambertMaterial({ color: 0xa89e88 });
+  // raiz de verdade (20/11, o Rone achou as antigas "muito zoadas": eram tubos brancos e grossos por igual, pareciam bananas no escuro)
+  const raizM = new THREE.MeshLambertMaterial({ color: 0x6a6054, emissive: 0x0a080a });   // tom de osso velho, sem brilhar no escuro (livro: "raízes como ossos expostos")
+  // tubo que afina: grosso em r0 no começo, fino em r1 na ponta (e afina também no começo se meio=true)
+  function raizTubo(pts, r0, r1, seg = 16, rad = 7, meio = false) {
+    const c = new THREE.CatmullRomCurve3(pts), g = new THREE.TubeGeometry(c, seg, 1, rad), pos = g.attributes.position, P = new THREE.Vector3(), V = new THREE.Vector3();
+    for (let i = 0; i <= seg; i++) {
+      const t = i / seg; c.getPointAt(t, P);
+      const r = meio ? r1 + (r0 - r1) * Math.pow(Math.sin(t * Math.PI), 0.7) : r0 + (r1 - r0) * Math.pow(t, 0.8);
+      for (let j = 0; j <= rad; j++) { const k = i * (rad + 1) + j; V.fromBufferAttribute(pos, k).sub(P).multiplyScalar(r * (0.85 + 0.3 * Math.sin(j * 2.1 + i * 1.3) * 0.5)).add(P); pos.setXYZ(k, V.x, V.y, V.z); }
+    }
+    g.computeVertexNormals(); return g;
+  }
   const cristalM = new THREE.MeshLambertMaterial({ color: 0x2a1840, emissive: 0x3a1460, emissiveIntensity: 0.9, flatShading: true });
   const pedraM = PM('pedra.jpg', [1, 1], 0x9890a0), pedraE = PM('pedra.jpg', [1, 1], 0x6a6474), brancoM = PM('pedra.jpg', [1, 1], 0xe8e6f0);
   // junta várias peças numa geometria só (posição e normal)
@@ -103,10 +115,11 @@ const Floresta = (() => {
       const e = new THREE.Euler(0, gg.a, gg.incl), d = new THREE.Vector3(0, gg.L, 0).applyEuler(e);
       for (const s of [-0.6, 0.7]) { const g = new THREE.CylinderGeometry(0.03, 0.09, 2.2, 5); g.translate(0, 1.1, 0); partes.push([g, M4(d.x * 0.85, gg.y + d.y * 0.85, d.z * 0.85, 0, gg.a + s, gg.incl * 0.6 + s * 0.4)]); }
     }
-    for (let k = 0; k < 6; k++) {                                                // raízes saindo do chão como ossos
-      const a = k / 6 * TAU + 0.3, pts = [];
-      for (let i = 0; i <= 6; i++) { const t = i / 6, r = 1 + t * 3.4; pts.push(new THREE.Vector3(Math.sin(a) * r, 0.9 * Math.sin(t * Math.PI) * (1 - t * 0.5) + 0.1 - t * 0.35, Math.cos(a) * r)); }
-      raizes.push([new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, 0.2 - 0.03 * (k % 3), 6), new THREE.Matrix4()]);
+    for (let k = 0; k < 7; k++) {                                                // raízes que saem do tronco, se torcem e entram na terra
+      const a = k / 7 * TAU + 0.3 + Math.sin(k * 3.7) * 0.25, L = 2.6 + (k * 1.9 % 1.6), pts = [];
+      for (let i = 0; i <= 6; i++) { const t = i / 6, r = 0.9 + t * L, aa = a + Math.sin(t * 3 + k) * 0.18;
+        pts.push(new THREE.Vector3(Math.sin(aa) * r, 1.1 * (1 - t) * (1 - t) + 0.55 * Math.sin(t * Math.PI) - t * 0.5, Math.cos(aa) * r)); }
+      raizes.push([raizTubo(pts, 0.55 - 0.06 * (k % 3), 0.04), new THREE.Matrix4()]);
     }
     const cr = new THREE.OctahedronGeometry(0.5, 0); cr.scale(0.6, 1.8, 0.6);
     [[0.95, 2.2, 0.2], [0.8, 4.5, 2.6], [0.75, 6, 4.4], [1.0, 1.4, 5.2]].forEach(([r, y, a], k) => { for (let j = 0; j < 3; j++) crist.push([cr, M4(Math.sin(a + j * 0.25) * r, y + j * 0.3, Math.cos(a + j * 0.25) * r, (j - 1) * 0.5, a, (j - 1) * 0.4, 0.7 + j * 0.25)]); });
@@ -118,12 +131,13 @@ const Floresta = (() => {
       lista.push({ x, z, s: rand(1.0, 1.7), r: rand(0, TAU), c: Math.random() < 0.6 });
     }
     const mk = (geo, mat, l) => { const im = new THREE.InstancedMesh(geo, mat, l.length); im.castShadow = !TOUCH; im.frustumCulled = false; l.forEach((o, i) => im.setMatrixAt(i, M4(o.x, h(o.x, o.z) - 0.3, o.z, rand(-0.05, 0.05), o.r, rand(-0.05, 0.05), o.s))); G.add(im); return im; };
-    mk(geoT, casca, lista); mk(geoR, osso, lista); mk(geoC, cristalM, lista.filter(o => o.c));
+    mk(geoT, casca, lista); mk(geoR, raizM, lista); mk(geoC, cristalM, lista.filter(o => o.c));
     lista.forEach(o => addOb(o.x, o.z, 1.3 * o.s));
     // ossos e raízes soltas pelo chão
-    const solt = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(-1, 0.5, 0.6), new THREE.Vector3(1, 0.3, -0.4), new THREE.Vector3(3, 0, 0.2)]), 10, 0.1, 5);
+    // raiz solta: sai da terra, faz uma curva baixa e volta para a terra (as pontas ficam enterradas)
+    const solt = raizTubo([new THREE.Vector3(-3.2, -0.35, 0), new THREE.Vector3(-1.6, 0.18, 0.5), new THREE.Vector3(0, 0.32, -0.2), new THREE.Vector3(1.5, 0.15, 0.4), new THREE.Vector3(3.2, -0.35, 0.1)], 0.22, 0.03, 18, 6, true);
     const ls = []; for (let i = 0; i < 200 && ls.length < 50; i++) { const x = rand(B.x0 + 10, B.x0 + B.w - 10), z = rand(MONTE + 6, B.z0 + B.h - 10); if (dRoad(x, z) > 4 && Math.hypot(x - CLAR.x, z - CLAR.z) > 16) ls.push({ x, z, s: rand(0.7, 1.4), r: rand(0, TAU) }); }
-    mk(solt, osso, ls);
+    mk(solt, raizM, ls);
   })();
 
   // ---------------------------------------------------------------- Clareira de Lira: o único lugar onde o vento ainda passa
