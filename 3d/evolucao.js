@@ -52,7 +52,7 @@ const Evo = (() => {
     banner(`${t === 1 ? '2ª' : '3ª'} classe: ${names[t]}`); Audio8.sfx('level');
     for (let i = 0; i < 6; i++) setTimeout(() => ring(P.x, P.z, 1.5 + i * 1.2, 0xc27aff, 0.8), i * 110);
     burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffcf40, 70, 8, 1.4);
-    log(`🌟 <b>${P.name}</b> evoluiu para <b>${names[t]}</b>! +5 pontos de atributo, +2 de habilidade e 2 habilidades novas na árvore (📜).`, 'gold');
+    log(`🌟 <b>${P.name}</b> evoluiu para <b>${names[t]}</b>! +5 pontos de atributo, +2 de habilidade e várias habilidades novas na árvore (📜), com ativas e passivas.`, 'gold');
     save();
   }
   // aviso clicável na tela: evolução disponível / provação em andamento / pronta para entregar

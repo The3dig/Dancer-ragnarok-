@@ -1363,13 +1363,15 @@ const P = {
 };
 const CLS = () => CLASSES[P.cls] || CLASSES.dancarina;
 let SKILLS = [];
-function refreshSkills() { SKILLS = [...CLS().skills, ...((typeof TIER_SKILLS !== 'undefined' && TIER_SKILLS[P.cls]) || [])].map((s, i) => ({ ...s, key: String(i + 1) })); }
+function refreshSkills() { SKILLS = [...CLS().skills, ...((typeof TIER_SKILLS !== 'undefined' && TIER_SKILLS[P.cls]) || []), ...((typeof EXTRA_SKILLS !== 'undefined' && EXTRA_SKILLS[P.cls]) || [])].map((s, i) => ({ ...s, key: String(i + 1) })); }
+// passivas: soma de cada bônus × nível aprendido (sempre ligado)
+function pas(k) { let v = 0; for (const s of SKILLS) if (s.type === 'passiva' && s.pas && s.pas[k] && tierOk(s)) v += s.pas[k] * ((P.skillLv && P.skillLv[s.id]) || 0); return v; }
 const tierOk = s => (s.tier || 0) <= (P.tier || 0);
 const tierName = () => (typeof TIERS !== 'undefined' && TIERS[P.cls] ? TIERS[P.cls][P.tier || 0] : className(P.cls, P.gender));
 refreshSkills();
 // bônus de buffs: multiplicativos (atk, matk, aspd, speed) e aditivos (def, crit, poison, regen)
-function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
-function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
+function bmul(k) { let v = 1 + (['atk', 'matk', 'aspd', 'speed'].includes(k) && typeof pas === 'function' ? pas(k) : 0); for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
+function badd(k) { let v = ['def', 'crit', 'regen'].includes(k) && typeof pas === 'function' ? pas(k) : 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
 const gBon = k => typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0;
@@ -1377,11 +1379,11 @@ const stats = {
   atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
   matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
   def: () => Math.floor(P.vit * 0.6) + badd('def') + gearB('def'),
-  maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp'))),
-  maxSp: () => Math.round((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')),
+  maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp')) * (1 + pas('hp'))),
+  maxSp: () => Math.round(((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')) * (1 + pas('sp'))),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
   speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')),
-  flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003),
+  flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003 + pas('flee')),
   crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit') + gearB('crit')),
 };
 // nível máximo 200 (como o Ragnarok, cada nível pesa bem mais que o anterior)
@@ -1549,6 +1551,7 @@ function dmgMob(m, base, crit, magic, color) {
   if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
   if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
+  const rb = pas('roubo'); if (rb > 0 && !P.dead) P.hp = Math.min(stats.maxHp(), P.hp + dmg * rb);      // passiva de roubo de vida
   Audio8.sfx(crit ? 'crit' : 'hit');
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
   burst(_p.clone(), color ?? (crit ? 0xffcf40 : 0xffffff), crit ? 10 : 5, 3, 0.4);
@@ -1842,9 +1845,10 @@ function nearestN(r, n) {
 function useSkill(i) {
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
+  if (SKILLS[i].type === 'passiva') { log(`${SKILLS[i].icon} <b>${SKILLS[i].name}</b> é passiva: já vale sozinha, não precisa usar.`, 'sys'); return; }
   const L = P.skillLv[SKILLS[i].id] || 0;
   if (!L) { log(`${SKILLS[i].name} ainda não foi aprendida. Use a árvore de habilidades (${TOUCH ? '📜' : 'K'}).`, 'bad'); return; }
-  const s = scaleSkill(SKILLS[i], L);
+  let s = scaleSkill(SKILLS[i], L);
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
   if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
@@ -1917,11 +1921,12 @@ function useSkill(i) {
     }
     case 'buff':
       addBuff(s.id, s.dur, s.mods, s.icon); Audio8.sfx('buff'); VFX.buff(s);
-      if (s.heal) healP(stats.maxHp() * s.heal);
+      if (s.heal) { s = { ...s, heal: s.heal * (1 + pas('cura')) }; healP(stats.maxHp() * s.heal); }
       log(`${s.icon} <b>${s.name}</b> ativo por ${s.dur}s.`, 'gold');
       if (typeof Grupo !== 'undefined') Grupo.apoio(s);              // proteção também no grupo perto
       break;
     case 'heal':
+      s = { ...s, pct: s.pct * (1 + pas('cura')) };                   // passivas de cura
       Audio8.sfx('heal'); healP(stats.maxHp() * s.pct); VFX.heal(s);
       if (typeof Grupo !== 'undefined') Grupo.apoio(s);              // cura também no grupo perto
       break;
@@ -2809,7 +2814,7 @@ function ensureBar() {
   if (Array.isArray(P.bar) && P.bar.length === BAR_N) return P.bar;
   // barra antiga (12 espaços): guarda os 8 primeiros atalhos que estavam ocupados
   const velha = Array.isArray(P.bar) ? P.bar.filter(Boolean) : null;
-  const l = velha && velha.length ? velha : SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
+  const l = velha && velha.length ? velha : SKILLS.filter(s => tierOk(s) && s.type !== 'passiva').map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
   P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
   return P.bar;
 }
@@ -2828,7 +2833,7 @@ function barUse(e) {
 // escolher o que vai num espaço
 function barPick(i) {
   const b = ensureBar(), opts = [];
-  SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0) opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
+  SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0 && s.type !== 'passiva') opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
   Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || ITEMS[id].spH || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
   opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
   dialog(`✏️ Atalho ${BAR_KEYS[i]}`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
@@ -2882,7 +2887,7 @@ addEventListener('pointerup', stopHold); addEventListener('pointercancel', stopH
 function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); renderStats(); }
 
 // ---------------------------------------------------------------- árvore de habilidades
-const SK_MAX = 5;
+const SK_MAX = 10;                 // cada habilidade vai até o 10; os pontos (1 por nível) não dão para tudo
 // estrutura igual para todas as classes: [inicial] → [ramo A, ramo B] → [final]
 const SK_REQ = [[], [[0, 2]], [[0, 3]], [[1, 3], [2, 2]], [[3, 1]], [[4, 2]], [[5, 2]], [[6, 3]]];
 function scaleSkill(s, L) {
@@ -2899,16 +2904,18 @@ function scaleSkill(s, L) {
   o.sp = Math.max(s.sp, Math.round(Math.min(s.sp * (1 + 0.1 * k) * (1 + P.lv / 50), stats.maxSp() * 0.2)));
   return o;
 }
-function reqMet(i) { return tierOk(SKILLS[i]) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
+function reqMet(i) { const s = SKILLS[i]; return tierOk(s) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv) && (!s.pre || (P.skillLv[s.pre[0]] || 0) >= s.pre[1]); }
 function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
 function learn(i) {
   if (!canLearn(i)) return;
   const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--;
   Audio8.sfx(P.skillLv[s.id] === 1 ? 'buff' : 'click');
-  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (!ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
   buildHotbar(); renderSkills(); save();
 }
+const PAS_N = { atk: ['ataque', '%'], matk: ['magia', '%'], aspd: ['vel. de golpe', '%'], speed: ['velocidade', '%'], hp: ['HP', '%'], sp: ['SP', '%'], def: ['defesa', ''], crit: ['crítico', '%'], flee: ['esquiva', '%'], regen: ['HP por segundo', '%'], roubo: ['roubo de vida', '%'], cura: ['cura', '%'] };
 function describe(s, L) {
+  if (s.type === 'passiva') return Object.entries(s.pas).map(([k, v]) => { const [n, u] = PAS_N[k] || [k, '']; const t = v * Math.max(1, L); return `+${u ? (Math.round(t * 1000) / 10).toString().replace('.', ',') + '%' : Math.round(t * 10) / 10} de ${n}`; }).join(' · ');
   const e = scaleSkill(s, Math.max(1, L)), bits = [];
   if (e.mult) bits.push(`${Math.round(e.mult * 100)}% de dano${e.hits > 1 ? ` ×${e.hits}` : ''}`);
   if (e.stun) bits.push(`atordoa ${e.stun.toFixed(1)}s`);
@@ -2925,23 +2932,26 @@ function renderSkills() {
     const s = SKILLS[i], L = P.skillLv[s.id] || 0;
     const reqs = [];
     if (P.lv < s.lv) reqs.push(`nível ${s.lv}`);
+    if (s.pre && (P.skillLv[s.pre[0]] || 0) < s.pre[1]) { const ps = SKILLS.find(o => o.id === s.pre[0]); if (ps) reqs.push(`${ps.name} Nv ${s.pre[1]}`); }
     if (!tierOk(s)) reqs.push(`${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
     for (const [j, lv] of (SK_REQ[i] || [])) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
     return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''}">
       <span class="si2">${s.icon}</span>
-      <div class="sb"><div class="sn">${s.name}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
+      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
       <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
-      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${ensureBar().includes('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${ensureBar().includes('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
+  // as habilidades novas (passivas e ativas) de cada classe, embaixo das antigas
+  const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
-    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(ganhe 1 por nível)</small></div>
+    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · não dá para pegar tudo: escolha o seu caminho)</small></div>
     <div class="stier">1ª classe — <b>${TIERS[P.cls] ? TIERS[P.cls][0] : ''}</b></div>
-    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>
+    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>${extras(0)}
     ${SKILLS.length > 4 ? `<div class="stier ${(P.tier || 0) >= 1 ? '' : 'off'}">2ª classe — <b>${TIERS[P.cls][1]}</b> ${(P.tier || 0) >= 1 ? '✅' : '<small>🔒 provação a partir do nível 20 (fale com o Vigia Morvan, na Cidadela)</small>'}</div>
-    <div class="stree">${node(4, '')}${node(5, '')}</div>
+    <div class="stree">${node(4, '')}${node(5, '')}</div>${extras(1)}
     <div class="stier ${(P.tier || 0) >= 2 ? '' : 'off'}">3ª classe — <b>${TIERS[P.cls][2]}</b> ${(P.tier || 0) >= 2 ? '✅' : '<small>🔒 provação a partir do nível 40</small>'}</div>
-    <div class="stree">${node(6, '')}${node(7, 'ult')}</div>` : ''}`;
+    <div class="stree">${node(6, '')}${node(7, 'ult')}</div>${extras(2)}` : ''}`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
 $('skillwin').addEventListener('click', e => {
