@@ -1,0 +1,1571 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 0 }
+* { box-sizing: border-box; margin: 0; padding: 0 }
+body { background: #110b18; color: #e8e0f2; font: 13px/1.5 Nunito, 'Noto Color Emoji', sans-serif; -webkit-print-color-adjust: exact }
+.pag { width: 210mm; height: 297mm; padding: 16mm 15mm; position: relative; overflow: hidden; page-break-after: always;
+  background: radial-gradient(ellipse at 50% -10%, rgba(200,160,80,.13), transparent 60%), #110b18 }
+h1, h2, h3, h4, .tit { font-family: Cinzel, serif }
+img { image-rendering: pixelated }
+.capa { display: flex; align-items: center; justify-content: center; text-align: center;
+  background: radial-gradient(circle at 50% 42%, #3a1420 0%, #160c1c 55%, #0a0610 100%) }
+.capa::before { content: ''; position: absolute; inset: 10mm; border: 2px solid #c8a050; border-radius: 6px; box-shadow: inset 0 0 0 6px #110b18, inset 0 0 0 7px rgba(200,160,80,.4) }
+.sobre { letter-spacing: 6px; color: #c8a050; font-weight: 800; font-size: 12px }
+.capa h1 { font-size: 58px; line-height: 1.05; color: #f7e2a8; margin: 18px 0 10px; text-shadow: 0 0 30px rgba(224,48,63,.5) }
+.capa h1 span { font-size: 34px; letter-spacing: 12px; color: #e0303f }
+.sub { font-size: 17px; color: #d8cce8 }
+.fila { display: flex; justify-content: center; gap: 14px; margin: 46px 0 }
+.fila img { width: 76px; height: 76px; border: 2px solid; border-radius: 12px; background: #1e1630 }
+.fila small { display: block; font-weight: 800; margin-top: 4px; font-size: 11px }
+.rod { color: #9a8db0; font-size: 11px }
+.texto p { font-size: 14.5px; line-height: 1.7; margin-bottom: 12px; text-align: justify }
+.tit { color: #f7e2a8; font-size: 24px; margin-bottom: 14px; border-bottom: 1px solid rgba(200,160,80,.4); padding-bottom: 6px }
+.cap::first-letter { font-family: Cinzel; font-size: 46px; float: left; line-height: .9; margin: 4px 8px 0 0; color: #e0303f }
+.destaque { font-family: Cinzel; font-size: 22px !important; color: #e0303f; text-align: center !important; margin: 18px 0 !important }
+.caixa { background: rgba(200,160,80,.08); border: 1px solid rgba(200,160,80,.35); border-left: 4px solid #c8a050; border-radius: 8px; padding: 12px 14px; font-size: 13.5px; margin-top: 16px }
+.regras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.regras div { background: #1b1328; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 10px 12px }
+.regras > div > b { display: block; color: #f7e2a8; font-size: 14px; margin-bottom: 3px }
+.quem { width: 100%; border-collapse: collapse; font-size: 12.5px }
+.quem th { text-align: left; color: #c8a050; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid rgba(200,160,80,.4) }
+.quem td { padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: middle }
+.quem td b { color: var(--cor) }
+.quem img { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--cor); display: block }
+/* página do herói */
+.heroi { padding: 12mm 13mm; background: radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--cor) 20%, transparent), transparent 55%), #110b18 }
+.cab { display: flex; gap: 16px; align-items: center }
+.retrato { width: 136px; height: 136px; border-radius: 16px; border: 3px solid var(--cor); background: #1e1630; box-shadow: 0 0 24px color-mix(in srgb, var(--cor) 45%, transparent) }
+.num { font-size: 10px; letter-spacing: 3px; color: #9a8db0; font-weight: 800; text-transform: uppercase }
+.cab h2 { font-size: 38px; color: var(--cor); line-height: 1.1 }
+.evo { font-family: Cinzel; font-weight: 600; font-size: 13px; color: #f7e2a8 } .evo span { color: var(--cor) }
+.papel { font-size: 13px; color: #cfc4e0; margin-top: 3px }
+.dois { display: grid; grid-template-columns: 1fr 165px; gap: 14px; margin: 12px 0 6px }
+.lore p { font-size: 13.5px; line-height: 1.65; text-align: justify }
+.cit { font-style: italic; color: var(--cor); margin-top: 6px; font-weight: 700 }
+.notas { background: #1b1328; border-radius: 10px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.08); align-self: start }
+.nota { display: flex; justify-content: space-between; font-size: 12px; line-height: 1.9 }
+.nota b { color: #f2c94c; letter-spacing: 1px } .apagada { color: #3a3048 }
+h4 { font-family: Cinzel; color: #f7e2a8; font-size: 15px; margin: 14px 0 8px; border-bottom: 1px solid rgba(200,160,80,.3); padding-bottom: 3px }
+.arvore { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 26px; position: relative }
+.col-tit { text-align: center; font-family: Cinzel; font-weight: 800; color: var(--cor); font-size: 13px; margin-bottom: 5px }
+.col-tit small { display: block; font-family: Nunito; color: #9a8db0; font-size: 9.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase }
+.no { position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; background: #1d1530; border: 1.5px solid color-mix(in srgb, var(--cor) 60%, transparent); border-radius: 9px; padding: 5px 8px; margin: 0 0 9px 14px; font-size: 12.5px; font-weight: 800; height: 38px }
+.no.pas { border-style: dashed; background: #160f22 }
+.no .ic { font-size: 18px } .no .nm { flex: 1; line-height: 1.1 }
+.no .nv { background: var(--cor); color: #110b18; border-radius: 6px; padding: 0 5px; font-size: 10.5px }
+.mk { font-style: normal; display: inline-block; width: 15px; height: 15px; line-height: 15px; text-align: center; border-radius: 50%; font-size: 9.5px; font-weight: 800; color: #110b18 }
+.mkA { background: #ff8a5c } .mkB { background: #6fd3c0 }
+.linhas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible }
+.legenda { font-size: 10px; color: #9a8db0; margin-top: 2px }
+.caminhos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.caminho { background: #1b1328; border-radius: 10px; padding: 8px 11px; border: 1px solid rgba(255,255,255,.08) }
+.cam-tit { font-weight: 800; font-size: 14px; color: #f7e2a8 } .cam-d { font-size: 12px; color: #cfc4e0 } .cam-l { font-size: 11.5px; margin-top: 5px; color: #f5eefc; line-height: 1.55 } .cam-l b { color: var(--cor) }
+.mini-cab { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cfc4e0; margin-bottom: 4px }
+.mini-cab img { width: 34px; height: 34px; border-radius: 8px; border: 2px solid var(--cor) } .mini-cab b { font-family: Cinzel; font-size: 18px; color: var(--cor) }
+.lista h3 { font-size: 14px; color: var(--cor); margin: 9px 0 5px; border-bottom: 1px solid color-mix(in srgb, var(--cor) 40%, transparent); padding-bottom: 2px }
+.lista h3 small { font-family: Nunito; color: #9a8db0; font-size: 10.5px }
+.hab { display: flex; gap: 9px; padding: 3.5px 0; break-inside: avoid }
+.hab-ic { font-size: 19px; width: 26px; text-align: center; flex: none }
+.hab-nm { font-weight: 800; font-size: 12.5px; color: #f5eefc }
+.hab-nv { color: #9a8db0; font-weight: 700; font-size: 10.5px }
+.hab-d { font-size: 11.5px; color: #cfc4e0; line-height: 1.4 }
+.tag { font-size: 9px; font-weight: 800; border: 1px solid #9a8db0; color: #cfc4e0; border-radius: 5px; padding: 0 4px; vertical-align: 1px }
+.tag.gr { border-color: #f2c94c; color: #f2c94c }
+.req { color: var(--cor); font-weight: 700 }
+</style></head><body>
+
+  <section class="pag capa">
+    <div class="capa-in">
+      <div class="sobre">KRAVENOX APRESENTA</div>
+      <h1>Reino Quebrado<br><span>Online</span></h1>
+      <div class="sub">Os seis heróis, suas histórias<br>e suas árvores de habilidades</div>
+      <div class="fila"><div><img src="data:image/png;base64,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" style="border-color:#e0303f"><small>Kravenox</small></div><div><img src="data:image/png;base64,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" style="border-color:#f2c94c"><small>Thornox</small></div><div><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcklEQVR4nO1ZMWgbSRR9CQeGOE5UrYWzZoPBDgeBMylso8I5qU0IxgYnjQqDixCCjxMpUt11KQwpAuGqAwXUuBLCpJbiFCJSETgwHGwhvHhFZDURODHn4vAV8Z+bmd3ZnZ1dXOWBQDs78+e9+f/Pn90FvuM7UuFSlsbGx3JnOv2+no4ymze1IZ704dEgcL+++w6rD34W2qYn8+x/WjE/mA4k4jxpzx8KfZqtNq5fzwXu8WOmJ/NngLmQyyaDxsdyZ4dHAxweDVDffRcgGIdqrcHGkR3d8JORyAP8qnv+UFhhU5Dww6OBkTe0BdCq85OWigU4tsXinESFgW+XRTu2Bc8fstCansyf6YpInANyqFRrDUao2WqjUv5HGjEAsINK+dvVZzwSBPM2oxYglQBa/bg4LxUL+AxLaJN3IV6wysbGeTjpeCFWgEye3M1PKIcRQbULyZBtUjjpiEi8C4URqdYaSc0E4Nii53RtGtcBE6h2rSRbsIxMBKjCiNrl5JRDLQ2MClkY4lxeKhaymkpAZILo7j4EORlN+/B9pyfzkYUtMw8AyWNZTlwZOomcqQAdyNtlWmQugFY1bnWzgpGAqHIvHw+S2Ex6jAAiBFACy3HYbLWxtTYPx7aMJpRBxLfW5rFRXhHulYqF2KN2bB1QbX8TJwfYWpvH8RWLiaS+zVY7ctvkhW+tzQMAPr6tY3a9Eugbl8jGhezLsA+328Gd+6uMBC8myjvUH/hGfG5h0ZSGuQC328Gv29vA9jZr23v/QSCnwt3lJeF67/0HUxrpjhJ/PM3jp1/+xl+vfmRtX4b9yDFutxM6zhQXXgeyRmoBpquYxeoDKUPoyWvxPdDeunjf7XZCEzRuXBKkEiAnnxz/MnkSJI/7+LYeal+nmhsLuHVtCl/PiYwvLwXIu92OcD23sMgE0RZ869oUszW+vIRjaQ6dah56TI07Rju2hYmTA3YdRv5T2xXa7r14Huh31brB/h9fuRk5n+pYbeQBzx/CsW9i4uQgdNucW1jEnfurQltYP/LE7HqFPbXJFdyxrchqbBxCTIQVXk116gEARh4IP7bEhVGqJCYRs+sVXD050DoW8MR1CMYh9UP9/++LRCEqZEWckEklbrba8PwhqrVGJHkCkZcPfCbH89QeaLbaePn7U2yU/fPXKCuR/XnyNC4qB+KQSgCR2O/5yicx1VuIUrGAjbKP2zO2MD4pjEOIyMf1idoC6d7tGdv4GTqxB+Q4Va1es9XGv+WHAAAHp7Fe4G0nCaVAZVNVYTLOr/p+z0e11ghMyJMnbEoiqEDR60cSobKrqsZaAuRw2e/5AMI/6gEIkFeJ4EEhJAvhk/63Z48DApQ5QGT4RKWf5w+VIaGDsO2SbPLz6OSGMgdKxUJg5XXee5aKBTg4xZ8YE+7xqx8lVK4RtEslFsCvEsVkEmyWV5iITZwafQQhL0QhNAdGox4AwLkxBwDw+q7c7cLAc8jlZgI5IHiAyNd33rA2r+8K1xcNr+8yEaNRD7ncjPDd7D9NTOiCnJedWAAAAABJRU5ErkJggg==" style="border-color:#9cc8ff"><small>Lyra</small></div><div><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcElEQVR4nO1YP2gbVxz+4gY8GGzJjmUhNHkQqBQNpoVOtRDhoA2U4sEWIZSMgXjw0j9rO5VMHUzRGLzZgwmBpOUR0pPoYIi54TA1aBAZjJHkWFcbSuhSdWjf+ffu3rt7753cKR8Y+07v/d73/f4+GXiHd8iEG5M0NjOdG+us+/OvPyZ2bmZDlPTZRRD7fG+/jfW1VeHd4lw+/DurmJu2GzlxSrrbGwhrGHNRKBRjn9E9i3P5MWAvZMpm08x0bnx2EeDsIsDefjtGMA3brd1wH7ejm35RGEWAer3bGwgetgUXfnYRWEVDOwLU6/xQx6ljfW0Ve/ttVJaXtOzIRFeWl9DtDayiYVwD0VTZbu1aRWF9bTW0RX8z5hrZ0YoA9/52a9eMpQUcp24UhVQBnHy3N4Dj1AFASBebNJKB7uXppCPCqgvJ0mgSoCJ0bVrPARskdS2TNkwxEQGOU0dleSmcurRL8Q5DQddkhVUKyaAKebc3yFQbaUgcGLSAdSDzts0aunZxLp842CYWAUAvj6MRSYqOTiFPVIAMssFEhWathWsRwL3KmIuvHreutQasBKSNe9qF3h78quVlatPkOqEsjmgBM+bCcepgzMXm3dvA7AK2W7vhdLYFJ8ttRsWmFbL2HIgRvTwXhMjWcNEq0iFxAC+fv0CjuRFbm1bI1oPsTX8I3/PR+Ox2SIKKkZHlCNfjX+K1lZotDXsBvudja2sH2Nq5etfdEcipUKt8KdrqXtlQRU2FTFeJr794hs+/BZ7+wN+c401/mLjH93zpPg7Tmrr2OXDdyCzgyov/z74oMqXQoyd3hOd7j3ak63zPFwpVd58OrAXUVmpC8QFQ5j8lb7JPB5kikHSw7/nCMxWRhXAU0umWdo2uLC8Bl+qO43s+fmcd4d3mj98L62la+Z6PRnMj8TzVNLYSoCPiVrEgPMvW8ShR8rLvC4y5+O6bB1IB1pe5bm8AzC7gVrEQSxdOmP6kkecT2/R6bSyAMReHbufKU7MLaDQ3lEJkxHnKUPLcpim0i5h76NDt4LeDX/DJx6voHLSF0DeaG8DlOV4+f6G0wy9s9JYbtWlyy9USwA/pvT7Caf8EAHDaPxEOxH9X7fdz6fZoynDy1CYAbD5QF7WRAOqhKKIHMkB6Jabgt9WoQ6hNALEIWwlIIk8PLBXLoZC9xz/F0oB6u/f6SCCaZJeLYAnrEtvo/ebDRPIqlIplAAiFqLyta6tz0FbOgcQIcG+ZgqYBfU7CKBhiPl+IvT869hL3xdpo9F/po8B+7J/2T2IEVPZk5ClU/61WzoFDt4PT/kmqYRVGwRCjYIi31Q9RKpZD4qb25vOFMJIyKAVE04fntQ448Q+qK/gIf+Po2AuFmKJULCemkVTA/ebDsLtwmBTgfL4QEn+FqVCITRFze6ooxKp6Zjo3rlZr1odFUSqWBVuqYk3DKBjiPdyMdaKJfCdWpcYoGOIVpoTPbWtKBaGNzkznxnc+vYunP5t9xUvqVDyVJoFqtYbjY39Mo/APyYjoDYr8B3YAAAAASUVORK5CYII=" style="border-color:#b26bff"><small>Seraphyne</small></div><div><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADr0lEQVR4nO1ZTWsTQRh+qtIeEkIIIYdKTAgxhV4aRNqecvTiRfRgoYfqwZs/QG/Fg4ee/QH2UNGC4sGTxxzEBCnppcU1hHxQCksIy3YrVoR4KLPM7M5u5it+QJ9LurvvvPM8O/N+7BS4wAW0MGPSWWIuPRaxOz1zjM2r7YgmXcgXQ88P2i0slqvMvd6g6/+tK+aK6kBCnCY9HNmMjes53Gf0mN6gOwbUhVxSGZSYS48L+SIK+SIO2q0QwUno9C1/HPEjuv2CkFoB+q0PRzbzhlVBhBfyRaXVEBZA3jo9aSqZRilT8fe5yCq4noMfP78z97KZHIYj299avUF3LCpCOgaCJDt9S9YFADCC6V/Xc3B5ZlbYj1AMkLevSlYGqWRaKiYmCiDkhyMbqWQawPmS0xMulqs4aLeY+7Kgx5LtJCJCKQuZ2kZB0CJEfSrXARXwAphAJg3TUFqBIKK2EbkfJCeasURgRAAQveTDka0VG5MQm2vpABYByee6NrRtb9CNLWzGVgAQ28fBFYlbHZFANipAFLRQ3ViYigDyVqe59wmUBExq4oItgoxP2QYxUgAdwLRT13Nw0t1DNpMz0o26nsP4JNUeEGsrhAoZ7ZRgv/4aALBUW/ODjbZzPYc7jjwjOOnuAQD2Przj2nb6Vmxzp1yJPfsIVrPhCwFYMUGiNAhp4Jx4ZXlFlYa6AKvZwOFsCYcfW/49WkwcdqgxmC3hRu6qKg29Xmhj4z5z/ev4Kzz7KHaM1Wxg49HT0DhV/JU6YBL/vQCtLbS9/Ya5Xr9VDdlYzUYoSEXGiUJLQHBi3v7nZZjguKgUKgJlAQupeZzWPwMAErXVEHmr2WCuiZDK8oqfghdS876vRG0V2NqV5sFtUye10dlMjkmZPPLHn9hO8vbzJyG7JJU+SQ3hFb+4tlpJAC0iKm0mA7k9ys5qNvBwa9efi1fByVGLUQG0CJVqSrYYTT4KcQK0gng4srFUWwMA7NfvCgmhiRMfOtA+lSAEgkKiYIo4gbFjFdJ2i6TEOPJxXSwPWjHAw6SvMBWfU4sBHghBmdMHHUytF/oT5IF/vJkT+WQNCRCpwjLfwiK2UTYkmOO+jaVWwPUc5phdxP7Z2SsmsHlkRfxFHXJJCQhOFJdxSDp8eX2TOdmQSZEiEBbAIxu1zeg3/+DbJrKZXGglTCGUV039O6l0rYJO3wr96oBXC7gClu7d1JqIxp2dx3i//sKIr/23X+IFEPLdVtvIhABQrJaN+StWyyERvwEvZy1+t283fAAAAABJRU5ErkJggg==" style="border-color:#e9edc0"><small>Erya</small></div><div><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADq0lEQVR4nO1ZPWvbQBh+WgIJxNiGdNAQsMAeNAglU+noIVMT6FLa0KVZnDE/oJPpr8jYLoYumZKQIYMLHdItER48OKBsGmqowYV0cgfnVU66D51OZ9MhzySf7uN53o97T2fgCU8ohWc2J1tfrc90+v35+9vauqUnYknf3cbc+8vTa+zsbafaGk0neS4rZsV0IBFnSY8GaQFhOES1WufesWMaTWcGmAsxGrS+Wp8RCbLwSa8v7Nt5F2K8csS9r1brKc80mo6RiEIeYK0+GsQpC3eOHPGgOMTGiyH3/tuXewCPnrm7jY28oS2AtTotGgQeWr6Dy9NrvD9Yw/fjA8noHt+0dpz6ORrESWg1ms5MV0ThHMjG+Umvj2q1jvEvD/7bK66/KImpTTRXUWgJIOtnF8xCJ4nZNhGCwEvCSccLz/M6sKEjW3BnbxuXp9do+ZI8kCDbn0KSwkmnruQKIKisb+J6QlYEraM7p3EdMEE2fPJCUgfaHlBBFkbUniUqajOFFQEA73ISQvViUVBmue7uQ6AELNuH7ZtXoa15AFDHNOsR3d1KJ5GtClCBFWcr/gGLAsiqRWtBWRgJECUlWdXEumE4NE50qQBRArd8B2E4ROfQS57LguagOVnQsUJVkQsVMlbMRiVG59DDeOqkki0IPG3SRBwAbq762PT3ub55iWxciSdxhCiKsPWqnZDIipGB+gNz4q7rmtIwFxBFET597qbazs77KXIy7L5uc+MQRUY8Sp2FznpdoPERuPuatE1iNZEoioTjTLG0OrAolBdgakUL1gcKhlB269z90E29PzvvA5iHiSoxZeNMYLyNiham+M+SZwW5rsuNu7lK/y5y4DNOYvcemPTnC9fabS55I8WuQluwe/8w18Mc4+n8d5FqLjym5h2jW76DjcrjOxH56KKfanvT7XL9ao6bPI+ncqurjtVGHhgNYuBBhGjbdF0XW91uqk3Ujzyx6e9z5NkwUhVH4xBKRDjiaqpTDwAIySfza6BUISMRm/4+apVY61jAEi9CVIbStxIJgYwQGWwRJ1i5VqHaEIZDvAzyiYlu8HROsSJYEUCLB4GHTb+t7CuyvCl5wPLFVpECZAtLu5VYFP6702jRz1ROgOpb2CZk84nyQfVtnOuBMBxiNIiNE60IURVk1ThXALuQyZ1PmR1GZz2pANHgZSap7o4m3UbL/GlhA7o5xx1P11frs+lkcdfhZVCpedyROuUBIv/zx8VymWliOhmiUvNSf/79A0OCILeNtWkKAAAAAElFTkSuQmCC" style="border-color:#d9cff5"><small>Mãe</small></div></div>
+      <div class="rod">Livreto dos jogadores · 20/11/2026<br>Baseado no livro <i>Reino Quebrado</i>, de Rone Ignacio da Silva</div>
+    </div>
+  </section>
+  <section class="pag texto">
+    <h2 class="tit">A Lenda dos Irmãos Espinhos</h2>
+    <p class="cap">Antes de o Reino ser quebrado, existia a Essência. Ela não era simplesmente magia: era a força que fazia as coisas existirem. Corria sob as montanhas, brilhava dentro das árvores antigas e alimentava os rios. No centro do mundo havia a Fonte Pura, e dizia-se que ninguém poderia alcançá-la sem ser transformado por aquilo que encontrasse.</p>
+    <p>Foi nesse mundo que nasceram dois irmãos, <b>Thornox</b> e <b>Kravenox</b>. A Essência reagia a Thornox como luz diante do amanhecer. Em Kravenox, ela era mais intensa, irregular, como uma chama tentando escapar de uma lâmpada fechada. Thornox aprendeu a proteger. Kravenox aprendeu a questionar.</p>
+    <p>Então o Reino começou a adoecer. Cristais escureceram, florestas morreram sem fogo nem seca. Kravenox descobriu nos registros proibidos que a Fonte Pura não estava apenas protegendo o mundo: estava <i>contendo</i> alguma coisa. A Ordem da Essência o silenciou, e Thornox ficou dividido entre o irmão e aqueles que havia jurado proteger.</p>
+    <p>Uma acusação. Uma batalha. Uma escolha. E, finalmente, o <b>Grande Cisma</b>: o céu se abriu, a Essência explodiu em milhares de fragmentos, cidades foram engolidas e montanhas se partiram como vidro. Os irmãos se enfrentaram no centro da ruptura, e uma irmã, <b>Lyra</b>, desapareceu entre raízes negras.</p>
+    <p>Séculos depois, quando quase todos os nomes já tinham virado poeira, um cristal negro rachou no fundo do Abismo Carmesim.</p>
+    <p class="destaque">E alguém despertou.</p>
+    <div class="caixa">
+      <b>No jogo</b>, você escolhe um dos seis heróis da história e entra no Reino Quebrado com seus amigos: a Vila de Solmira, os Campos Dourados, a Floresta Morta, a Cidade Submersa, a Torre e o Abismo do Cisma, que desce 30 andares a partir da cratera. Cada herói evolui duas vezes e tem 22 habilidades. Ninguém consegue pegar todas: cada jogador faz o seu caminho.
+    </div>
+  </section>
+  <section class="pag texto">
+    <h2 class="tit">Como funcionam as habilidades</h2>
+    <div class="regras">
+      <div><b>22 habilidades por herói</b><span>8 ativas principais (4 da 1ª classe e 2 a cada evolução) e mais 14 da árvore (6 passivas e 8 ativas), espalhadas pelas três classes.</span></div>
+      <div><b>Até o nível 10</b><span>Cada habilidade sobe até o nível 10. Você ganha <b>1 ponto por nível</b> e mais alguns ao evoluir. Não dá para pegar tudo: escolha.</span></div>
+      <div><b>Passivas</b><span>Bônus que valem sempre, sem apertar nada: ataque, magia, HP, defesa, crítico, roubo de vida, cura… O número mostrado é <b>por nível</b>.</span></div>
+      <div><b>💛 Grupo</b><span>Curas e proteções com 💛 também valem para quem está no seu grupo, até 15 metros de você.</span></div>
+      <div><b>Requer</b><span>Algumas habilidades pedem outra num nível mínimo antes. Na árvore, isso aparece como uma linha ligando as duas.</span></div>
+      <div><b>Evolução</b><span>A <b>2ª classe</b> abre no nível 20 e a <b>3ª classe</b> no nível 40, com o <b>Vigia Morvan</b>, na Cidadela do Cisma, depois de uma provação.</span></div>
+    </div>
+    <h2 class="tit" style="margin-top:28px">Quem é quem</h2>
+    <table class="quem">
+      <tr><th></th><th>Herói</th><th>Luta</th><th>Papel</th></tr>
+      <tr style="--cor:#e0303f"><td><img src="data:image/png;base64,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"></td><td><b>Kravenox</b></td><td>De perto</td><td>Atacante corpo a corpo: muito dano de perto, fúria e roubo de vida.</td></tr><tr style="--cor:#f2c94c"><td><img src="data:image/png;base64,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"></td><td><b>Thornox</b></td><td>De longe (magia)</td><td>Suporte de luz: ataca de longe, cura e protege o grupo.</td></tr><tr style="--cor:#9cc8ff"><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcklEQVR4nO1ZMWgbSRR9CQeGOE5UrYWzZoPBDgeBMylso8I5qU0IxgYnjQqDixCCjxMpUt11KQwpAuGqAwXUuBLCpJbiFCJSETgwHGwhvHhFZDURODHn4vAV8Z+bmd3ZnZ1dXOWBQDs78+e9+f/Pn90FvuM7UuFSlsbGx3JnOv2+no4ymze1IZ704dEgcL+++w6rD34W2qYn8+x/WjE/mA4k4jxpzx8KfZqtNq5fzwXu8WOmJ/NngLmQyyaDxsdyZ4dHAxweDVDffRcgGIdqrcHGkR3d8JORyAP8qnv+UFhhU5Dww6OBkTe0BdCq85OWigU4tsXinESFgW+XRTu2Bc8fstCansyf6YpInANyqFRrDUao2WqjUv5HGjEAsINK+dvVZzwSBPM2oxYglQBa/bg4LxUL+AxLaJN3IV6wysbGeTjpeCFWgEye3M1PKIcRQbULyZBtUjjpiEi8C4URqdYaSc0E4Nii53RtGtcBE6h2rSRbsIxMBKjCiNrl5JRDLQ2MClkY4lxeKhaymkpAZILo7j4EORlN+/B9pyfzkYUtMw8AyWNZTlwZOomcqQAdyNtlWmQugFY1bnWzgpGAqHIvHw+S2Ex6jAAiBFACy3HYbLWxtTYPx7aMJpRBxLfW5rFRXhHulYqF2KN2bB1QbX8TJwfYWpvH8RWLiaS+zVY7ctvkhW+tzQMAPr6tY3a9Eugbl8jGhezLsA+328Gd+6uMBC8myjvUH/hGfG5h0ZSGuQC328Gv29vA9jZr23v/QSCnwt3lJeF67/0HUxrpjhJ/PM3jp1/+xl+vfmRtX4b9yDFutxM6zhQXXgeyRmoBpquYxeoDKUPoyWvxPdDeunjf7XZCEzRuXBKkEiAnnxz/MnkSJI/7+LYeal+nmhsLuHVtCl/PiYwvLwXIu92OcD23sMgE0RZ869oUszW+vIRjaQ6dah56TI07Rju2hYmTA3YdRv5T2xXa7r14Huh31brB/h9fuRk5n+pYbeQBzx/CsW9i4uQgdNucW1jEnfurQltYP/LE7HqFPbXJFdyxrchqbBxCTIQVXk116gEARh4IP7bEhVGqJCYRs+sVXD050DoW8MR1CMYh9UP9/++LRCEqZEWckEklbrba8PwhqrVGJHkCkZcPfCbH89QeaLbaePn7U2yU/fPXKCuR/XnyNC4qB+KQSgCR2O/5yicx1VuIUrGAjbKP2zO2MD4pjEOIyMf1idoC6d7tGdv4GTqxB+Q4Va1es9XGv+WHAAAHp7Fe4G0nCaVAZVNVYTLOr/p+z0e11ghMyJMnbEoiqEDR60cSobKrqsZaAuRw2e/5AMI/6gEIkFeJ4EEhJAvhk/63Z48DApQ5QGT4RKWf5w+VIaGDsO2SbPLz6OSGMgdKxUJg5XXee5aKBTg4xZ8YE+7xqx8lVK4RtEslFsCvEsVkEmyWV5iITZwafQQhL0QhNAdGox4AwLkxBwDw+q7c7cLAc8jlZgI5IHiAyNd33rA2r+8K1xcNr+8yEaNRD7ncjPDd7D9NTOiCnJedWAAAAABJRU5ErkJggg=="></td><td><b>Lyra</b></td><td>De longe (magia)</td><td>Curandeira que prende os inimigos e fortalece o time.</td></tr><tr style="--cor:#b26bff"><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcElEQVR4nO1YP2gbVxz+4gY8GGzJjmUhNHkQqBQNpoVOtRDhoA2U4sEWIZSMgXjw0j9rO5VMHUzRGLzZgwmBpOUR0pPoYIi54TA1aBAZjJHkWFcbSuhSdWjf+ffu3rt7753cKR8Y+07v/d73/f4+GXiHd8iEG5M0NjOdG+us+/OvPyZ2bmZDlPTZRRD7fG+/jfW1VeHd4lw+/DurmJu2GzlxSrrbGwhrGHNRKBRjn9E9i3P5MWAvZMpm08x0bnx2EeDsIsDefjtGMA3brd1wH7ejm35RGEWAer3bGwgetgUXfnYRWEVDOwLU6/xQx6ljfW0Ve/ttVJaXtOzIRFeWl9DtDayiYVwD0VTZbu1aRWF9bTW0RX8z5hrZ0YoA9/52a9eMpQUcp24UhVQBnHy3N4Dj1AFASBebNJKB7uXppCPCqgvJ0mgSoCJ0bVrPARskdS2TNkwxEQGOU0dleSmcurRL8Q5DQddkhVUKyaAKebc3yFQbaUgcGLSAdSDzts0aunZxLp842CYWAUAvj6MRSYqOTiFPVIAMssFEhWathWsRwL3KmIuvHreutQasBKSNe9qF3h78quVlatPkOqEsjmgBM+bCcepgzMXm3dvA7AK2W7vhdLYFJ8ttRsWmFbL2HIgRvTwXhMjWcNEq0iFxAC+fv0CjuRFbm1bI1oPsTX8I3/PR+Ox2SIKKkZHlCNfjX+K1lZotDXsBvudja2sH2Nq5etfdEcipUKt8KdrqXtlQRU2FTFeJr794hs+/BZ7+wN+c401/mLjH93zpPg7Tmrr2OXDdyCzgyov/z74oMqXQoyd3hOd7j3ak63zPFwpVd58OrAXUVmpC8QFQ5j8lb7JPB5kikHSw7/nCMxWRhXAU0umWdo2uLC8Bl+qO43s+fmcd4d3mj98L62la+Z6PRnMj8TzVNLYSoCPiVrEgPMvW8ShR8rLvC4y5+O6bB1IB1pe5bm8AzC7gVrEQSxdOmP6kkecT2/R6bSyAMReHbufKU7MLaDQ3lEJkxHnKUPLcpim0i5h76NDt4LeDX/DJx6voHLSF0DeaG8DlOV4+f6G0wy9s9JYbtWlyy9USwA/pvT7Caf8EAHDaPxEOxH9X7fdz6fZoynDy1CYAbD5QF7WRAOqhKKIHMkB6Jabgt9WoQ6hNALEIWwlIIk8PLBXLoZC9xz/F0oB6u/f6SCCaZJeLYAnrEtvo/ebDRPIqlIplAAiFqLyta6tz0FbOgcQIcG+ZgqYBfU7CKBhiPl+IvT869hL3xdpo9F/po8B+7J/2T2IEVPZk5ClU/61WzoFDt4PT/kmqYRVGwRCjYIi31Q9RKpZD4qb25vOFMJIyKAVE04fntQ448Q+qK/gIf+Po2AuFmKJULCemkVTA/ebDsLtwmBTgfL4QEn+FqVCITRFze6ooxKp6Zjo3rlZr1odFUSqWBVuqYk3DKBjiPdyMdaKJfCdWpcYoGOIVpoTPbWtKBaGNzkznxnc+vYunP5t9xUvqVDyVJoFqtYbjY39Mo/APyYjoDYr8B3YAAAAASUVORK5CYII="></td><td><b>Seraphyne</b></td><td>De longe (magia)</td><td>Maga do Vazio: o maior dano de magia, rouba vida e prende.</td></tr><tr style="--cor:#e9edc0"><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADr0lEQVR4nO1ZTWsTQRh+qtIeEkIIIYdKTAgxhV4aRNqecvTiRfRgoYfqwZs/QG/Fg4ee/QH2UNGC4sGTxxzEBCnppcU1hHxQCksIy3YrVoR4KLPM7M5u5it+QJ9LurvvvPM8O/N+7BS4wAW0MGPSWWIuPRaxOz1zjM2r7YgmXcgXQ88P2i0slqvMvd6g6/+tK+aK6kBCnCY9HNmMjes53Gf0mN6gOwbUhVxSGZSYS48L+SIK+SIO2q0QwUno9C1/HPEjuv2CkFoB+q0PRzbzhlVBhBfyRaXVEBZA3jo9aSqZRilT8fe5yCq4noMfP78z97KZHIYj299avUF3LCpCOgaCJDt9S9YFADCC6V/Xc3B5ZlbYj1AMkLevSlYGqWRaKiYmCiDkhyMbqWQawPmS0xMulqs4aLeY+7Kgx5LtJCJCKQuZ2kZB0CJEfSrXARXwAphAJg3TUFqBIKK2EbkfJCeasURgRAAQveTDka0VG5MQm2vpABYByee6NrRtb9CNLWzGVgAQ28fBFYlbHZFANipAFLRQ3ViYigDyVqe59wmUBExq4oItgoxP2QYxUgAdwLRT13Nw0t1DNpMz0o26nsP4JNUeEGsrhAoZ7ZRgv/4aALBUW/ODjbZzPYc7jjwjOOnuAQD2Przj2nb6Vmxzp1yJPfsIVrPhCwFYMUGiNAhp4Jx4ZXlFlYa6AKvZwOFsCYcfW/49WkwcdqgxmC3hRu6qKg29Xmhj4z5z/ev4Kzz7KHaM1Wxg49HT0DhV/JU6YBL/vQCtLbS9/Ya5Xr9VDdlYzUYoSEXGiUJLQHBi3v7nZZjguKgUKgJlAQupeZzWPwMAErXVEHmr2WCuiZDK8oqfghdS876vRG0V2NqV5sFtUye10dlMjkmZPPLHn9hO8vbzJyG7JJU+SQ3hFb+4tlpJAC0iKm0mA7k9ys5qNvBwa9efi1fByVGLUQG0CJVqSrYYTT4KcQK0gng4srFUWwMA7NfvCgmhiRMfOtA+lSAEgkKiYIo4gbFjFdJ2i6TEOPJxXSwPWjHAw6SvMBWfU4sBHghBmdMHHUytF/oT5IF/vJkT+WQNCRCpwjLfwiK2UTYkmOO+jaVWwPUc5phdxP7Z2SsmsHlkRfxFHXJJCQhOFJdxSDp8eX2TOdmQSZEiEBbAIxu1zeg3/+DbJrKZXGglTCGUV039O6l0rYJO3wr96oBXC7gClu7d1JqIxp2dx3i//sKIr/23X+IFEPLdVtvIhABQrJaN+StWyyERvwEvZy1+t283fAAAAABJRU5ErkJggg=="></td><td><b>Erya</b></td><td>De longe (magia)</td><td>Mística: espíritos que caçam vários alvos, cura e proteção.</td></tr><tr style="--cor:#d9cff5"><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADq0lEQVR4nO1ZPWvbQBh+WgIJxNiGdNAQsMAeNAglU+noIVMT6FLa0KVZnDE/oJPpr8jYLoYumZKQIYMLHdItER48OKBsGmqowYV0cgfnVU66D51OZ9MhzySf7uN53o97T2fgCU8ohWc2J1tfrc90+v35+9vauqUnYknf3cbc+8vTa+zsbafaGk0neS4rZsV0IBFnSY8GaQFhOES1WufesWMaTWcGmAsxGrS+Wp8RCbLwSa8v7Nt5F2K8csS9r1brKc80mo6RiEIeYK0+GsQpC3eOHPGgOMTGiyH3/tuXewCPnrm7jY28oS2AtTotGgQeWr6Dy9NrvD9Yw/fjA8noHt+0dpz6ORrESWg1ms5MV0ThHMjG+Umvj2q1jvEvD/7bK66/KImpTTRXUWgJIOtnF8xCJ4nZNhGCwEvCSccLz/M6sKEjW3BnbxuXp9do+ZI8kCDbn0KSwkmnruQKIKisb+J6QlYEraM7p3EdMEE2fPJCUgfaHlBBFkbUniUqajOFFQEA73ISQvViUVBmue7uQ6AELNuH7ZtXoa15AFDHNOsR3d1KJ5GtClCBFWcr/gGLAsiqRWtBWRgJECUlWdXEumE4NE50qQBRArd8B2E4ROfQS57LguagOVnQsUJVkQsVMlbMRiVG59DDeOqkki0IPG3SRBwAbq762PT3ub55iWxciSdxhCiKsPWqnZDIipGB+gNz4q7rmtIwFxBFET597qbazs77KXIy7L5uc+MQRUY8Sp2FznpdoPERuPuatE1iNZEoioTjTLG0OrAolBdgakUL1gcKhlB269z90E29PzvvA5iHiSoxZeNMYLyNiham+M+SZwW5rsuNu7lK/y5y4DNOYvcemPTnC9fabS55I8WuQluwe/8w18Mc4+n8d5FqLjym5h2jW76DjcrjOxH56KKfanvT7XL9ao6bPI+ncqurjtVGHhgNYuBBhGjbdF0XW91uqk3Ujzyx6e9z5NkwUhVH4xBKRDjiaqpTDwAIySfza6BUISMRm/4+apVY61jAEi9CVIbStxIJgYwQGWwRJ1i5VqHaEIZDvAzyiYlu8HROsSJYEUCLB4GHTb+t7CuyvCl5wPLFVpECZAtLu5VYFP6702jRz1ROgOpb2CZk84nyQfVtnOuBMBxiNIiNE60IURVk1ThXALuQyZ1PmR1GZz2pANHgZSap7o4m3UbL/GlhA7o5xx1P11frs+lkcdfhZVCpedyROuUBIv/zx8VymWliOhmiUvNSf/79A0OCILeNtWkKAAAAAElFTkSuQmCC"></td><td><b>Mãe</b></td><td>De perto</td><td>Linha de frente: aguenta pancada, atordoa e protege o grupo.</td></tr>
+    </table>
+    <div class="caixa"><b>Grupo ideal:</b> Kravenox ou Mãe na frente, Seraphyne ou Erya no dano de magia, e Thornox ou Lyra curando e protegendo o time. Em grupo, a experiência e os itens são divididos entre quem está perto.</div>
+  </section>
+  <section class="pag heroi" style="--cor:#e0303f">
+    <div class="cab">
+      <img class="retrato" src="data:image/png;base64,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">
+      <div class="cab-txt">
+        <div class="num">Herói 1 de 6</div>
+        <h2>Kravenox</h2>
+        <div class="evo">Kravenox <span>→</span> Espinho Voraz <span>→</span> Forma Desperta</div>
+        <div class="papel">Atacante corpo a corpo: muito dano de perto, fúria e roubo de vida.</div>
+      </div>
+    </div>
+    <div class="dois">
+      <div class="lore"><p>Séculos depois do Grande Cisma, um cristal negro racha no fundo do Abismo Carmesim e Kravenox desperta: fraco, com os poderes partidos em fragmentos e uma fome que não passa. Desde menino, ele era o irmão que perguntava. Foi ele quem leu os registros proibidos do templo e descobriu que a Fonte Pura não protegia o mundo: ela <i>continha</i> alguma coisa. Ninguém quis ouvir. Agora ele usa a Essência Corrompida para pegar de volta tudo o que lhe tiraram.</p><p class="cit">“Não há luz sem sombra… E tudo que foi tomado, eu vou recuperar.”</p></div>
+      <div class="notas"><div class="nota"><span>Ataque</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Defesa</span><b>★★★<span class="apagada">★★</span></b></div><div class="nota"><span>Cura</span><b>★<span class="apagada">★★★★</span></b></div><div class="nota"><span>Grupo</span><b>★★<span class="apagada">★★★</span></b></div><div class="nota"><span>Facilidade</span><b>★★★★<span class="apagada">★</span></b></div></div>
+    </div>
+    <h4>Árvore de habilidades</h4>
+    <div class="arvore">
+    <div class="col">
+      <div class="col-tit"><small>1ª classe · nível 1+</small>Kravenox</div>
+      
+        <div class="no" id="Kravenox-Espinhos" >
+          <span class="ic">🖤</span><span class="nm">Espinhos</span><span class="nv">1</span>
+          
+        </div>
+        <div class="no pas" id="Kravenox-GarrasAfiadas" >
+          <span class="ic">🗡️</span><span class="nm">Garras Afiadas</span><span class="nv">2</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Kravenox-EspinhosVorazes" >
+          <span class="ic">🩸</span><span class="nm">Espinhos Vorazes</span><span class="nv">4</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Kravenox-SededeSangue" >
+          <span class="ic">🩸</span><span class="nm">Sede de Sangue</span><span class="nv">6</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Kravenox-ModoFuria" >
+          <span class="ic">😡</span><span class="nm">Modo Fúria</span><span class="nv">8</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Kravenox-CouracadeEspinhos" >
+          <span class="ic">🦔</span><span class="nm">Couraça de Espinhos</span><span class="nv">10</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-RaiodaEssencia" >
+          <span class="ic">🔴</span><span class="nm">Raio da Essência</span><span class="nv">12</span>
+          
+        </div>
+        <div class="no" id="Kravenox-EspinhosSanguinarios" data-req="Kravenox-Espinhos" data-nv="3">
+          <span class="ic">🔻</span><span class="nm">Espinhos Sanguinários</span><span class="nv">16</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>2ª classe · nível 20+</small>Espinho Voraz</div>
+      
+        <div class="no" id="Kravenox-FomedoAbismo" >
+          <span class="ic">🕳️</span><span class="nm">Fome do Abismo</span><span class="nv">20</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Kravenox-InstintoVoraz" >
+          <span class="ic">👁️</span><span class="nm">Instinto Voraz</span><span class="nv">21</span>
+          
+        </div>
+        <div class="no pas" id="Kravenox-PeledoAbismo" >
+          <span class="ic">🖤</span><span class="nm">Pele do Abismo</span><span class="nv">23</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-Esmagamento" >
+          <span class="ic">💥</span><span class="nm">Esmagamento</span><span class="nv">24</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-GarrasdoAbismo" >
+          <span class="ic">🐾</span><span class="nm">Garras do Abismo</span><span class="nv">26</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Kravenox-RugidodoAbismo" data-req="Kravenox-GarrasdoAbismo" data-nv="2">
+          <span class="ic">📢</span><span class="nm">Rugido do Abismo</span><span class="nv">30</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-IraNegra" data-req="Kravenox-RugidodoAbismo" data-nv="2">
+          <span class="ic">🔥</span><span class="nm">Ira Negra 💛</span><span class="nv">34</span>
+          
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>3ª classe · nível 40+</small>Forma Desperta</div>
+      
+        <div class="no" id="Kravenox-PelasSombras" >
+          <span class="ic">🌑</span><span class="nm">Pelas Sombras</span><span class="nv">40</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Kravenox-EssenciaDesperta" >
+          <span class="ic">✴️</span><span class="nm">Essência Desperta</span><span class="nv">41</span>
+          
+        </div>
+        <div class="no pas" id="Kravenox-FomeEterna" >
+          <span class="ic">♾️</span><span class="nm">Fome Eterna</span><span class="nv">44</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Kravenox-QuartaEssencia" >
+          <span class="ic">✴️</span><span class="nm">Quarta Essência</span><span class="nv">46</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-CoroadeEspinhos" >
+          <span class="ic">👑</span><span class="nm">Coroa de Espinhos</span><span class="nv">50</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-ChuvaCarmesim" data-req="Kravenox-CoroadeEspinhos" data-nv="3">
+          <span class="ic">🌧️</span><span class="nm">Chuva Carmesim</span><span class="nv">58</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Kravenox-ODespertar" data-req="Kravenox-ChuvaCarmesim" data-nv="3">
+          <span class="ic">🌋</span><span class="nm">O Despertar</span><span class="nv">66</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div><svg class="linhas"></svg></div>
+    <div class="legenda">O número é o nível do herói para liberar. Borda tracejada = passiva. 💛 = vale também para o grupo perto. As linhas mostram o que precisa antes (“requer”).</div>
+    <h4>Dois caminhos (os pontos não dão para tudo)</h4>
+    <div class="caminhos"><div class="caminho"><div class="cam-tit"><i class="mk mkA">A</i> 🩸 Fúria Sangrenta</div><div class="cam-d">Um alvo de cada vez, sem largar. Rouba vida e quase não precisa de poção.</div><div class="cam-l"><b>Pegue:</b> Garras Afiadas · Sede de Sangue · Modo Fúria · Espinhos Sanguinários · Fome do Abismo · Garras do Abismo · Fome Eterna · Pelas Sombras · O Despertar</div></div><div class="caminho"><div class="cam-tit"><i class="mk mkB">B</i> 🌋 Tempestade de Espinhos</div><div class="cam-d">Junta os monstros e apaga todos de uma vez.</div><div class="cam-l"><b>Pegue:</b> Espinhos Vorazes · Couraça de Espinhos · Esmagamento · Pele do Abismo · Rugido do Abismo · Quarta Essência · Coroa de Espinhos · Chuva Carmesim</div></div></div>
+  </section>
+  <section class="pag heroi lista-pag" style="--cor:#e0303f">
+    <div class="mini-cab"><img src="data:image/png;base64,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"> <b>Kravenox</b> · todas as habilidades</div>
+    <div class="lista">
+      <h3>1ª classe: Kravenox <small>(a partir do nível 1)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🖤</div>
+          <div><div class="hab-nm">Espinhos <span class="hab-nv">nível 1</span></div>
+          <div class="hab-d">Espinhos negros explodem do chão sob o alvo (190%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🗡️</div>
+          <div><div class="hab-nm">Garras Afiadas <span class="tag">passiva</span> <span class="hab-nv">nível 2</span></div>
+          <div class="hab-d">+3% de ataque por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🩸</div>
+          <div><div class="hab-nm">Espinhos Vorazes <span class="hab-nv">nível 4</span></div>
+          <div class="hab-d">Centenas de espinhos atingem todos ao redor (160%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🩸</div>
+          <div><div class="hab-nm">Sede de Sangue <span class="tag">passiva</span> <span class="hab-nv">nível 6</span></div>
+          <div class="hab-d">+0,6% de roubo de vida por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">😡</div>
+          <div><div class="hab-nm">Modo Fúria <span class="hab-nv">nível 8</span></div>
+          <div class="hab-d">20s: ataque +50% e golpes mais rápidos; a defesa cai.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🦔</div>
+          <div><div class="hab-nm">Couraça de Espinhos <span class="tag">passiva</span> <span class="hab-nv">nível 10</span></div>
+          <div class="hab-d">+2 de defesa, +1,5% de HP por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🔴</div>
+          <div><div class="hab-nm">Raio da Essência <span class="hab-nv">nível 12</span></div>
+          <div class="hab-d">Um raio concentrado de Essência escura (420%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🔻</div>
+          <div><div class="hab-nm">Espinhos Sanguinários <span class="hab-nv">nível 16</span></div>
+          <div class="hab-d">Espinhos que bebem o sangue do alvo (280%) e curam 6%. <span class="req">Requer Espinhos Nv 3.</span></div></div>
+        </div>
+      <h3>2ª classe: Espinho Voraz <small>(a partir do nível 20)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🕳️</div>
+          <div><div class="hab-nm">Fome do Abismo <span class="hab-nv">nível 20</span></div>
+          <div class="hab-d">Devora a Essência do alvo (260%) e recupera vida.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">👁️</div>
+          <div><div class="hab-nm">Instinto Voraz <span class="tag">passiva</span> <span class="hab-nv">nível 21</span></div>
+          <div class="hab-d">+1% de crítico por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🖤</div>
+          <div><div class="hab-nm">Pele do Abismo <span class="tag">passiva</span> <span class="hab-nv">nível 23</span></div>
+          <div class="hab-d">+3% de HP por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💥</div>
+          <div><div class="hab-nm">Esmagamento <span class="hab-nv">nível 24</span></div>
+          <div class="hab-d">Golpeia o chão: espinhos e abismo em volta (340%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🐾</div>
+          <div><div class="hab-nm">Garras do Abismo <span class="hab-nv">nível 26</span></div>
+          <div class="hab-d">Três garradas seguidas (3× 160%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">📢</div>
+          <div><div class="hab-nm">Rugido do Abismo <span class="hab-nv">nível 30</span></div>
+          <div class="hab-d">Um rugido que paralisa todos em volta (130%, atordoa 2s). <span class="req">Requer Garras do Abismo Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🔥</div>
+          <div><div class="hab-nm">Ira Negra <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 34</span></div>
+          <div class="hab-d">25s: +30% de ataque e +12% de crítico. <span class="req">Requer Rugido do Abismo Nv 2.</span></div></div>
+        </div>
+      <h3>3ª classe: Forma Desperta <small>(a partir do nível 40)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🌑</div>
+          <div><div class="hab-nm">Pelas Sombras <span class="hab-nv">nível 40</span></div>
+          <div class="hab-d">"Thornox pela frente, Kravenox pelas sombras." Surge atrás do alvo (500%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">✴️</div>
+          <div><div class="hab-nm">Essência Desperta <span class="tag">passiva</span> <span class="hab-nv">nível 41</span></div>
+          <div class="hab-d">+3% de ataque, +1,5% de velocidade de golpe por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">♾️</div>
+          <div><div class="hab-nm">Fome Eterna <span class="tag">passiva</span> <span class="hab-nv">nível 44</span></div>
+          <div class="hab-d">+0,2% de HP por segundo, +0,4% de roubo de vida por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">✴️</div>
+          <div><div class="hab-nm">Quarta Essência <span class="hab-nv">nível 46</span></div>
+          <div class="hab-d">Luz, memória, Vazio e Essência num só golpe (600% em área).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">👑</div>
+          <div><div class="hab-nm">Coroa de Espinhos <span class="hab-nv">nível 50</span></div>
+          <div class="hab-d">Uma coroa de espinhos explode em volta (450%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌧️</div>
+          <div><div class="hab-nm">Chuva Carmesim <span class="hab-nv">nível 58</span></div>
+          <div class="hab-d">Espinhos caem do céu sobre o alvo e todos perto (540%). <span class="req">Requer Coroa de Espinhos Nv 3.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌋</div>
+          <div><div class="hab-nm">O Despertar <span class="hab-nv">nível 66</span></div>
+          <div class="hab-d">25s: a forma verdadeira. +80% de ataque, golpes muito mais rápidos; a defesa cai. <span class="req">Requer Chuva Carmesim Nv 3.</span></div></div>
+        </div></div>
+  </section>
+  <section class="pag heroi" style="--cor:#f2c94c">
+    <div class="cab">
+      <img class="retrato" src="data:image/png;base64,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">
+      <div class="cab-txt">
+        <div class="num">Herói 2 de 6</div>
+        <h2>Thornox</h2>
+        <div class="evo">Thornox <span>→</span> Guardião da Luz <span>→</span> Thornox Coroado</div>
+        <div class="papel">Suporte de luz: ataca de longe, cura e protege o grupo.</div>
+      </div>
+    </div>
+    <div class="dois">
+      <div class="lore"><p>O irmão que aprendeu a proteger. Quando nasceu, a Essência reagia a ele como luz diante do amanhecer. Thornox e Kravenox têm o mesmo corpo: um é a sombra, o outro é a luz. Na noite do Cisma, ele ficou dividido entre o irmão e a Ordem que tinha jurado proteger, e essa rachadura nunca fechou. Hoje é o Guardião: seus espinhos brilham com uma luz suave, e onde ele está, o grupo não cai.</p><p class="cit">“Thornox pela frente, Kravenox pelas sombras.”</p></div>
+      <div class="notas"><div class="nota"><span>Ataque</span><b>★★★<span class="apagada">★★</span></b></div><div class="nota"><span>Defesa</span><b>★★★★<span class="apagada">★</span></b></div><div class="nota"><span>Cura</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Grupo</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Facilidade</span><b>★★★★<span class="apagada">★</span></b></div></div>
+    </div>
+    <h4>Árvore de habilidades</h4>
+    <div class="arvore">
+    <div class="col">
+      <div class="col-tit"><small>1ª classe · nível 1+</small>Thornox</div>
+      
+        <div class="no" id="Thornox-LancaDourada" >
+          <span class="ic">✨</span><span class="nm">Lança Dourada</span><span class="nv">1</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Thornox-LuzInterior" >
+          <span class="ic">☀️</span><span class="nm">Luz Interior</span><span class="nv">2</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Thornox-LuzDourada" >
+          <span class="ic">💛</span><span class="nm">Luz Dourada 💛</span><span class="nv">4</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Thornox-MaosqueCuram" >
+          <span class="ic">🤲</span><span class="nm">Mãos que Curam</span><span class="nv">6</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Thornox-BarreiradeLuz" >
+          <span class="ic">🛡️</span><span class="nm">Barreira de Luz 💛</span><span class="nv">8</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Thornox-EscudoVivo" >
+          <span class="ic">🛡️</span><span class="nm">Escudo Vivo</span><span class="nv">10</span>
+          
+        </div>
+        <div class="no" id="Thornox-PedrasFlutuantes" >
+          <span class="ic">🪨</span><span class="nm">Pedras Flutuantes</span><span class="nv">12</span>
+          
+        </div>
+        <div class="no" id="Thornox-RaiodeSol" data-req="Thornox-LancaDourada" data-nv="3">
+          <span class="ic">🌞</span><span class="nm">Raio de Sol</span><span class="nv">16</span>
+          <i class="mk mkB">B</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>2ª classe · nível 20+</small>Guardião da Luz</div>
+      
+        <div class="no" id="Thornox-Aurora" >
+          <span class="ic">🌅</span><span class="nm">Aurora 💛</span><span class="nv">20</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Thornox-FeInabalavel" >
+          <span class="ic">🙏</span><span class="nm">Fé Inabalável</span><span class="nv">21</span>
+          
+        </div>
+        <div class="no pas" id="Thornox-AuradoGuardiao" >
+          <span class="ic">💫</span><span class="nm">Aura do Guardião</span><span class="nv">23</span>
+          
+        </div>
+        <div class="no" id="Thornox-OndadeLuz" >
+          <span class="ic">🌊</span><span class="nm">Onda de Luz</span><span class="nv">24</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Thornox-BencaodoGuardiao" >
+          <span class="ic">🌟</span><span class="nm">Bênção do Guardião 💛</span><span class="nv">26</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Thornox-ChuvadeLuz" data-req="Thornox-BencaodoGuardiao" data-nv="2">
+          <span class="ic">🌦️</span><span class="nm">Chuva de Luz</span><span class="nv">30</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Thornox-Renovacao" data-req="Thornox-ChuvadeLuz" data-nv="2">
+          <span class="ic">💚</span><span class="nm">Renovação 💛</span><span class="nv">34</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>3ª classe · nível 40+</small>Thornox Coroado</div>
+      
+        <div class="no" id="Thornox-MuralhadeLuz" >
+          <span class="ic">🏰</span><span class="nm">Muralha de Luz 💛</span><span class="nv">40</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Thornox-CoroadeLuz" >
+          <span class="ic">👑</span><span class="nm">Coroa de Luz</span><span class="nv">41</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Thornox-MuralhaViva" >
+          <span class="ic">🏰</span><span class="nm">Muralha Viva</span><span class="nv">44</span>
+          
+        </div>
+        <div class="no" id="Thornox-JulgamentoDourado" >
+          <span class="ic">☀️</span><span class="nm">Julgamento Dourado</span><span class="nv">46</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Thornox-SantuarioDourado" >
+          <span class="ic">⛪</span><span class="nm">Santuário Dourado 💛</span><span class="nv">50</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Thornox-LancadoCeu" data-req="Thornox-SantuarioDourado" data-nv="2">
+          <span class="ic">⚡</span><span class="nm">Lança do Céu</span><span class="nv">58</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Thornox-SolNascente" data-req="Thornox-LancadoCeu" data-nv="3">
+          <span class="ic">🌅</span><span class="nm">Sol Nascente</span><span class="nv">66</span>
+          <i class="mk mkB">B</i>
+        </div>
+    </div><svg class="linhas"></svg></div>
+    <div class="legenda">O número é o nível do herói para liberar. Borda tracejada = passiva. 💛 = vale também para o grupo perto. As linhas mostram o que precisa antes (“requer”).</div>
+    <h4>Dois caminhos (os pontos não dão para tudo)</h4>
+    <div class="caminhos"><div class="caminho"><div class="cam-tit"><i class="mk mkA">A</i> 🛡️ Guardião</div><div class="cam-d">O curandeiro do grupo: cura, defesa e bênçãos para todo mundo perto.</div><div class="cam-l"><b>Pegue:</b> Luz Dourada · Mãos que Curam · Barreira de Luz · Aurora · Bênção do Guardião · Renovação · Muralha de Luz · Coroa de Luz · Santuário Dourado</div></div><div class="caminho"><div class="cam-tit"><i class="mk mkB">B</i> ☀️ Sol de Guerra</div><div class="cam-d">Luz que machuca. Muito dano de longe, ainda com uma cura de reserva.</div><div class="cam-l"><b>Pegue:</b> Lança Dourada · Luz Interior · Raio de Sol · Onda de Luz · Chuva de Luz · Julgamento Dourado · Lança do Céu · Sol Nascente</div></div></div>
+  </section>
+  <section class="pag heroi lista-pag" style="--cor:#f2c94c">
+    <div class="mini-cab"><img src="data:image/png;base64,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"> <b>Thornox</b> · todas as habilidades</div>
+    <div class="lista">
+      <h3>1ª classe: Thornox <small>(a partir do nível 1)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">✨</div>
+          <div><div class="hab-nm">Lança Dourada <span class="hab-nv">nível 1</span></div>
+          <div class="hab-d">Uma lança de luz contra as trevas (200%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">☀️</div>
+          <div><div class="hab-nm">Luz Interior <span class="tag">passiva</span> <span class="hab-nv">nível 2</span></div>
+          <div class="hab-d">+3% de magia por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💛</div>
+          <div><div class="hab-nm">Luz Dourada <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 4</span></div>
+          <div class="hab-d">Cura 35% do HP.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🤲</div>
+          <div><div class="hab-nm">Mãos que Curam <span class="tag">passiva</span> <span class="hab-nv">nível 6</span></div>
+          <div class="hab-d">+5% de cura por nível. (A cura também vale para o grupo.)</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🛡️</div>
+          <div><div class="hab-nm">Barreira de Luz <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 8</span></div>
+          <div class="hab-d">25s: +25 de defesa.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🛡️</div>
+          <div><div class="hab-nm">Escudo Vivo <span class="tag">passiva</span> <span class="hab-nv">nível 10</span></div>
+          <div class="hab-d">+2,5 de defesa por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🪨</div>
+          <div><div class="hab-nm">Pedras Flutuantes <span class="hab-nv">nível 12</span></div>
+          <div class="hab-d">A luz ergue escombros contra todos em volta do alvo (300%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌞</div>
+          <div><div class="hab-nm">Raio de Sol <span class="hab-nv">nível 16</span></div>
+          <div class="hab-d">Dois raios de sol (2× 240%). <span class="req">Requer Lança Dourada Nv 3.</span></div></div>
+        </div>
+      <h3>2ª classe: Guardião da Luz <small>(a partir do nível 20)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🌅</div>
+          <div><div class="hab-nm">Aurora <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 20</span></div>
+          <div class="hab-d">Cura 60% do HP.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🙏</div>
+          <div><div class="hab-nm">Fé Inabalável <span class="tag">passiva</span> <span class="hab-nv">nível 21</span></div>
+          <div class="hab-d">+2,5% de HP, +2% de SP por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">💫</div>
+          <div><div class="hab-nm">Aura do Guardião <span class="tag">passiva</span> <span class="hab-nv">nível 23</span></div>
+          <div class="hab-d">+0,1% de HP por segundo por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌊</div>
+          <div><div class="hab-nm">Onda de Luz <span class="hab-nv">nível 24</span></div>
+          <div class="hab-d">Uma onda dourada que desfaz as sombras (320% em volta).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌟</div>
+          <div><div class="hab-nm">Bênção do Guardião <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 26</span></div>
+          <div class="hab-d">40s: +15% de ataque, +20% de magia e +15 de defesa.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌦️</div>
+          <div><div class="hab-nm">Chuva de Luz <span class="hab-nv">nível 30</span></div>
+          <div class="hab-d">Gotas de luz caem sobre os inimigos (340% em área). <span class="req">Requer Bênção do Guardião Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💚</div>
+          <div><div class="hab-nm">Renovação <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 34</span></div>
+          <div class="hab-d">Cura 50% do HP. <span class="req">Requer Chuva de Luz Nv 2.</span></div></div>
+        </div>
+      <h3>3ª classe: Thornox Coroado <small>(a partir do nível 40)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🏰</div>
+          <div><div class="hab-nm">Muralha de Luz <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 40</span></div>
+          <div class="hab-d">30s: +60 de defesa e cura 30%.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">👑</div>
+          <div><div class="hab-nm">Coroa de Luz <span class="tag">passiva</span> <span class="hab-nv">nível 41</span></div>
+          <div class="hab-d">+4% de magia, +4% de cura por nível. (A cura também vale para o grupo.)</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🏰</div>
+          <div><div class="hab-nm">Muralha Viva <span class="tag">passiva</span> <span class="hab-nv">nível 44</span></div>
+          <div class="hab-d">+3 de defesa, +2% de HP por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">☀️</div>
+          <div><div class="hab-nm">Julgamento Dourado <span class="hab-nv">nível 46</span></div>
+          <div class="hab-d">Um pilar de luz cai sobre os inimigos (600%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⛪</div>
+          <div><div class="hab-nm">Santuário Dourado <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 50</span></div>
+          <div class="hab-d">30s: +40 de defesa e regenera 2% por segundo; cura 30%.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⚡</div>
+          <div><div class="hab-nm">Lança do Céu <span class="hab-nv">nível 58</span></div>
+          <div class="hab-d">Uma lança enorme de luz (700%). <span class="req">Requer Santuário Dourado Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌅</div>
+          <div><div class="hab-nm">Sol Nascente <span class="hab-nv">nível 66</span></div>
+          <div class="hab-d">O sol nasce no meio da luta: 500% em volta e cura 30%. <span class="req">Requer Lança do Céu Nv 3.</span></div></div>
+        </div></div>
+  </section>
+  <section class="pag heroi" style="--cor:#9cc8ff">
+    <div class="cab">
+      <img class="retrato" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcklEQVR4nO1ZMWgbSRR9CQeGOE5UrYWzZoPBDgeBMylso8I5qU0IxgYnjQqDixCCjxMpUt11KQwpAuGqAwXUuBLCpJbiFCJSETgwHGwhvHhFZDURODHn4vAV8Z+bmd3ZnZ1dXOWBQDs78+e9+f/Pn90FvuM7UuFSlsbGx3JnOv2+no4ymze1IZ704dEgcL+++w6rD34W2qYn8+x/WjE/mA4k4jxpzx8KfZqtNq5fzwXu8WOmJ/NngLmQyyaDxsdyZ4dHAxweDVDffRcgGIdqrcHGkR3d8JORyAP8qnv+UFhhU5Dww6OBkTe0BdCq85OWigU4tsXinESFgW+XRTu2Bc8fstCansyf6YpInANyqFRrDUao2WqjUv5HGjEAsINK+dvVZzwSBPM2oxYglQBa/bg4LxUL+AxLaJN3IV6wysbGeTjpeCFWgEye3M1PKIcRQbULyZBtUjjpiEi8C4URqdYaSc0E4Nii53RtGtcBE6h2rSRbsIxMBKjCiNrl5JRDLQ2MClkY4lxeKhaymkpAZILo7j4EORlN+/B9pyfzkYUtMw8AyWNZTlwZOomcqQAdyNtlWmQugFY1bnWzgpGAqHIvHw+S2Ex6jAAiBFACy3HYbLWxtTYPx7aMJpRBxLfW5rFRXhHulYqF2KN2bB1QbX8TJwfYWpvH8RWLiaS+zVY7ctvkhW+tzQMAPr6tY3a9Eugbl8jGhezLsA+328Gd+6uMBC8myjvUH/hGfG5h0ZSGuQC328Gv29vA9jZr23v/QSCnwt3lJeF67/0HUxrpjhJ/PM3jp1/+xl+vfmRtX4b9yDFutxM6zhQXXgeyRmoBpquYxeoDKUPoyWvxPdDeunjf7XZCEzRuXBKkEiAnnxz/MnkSJI/7+LYeal+nmhsLuHVtCl/PiYwvLwXIu92OcD23sMgE0RZ869oUszW+vIRjaQ6dah56TI07Rju2hYmTA3YdRv5T2xXa7r14Huh31brB/h9fuRk5n+pYbeQBzx/CsW9i4uQgdNucW1jEnfurQltYP/LE7HqFPbXJFdyxrchqbBxCTIQVXk116gEARh4IP7bEhVGqJCYRs+sVXD050DoW8MR1CMYh9UP9/++LRCEqZEWckEklbrba8PwhqrVGJHkCkZcPfCbH89QeaLbaePn7U2yU/fPXKCuR/XnyNC4qB+KQSgCR2O/5yicx1VuIUrGAjbKP2zO2MD4pjEOIyMf1idoC6d7tGdv4GTqxB+Q4Va1es9XGv+WHAAAHp7Fe4G0nCaVAZVNVYTLOr/p+z0e11ghMyJMnbEoiqEDR60cSobKrqsZaAuRw2e/5AMI/6gEIkFeJ4EEhJAvhk/63Z48DApQ5QGT4RKWf5w+VIaGDsO2SbPLz6OSGMgdKxUJg5XXee5aKBTg4xZ8YE+7xqx8lVK4RtEslFsCvEsVkEmyWV5iITZwafQQhL0QhNAdGox4AwLkxBwDw+q7c7cLAc8jlZgI5IHiAyNd33rA2r+8K1xcNr+8yEaNRD7ncjPDd7D9NTOiCnJedWAAAAABJRU5ErkJggg==">
+      <div class="cab-txt">
+        <div class="num">Herói 3 de 6</div>
+        <h2>Lyra</h2>
+        <div class="evo">Lyra <span>→</span> Guardiã da Memória <span>→</span> Voz da Fonte</div>
+        <div class="papel">Curandeira que prende os inimigos e fortalece o time.</div>
+      </div>
+    </div>
+    <div class="dois">
+      <div class="lore"><p>A irmã que o Reino esqueceu. Na noite do Cisma, eram três diante da Fonte: Lyra segurava o cristal, Thornox gritava, Kravenox discutia. Uma sombra atrás da Fonte avançou, e raízes negras envolveram a menina. Por muito tempo, nem os irmãos se lembravam dela. Lyra voltou guardando a última memória da Fonte, e com ela cura, prende e protege.</p><p class="cit">“Você não pode tirar o que é nosso!”</p></div>
+      <div class="notas"><div class="nota"><span>Ataque</span><b>★★★<span class="apagada">★★</span></b></div><div class="nota"><span>Defesa</span><b>★★<span class="apagada">★★★</span></b></div><div class="nota"><span>Cura</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Grupo</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Facilidade</span><b>★★★<span class="apagada">★★</span></b></div></div>
+    </div>
+    <h4>Árvore de habilidades</h4>
+    <div class="arvore">
+    <div class="col">
+      <div class="col-tit"><small>1ª classe · nível 1+</small>Lyra</div>
+      
+        <div class="no" id="Lyra-LembrancaDourada" >
+          <span class="ic">🌟</span><span class="nm">Lembrança Dourada</span><span class="nv">1</span>
+          
+        </div>
+        <div class="no pas" id="Lyra-MemoriaViva" >
+          <span class="ic">💭</span><span class="nm">Memória Viva</span><span class="nv">2</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Lyra-Memoria" >
+          <span class="ic">💙</span><span class="nm">Memória 💛</span><span class="nv">4</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Lyra-LembrancasBoas" >
+          <span class="ic">💗</span><span class="nm">Lembranças Boas</span><span class="nv">6</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Lyra-BarreiradeMemorias" >
+          <span class="ic">🌀</span><span class="nm">Barreira de Memórias</span><span class="nv">8</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Lyra-PassoLeve" >
+          <span class="ic">🍃</span><span class="nm">Passo Leve</span><span class="nv">10</span>
+          
+        </div>
+        <div class="no" id="Lyra-MilMemorias" >
+          <span class="ic">💫</span><span class="nm">Mil Memórias</span><span class="nv">12</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Lyra-FiodeMemoria" data-req="Lyra-LembrancaDourada" data-nv="3">
+          <span class="ic">🧵</span><span class="nm">Fio de Memória</span><span class="nv">16</span>
+          
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>2ª classe · nível 20+</small>Guardiã da Memória</div>
+      
+        <div class="no" id="Lyra-EcodaVida" >
+          <span class="ic">💗</span><span class="nm">Eco da Vida 💛</span><span class="nv">20</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Lyra-FonteInterna" >
+          <span class="ic">💧</span><span class="nm">Fonte Interna</span><span class="nv">21</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Lyra-CoracaodeIrma" >
+          <span class="ic">🤍</span><span class="nm">Coração de Irmã</span><span class="nv">23</span>
+          
+        </div>
+        <div class="no" id="Lyra-MemoriaColetiva" >
+          <span class="ic">🫂</span><span class="nm">Memória Coletiva</span><span class="nv">24</span>
+          
+        </div>
+        <div class="no" id="Lyra-AguasdaMemoria" >
+          <span class="ic">🌊</span><span class="nm">Águas da Memória 💛</span><span class="nv">26</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Lyra-PrisaoDourada" data-req="Lyra-AguasdaMemoria" data-nv="2">
+          <span class="ic">⛓️</span><span class="nm">Prisão Dourada</span><span class="nv">30</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Lyra-CancaoCalma" data-req="Lyra-PrisaoDourada" data-nv="2">
+          <span class="ic">🎵</span><span class="nm">Canção Calma 💛</span><span class="nv">34</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>3ª classe · nível 40+</small>Voz da Fonte</div>
+      
+        <div class="no" id="Lyra-CancaodaFonte" >
+          <span class="ic">🎶</span><span class="nm">Canção da Fonte 💛</span><span class="nv">40</span>
+          
+        </div>
+        <div class="no pas" id="Lyra-VozdaFonte" >
+          <span class="ic">🎶</span><span class="nm">Voz da Fonte</span><span class="nv">41</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Lyra-Esquecimento" >
+          <span class="ic">🌫️</span><span class="nm">Esquecimento</span><span class="nv">44</span>
+          
+        </div>
+        <div class="no" id="Lyra-UltimaMemoria" >
+          <span class="ic">🌟</span><span class="nm">Última Memória</span><span class="nv">46</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Lyra-Renascer" >
+          <span class="ic">🕊️</span><span class="nm">Renascer 💛</span><span class="nv">50</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Lyra-TempestadedeMemorias" data-req="Lyra-Renascer" data-nv="2">
+          <span class="ic">🌪️</span><span class="nm">Tempestade de Memórias</span><span class="nv">58</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Lyra-Eternidade" data-req="Lyra-TempestadedeMemorias" data-nv="3">
+          <span class="ic">✨</span><span class="nm">Eternidade 💛</span><span class="nv">66</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div><svg class="linhas"></svg></div>
+    <div class="legenda">O número é o nível do herói para liberar. Borda tracejada = passiva. 💛 = vale também para o grupo perto. As linhas mostram o que precisa antes (“requer”).</div>
+    <h4>Dois caminhos (os pontos não dão para tudo)</h4>
+    <div class="caminhos"><div class="caminho"><div class="cam-tit"><i class="mk mkA">A</i> 💙 Curandeira</div><div class="cam-d">Ninguém morre perto dela. Curas grandes e regeneração para o grupo.</div><div class="cam-l"><b>Pegue:</b> Memória · Lembranças Boas · Fonte Interna · Eco da Vida · Águas da Memória · Canção Calma · Renascer · Eternidade</div></div><div class="caminho"><div class="cam-tit"><i class="mk mkB">B</i> ⛓️ Carcereira</div><div class="cam-d">Prende os monstros no lugar e bate enquanto eles não se mexem.</div><div class="cam-l"><b>Pegue:</b> Memória Viva · Barreira de Memórias · Mil Memórias · Prisão Dourada · Voz da Fonte · Última Memória · Tempestade de Memórias</div></div></div>
+  </section>
+  <section class="pag heroi lista-pag" style="--cor:#9cc8ff">
+    <div class="mini-cab"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcklEQVR4nO1ZMWgbSRR9CQeGOE5UrYWzZoPBDgeBMylso8I5qU0IxgYnjQqDixCCjxMpUt11KQwpAuGqAwXUuBLCpJbiFCJSETgwHGwhvHhFZDURODHn4vAV8Z+bmd3ZnZ1dXOWBQDs78+e9+f/Pn90FvuM7UuFSlsbGx3JnOv2+no4ymze1IZ704dEgcL+++w6rD34W2qYn8+x/WjE/mA4k4jxpzx8KfZqtNq5fzwXu8WOmJ/NngLmQyyaDxsdyZ4dHAxweDVDffRcgGIdqrcHGkR3d8JORyAP8qnv+UFhhU5Dww6OBkTe0BdCq85OWigU4tsXinESFgW+XRTu2Bc8fstCansyf6YpInANyqFRrDUao2WqjUv5HGjEAsINK+dvVZzwSBPM2oxYglQBa/bg4LxUL+AxLaJN3IV6wysbGeTjpeCFWgEye3M1PKIcRQbULyZBtUjjpiEi8C4URqdYaSc0E4Nii53RtGtcBE6h2rSRbsIxMBKjCiNrl5JRDLQ2MClkY4lxeKhaymkpAZILo7j4EORlN+/B9pyfzkYUtMw8AyWNZTlwZOomcqQAdyNtlWmQugFY1bnWzgpGAqHIvHw+S2Ex6jAAiBFACy3HYbLWxtTYPx7aMJpRBxLfW5rFRXhHulYqF2KN2bB1QbX8TJwfYWpvH8RWLiaS+zVY7ctvkhW+tzQMAPr6tY3a9Eugbl8jGhezLsA+328Gd+6uMBC8myjvUH/hGfG5h0ZSGuQC328Gv29vA9jZr23v/QSCnwt3lJeF67/0HUxrpjhJ/PM3jp1/+xl+vfmRtX4b9yDFutxM6zhQXXgeyRmoBpquYxeoDKUPoyWvxPdDeunjf7XZCEzRuXBKkEiAnnxz/MnkSJI/7+LYeal+nmhsLuHVtCl/PiYwvLwXIu92OcD23sMgE0RZ869oUszW+vIRjaQ6dah56TI07Rju2hYmTA3YdRv5T2xXa7r14Huh31brB/h9fuRk5n+pYbeQBzx/CsW9i4uQgdNucW1jEnfurQltYP/LE7HqFPbXJFdyxrchqbBxCTIQVXk116gEARh4IP7bEhVGqJCYRs+sVXD050DoW8MR1CMYh9UP9/++LRCEqZEWckEklbrba8PwhqrVGJHkCkZcPfCbH89QeaLbaePn7U2yU/fPXKCuR/XnyNC4qB+KQSgCR2O/5yicx1VuIUrGAjbKP2zO2MD4pjEOIyMf1idoC6d7tGdv4GTqxB+Q4Va1es9XGv+WHAAAHp7Fe4G0nCaVAZVNVYTLOr/p+z0e11ghMyJMnbEoiqEDR60cSobKrqsZaAuRw2e/5AMI/6gEIkFeJ4EEhJAvhk/63Z48DApQ5QGT4RKWf5w+VIaGDsO2SbPLz6OSGMgdKxUJg5XXee5aKBTg4xZ8YE+7xqx8lVK4RtEslFsCvEsVkEmyWV5iITZwafQQhL0QhNAdGox4AwLkxBwDw+q7c7cLAc8jlZgI5IHiAyNd33rA2r+8K1xcNr+8yEaNRD7ncjPDd7D9NTOiCnJedWAAAAABJRU5ErkJggg=="> <b>Lyra</b> · todas as habilidades</div>
+    <div class="lista">
+      <h3>1ª classe: Lyra <small>(a partir do nível 1)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🌟</div>
+          <div><div class="hab-nm">Lembrança Dourada <span class="hab-nv">nível 1</span></div>
+          <div class="hab-d">Uma memória da Fonte, afiada como luz (220%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">💭</div>
+          <div><div class="hab-nm">Memória Viva <span class="tag">passiva</span> <span class="hab-nv">nível 2</span></div>
+          <div class="hab-d">+3% de magia por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💙</div>
+          <div><div class="hab-nm">Memória <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 4</span></div>
+          <div class="hab-d">Lembranças boas curam 40% do HP.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">💗</div>
+          <div><div class="hab-nm">Lembranças Boas <span class="tag">passiva</span> <span class="hab-nv">nível 6</span></div>
+          <div class="hab-d">+6% de cura por nível. (A cura também vale para o grupo.)</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌀</div>
+          <div><div class="hab-nm">Barreira de Memórias <span class="hab-nv">nível 8</span></div>
+          <div class="hab-d">Prende os inimigos próximos em lembranças antigas (3s).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🍃</div>
+          <div><div class="hab-nm">Passo Leve <span class="tag">passiva</span> <span class="hab-nv">nível 10</span></div>
+          <div class="hab-d">+1,5% de velocidade, +0,8% de esquiva por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💫</div>
+          <div><div class="hab-nm">Mil Memórias <span class="hab-nv">nível 12</span></div>
+          <div class="hab-d">"Você não pode tirar o que é nosso!" (360% em área).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🧵</div>
+          <div><div class="hab-nm">Fio de Memória <span class="hab-nv">nível 16</span></div>
+          <div class="hab-d">Três fios de memória atrás de alvos diferentes (3× 160%). <span class="req">Requer Lembrança Dourada Nv 3.</span></div></div>
+        </div>
+      <h3>2ª classe: Guardiã da Memória <small>(a partir do nível 20)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">💗</div>
+          <div><div class="hab-nm">Eco da Vida <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 20</span></div>
+          <div class="hab-d">20s: regenera 3% do HP por segundo e +10 de defesa.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">💧</div>
+          <div><div class="hab-nm">Fonte Interna <span class="tag">passiva</span> <span class="hab-nv">nível 21</span></div>
+          <div class="hab-d">+4% de SP por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🤍</div>
+          <div><div class="hab-nm">Coração de Irmã <span class="tag">passiva</span> <span class="hab-nv">nível 23</span></div>
+          <div class="hab-d">+2,5% de HP, +0,1% de HP por segundo por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🫂</div>
+          <div><div class="hab-nm">Memória Coletiva <span class="hab-nv">nível 24</span></div>
+          <div class="hab-d">Cada um carrega a lembrança do outro: 240% em volta e cura 25%.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌊</div>
+          <div><div class="hab-nm">Águas da Memória <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 26</span></div>
+          <div class="hab-d">Cura 55% do HP.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⛓️</div>
+          <div><div class="hab-nm">Prisão Dourada <span class="hab-nv">nível 30</span></div>
+          <div class="hab-d">Prende todos em volta do alvo (150%, 3,5s). <span class="req">Requer Águas da Memória Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🎵</div>
+          <div><div class="hab-nm">Canção Calma <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 34</span></div>
+          <div class="hab-d">40s: +20 de defesa e regenera 1% por segundo. <span class="req">Requer Prisão Dourada Nv 2.</span></div></div>
+        </div>
+      <h3>3ª classe: Voz da Fonte <small>(a partir do nível 40)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🎶</div>
+          <div><div class="hab-nm">Canção da Fonte <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 40</span></div>
+          <div class="hab-d">30s: +60% de magia e ataques mais rápidos.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🎶</div>
+          <div><div class="hab-nm">Voz da Fonte <span class="tag">passiva</span> <span class="hab-nv">nível 41</span></div>
+          <div class="hab-d">+4% de magia, +1,5% de velocidade de golpe por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🌫️</div>
+          <div><div class="hab-nm">Esquecimento <span class="tag">passiva</span> <span class="hab-nv">nível 44</span></div>
+          <div class="hab-d">+1,2% de esquiva, +2 de defesa por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌟</div>
+          <div><div class="hab-nm">Última Memória <span class="hab-nv">nível 46</span></div>
+          <div class="hab-d">A memória mais antiga da Fonte (600% e prende 3s).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🕊️</div>
+          <div><div class="hab-nm">Renascer <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 50</span></div>
+          <div class="hab-d">Cura 90% do HP.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌪️</div>
+          <div><div class="hab-nm">Tempestade de Memórias <span class="hab-nv">nível 58</span></div>
+          <div class="hab-d">Todas as memórias ao mesmo tempo (480% em volta, atordoa). <span class="req">Requer Renascer Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">✨</div>
+          <div><div class="hab-nm">Eternidade <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 66</span></div>
+          <div class="hab-d">30s: +60% de magia e +30 de defesa; cura 40%. <span class="req">Requer Tempestade de Memórias Nv 3.</span></div></div>
+        </div></div>
+  </section>
+  <section class="pag heroi" style="--cor:#b26bff">
+    <div class="cab">
+      <img class="retrato" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcElEQVR4nO1YP2gbVxz+4gY8GGzJjmUhNHkQqBQNpoVOtRDhoA2U4sEWIZSMgXjw0j9rO5VMHUzRGLzZgwmBpOUR0pPoYIi54TA1aBAZjJHkWFcbSuhSdWjf+ffu3rt7753cKR8Y+07v/d73/f4+GXiHd8iEG5M0NjOdG+us+/OvPyZ2bmZDlPTZRRD7fG+/jfW1VeHd4lw+/DurmJu2GzlxSrrbGwhrGHNRKBRjn9E9i3P5MWAvZMpm08x0bnx2EeDsIsDefjtGMA3brd1wH7ejm35RGEWAer3bGwgetgUXfnYRWEVDOwLU6/xQx6ljfW0Ve/ttVJaXtOzIRFeWl9DtDayiYVwD0VTZbu1aRWF9bTW0RX8z5hrZ0YoA9/52a9eMpQUcp24UhVQBnHy3N4Dj1AFASBebNJKB7uXppCPCqgvJ0mgSoCJ0bVrPARskdS2TNkwxEQGOU0dleSmcurRL8Q5DQddkhVUKyaAKebc3yFQbaUgcGLSAdSDzts0aunZxLp842CYWAUAvj6MRSYqOTiFPVIAMssFEhWathWsRwL3KmIuvHreutQasBKSNe9qF3h78quVlatPkOqEsjmgBM+bCcepgzMXm3dvA7AK2W7vhdLYFJ8ttRsWmFbL2HIgRvTwXhMjWcNEq0iFxAC+fv0CjuRFbm1bI1oPsTX8I3/PR+Ox2SIKKkZHlCNfjX+K1lZotDXsBvudja2sH2Nq5etfdEcipUKt8KdrqXtlQRU2FTFeJr794hs+/BZ7+wN+c401/mLjH93zpPg7Tmrr2OXDdyCzgyov/z74oMqXQoyd3hOd7j3ak63zPFwpVd58OrAXUVmpC8QFQ5j8lb7JPB5kikHSw7/nCMxWRhXAU0umWdo2uLC8Bl+qO43s+fmcd4d3mj98L62la+Z6PRnMj8TzVNLYSoCPiVrEgPMvW8ShR8rLvC4y5+O6bB1IB1pe5bm8AzC7gVrEQSxdOmP6kkecT2/R6bSyAMReHbufKU7MLaDQ3lEJkxHnKUPLcpim0i5h76NDt4LeDX/DJx6voHLSF0DeaG8DlOV4+f6G0wy9s9JYbtWlyy9USwA/pvT7Caf8EAHDaPxEOxH9X7fdz6fZoynDy1CYAbD5QF7WRAOqhKKIHMkB6Jabgt9WoQ6hNALEIWwlIIk8PLBXLoZC9xz/F0oB6u/f6SCCaZJeLYAnrEtvo/ebDRPIqlIplAAiFqLyta6tz0FbOgcQIcG+ZgqYBfU7CKBhiPl+IvT869hL3xdpo9F/po8B+7J/2T2IEVPZk5ClU/61WzoFDt4PT/kmqYRVGwRCjYIi31Q9RKpZD4qb25vOFMJIyKAVE04fntQ448Q+qK/gIf+Po2AuFmKJULCemkVTA/ebDsLtwmBTgfL4QEn+FqVCITRFze6ooxKp6Zjo3rlZr1odFUSqWBVuqYk3DKBjiPdyMdaKJfCdWpcYoGOIVpoTPbWtKBaGNzkznxnc+vYunP5t9xUvqVDyVJoFqtYbjY39Mo/APyYjoDYr8B3YAAAAASUVORK5CYII=">
+      <div class="cab-txt">
+        <div class="num">Herói 4 de 6</div>
+        <h2>Seraphyne</h2>
+        <div class="evo">Seraphyne <span>→</span> Mãos do Vazio <span>→</span> Espelho do Vazio</div>
+        <div class="papel">Maga do Vazio: o maior dano de magia, rouba vida e prende.</div>
+      </div>
+    </div>
+    <div class="dois">
+      <div class="lore"><p>Ela apareceu sorrindo nas muralhas, com milhares de Sentinelas atrás dela. Armadura negra, cabelos prateados e o Vazio na palma da mão. Seraphyne é filha da Fonte, e o Vazio que ela usa não explode: apenas apaga. Lê línguas que ninguém mais lê e abre portais para onde quiser. Começou do outro lado. Aprendeu alguma coisa no caminho.</p><p class="cit">“Parece que alguém aprendeu alguma coisa.”</p></div>
+      <div class="notas"><div class="nota"><span>Ataque</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Defesa</span><b>★★<span class="apagada">★★★</span></b></div><div class="nota"><span>Cura</span><b>★★<span class="apagada">★★★</span></b></div><div class="nota"><span>Grupo</span><b>★★★<span class="apagada">★★</span></b></div><div class="nota"><span>Facilidade</span><b>★★<span class="apagada">★★★</span></b></div></div>
+    </div>
+    <h4>Árvore de habilidades</h4>
+    <div class="arvore">
+    <div class="col">
+      <div class="col-tit"><small>1ª classe · nível 1+</small>Seraphyne</div>
+      
+        <div class="no" id="Seraphyne-ToquedoVazio" >
+          <span class="ic">🟣</span><span class="nm">Toque do Vazio</span><span class="nv">1</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Seraphyne-VazioInterior" >
+          <span class="ic">🟣</span><span class="nm">Vazio Interior</span><span class="nv">2</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Seraphyne-Portal" >
+          <span class="ic">🌑</span><span class="nm">Portal</span><span class="nv">4</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Seraphyne-MenteFria" >
+          <span class="ic">🧊</span><span class="nm">Mente Fria</span><span class="nv">6</span>
+          
+        </div>
+        <div class="no" id="Seraphyne-Absorver" >
+          <span class="ic">🩸</span><span class="nm">Absorver</span><span class="nv">8</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Seraphyne-ArmaduraNegra" >
+          <span class="ic">🖤</span><span class="nm">Armadura Negra</span><span class="nv">10</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Seraphyne-Silencio" >
+          <span class="ic">🌘</span><span class="nm">Silêncio</span><span class="nv">12</span>
+          
+        </div>
+        <div class="no" id="Seraphyne-EsferadoVazio" data-req="Seraphyne-ToquedoVazio" data-nv="3">
+          <span class="ic">⚫</span><span class="nm">Esfera do Vazio</span><span class="nv">16</span>
+          
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>2ª classe · nível 20+</small>Mãos do Vazio</div>
+      
+        <div class="no" id="Seraphyne-LaminadoVazio" >
+          <span class="ic">🗡️</span><span class="nm">Lâmina do Vazio</span><span class="nv">20</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Seraphyne-FomedoVazio" >
+          <span class="ic">🩸</span><span class="nm">Fome do Vazio</span><span class="nv">21</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Seraphyne-Concentracao" >
+          <span class="ic">🔮</span><span class="nm">Concentração</span><span class="nv">23</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Seraphyne-EspelhodoVazio" >
+          <span class="ic">🪞</span><span class="nm">Espelho do Vazio</span><span class="nv">24</span>
+          
+        </div>
+        <div class="no" id="Seraphyne-CorrentesdoVazio" >
+          <span class="ic">⛓️</span><span class="nm">Correntes do Vazio</span><span class="nv">26</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Seraphyne-EstilhacosdeCristal" data-req="Seraphyne-CorrentesdoVazio" data-nv="2">
+          <span class="ic">💎</span><span class="nm">Estilhaços de Cristal</span><span class="nv">30</span>
+          
+        </div>
+        <div class="no" id="Seraphyne-MantodoVazio" data-req="Seraphyne-EstilhacosdeCristal" data-nv="2">
+          <span class="ic">🌑</span><span class="nm">Manto do Vazio 💛</span><span class="nv">34</span>
+          <i class="mk mkB">B</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>3ª classe · nível 40+</small>Espelho do Vazio</div>
+      
+        <div class="no" id="Seraphyne-AsasdeCristal" >
+          <span class="ic">🦋</span><span class="nm">Asas de Cristal 💛</span><span class="nv">40</span>
+          
+        </div>
+        <div class="no pas" id="Seraphyne-FilhadaEssencia" >
+          <span class="ic">👁️</span><span class="nm">Filha da Essência</span><span class="nv">41</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Seraphyne-AlemdoVazio" >
+          <span class="ic">♾️</span><span class="nm">Além do Vazio</span><span class="nv">44</span>
+          
+        </div>
+        <div class="no" id="Seraphyne-Apagar" >
+          <span class="ic">⚫</span><span class="nm">Apagar</span><span class="nv">46</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Seraphyne-BuracoNegro" >
+          <span class="ic">🕳️</span><span class="nm">Buraco Negro</span><span class="nv">50</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Seraphyne-RaiodoVazio" data-req="Seraphyne-BuracoNegro" data-nv="2">
+          <span class="ic">🟪</span><span class="nm">Raio do Vazio</span><span class="nv">58</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Seraphyne-FimdeTudo" data-req="Seraphyne-RaiodoVazio" data-nv="3">
+          <span class="ic">⚫</span><span class="nm">Fim de Tudo</span><span class="nv">66</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div><svg class="linhas"></svg></div>
+    <div class="legenda">O número é o nível do herói para liberar. Borda tracejada = passiva. 💛 = vale também para o grupo perto. As linhas mostram o que precisa antes (“requer”).</div>
+    <h4>Dois caminhos (os pontos não dão para tudo)</h4>
+    <div class="caminhos"><div class="caminho"><div class="cam-tit"><i class="mk mkA">A</i> ⚫ Apagadora</div><div class="cam-d">O maior dano de magia do jogo. Frágil: fique longe e apague tudo antes que chegue.</div><div class="cam-l"><b>Pegue:</b> Vazio Interior · Toque do Vazio · Concentração · Lâmina do Vazio · Filha da Essência · Apagar · Raio do Vazio · Fim de Tudo</div></div><div class="caminho"><div class="cam-tit"><i class="mk mkB">B</i> 🩸 Sobrevivente</div><div class="cam-d">Para jogar sozinha: rouba vida, prende e se protege.</div><div class="cam-l"><b>Pegue:</b> Absorver · Armadura Negra · Portal · Fome do Vazio · Correntes do Vazio · Manto do Vazio · Buraco Negro</div></div></div>
+  </section>
+  <section class="pag heroi lista-pag" style="--cor:#b26bff">
+    <div class="mini-cab"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEcElEQVR4nO1YP2gbVxz+4gY8GGzJjmUhNHkQqBQNpoVOtRDhoA2U4sEWIZSMgXjw0j9rO5VMHUzRGLzZgwmBpOUR0pPoYIi54TA1aBAZjJHkWFcbSuhSdWjf+ffu3rt7753cKR8Y+07v/d73/f4+GXiHd8iEG5M0NjOdG+us+/OvPyZ2bmZDlPTZRRD7fG+/jfW1VeHd4lw+/DurmJu2GzlxSrrbGwhrGHNRKBRjn9E9i3P5MWAvZMpm08x0bnx2EeDsIsDefjtGMA3brd1wH7ejm35RGEWAer3bGwgetgUXfnYRWEVDOwLU6/xQx6ljfW0Ve/ttVJaXtOzIRFeWl9DtDayiYVwD0VTZbu1aRWF9bTW0RX8z5hrZ0YoA9/52a9eMpQUcp24UhVQBnHy3N4Dj1AFASBebNJKB7uXppCPCqgvJ0mgSoCJ0bVrPARskdS2TNkwxEQGOU0dleSmcurRL8Q5DQddkhVUKyaAKebc3yFQbaUgcGLSAdSDzts0aunZxLp842CYWAUAvj6MRSYqOTiFPVIAMssFEhWathWsRwL3KmIuvHreutQasBKSNe9qF3h78quVlatPkOqEsjmgBM+bCcepgzMXm3dvA7AK2W7vhdLYFJ8ttRsWmFbL2HIgRvTwXhMjWcNEq0iFxAC+fv0CjuRFbm1bI1oPsTX8I3/PR+Ox2SIKKkZHlCNfjX+K1lZotDXsBvudja2sH2Nq5etfdEcipUKt8KdrqXtlQRU2FTFeJr794hs+/BZ7+wN+c401/mLjH93zpPg7Tmrr2OXDdyCzgyov/z74oMqXQoyd3hOd7j3ak63zPFwpVd58OrAXUVmpC8QFQ5j8lb7JPB5kikHSw7/nCMxWRhXAU0umWdo2uLC8Bl+qO43s+fmcd4d3mj98L62la+Z6PRnMj8TzVNLYSoCPiVrEgPMvW8ShR8rLvC4y5+O6bB1IB1pe5bm8AzC7gVrEQSxdOmP6kkecT2/R6bSyAMReHbufKU7MLaDQ3lEJkxHnKUPLcpim0i5h76NDt4LeDX/DJx6voHLSF0DeaG8DlOV4+f6G0wy9s9JYbtWlyy9USwA/pvT7Caf8EAHDaPxEOxH9X7fdz6fZoynDy1CYAbD5QF7WRAOqhKKIHMkB6Jabgt9WoQ6hNALEIWwlIIk8PLBXLoZC9xz/F0oB6u/f6SCCaZJeLYAnrEtvo/ebDRPIqlIplAAiFqLyta6tz0FbOgcQIcG+ZgqYBfU7CKBhiPl+IvT869hL3xdpo9F/po8B+7J/2T2IEVPZk5ClU/61WzoFDt4PT/kmqYRVGwRCjYIi31Q9RKpZD4qb25vOFMJIyKAVE04fntQ448Q+qK/gIf+Po2AuFmKJULCemkVTA/ebDsLtwmBTgfL4QEn+FqVCITRFze6ooxKp6Zjo3rlZr1odFUSqWBVuqYk3DKBjiPdyMdaKJfCdWpcYoGOIVpoTPbWtKBaGNzkznxnc+vYunP5t9xUvqVDyVJoFqtYbjY39Mo/APyYjoDYr8B3YAAAAASUVORK5CYII="> <b>Seraphyne</b> · todas as habilidades</div>
+    <div class="lista">
+      <h3>1ª classe: Seraphyne <small>(a partir do nível 1)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🟣</div>
+          <div><div class="hab-nm">Toque do Vazio <span class="hab-nv">nível 1</span></div>
+          <div class="hab-d">O Vazio não explode. Apenas apaga (210%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🟣</div>
+          <div><div class="hab-nm">Vazio Interior <span class="tag">passiva</span> <span class="hab-nv">nível 2</span></div>
+          <div class="hab-d">+3,5% de magia por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌑</div>
+          <div><div class="hab-nm">Portal <span class="hab-nv">nível 4</span></div>
+          <div class="hab-d">Portais de Vazio prendem os inimigos em volta do alvo (2,5s).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🧊</div>
+          <div><div class="hab-nm">Mente Fria <span class="tag">passiva</span> <span class="hab-nv">nível 6</span></div>
+          <div class="hab-d">+0,8% de crítico, +2% de SP por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🩸</div>
+          <div><div class="hab-nm">Absorver <span class="hab-nv">nível 8</span></div>
+          <div class="hab-d">O Vazio consome o alvo (220%) e devolve metade como HP.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🖤</div>
+          <div><div class="hab-nm">Armadura Negra <span class="tag">passiva</span> <span class="hab-nv">nível 10</span></div>
+          <div class="hab-d">+2 de defesa, +1,5% de HP por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌘</div>
+          <div><div class="hab-nm">Silêncio <span class="hab-nv">nível 12</span></div>
+          <div class="hab-d">Não uma explosão: um silêncio que engole tudo (360%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⚫</div>
+          <div><div class="hab-nm">Esfera do Vazio <span class="hab-nv">nível 16</span></div>
+          <div class="hab-d">Uma esfera de Vazio que apaga em volta do alvo (260%). <span class="req">Requer Toque do Vazio Nv 3.</span></div></div>
+        </div>
+      <h3>2ª classe: Mãos do Vazio <small>(a partir do nível 20)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🗡️</div>
+          <div><div class="hab-nm">Lâmina do Vazio <span class="hab-nv">nível 20</span></div>
+          <div class="hab-d">Duas lâminas de Vazio (320% cada).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🩸</div>
+          <div><div class="hab-nm">Fome do Vazio <span class="tag">passiva</span> <span class="hab-nv">nível 21</span></div>
+          <div class="hab-d">+0,6% de roubo de vida por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🔮</div>
+          <div><div class="hab-nm">Concentração <span class="tag">passiva</span> <span class="hab-nv">nível 23</span></div>
+          <div class="hab-d">+3% de magia por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🪞</div>
+          <div><div class="hab-nm">Espelho do Vazio <span class="hab-nv">nível 24</span></div>
+          <div class="hab-d">O Vazio reflete a criatura para dentro dela mesma (360%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⛓️</div>
+          <div><div class="hab-nm">Correntes do Vazio <span class="hab-nv">nível 26</span></div>
+          <div class="hab-d">Correntes que prendem todos perto do alvo (180%, 3s).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💎</div>
+          <div><div class="hab-nm">Estilhaços de Cristal <span class="hab-nv">nível 30</span></div>
+          <div class="hab-d">Quatro estilhaços atrás de alvos diferentes (4× 180%). <span class="req">Requer Correntes do Vazio Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌑</div>
+          <div><div class="hab-nm">Manto do Vazio <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 34</span></div>
+          <div class="hab-d">20s: +25 de defesa e +25% de magia. <span class="req">Requer Estilhaços de Cristal Nv 2.</span></div></div>
+        </div>
+      <h3>3ª classe: Espelho do Vazio <small>(a partir do nível 40)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🦋</div>
+          <div><div class="hab-nm">Asas de Cristal <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 40</span></div>
+          <div class="hab-d">25s: +50% de magia, +30% de velocidade e +15% de crítico.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">👁️</div>
+          <div><div class="hab-nm">Filha da Essência <span class="tag">passiva</span> <span class="hab-nv">nível 41</span></div>
+          <div class="hab-d">+4% de magia, +1% de crítico por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">♾️</div>
+          <div><div class="hab-nm">Além do Vazio <span class="tag">passiva</span> <span class="hab-nv">nível 44</span></div>
+          <div class="hab-d">+3% de SP, +2% de velocidade de golpe por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⚫</div>
+          <div><div class="hab-nm">Apagar <span class="hab-nv">nível 46</span></div>
+          <div class="hab-d">Não destrói: apaga tudo em volta (650%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🕳️</div>
+          <div><div class="hab-nm">Buraco Negro <span class="hab-nv">nível 50</span></div>
+          <div class="hab-d">Puxa tudo para o nada (500% em volta, atordoa 2s).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🟪</div>
+          <div><div class="hab-nm">Raio do Vazio <span class="hab-nv">nível 58</span></div>
+          <div class="hab-d">Um raio que não deixa nada para trás (750%). <span class="req">Requer Buraco Negro Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⚫</div>
+          <div><div class="hab-nm">Fim de Tudo <span class="hab-nv">nível 66</span></div>
+          <div class="hab-d">O Vazio inteiro sobre o alvo e tudo em volta (700%). <span class="req">Requer Raio do Vazio Nv 3.</span></div></div>
+        </div></div>
+  </section>
+  <section class="pag heroi" style="--cor:#e9edc0">
+    <div class="cab">
+      <img class="retrato" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADr0lEQVR4nO1ZTWsTQRh+qtIeEkIIIYdKTAgxhV4aRNqecvTiRfRgoYfqwZs/QG/Fg4ee/QH2UNGC4sGTxxzEBCnppcU1hHxQCksIy3YrVoR4KLPM7M5u5it+QJ9LurvvvPM8O/N+7BS4wAW0MGPSWWIuPRaxOz1zjM2r7YgmXcgXQ88P2i0slqvMvd6g6/+tK+aK6kBCnCY9HNmMjes53Gf0mN6gOwbUhVxSGZSYS48L+SIK+SIO2q0QwUno9C1/HPEjuv2CkFoB+q0PRzbzhlVBhBfyRaXVEBZA3jo9aSqZRilT8fe5yCq4noMfP78z97KZHIYj299avUF3LCpCOgaCJDt9S9YFADCC6V/Xc3B5ZlbYj1AMkLevSlYGqWRaKiYmCiDkhyMbqWQawPmS0xMulqs4aLeY+7Kgx5LtJCJCKQuZ2kZB0CJEfSrXARXwAphAJg3TUFqBIKK2EbkfJCeasURgRAAQveTDka0VG5MQm2vpABYByee6NrRtb9CNLWzGVgAQ28fBFYlbHZFANipAFLRQ3ViYigDyVqe59wmUBExq4oItgoxP2QYxUgAdwLRT13Nw0t1DNpMz0o26nsP4JNUeEGsrhAoZ7ZRgv/4aALBUW/ODjbZzPYc7jjwjOOnuAQD2Przj2nb6Vmxzp1yJPfsIVrPhCwFYMUGiNAhp4Jx4ZXlFlYa6AKvZwOFsCYcfW/49WkwcdqgxmC3hRu6qKg29Xmhj4z5z/ev4Kzz7KHaM1Wxg49HT0DhV/JU6YBL/vQCtLbS9/Ya5Xr9VDdlYzUYoSEXGiUJLQHBi3v7nZZjguKgUKgJlAQupeZzWPwMAErXVEHmr2WCuiZDK8oqfghdS876vRG0V2NqV5sFtUye10dlMjkmZPPLHn9hO8vbzJyG7JJU+SQ3hFb+4tlpJAC0iKm0mA7k9ys5qNvBwa9efi1fByVGLUQG0CJVqSrYYTT4KcQK0gng4srFUWwMA7NfvCgmhiRMfOtA+lSAEgkKiYIo4gbFjFdJ2i6TEOPJxXSwPWjHAw6SvMBWfU4sBHghBmdMHHUytF/oT5IF/vJkT+WQNCRCpwjLfwiK2UTYkmOO+jaVWwPUc5phdxP7Z2SsmsHlkRfxFHXJJCQhOFJdxSDp8eX2TOdmQSZEiEBbAIxu1zeg3/+DbJrKZXGglTCGUV039O6l0rYJO3wr96oBXC7gClu7d1JqIxp2dx3i//sKIr/23X+IFEPLdVtvIhABQrJaN+StWyyERvwEvZy1+t283fAAAAABJRU5ErkJggg==">
+      <div class="cab-txt">
+        <div class="num">Herói 5 de 6</div>
+        <h2>Erya</h2>
+        <div class="evo">Erya <span>→</span> Quinta Marca <span>→</span> Escolha Livre</div>
+        <div class="papel">Mística: espíritos que caçam vários alvos, cura e proteção.</div>
+      </div>
+    </div>
+    <div class="dois">
+      <div class="lore"><p>Uma menina de uns oito anos, de cabelos escuros e olhos brancos, de quem lembra de antes de tudo existir. Na parede, surgiram quatro símbolos: luz, sombra, memória e Vazio. Depois, um quinto: escolha. Erya é a quinta marca. Seus espíritos correm pelo chão atrás de vários inimigos ao mesmo tempo, porque, em cada possibilidade, o golpe acerta.</p><p class="cit">“Meu nome é Erya. Eu sou a quinta.”</p></div>
+      <div class="notas"><div class="nota"><span>Ataque</span><b>★★★★<span class="apagada">★</span></b></div><div class="nota"><span>Defesa</span><b>★★★<span class="apagada">★★</span></b></div><div class="nota"><span>Cura</span><b>★★★★<span class="apagada">★</span></b></div><div class="nota"><span>Grupo</span><b>★★★★<span class="apagada">★</span></b></div><div class="nota"><span>Facilidade</span><b>★★★<span class="apagada">★★</span></b></div></div>
+    </div>
+    <h4>Árvore de habilidades</h4>
+    <div class="arvore">
+    <div class="col">
+      <div class="col-tit"><small>1ª classe · nível 1+</small>Erya</div>
+      
+        <div class="no" id="Erya-EspiritosdaEscolha" >
+          <span class="ic">👻</span><span class="nm">Espíritos da Escolha</span><span class="nv">1</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Erya-OlhosBrancos" >
+          <span class="ic">👁️</span><span class="nm">Olhos Brancos</span><span class="nv">2</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Erya-QuintaMarca" >
+          <span class="ic">🤍</span><span class="nm">Quinta Marca 💛</span><span class="nv">4</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Erya-EspiritoGuia" >
+          <span class="ic">👻</span><span class="nm">Espírito Guia</span><span class="nv">6</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Erya-EscolhaLivre" >
+          <span class="ic">🕊️</span><span class="nm">Escolha Livre 💛</span><span class="nv">8</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Erya-MarcaProtetora" >
+          <span class="ic">🤍</span><span class="nm">Marca Protetora</span><span class="nv">10</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Erya-MilPossibilidades" >
+          <span class="ic">🔆</span><span class="nm">Mil Possibilidades</span><span class="nv">12</span>
+          
+        </div>
+        <div class="no" id="Erya-PortadaEscolha" data-req="Erya-EspiritosdaEscolha" data-nv="3">
+          <span class="ic">🚪</span><span class="nm">Porta da Escolha</span><span class="nv">16</span>
+          
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>2ª classe · nível 20+</small>Quinta Marca</div>
+      
+        <div class="no" id="Erya-NovaPorta" >
+          <span class="ic">🚪</span><span class="nm">Nova Porta</span><span class="nv">20</span>
+          
+        </div>
+        <div class="no pas" id="Erya-MemoriadeAntes" >
+          <span class="ic">🌌</span><span class="nm">Memória de Antes</span><span class="nv">21</span>
+          
+        </div>
+        <div class="no pas" id="Erya-Possibilidade" >
+          <span class="ic">🎲</span><span class="nm">Possibilidade</span><span class="nv">23</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Erya-RevoadadeEspiritos" >
+          <span class="ic">👻</span><span class="nm">Revoada de Espíritos</span><span class="nv">24</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Erya-EspiritosGuardioes" >
+          <span class="ic">🛡️</span><span class="nm">Espíritos Guardiões 💛</span><span class="nv">26</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Erya-TormentadeEspiritos" data-req="Erya-EspiritosGuardioes" data-nv="2">
+          <span class="ic">🌀</span><span class="nm">Tormenta de Espíritos</span><span class="nv">30</span>
+          
+        </div>
+        <div class="no" id="Erya-EscolhadaVida" data-req="Erya-TormentadeEspiritos" data-nv="2">
+          <span class="ic">💖</span><span class="nm">Escolha da Vida 💛</span><span class="nv">34</span>
+          <i class="mk mkB">B</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>3ª classe · nível 40+</small>Escolha Livre</div>
+      
+        <div class="no" id="Erya-AntesdeTudo" >
+          <span class="ic">👁️</span><span class="nm">Antes de Tudo 💛</span><span class="nv">40</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Erya-QuintaMarcaPlena" >
+          <span class="ic">✨</span><span class="nm">Quinta Marca Plena</span><span class="nv">41</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Erya-Livre" >
+          <span class="ic">♾️</span><span class="nm">Livre</span><span class="nv">44</span>
+          
+        </div>
+        <div class="no" id="Erya-TodasasEscolhas" >
+          <span class="ic">♾️</span><span class="nm">Todas as Escolhas</span><span class="nv">46</span>
+          
+        </div>
+        <div class="no" id="Erya-MilEspiritos" >
+          <span class="ic">👻</span><span class="nm">Mil Espíritos</span><span class="nv">50</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Erya-DestinoQuebrado" data-req="Erya-MilEspiritos" data-nv="2">
+          <span class="ic">💥</span><span class="nm">Destino Quebrado</span><span class="nv">58</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Erya-AEscolhaFinal" data-req="Erya-DestinoQuebrado" data-nv="3">
+          <span class="ic">🕊️</span><span class="nm">A Escolha Final 💛</span><span class="nv">66</span>
+          <i class="mk mkB">B</i>
+        </div>
+    </div><svg class="linhas"></svg></div>
+    <div class="legenda">O número é o nível do herói para liberar. Borda tracejada = passiva. 💛 = vale também para o grupo perto. As linhas mostram o que precisa antes (“requer”).</div>
+    <h4>Dois caminhos (os pontos não dão para tudo)</h4>
+    <div class="caminhos"><div class="caminho"><div class="cam-tit"><i class="mk mkA">A</i> 👻 Caçadora de Espíritos</div><div class="cam-d">Muitos alvos ao mesmo tempo. Ótima para limpar andar e caçar quest.</div><div class="cam-l"><b>Pegue:</b> Espíritos da Escolha · Olhos Brancos · Espírito Guia · Possibilidade · Revoada de Espíritos · Mil Espíritos · Destino Quebrado</div></div><div class="caminho"><div class="cam-tit"><i class="mk mkB">B</i> 🕊️ Marca da Vida</div><div class="cam-d">Suporte que também bate: cura, defesa e o melhor bônus de grupo do 3º caminho.</div><div class="cam-l"><b>Pegue:</b> Quinta Marca · Marca Protetora · Escolha Livre · Espíritos Guardiões · Escolha da Vida · Antes de Tudo · Quinta Marca Plena · A Escolha Final</div></div></div>
+  </section>
+  <section class="pag heroi lista-pag" style="--cor:#e9edc0">
+    <div class="mini-cab"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADr0lEQVR4nO1ZTWsTQRh+qtIeEkIIIYdKTAgxhV4aRNqecvTiRfRgoYfqwZs/QG/Fg4ee/QH2UNGC4sGTxxzEBCnppcU1hHxQCksIy3YrVoR4KLPM7M5u5it+QJ9LurvvvPM8O/N+7BS4wAW0MGPSWWIuPRaxOz1zjM2r7YgmXcgXQ88P2i0slqvMvd6g6/+tK+aK6kBCnCY9HNmMjes53Gf0mN6gOwbUhVxSGZSYS48L+SIK+SIO2q0QwUno9C1/HPEjuv2CkFoB+q0PRzbzhlVBhBfyRaXVEBZA3jo9aSqZRilT8fe5yCq4noMfP78z97KZHIYj299avUF3LCpCOgaCJDt9S9YFADCC6V/Xc3B5ZlbYj1AMkLevSlYGqWRaKiYmCiDkhyMbqWQawPmS0xMulqs4aLeY+7Kgx5LtJCJCKQuZ2kZB0CJEfSrXARXwAphAJg3TUFqBIKK2EbkfJCeasURgRAAQveTDka0VG5MQm2vpABYByee6NrRtb9CNLWzGVgAQ28fBFYlbHZFANipAFLRQ3ViYigDyVqe59wmUBExq4oItgoxP2QYxUgAdwLRT13Nw0t1DNpMz0o26nsP4JNUeEGsrhAoZ7ZRgv/4aALBUW/ODjbZzPYc7jjwjOOnuAQD2Przj2nb6Vmxzp1yJPfsIVrPhCwFYMUGiNAhp4Jx4ZXlFlYa6AKvZwOFsCYcfW/49WkwcdqgxmC3hRu6qKg29Xmhj4z5z/ev4Kzz7KHaM1Wxg49HT0DhV/JU6YBL/vQCtLbS9/Ya5Xr9VDdlYzUYoSEXGiUJLQHBi3v7nZZjguKgUKgJlAQupeZzWPwMAErXVEHmr2WCuiZDK8oqfghdS876vRG0V2NqV5sFtUye10dlMjkmZPPLHn9hO8vbzJyG7JJU+SQ3hFb+4tlpJAC0iKm0mA7k9ys5qNvBwa9efi1fByVGLUQG0CJVqSrYYTT4KcQK0gng4srFUWwMA7NfvCgmhiRMfOtA+lSAEgkKiYIo4gbFjFdJ2i6TEOPJxXSwPWjHAw6SvMBWfU4sBHghBmdMHHUytF/oT5IF/vJkT+WQNCRCpwjLfwiK2UTYkmOO+jaVWwPUc5phdxP7Z2SsmsHlkRfxFHXJJCQhOFJdxSDp8eX2TOdmQSZEiEBbAIxu1zeg3/+DbJrKZXGglTCGUV039O6l0rYJO3wr96oBXC7gClu7d1JqIxp2dx3i//sKIr/23X+IFEPLdVtvIhABQrJaN+StWyyERvwEvZy1+t283fAAAAABJRU5ErkJggg=="> <b>Erya</b> · todas as habilidades</div>
+    <div class="lista">
+      <h3>1ª classe: Erya <small>(a partir do nível 1)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">👻</div>
+          <div><div class="hab-nm">Espíritos da Escolha <span class="hab-nv">nível 1</span></div>
+          <div class="hab-d">Três espíritos correm pelo chão, ziguezagueando, atrás de alvos diferentes (150% cada).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">👁️</div>
+          <div><div class="hab-nm">Olhos Brancos <span class="tag">passiva</span> <span class="hab-nv">nível 2</span></div>
+          <div class="hab-d">+3% de magia por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🤍</div>
+          <div><div class="hab-nm">Quinta Marca <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 4</span></div>
+          <div class="hab-d">A marca da Escolha cura 35% do HP.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">👻</div>
+          <div><div class="hab-nm">Espírito Guia <span class="tag">passiva</span> <span class="hab-nv">nível 6</span></div>
+          <div class="hab-d">+0,8% de crítico, +1% de velocidade por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🕊️</div>
+          <div><div class="hab-nm">Escolha Livre <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 8</span></div>
+          <div class="hab-d">Ninguém escolhe o seu destino. 30s: +18 de defesa e +20% de magia.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🤍</div>
+          <div><div class="hab-nm">Marca Protetora <span class="tag">passiva</span> <span class="hab-nv">nível 10</span></div>
+          <div class="hab-d">+2 de defesa, +4% de cura por nível. (A cura também vale para o grupo.)</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🔆</div>
+          <div><div class="hab-nm">Mil Possibilidades <span class="hab-nv">nível 12</span></div>
+          <div class="hab-d">Em cada possibilidade, o golpe acerta (3× 140% em área).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🚪</div>
+          <div><div class="hab-nm">Porta da Escolha <span class="hab-nv">nível 16</span></div>
+          <div class="hab-d">Abre uma porta e surge atrás do alvo (260%). <span class="req">Requer Espíritos da Escolha Nv 3.</span></div></div>
+        </div>
+      <h3>2ª classe: Quinta Marca <small>(a partir do nível 20)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🚪</div>
+          <div><div class="hab-nm">Nova Porta <span class="hab-nv">nível 20</span></div>
+          <div class="hab-d">Cria uma possibilidade: surge atrás do alvo (300%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🌌</div>
+          <div><div class="hab-nm">Memória de Antes <span class="tag">passiva</span> <span class="hab-nv">nível 21</span></div>
+          <div class="hab-d">+3% de SP, +2% de HP por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🎲</div>
+          <div><div class="hab-nm">Possibilidade <span class="tag">passiva</span> <span class="hab-nv">nível 23</span></div>
+          <div class="hab-d">+1,2% de crítico por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">👻</div>
+          <div><div class="hab-nm">Revoada de Espíritos <span class="hab-nv">nível 24</span></div>
+          <div class="hab-d">Cinco espíritos dourados caçam os inimigos (180% cada).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🛡️</div>
+          <div><div class="hab-nm">Espíritos Guardiões <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 26</span></div>
+          <div class="hab-d">30s: +25 de defesa e golpes mais rápidos.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌀</div>
+          <div><div class="hab-nm">Tormenta de Espíritos <span class="hab-nv">nível 30</span></div>
+          <div class="hab-d">Espíritos rodam em volta do alvo (3× 130%). <span class="req">Requer Espíritos Guardiões Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💖</div>
+          <div><div class="hab-nm">Escolha da Vida <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 34</span></div>
+          <div class="hab-d">Cura 50% do HP. <span class="req">Requer Tormenta de Espíritos Nv 2.</span></div></div>
+        </div>
+      <h3>3ª classe: Escolha Livre <small>(a partir do nível 40)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">👁️</div>
+          <div><div class="hab-nm">Antes de Tudo <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 40</span></div>
+          <div class="hab-d">30s: +40% de magia, +30 de defesa, +10% de crítico; cura 25%.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">✨</div>
+          <div><div class="hab-nm">Quinta Marca Plena <span class="tag">passiva</span> <span class="hab-nv">nível 41</span></div>
+          <div class="hab-d">+4% de magia, +4% de cura por nível. (A cura também vale para o grupo.)</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">♾️</div>
+          <div><div class="hab-nm">Livre <span class="tag">passiva</span> <span class="hab-nv">nível 44</span></div>
+          <div class="hab-d">+1,2% de esquiva, +0,1% de HP por segundo por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">♾️</div>
+          <div><div class="hab-nm">Todas as Escolhas <span class="hab-nv">nível 46</span></div>
+          <div class="hab-d">Todas as possibilidades acertam (3× 240% em área).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">👻</div>
+          <div><div class="hab-nm">Mil Espíritos <span class="hab-nv">nível 50</span></div>
+          <div class="hab-d">Seis espíritos caçam alvos diferentes (6× 220%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">💥</div>
+          <div><div class="hab-nm">Destino Quebrado <span class="hab-nv">nível 58</span></div>
+          <div class="hab-d">Três possibilidades quebram o destino dos inimigos (3× 220% em área). <span class="req">Requer Mil Espíritos Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🕊️</div>
+          <div><div class="hab-nm">A Escolha Final <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 66</span></div>
+          <div class="hab-d">30s: +70% de magia, +20% de crítico e +20 de defesa; cura 30%. <span class="req">Requer Destino Quebrado Nv 3.</span></div></div>
+        </div></div>
+  </section>
+  <section class="pag heroi" style="--cor:#d9cff5">
+    <div class="cab">
+      <img class="retrato" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADq0lEQVR4nO1ZPWvbQBh+WgIJxNiGdNAQsMAeNAglU+noIVMT6FLa0KVZnDE/oJPpr8jYLoYumZKQIYMLHdItER48OKBsGmqowYV0cgfnVU66D51OZ9MhzySf7uN53o97T2fgCU8ohWc2J1tfrc90+v35+9vauqUnYknf3cbc+8vTa+zsbafaGk0neS4rZsV0IBFnSY8GaQFhOES1WufesWMaTWcGmAsxGrS+Wp8RCbLwSa8v7Nt5F2K8csS9r1brKc80mo6RiEIeYK0+GsQpC3eOHPGgOMTGiyH3/tuXewCPnrm7jY28oS2AtTotGgQeWr6Dy9NrvD9Yw/fjA8noHt+0dpz6ORrESWg1ms5MV0ThHMjG+Umvj2q1jvEvD/7bK66/KImpTTRXUWgJIOtnF8xCJ4nZNhGCwEvCSccLz/M6sKEjW3BnbxuXp9do+ZI8kCDbn0KSwkmnruQKIKisb+J6QlYEraM7p3EdMEE2fPJCUgfaHlBBFkbUniUqajOFFQEA73ISQvViUVBmue7uQ6AELNuH7ZtXoa15AFDHNOsR3d1KJ5GtClCBFWcr/gGLAsiqRWtBWRgJECUlWdXEumE4NE50qQBRArd8B2E4ROfQS57LguagOVnQsUJVkQsVMlbMRiVG59DDeOqkki0IPG3SRBwAbq762PT3ub55iWxciSdxhCiKsPWqnZDIipGB+gNz4q7rmtIwFxBFET597qbazs77KXIy7L5uc+MQRUY8Sp2FznpdoPERuPuatE1iNZEoioTjTLG0OrAolBdgakUL1gcKhlB269z90E29PzvvA5iHiSoxZeNMYLyNiham+M+SZwW5rsuNu7lK/y5y4DNOYvcemPTnC9fabS55I8WuQluwe/8w18Mc4+n8d5FqLjym5h2jW76DjcrjOxH56KKfanvT7XL9ao6bPI+ncqurjtVGHhgNYuBBhGjbdF0XW91uqk3Ujzyx6e9z5NkwUhVH4xBKRDjiaqpTDwAIySfza6BUISMRm/4+apVY61jAEi9CVIbStxIJgYwQGWwRJ1i5VqHaEIZDvAzyiYlu8HROsSJYEUCLB4GHTb+t7CuyvCl5wPLFVpECZAtLu5VYFP6702jRz1ROgOpb2CZk84nyQfVtnOuBMBxiNIiNE60IURVk1ThXALuQyZ1PmR1GZz2pANHgZSap7o4m3UbL/GlhA7o5xx1P11frs+lkcdfhZVCpedyROuUBIv/zx8VymWliOhmiUvNSf/79A0OCILeNtWkKAAAAAElFTkSuQmCC">
+      <div class="cab-txt">
+        <div class="num">Herói 6 de 6</div>
+        <h2>Mãe</h2>
+        <div class="evo">Mãe <span>→</span> Lâmina de Auren <span>→</span> Guardiã do Entre</div>
+        <div class="papel">Linha de frente: aguenta pancada, atordoa e protege o grupo.</div>
+      </div>
+    </div>
+    <div class="dois">
+      <div class="lore"><p>Os irmãos achavam que ela tinha morrido antes do Grande Cisma. Não morreu: ficou presa no Entre, um lugar que não pertence ao Primeiro Mundo, nem ao Reino da Escolha, nem ao Abismo Carmesim. Passou milênios lá, porque descobriu o que os filhos eram. Agora carrega de novo a sua lâmina antiga, e as correntes que a prendiam trabalham a favor dela.</p><p class="cit">“Você cresceu.”</p></div>
+      <div class="notas"><div class="nota"><span>Ataque</span><b>★★★★<span class="apagada">★</span></b></div><div class="nota"><span>Defesa</span><b>★★★★★<span class="apagada"></span></b></div><div class="nota"><span>Cura</span><b>★★★<span class="apagada">★★</span></b></div><div class="nota"><span>Grupo</span><b>★★★★<span class="apagada">★</span></b></div><div class="nota"><span>Facilidade</span><b>★★★★★<span class="apagada"></span></b></div></div>
+    </div>
+    <h4>Árvore de habilidades</h4>
+    <div class="arvore">
+    <div class="col">
+      <div class="col-tit"><small>1ª classe · nível 1+</small>Mãe</div>
+      
+        <div class="no" id="Mae-LaminaAntiga" >
+          <span class="ic">⚔️</span><span class="nm">Lâmina Antiga</span><span class="nv">1</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Mae-PeleEndurecida" >
+          <span class="ic">🪨</span><span class="nm">Pele Endurecida</span><span class="nv">2</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Mae-CorrentesBrancas" >
+          <span class="ic">⛓️</span><span class="nm">Correntes Brancas</span><span class="nv">4</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Mae-BracoForte" >
+          <span class="ic">💪</span><span class="nm">Braço Forte</span><span class="nv">6</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Mae-AbracodeMae" >
+          <span class="ic">🤍</span><span class="nm">Abraço de Mãe 💛</span><span class="nv">8</span>
+          
+        </div>
+        <div class="no pas" id="Mae-CoracaodeMae" >
+          <span class="ic">❤️</span><span class="nm">Coração de Mãe</span><span class="nv">10</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Mae-VoltemosDois" >
+          <span class="ic">🌙</span><span class="nm">Voltem, os Dois</span><span class="nv">12</span>
+          
+        </div>
+        <div class="no" id="Mae-GolpeFirme" data-req="Mae-LaminaAntiga" data-nv="3">
+          <span class="ic">🛡️</span><span class="nm">Golpe Firme</span><span class="nv">16</span>
+          <i class="mk mkB">B</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>2ª classe · nível 20+</small>Lâmina de Auren</div>
+      
+        <div class="no" id="Mae-LaminadeAuren" >
+          <span class="ic">⚔️</span><span class="nm">Lâmina de Auren</span><span class="nv">20</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no pas" id="Mae-Resistencia" >
+          <span class="ic">⛰️</span><span class="nm">Resistência</span><span class="nv">21</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Mae-FuriadeMae" >
+          <span class="ic">🔥</span><span class="nm">Fúria de Mãe</span><span class="nv">23</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Mae-Promessa" >
+          <span class="ic">🛡️</span><span class="nm">Promessa 💛</span><span class="nv">24</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Mae-GritodaGuardia" >
+          <span class="ic">📣</span><span class="nm">Grito da Guardiã</span><span class="nv">26</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no" id="Mae-LaminaGiratoria" data-req="Mae-GritodaGuardia" data-nv="2">
+          <span class="ic">🌀</span><span class="nm">Lâmina Giratória</span><span class="nv">30</span>
+          
+        </div>
+        <div class="no" id="Mae-ProtecaodeMae" data-req="Mae-LaminaGiratoria" data-nv="2">
+          <span class="ic">🤱</span><span class="nm">Proteção de Mãe 💛</span><span class="nv">34</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div>
+    <div class="col">
+      <div class="col-tit"><small>3ª classe · nível 40+</small>Guardiã do Entre</div>
+      
+        <div class="no" id="Mae-PassagemdoEntre" >
+          <span class="ic">🌫️</span><span class="nm">Passagem do Entre</span><span class="nv">40</span>
+          
+        </div>
+        <div class="no pas" id="Mae-GuardiadoEntre" >
+          <span class="ic">🌫️</span><span class="nm">Guardiã do Entre</span><span class="nv">41</span>
+          <i class="mk mkA">A</i>
+        </div>
+        <div class="no pas" id="Mae-LaminaEterna" >
+          <span class="ic">⚔️</span><span class="nm">Lâmina Eterna</span><span class="nv">44</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Mae-VoltemTodos" >
+          <span class="ic">🌙</span><span class="nm">Voltem, Todos</span><span class="nv">46</span>
+          
+        </div>
+        <div class="no" id="Mae-CortedoEntre" >
+          <span class="ic">🌙</span><span class="nm">Corte do Entre</span><span class="nv">50</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Mae-PassosqueTremem" data-req="Mae-CortedoEntre" data-nv="2">
+          <span class="ic">🌋</span><span class="nm">Passos que Tremem</span><span class="nv">58</span>
+          <i class="mk mkB">B</i>
+        </div>
+        <div class="no" id="Mae-UltimaPromessa" data-req="Mae-PassosqueTremem" data-nv="3">
+          <span class="ic">🤍</span><span class="nm">Última Promessa 💛</span><span class="nv">66</span>
+          <i class="mk mkA">A</i>
+        </div>
+    </div><svg class="linhas"></svg></div>
+    <div class="legenda">O número é o nível do herói para liberar. Borda tracejada = passiva. 💛 = vale também para o grupo perto. As linhas mostram o que precisa antes (“requer”).</div>
+    <h4>Dois caminhos (os pontos não dão para tudo)</h4>
+    <div class="caminhos"><div class="caminho"><div class="cam-tit"><i class="mk mkA">A</i> 🛡️ Muralha</div><div class="cam-d">A linha de frente: segura os monstros, atordoa e protege quem está atrás.</div><div class="cam-l"><b>Pegue:</b> Pele Endurecida · Coração de Mãe · Correntes Brancas · Resistência · Promessa · Grito da Guardiã · Proteção de Mãe · Guardiã do Entre · Última Promessa</div></div><div class="caminho"><div class="cam-tit"><i class="mk mkB">B</i> ⚔️ Lâmina</div><div class="cam-d">Corpo a corpo forte e seguro. A melhor escolha para quem está começando.</div><div class="cam-l"><b>Pegue:</b> Braço Forte · Lâmina Antiga · Golpe Firme · Fúria de Mãe · Lâmina de Auren · Lâmina Eterna · Corte do Entre · Passos que Tremem</div></div></div>
+  </section>
+  <section class="pag heroi lista-pag" style="--cor:#d9cff5">
+    <div class="mini-cab"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADq0lEQVR4nO1ZPWvbQBh+WgIJxNiGdNAQsMAeNAglU+noIVMT6FLa0KVZnDE/oJPpr8jYLoYumZKQIYMLHdItER48OKBsGmqowYV0cgfnVU66D51OZ9MhzySf7uN53o97T2fgCU8ohWc2J1tfrc90+v35+9vauqUnYknf3cbc+8vTa+zsbafaGk0neS4rZsV0IBFnSY8GaQFhOES1WufesWMaTWcGmAsxGrS+Wp8RCbLwSa8v7Nt5F2K8csS9r1brKc80mo6RiEIeYK0+GsQpC3eOHPGgOMTGiyH3/tuXewCPnrm7jY28oS2AtTotGgQeWr6Dy9NrvD9Yw/fjA8noHt+0dpz6ORrESWg1ms5MV0ThHMjG+Umvj2q1jvEvD/7bK66/KImpTTRXUWgJIOtnF8xCJ4nZNhGCwEvCSccLz/M6sKEjW3BnbxuXp9do+ZI8kCDbn0KSwkmnruQKIKisb+J6QlYEraM7p3EdMEE2fPJCUgfaHlBBFkbUniUqajOFFQEA73ISQvViUVBmue7uQ6AELNuH7ZtXoa15AFDHNOsR3d1KJ5GtClCBFWcr/gGLAsiqRWtBWRgJECUlWdXEumE4NE50qQBRArd8B2E4ROfQS57LguagOVnQsUJVkQsVMlbMRiVG59DDeOqkki0IPG3SRBwAbq762PT3ub55iWxciSdxhCiKsPWqnZDIipGB+gNz4q7rmtIwFxBFET597qbazs77KXIy7L5uc+MQRUY8Sp2FznpdoPERuPuatE1iNZEoioTjTLG0OrAolBdgakUL1gcKhlB269z90E29PzvvA5iHiSoxZeNMYLyNiham+M+SZwW5rsuNu7lK/y5y4DNOYvcemPTnC9fabS55I8WuQluwe/8w18Mc4+n8d5FqLjym5h2jW76DjcrjOxH56KKfanvT7XL9ao6bPI+ncqurjtVGHhgNYuBBhGjbdF0XW91uqk3Ujzyx6e9z5NkwUhVH4xBKRDjiaqpTDwAIySfza6BUISMRm/4+apVY61jAEi9CVIbStxIJgYwQGWwRJ1i5VqHaEIZDvAzyiYlu8HROsSJYEUCLB4GHTb+t7CuyvCl5wPLFVpECZAtLu5VYFP6702jRz1ROgOpb2CZk84nyQfVtnOuBMBxiNIiNE60IURVk1ThXALuQyZ1PmR1GZz2pANHgZSap7o4m3UbL/GlhA7o5xx1P11frs+lkcdfhZVCpedyROuUBIv/zx8VymWliOhmiUvNSf/79A0OCILeNtWkKAAAAAElFTkSuQmCC"> <b>Mãe</b> · todas as habilidades</div>
+    <div class="lista">
+      <h3>1ª classe: Mãe <small>(a partir do nível 1)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">⚔️</div>
+          <div><div class="hab-nm">Lâmina Antiga <span class="hab-nv">nível 1</span></div>
+          <div class="hab-d">A lâmina que ela guardou por milênios (230%).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🪨</div>
+          <div><div class="hab-nm">Pele Endurecida <span class="tag">passiva</span> <span class="hab-nv">nível 2</span></div>
+          <div class="hab-d">+2,5 de defesa por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">⛓️</div>
+          <div><div class="hab-nm">Correntes Brancas <span class="hab-nv">nível 4</span></div>
+          <div class="hab-d">As correntes que a prendiam, agora a favor dela (atordoa 2,5s).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">💪</div>
+          <div><div class="hab-nm">Braço Forte <span class="tag">passiva</span> <span class="hab-nv">nível 6</span></div>
+          <div class="hab-d">+3% de ataque por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🤍</div>
+          <div><div class="hab-nm">Abraço de Mãe <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 8</span></div>
+          <div class="hab-d">"Você cresceu." Cura 45% do HP.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">❤️</div>
+          <div><div class="hab-nm">Coração de Mãe <span class="tag">passiva</span> <span class="hab-nv">nível 10</span></div>
+          <div class="hab-d">+3% de HP por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌙</div>
+          <div><div class="hab-nm">Voltem, os Dois <span class="hab-nv">nível 12</span></div>
+          <div class="hab-d">Uma promessa que corta e cura (300% ao redor, cura 15%).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🛡️</div>
+          <div><div class="hab-nm">Golpe Firme <span class="hab-nv">nível 16</span></div>
+          <div class="hab-d">Um golpe que derruba (240%, atordoa 1,5s). <span class="req">Requer Lâmina Antiga Nv 3.</span></div></div>
+        </div>
+      <h3>2ª classe: Lâmina de Auren <small>(a partir do nível 20)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">⚔️</div>
+          <div><div class="hab-nm">Lâmina de Auren <span class="hab-nv">nível 20</span></div>
+          <div class="hab-d">Dois cortes da lâmina antiga (240% cada).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">⛰️</div>
+          <div><div class="hab-nm">Resistência <span class="tag">passiva</span> <span class="hab-nv">nível 21</span></div>
+          <div class="hab-d">+3 de defesa, +0,1% de HP por segundo por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🔥</div>
+          <div><div class="hab-nm">Fúria de Mãe <span class="tag">passiva</span> <span class="hab-nv">nível 23</span></div>
+          <div class="hab-d">+3% de ataque, +0,6% de crítico por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🛡️</div>
+          <div><div class="hab-nm">Promessa <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 24</span></div>
+          <div class="hab-d">25s: +40 de defesa e +25% de dano.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">📣</div>
+          <div><div class="hab-nm">Grito da Guardiã <span class="hab-nv">nível 26</span></div>
+          <div class="hab-d">Um grito que paralisa todos em volta (120%, 2,5s).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌀</div>
+          <div><div class="hab-nm">Lâmina Giratória <span class="hab-nv">nível 30</span></div>
+          <div class="hab-d">Gira a lâmina antiga em volta (260%). <span class="req">Requer Grito da Guardiã Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🤱</div>
+          <div><div class="hab-nm">Proteção de Mãe <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 34</span></div>
+          <div class="hab-d">25s: +35 de defesa e cura 20%. <span class="req">Requer Lâmina Giratória Nv 2.</span></div></div>
+        </div>
+      <h3>3ª classe: Guardiã do Entre <small>(a partir do nível 40)</small></h3>
+      
+        <div class="hab">
+          <div class="hab-ic">🌫️</div>
+          <div><div class="hab-nm">Passagem do Entre <span class="hab-nv">nível 40</span></div>
+          <div class="hab-d">Atravessa o Entre até o alvo (550%, atordoa).</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">🌫️</div>
+          <div><div class="hab-nm">Guardiã do Entre <span class="tag">passiva</span> <span class="hab-nv">nível 41</span></div>
+          <div class="hab-d">+3% de HP, +2 de defesa por nível.</div></div>
+        </div>
+        <div class="hab pas">
+          <div class="hab-ic">⚔️</div>
+          <div><div class="hab-nm">Lâmina Eterna <span class="tag">passiva</span> <span class="hab-nv">nível 44</span></div>
+          <div class="hab-d">+3,5% de ataque, +1,5% de velocidade de golpe por nível.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌙</div>
+          <div><div class="hab-nm">Voltem, Todos <span class="hab-nv">nível 46</span></div>
+          <div class="hab-d">A promessa cumprida: 550% em volta e cura 35%.</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌙</div>
+          <div><div class="hab-nm">Corte do Entre <span class="hab-nv">nível 50</span></div>
+          <div class="hab-d">Dois cortes que atravessam o Entre (2× 400%, atordoa).</div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🌋</div>
+          <div><div class="hab-nm">Passos que Tremem <span class="hab-nv">nível 58</span></div>
+          <div class="hab-d">Ela pisa e o chão treme (460% em volta, atordoa 2s). <span class="req">Requer Corte do Entre Nv 2.</span></div></div>
+        </div>
+        <div class="hab">
+          <div class="hab-ic">🤍</div>
+          <div><div class="hab-nm">Última Promessa <span class="tag gr">💛 grupo</span> <span class="hab-nv">nível 66</span></div>
+          <div class="hab-d">30s: +60 de defesa e +40% de ataque; cura 50%. <span class="req">Requer Passos que Tremem Nv 3.</span></div></div>
+        </div></div>
+  </section>
+<script>
+// liga as habilidades que pedem outra antes ("requer")
+document.querySelectorAll('.arvore').forEach(a => {
+  const svg = a.querySelector('.linhas'), R = a.getBoundingClientRect(), cor = getComputedStyle(a).getPropertyValue('--cor');
+  let out = '';
+  a.querySelectorAll('[data-req]').forEach(n => {
+    const p = document.getElementById(n.dataset.req); if (!p) return;
+    const r1 = p.getBoundingClientRect(), r2 = n.getBoundingClientRect();
+    const x = r1.left - R.left - 7, y1 = r1.top - R.top + r1.height / 2, y2 = r2.top - R.top + r2.height / 2;
+    out += '<path d="M' + (x + 7) + ' ' + y1 + ' H' + x + ' V' + y2 + ' H' + (x + 7) + '" fill="none" stroke="' + cor + '" stroke-width="1.6" opacity=".85"/>'
+      + '<circle cx="' + (x + 7) + '" cy="' + y2 + '" r="2.4" fill="' + cor + '"/>'
+      + '<text x="' + (x - 3) + '" y="' + ((y1 + y2) / 2 + 3) + '" font-size="8.5" font-weight="800" fill="' + cor + '" text-anchor="end">' + n.dataset.nv + '</text>';
+  });
+  svg.innerHTML = out;
+});
+</script></body></html>
