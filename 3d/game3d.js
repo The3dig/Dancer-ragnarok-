@@ -2876,12 +2876,40 @@ function renderStats() {
   const w = $('statwin');
   const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts >= custoStat(P[k]) ? '' : 'disabled'} title="custa ${custoStat(P[k])} ponto(s)">+${custoStat(P[k]) > 1 ? `<small>${custoStat(P[k])}</small>` : ''}</button><span class="si">${STAT_INFO[k]}</span></div>`;
   const html = `<div class="wt">📊 ${className(P.cls, P.gender)} · Nv ${P.lv}<button class="x" data-close>×</button></div>
-    <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'}</div>
+    <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'} ${botaoReset('atr')}</div>
     <div class="sgrid">${STAT_KEYS.map(row).join('')}</div>
     <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b> · Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
-$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); });
+$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); if (e.target.closest('[data-reset]')) pedirReset('atr'); });
+// ---------------- Reset de atributos e de habilidades (20/11): 3 de graça de cada; depois, só com o item comprado no Mercador (caro)
+const RESET_GRATIS = 3;
+const RESET_INFO = { hab: { nome: 'habilidades', item: 'reset_hab', ic: '📜' }, atr: { nome: 'atributos', item: 'reset_atr', ic: '🔄' } };
+const resetGratisRestam = t => Math.max(0, RESET_GRATIS - (((P.resetUsos || {})[t]) || 0));
+function botaoReset(t) { const g = resetGratisRestam(t), n = P.inv[RESET_INFO[t].item] || 0; return `<button class="btn-reset" data-reset="${t}" title="Devolve todos os pontos para escolher de novo">♻️ Resetar ${g ? `<small>(${g} grátis)</small>` : n ? `<small>(tem ${n} ${RESET_INFO[t].ic})</small>` : ''}</button>`; }
+function fazerReset(t) {
+  if (t === 'atr') {
+    const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
+    for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
+    P.statPts = ptsTotais(P.lv, P.tier);
+  } else {
+    let tot = 0; for (const id in P.skillLv) tot += P.skillLv[id] || 0;
+    const primeira = SKILLS[0].id; P.skillLv = { [primeira]: 1 }; P.skillPts += Math.max(0, tot - 1);
+    const b = ensureBar(); for (let i = 0; i < b.length; i++) if (b[i] && b[i].startsWith('s:') && !(P.skillLv[b[i].slice(2)] > 0)) b[i] = null;
+  }
+  P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
+  burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xb8d8ff, 30, 3, 0.8); Audio8.sfx('level'); buildHotbar(); save();
+  if (t === 'atr') { log(`🔄 Atributos resetados! Você tem <b>${P.statPts}</b> pontos para distribuir de novo.`, 'gold'); if ($('statwin').classList.contains('hidden')) toggleStats(); else renderStats(); }
+  else { log(`📜 Habilidades resetadas! Você tem <b>${P.skillPts}</b> pontos para escolher de novo.`, 'gold'); if ($('skillwin').classList.contains('hidden')) toggleSkills(); else renderSkills(); }
+}
+function pedirReset(t, viaItem) {
+  const I = RESET_INFO[t], it = ITEMS[I.item], g = resetGratisRestam(t), tem = P.inv[I.item] || 0;
+  const aviso = `Todos os pontos de <b>${I.nome}</b> voltam para você escolher de novo${t === 'hab' ? ' (a 1ª habilidade fica no nível 1)' : ''}.`;
+  const usar = gratis => () => { if (gratis) { P.resetUsos = P.resetUsos || {}; P.resetUsos[t] = (P.resetUsos[t] || 0) + 1; } else { if (!(P.inv[I.item] > 0)) return; P.inv[I.item]--; } fazerReset(t); };
+  if (!viaItem && g > 0) return dialog(`♻️ Resetar ${I.nome}`, `${aviso}<br>Você ainda tem <b>${g} de ${RESET_GRATIS}</b> resets grátis de ${I.nome}. Depois disso, só com ${it.ic} <b>${it.name}</b> (${it.price.toLocaleString('pt-BR')} cr no Mercador).`, [{ label: `♻️ Resetar (grátis, sobram ${g - 1})`, fn: usar(true) }, { label: 'Cancelar' }]);
+  if (tem > 0) return dialog(`${it.ic} ${it.name}`, `${aviso}<br>Gasta 1 ${it.ic} <b>${it.name}</b> (você tem ${tem}).`, [{ label: `${it.ic} Usar e resetar`, fn: usar(false) }, { label: 'Cancelar' }]);
+  dialog(`♻️ Resetar ${I.nome}`, `Seus ${RESET_GRATIS} resets grátis de ${I.nome} já foram usados.<br>Agora precisa de ${it.ic} <b>${it.name}</b>, que o <b>Mercador</b> vende por <b>${it.price.toLocaleString('pt-BR')} cr</b>. É caro de propósito: pense bem no seu caminho! 😉`, [{ label: 'Entendi' }]);
+}
 // segurar o + vai adicionando sozinho (cada vez mais rápido)
 let statHold = null;
 const addStat = k => { const c = k ? custoStat(P[k]) : 1e9; if (k && P.statPts >= c) { P[k]++; P.statPts -= c; Audio8.sfx('click'); renderStats(); return true; } return false; };
@@ -2954,7 +2982,7 @@ function renderSkills() {
   // as habilidades novas (passivas e ativas) de cada classe, embaixo das antigas
   const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
-    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · não dá para pegar tudo: escolha o seu caminho)</small></div>
+    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · não dá para pegar tudo: escolha o seu caminho)</small> ${botaoReset('hab')}</div>
     <div class="stier">1ª classe — <b>${TIERS[P.cls] ? TIERS[P.cls][0] : ''}</b></div>
     <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>${extras(0)}
     ${SKILLS.length > 4 ? `<div class="stier ${(P.tier || 0) >= 1 ? '' : 'off'}">2ª classe — <b>${TIERS[P.cls][1]}</b> ${(P.tier || 0) >= 1 ? '✅' : '<small>🔒 provação a partir do nível 20 (fale com o Vigia Morvan, na Cidadela)</small>'}</div>
@@ -2965,6 +2993,7 @@ function renderSkills() {
 }
 $('skillwin').addEventListener('click', e => {
   if (e.target.closest('[data-close]')) return toggleSkills();
+  if (e.target.closest('[data-reset]')) return pedirReset('hab');
   const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
   const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
 });
@@ -3005,6 +3034,10 @@ function talkBase(n) {
         { label: `🦋 Asa de Borboleta — 900 cr cada (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { qty('asa_borboleta', shop); return true; } },
         { label: `🧪 Poção Vermelha — quantidade…`, fn: () => { qty('red', shop); return true; } },
         { label: `💧 Poção Azul — quantidade…`, fn: () => { qty('blue', shop); return true; } },
+        { label: `♻️ Resets (habilidades e atributos) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr`, fn: () => { const lj = () => dialog('♻️ Resets', `Todo mundo tem <b>${RESET_GRATIS} resets grátis</b> de habilidades e ${RESET_GRATIS} de atributos (botão ♻️ nas janelas). Depois disso, só com estes itens.<br><small>Grátis: 📜 ${resetGratisRestam('hab')} · 🔄 ${resetGratisRestam('atr')} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [
+          { label: `📜 Pergaminho do Esquecimento (habilidades) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_hab || 0}`, fn: () => { buy('reset_hab', 1); lj(); return true; } },
+          { label: `🔄 Pedra do Recomeço (atributos) — ${ITEMS.reset_atr.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_atr || 0}`, fn: () => { buy('reset_atr', 1); lj(); return true; } },
+          { label: '← Voltar', fn: () => { shop(); return true; } }]); lj(); return true; } },
         { label: '⚔️ Equipamentos', fn: () => { Vida.gearShop(); return true; } },
         { label: '💰 Vender materiais e colheita', fn: () => { Vida.sellAll(); shop(); return true; } },
         { label: 'Sair' }]);
@@ -3251,7 +3284,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['tempo', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

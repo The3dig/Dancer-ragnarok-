@@ -656,3 +656,6 @@ body.touch #evocard.mini { font-size: 8.5px; max-width: 160px; } body.touch #evo
 .dmg.item { color: #ffe08a; font-size: 13px; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,.8); }
 body.touch .dmg.item { font-size: 11px; }
 .pktag { display: inline-block; background: #c81e1e; color: #fff !important; font: 900 10px Nunito, sans-serif; padding: 1px 5px; border-radius: 6px; margin-right: 4px; vertical-align: middle; box-shadow: 0 0 6px rgba(255,40,40,.7); text-shadow: none; }
+/* reset de habilidades e atributos (20/11) */
+.btn-reset { float: right; background: #3a2a5a; color: #fff; border: 1px solid #c8a050; border-radius: 8px; padding: 2px 8px; font: 800 11px Nunito, sans-serif; cursor: pointer; margin-left: 6px; }
+.btn-reset small { color: #f2c86a; font-weight: 800; }

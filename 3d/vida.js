@@ -67,6 +67,9 @@ const Vida = (() => {
     pao: ['Pão de Trigo', '🍞', 10, 0, 'comida', { heal: 0.3 }],
     asa_mosca: ['Asa de Mosca', '🪰', 60, 300, 'tp', { use: 'tp' }],
     asa_borboleta: ['Asa de Borboleta', '🦋', 200, 900, 'tp', { use: 'tp' }],
+    // reset (20/11): 3 de graça de cada; depois só comprando, e é caro de propósito
+    reset_hab: ['Pergaminho do Esquecimento', '📜', 1, 80000, 'reset', { use: 'reset', alvo: 'hab' }],
+    reset_atr: ['Pedra do Recomeço', '🔄', 1, 80000, 'reset', { use: 'reset', alvo: 'atr' }],
   };
   // ---------------- equipamentos (estilo Priston/Lineage): 8 espaços, raridade e conjuntos
   // mods: pow = dano (físico ou mágico, conforme o herói), def, hp, sp, crit, spd (velocidade)
@@ -882,6 +885,7 @@ const Vida = (() => {
     if (ITEMS[id].use === 'pot') return usePotion(id);
     if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
     if (ITEMS[id].use === 'isca') { closeInv(); if (typeof Mascotes !== 'undefined') Mascotes.capturar(id); return; }
+    if (ITEMS[id].use === 'reset') { closeInv(); return pedirReset(ITEMS[id].alvo, true); }
     if (ITEMS[id].use === 'garrafa') { closeInv(); if (typeof Praia !== 'undefined') Praia.abrirGarrafa(); return; }
     if (!has(id)) return;
     add(id, -1); Audio8.sfx('heal');
