@@ -120,7 +120,8 @@ const POST = (() => {
     renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(ps, pc);
   } };
 })();
-const QUAL = { level: TOUCH ? 1 : 2, acc: 0, frames: 0, slow: 0 };
+const MODO_LEVE = (() => { try { return localStorage.getItem('modoLeve') === '1'; } catch (e) { return false; } })();   // escolhido na ajuda ❓ (TV/espelhar, aparelho que trava)
+const QUAL = { level: MODO_LEVE ? 0 : TOUCH ? 1 : 2, acc: 0, frames: 0, slow: 0, leveFeito: false };
 let drawN = 0;
 const draw = () => { if (TOUCH && (drawN++ % 2 === 0)) renderer.shadowMap.needsUpdate = true; return (POST && QUAL.level >= 1) ? POST.render() : renderer.render(scene, camera); };
 function applyQuality() {
@@ -128,12 +129,13 @@ function applyQuality() {
   FOLIAGE.forEach(im => im.castShadow = lv >= 2);
   if (lv === 0) {
     sun.castShadow = false;          // sem sombras: corta metade do trabalho da placa de vídeo
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 0.8)); lastFit = ''; fitScreen();
+    renderer.setPixelRatio(Math.min(devicePixelRatio, MODO_LEVE ? 0.65 : 0.8)); lastFit = ''; fitScreen();
     sun.shadow.mapSize.set(512, 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
     if (window.grassIM) window.grassIM.visible = false;
   }
 }
 function watchFps(dt) {
+  if (MODO_LEVE && !QUAL.leveFeito) { QUAL.leveFeito = true; applyQuality(); }
   QUAL.acc += dt; QUAL.frames++;
   if (QUAL.acc < 2) return;
   const fps = QUAL.frames / QUAL.acc; QUAL.acc = 0; QUAL.frames = 0;
@@ -3193,7 +3195,7 @@ const joy = { x: 0, y: 0, id: null };
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
-const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
+const HELP_OPTS = () => [{ label: 'Fechar' }, { label: MODO_LEVE ? '🐢 Modo leve: LIGADO (toque para voltar ao normal)' : '🐢 Modo leve: desligado (ligue se travar ao espelhar na TV)', fn: () => { try { localStorage.setItem('modoLeve', MODO_LEVE ? '0' : '1'); } catch (e) { } save(); location.reload(); } }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
   const extra = `🎮 <b>Controle (Xbox, PlayStation…):</b> analógico esquerdo anda, direito gira a câmera · <b>A</b> fala com NPC/quadro/baú perto, senão ataca (segure) · <b>B</b> esquiva · <b>X</b> pula · <b>Y</b> ataca · <b>LB RB LT RT</b> e <b>setas</b> = atalhos 1 a 8 · <b>⧉</b> mapa · <b>L3</b> senta · <b>R3</b> mira.<br>🎯 <b>☰ = modo cursor:</b> um quadrado amarelo anda pelos botões da tela (analógico ou setas), <b>A</b> aperta, <b>B</b> volta. Ele liga sozinho nas telas, janelas e conversas, e dá para usar tudo: botões de cima, painel de missões, quadros, lojas e a tela de entrar.<br>${!TOUCH ? `⌨️ <b>No PC:</b> <b>WASD</b> anda · <b>clique no chão</b> anda até lá · <b>clique no monstro</b> vai até ele e ataca até cair · <b>clique no NPC</b> conversa · <b>arraste</b> para girar a câmera · <b>roda do mouse</b> aproxima/afasta · <b>J</b> ataca · <b>1 a 8</b> atalhos · <b>Espaço</b> pula · <b>Shift</b> esquiva · <b>F</b> fala/usa · <b>Tab</b> mira o monstro mais perto · <b>I</b> ou <b>B</b> mochila · <b>C</b> atributos · <b>K</b> habilidades · <b>Q</b> diário · <b>M</b> mapa · <b>L</b> bestiário · <b>G</b> grupo · <b>O</b> amigos · <b>P</b> mascotes · <b>Enter</b> chat · <b>X</b> senta · <b>U</b> música · <b>H</b> ajuda · <b>Esc</b> fecha tudo<br>` : ''}📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
