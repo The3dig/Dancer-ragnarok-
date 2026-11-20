@@ -135,10 +135,10 @@ const Verme = (() => {
     if (meuDano() < MIN_DANO && !forced()) { banner('🐛 O VERME COLOSSAL CAIU'); log(`🐛 O Verme Colossal caiu, mas você não lutou o bastante para o prêmio (pelo menos ${MIN_DANO.toLocaleString('pt-BR')} de dano).`, 'sys'); P.vermeCiclo = cicloId(); return; }
     P.vermeCiclo = cicloId(); P.vermeKills = (P.vermeKills || 0) + 1;
     banner('🏆 O VERME COLOSSAL FOI DERROTADO! 🏆'); Audio8.sfx('level');
-    const MIT = ['lamina_verme', 'anel_ninho', 'couraca_verme'], id = MIT[irand(0, MIT.length - 1)];
-    P.inv[id] = (P.inv[id] || 0) + 1; P.inv.quitina_colossal = (P.inv.quitina_colossal || 0) + 3; P.inv.presa_verme = (P.inv.presa_verme || 0) + 10; P.zeny += 50000;
+    const MIT = ['lamina_verme', 'anel_ninho', 'couraca_verme'].sort(() => Math.random() - 0.5), ids = MIT.slice(0, Math.random() < 0.3 ? 3 : 2), id = ids[0];   // 2 garantidos (às vezes os 3)
+    for (const k of ids) P.inv[k] = (P.inv[k] || 0) + 1; P.inv.quitina_colossal = (P.inv.quitina_colossal || 0) + 5; P.inv.presa_verme = (P.inv.presa_verme || 0) + 15; P.zeny += 120000; P.inv.essencia = (P.inv.essencia || 0) + 10;
     P.title = 'Matador do Verme'; $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
-    log(`🏆 <b>O VERME COLOSSAL FOI DERROTADO!</b> Você recebeu <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>, 3 Quitinas Colossais, 10 Presas do Abismo e <b>50.000 cr</b>. Título: « Matador do Verme ». Vitórias: ${P.vermeKills}.`, 'gold');
+    log(`🏆 <b>O VERME COLOSSAL FOI DERROTADO!</b> Você recebeu ${ids.map(k => `<b>${ITEMS[k].ic} ${ITEMS[k].name}</b>`).join(' e ')}, 5 Quitinas Colossais, 15 Presas do Abismo, 10 Essências e <b>120.000 cr</b>. Título: « Matador do Verme ». Vitórias: ${P.vermeKills}.`, 'gold');
     log(`🐛 Ele volta a acordar em 15 dias: <b>${fmtData(proximo())}, às 20h</b>.`, 'sys');
     for (let i = 0; i < 16; i++) drops.push(makeDrop('zeny', irand(800, 1600), m.x + rand(-7, 7), m.z + rand(-7, 7)));
     for (let i = 0; i < 6; i++) setTimeout(() => ring(m.x, m.z, 4 + i * 3, [0xffcf40, 0xff6020][i % 2], 0.8), i * 200);

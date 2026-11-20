@@ -1540,7 +1540,9 @@ function dmgMob(m, base, crit, magic, color) {
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
   if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
-  let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
+  // monstro comum bem mais fraco que você cai mais rápido (lv 62 contra lv 12: golpe 3x). Chefe, mini e chefe de campo não.
+  const gapLv = !m.d.boss && !m.d.mini && !m.d.field && !m.d.alfa ? Math.max(0, P.lv - (m.d.lv || 1)) : 0;
+  let dmg = Math.max(1, Math.round(base * (1 + Math.min(2, gapLv * 0.04)) * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
   if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.addDmg(dmg);
@@ -1578,7 +1580,8 @@ function killMob(m, o = {}) {
   const bc = typeof Vida !== 'undefined' && Vida.bonusCarta ? Vida.bonusCarta(m.type) : 1;          // nível de caça do bestiário: carta um pouco mais fácil
   for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul * (it.startsWith('carta_') ? bc : 1)) {          // em grupo: cada item é sorteado entre quem está perto
     const para = typeof Grupo !== 'undefined' && m.nid ? Grupo.sortear(m) : null;
-    if (para) Grupo.enviar(para, it, 1, m.d.name); else drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+    const id2 = it.startsWith('carta_') && typeof Vida !== 'undefined' && Vida.tierCarta ? Vida.tierCarta(it) : it;      // carta: Simples, Forte, Invocada ou Suprema
+    if (para) Grupo.enviar(para, id2, 1, m.d.name); else drops.push(makeDrop(id2, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   }
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
   const nGrupo = typeof Grupo !== 'undefined' && m.nid ? Grupo.quantosPerto(m) : 1;               // em grupo: XP dividido igual entre quem está perto
@@ -1717,6 +1720,7 @@ function hurtFlash(k) {
 // Guarde as coisas no baú da sua casa para não perder. Até 3 sacolas; a mais velha some.
 const LOOT_KINDS = ['mat', 'carta', 'colheita', 'equip'];
 function onDeath() {
+  P.mortes = (P.mortes || 0) + 1;
   const lost = Math.min(P.xp, Math.floor(xpNeed(P.lv) * 0.05));
   P.xp -= lost; P.deathXp = lost;
   Audio8.sfx('die');
@@ -2062,7 +2066,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); if (typeof Mascotes !== 'undefined') Mascotes.update(dt); if (typeof Presenca !== 'undefined') Presenca.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); if (typeof Mascotes !== 'undefined') Mascotes.update(dt); if (typeof Presenca !== 'undefined') Presenca.update(dt); if (typeof Jornada !== 'undefined') Jornada.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -2224,6 +2228,18 @@ function updateMob(m, dt) {
   }
   if (m.type === 'kravenox') Kvx.ai(m, dt);
   else if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.ai(m, dt);
+  // chefe e mini-chefe que ficam presos (ex.: Primeiro Guardião na entrada da ponte) pulam até o jogador em vez de parar de atacar
+  if ((m.d.boss || m.d.mini) && !m.d.world && !m.invul && !m.morrendo && !P.dead && m.type !== 'kravenox' && m.type !== 'vermeColosso') {
+    const dP = Math.hypot(m.x - P.x, m.z - P.z), parado = Math.hypot(m.x - (m.px ?? m.x), m.z - (m.pz ?? m.z)) < dt * 0.4;
+    m.presoT = m.state === 'chase' && dP < 25 && dP > (m.d.rad || 1.6) + 3.5 && parado ? (m.presoT || 0) + dt : 0; m.px = m.x; m.pz = m.z;
+    if (m.presoT > 2.5) {
+      m.presoT = 0; let nx = P.x + (m.x - P.x) / dP * 2.6, nz = P.z + (m.z - P.z) / dP * 2.6;
+      if (blocked(nx, nz, 0.8)) { nx = P.x; nz = P.z; }
+      burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 1, m.z), 0xffffff, 18, 3, 0.5);
+      m.x = m.tx = nx; m.z = m.tz = nz; ring(nx, nz, 3, 0xff6040, 0.5); Audio8.sfx('boom'); m.atkCd = 0.6;
+      if (!m.pulouAviso) { m.pulouAviso = 1; log(`💥 <b>${m.d.name}</b> saltou até você: chefe não fica preso.`, 'bad'); }
+    }
+  }
   if (m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) Partilha.mover(m, dt);
   else if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
@@ -3011,7 +3027,10 @@ function qty(id, back) {
 function buy(id, n) {
   const c = Math.round(ITEMS[id].price * n * (1 - gBon('desc')));
   if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
-  P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item'); buildHotbar();
+  P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item');
+  // asas: vão sozinhas para um espaço livre da barra de atalhos (o Ludi comprou e não achava)
+  if ((id === 'asa_mosca' || id === 'asa_borboleta') && typeof ensureBar === 'function') { const b = ensureBar(); if (!b.includes('i:' + id)) { const k = b.indexOf(null); if (k >= 0) { b[k] = 'i:' + id; log(`${ITEMS[id].ic} <b>${ITEMS[id].name}</b> foi para o atalho ${k + 1}.`, 'sys'); } } }
+  buildHotbar();
 }
 
 // ---------------------------------------------------------------- entrada
@@ -3085,7 +3104,7 @@ const joy = { x: 0, y: 0, id: null };
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
-const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
+const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
   const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
@@ -3177,7 +3196,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['tempo', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }

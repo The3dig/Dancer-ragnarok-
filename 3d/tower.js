@@ -367,6 +367,8 @@ const Tower = (() => {
       const bm = add_(SWIRL, 0xff3a3a, { opacity: 0.6 }); own.push(bm);
       const pb = pontoRampa(f, av, 0.1), bar = new THREE.Mesh(new THREE.PlaneGeometry(RAMPA.larg + 0.8, 5), bm);
       bar.position.set(pb.x - f.x, 2.5 + 0.1 * (av === 'sobe' ? STAIR_H : -STAIR_H), pb.z - f.z); bar.rotation.y = pb.th + Math.PI / 2; g.add(bar); fx.barrier = bar;
+      if (!(f.i === 0 || f.i === 100)) { const vt = av === 'sobe' ? 'desce' : 'sobe', pv = pontoRampa(f, vt, 0.1), b2 = new THREE.Mesh(new THREE.PlaneGeometry(RAMPA.larg + 0.8, 5), bm);
+        b2.position.set(pv.x - f.x, 2.5 + 0.1 * (vt === 'sobe' ? STAIR_H : -STAIR_H), pv.z - f.z); b2.rotation.y = pv.th + Math.PI / 2; g.add(b2); fx.barrier2 = b2; }
     }
     f.obs = true;
     // número do andar no alto da parede
@@ -382,6 +384,7 @@ const Tower = (() => {
     fx.runes.forEach((r, k) => { r.rotation.y += dt * (k % 2 ? -0.6 : 0.35); });
     fx.fires.forEach((s2, k) => { if (k % 2 === 0) s2.scale.set(0.75 + Math.sin(time * 13 + k) * 0.08, 1.35 + Math.sin(time * 9 + k * 2) * 0.18, 1); else s2.material.opacity = 0.24 + Math.sin(time * 7 + k) * 0.05; });
     for (const e of fx.embers) { const u = e.userData; u.y += u.v * dt; u.a += dt * 0.2; if (u.y > 9) u.y = 0; e.position.set(Math.sin(u.a) * u.r, u.y, Math.cos(u.a) * u.r); e.material.opacity = Math.min(1, u.y) * (1 - u.y / 9); }
+    if (fx.barrier2) fx.barrier2.visible = !opened[fx.f.i];
     if (fx.barrier) { fx.barrier.visible = !opened[fx.f.i]; fx.barrier.material.rotation = time; fx.barrier.material.opacity = 0.45 + Math.sin(time * 4) * 0.15; }
   }
 
@@ -506,7 +509,13 @@ const Tower = (() => {
     else log(`🗼 Torre do Cisma — <b>${i + 1}º andar</b> (monstros nível ${lvOf(i)}).${GUARD[i] ? ` ☠ <b>${GUARD[i]}</b> guarda a escadaria!` : ''} Derrote todos para abrir a escadaria que sobe pela paredee.`, GUARD[i] ? 'bad' : 'sys');
     lastCount = -1;
   }
-  function selada(f, x, z) { if (f.casa || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); return !!r && r.tipo === avanca(f) && r.p < 0.16; }
+  // andar ainda com monstros: as DUAS escadas ficam trancadas (antes dava para fugir para o andar de trás e voltar, e ficava fácil)
+  // só a saída do 1º andar continua livre (para ninguém ficar preso lá dentro)
+  function selada(f, x, z) {
+    if (f.casa || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); if (!r || r.p >= 0.16) return false;
+    if (r.tipo === avanca(f)) return true;
+    return !(f.i === 0 || f.i === 100);
+  }
   function corridor() { return false; }
 
   function update(dt) {
@@ -539,7 +548,8 @@ const Tower = (() => {
       if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN && Math.hypot(P.x - f.x, P.z - f.z) < f.r) { spawnFloor(cur); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
       if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(f.ab ? `✨ Andar limpo! A escadaria para o <b>${cur + 1 === AB_FUNDO ? 'Fundo' : (cur - 98) + 'º andar'}</b> do Abismo se abriu (a que desce pelo vão).` : `✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu (a que sobe pela parede).`, 'gold'); }
       const pe = pontoRampa(f, avanca(f), 0.08);
-      if (!opened[cur] && Math.hypot(P.x - pe.x, P.z - pe.z) < 4 && left !== lastCount) { lastCount = left; log(`A escadaria está selada. Faltam <b>${left}</b> inimigos neste andar.`, 'bad'); }
+      const pv = pontoRampa(f, avanca(f) === 'sobe' ? 'desce' : 'sobe', 0.08), naVolta = !(cur === 0 || cur === 100) && Math.hypot(P.x - pv.x, P.z - pv.z) < 4;
+      if (!opened[cur] && (Math.hypot(P.x - pe.x, P.z - pe.z) < 4 || naVolta) && left !== lastCount) { lastCount = left; log(`As escadarias estão seladas (as duas). Faltam <b>${left}</b> inimigos neste andar.`, 'bad'); }
     }
     const rp = rampa(f, P.x, P.z);                                       // chegou no fim de uma escadaria: troca de andar
     if (rp && rp.p > 0.97) { leaveT = 1; const fwd = rp.tipo === avanca(f); enter(fwd ? cur + 1 : cur - 1, !fwd); }

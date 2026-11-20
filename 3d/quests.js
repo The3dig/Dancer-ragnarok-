@@ -131,8 +131,10 @@ const Quests = (() => {
     const got = [];
     for (const [id, n] of Object.entries(r.items || {})) { P.inv[id] = (P.inv[id] || 0) + n; got.push(`${n}× ${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id}`); }
     Audio8.sfx('coin'); buildHotbar();
-    log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b> concluída! ${r.xp ? '+' + r.xp + ' XP' : ''} ${r.zeny ? '+' + r.zeny + ' cr' : ''}${got.length ? ' · ' + got.join(', ') : ''}`, 'gold');
-    if (r.xp) gainXp(r.xp);
+    // XP de missão com teto (antes uma missão do Vale dava até 2 níveis): principal até 25% de um nível, secundária 15%, caça 10%
+    const tetoXp = Math.round(xpNeed(P.lv) * (q.type === 'principal' ? 0.25 : q.type === 'caca' ? 0.10 : 0.15)), xpQ = r.xp ? Math.min(r.xp, tetoXp) : 0;
+    log(`${TYPE[q.type].dot} <b style="color:${colorOf(q)}">${q.title}</b> concluída! ${xpQ ? '+' + xpQ.toLocaleString('pt-BR') + ' XP' : ''} ${r.zeny ? '+' + r.zeny + ' cr' : ''}${got.length ? ' · ' + got.join(', ') : ''}`, 'gold');
+    if (xpQ) gainXp(xpQ);
     if (q.lore) setTimeout(() => dialog(q.type === 'oculta' ? '🟣 Segredo' : '📖 ' + q.title, q.lore), 300);
     // a principal seguinte já fica disponível no mesmo NPC
     const nx = Q.find(o => o.req === q.id && o.type === 'principal');

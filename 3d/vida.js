@@ -28,6 +28,7 @@ const Vida = (() => {
     // Torre do Cisma
     presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
     estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
+    po_forja: ['Pó de Forja', '⚙️', 20, 0, 'mat'],
     presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
@@ -114,9 +115,9 @@ const Vida = (() => {
     botas_cidade: ['Botas do Caminho Invisível', '🥾', 'botas', 0, { def: 15, spd: 0.13, hp: 170 }, 3, 'cidade'],
     lamina_raiz: ['Lâmina de Raiz Negra', '🗡️', 'arma', 0, { pow: 78, crit: 0.09 }, 3],
     // Abismo do Cisma: dos Guardiões dos andares e do Verme Colossal
-    lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 104, crit: 0.08, spd: 0.04 }, 4],
-    couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 74, hp: 900 }, 3],
-    anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 22, hp: 320, crit: 0.05 }, 4],
+    lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 125, crit: 0.1, spd: 0.06, hp: 250 }, 4],
+    couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 100, hp: 1350, pow: 20 }, 4],
+    anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 42, hp: 480, crit: 0.07, def: 24 }, 4],
     // Vale dos Mortos (Nv 55–72): o conjunto da névoa e o cajado do Primeiro Guardião (lendários)
     capuz_vale: ['Capuz do Vale dos Mortos', '🧕', 'capacete', 0, { def: 22, hp: 240 }, 3, 'vale'],
     manto_vale: ['Manto da Névoa', '🌫️', 'armadura', 0, { def: 46, hp: 460 }, 3, 'vale'],
@@ -130,10 +131,10 @@ const Vida = (() => {
     botas_raiz: ['Botas de Raiz', '🥾', 'botas', 0, { def: 8, spd: 0.1, hp: 90 }, 2, 'floresta'],
     lanca_ordem: ['Lança da Ordem', '🔱', 'arma', 0, { pow: 46, crit: 0.06 }, 3],
     // Míticos: só o próprio Kravenox, no topo dos 30 andares, deixa cair (um garantido por vitória)
-    arma_soberano: ['Espinho do Soberano', '🗡️', 'arma', 0, { pow: 90, crit: 0.12 }, 4, 'soberano'],
-    coroa_soberano: ['Coroa do Soberano', '👑', 'capacete', 0, { def: 26, hp: 350, pow: 22 }, 4, 'soberano'],
-    manto_soberano: ['Manto do Soberano Adormecido', '🦇', 'armadura', 0, { def: 50, hp: 650 }, 4, 'soberano'],
-    olho_kravenox: ['Olho de Kravenox', '🔴', 'colar', 0, { pow: 28, crit: 0.1, hp: 260, sp: 90 }, 4, 'soberano'],
+    arma_soberano: ['Espinho do Soberano', '🗡️', 'arma', 0, { pow: 130, crit: 0.14, hp: 300, spd: 0.05 }, 4, 'soberano'],
+    coroa_soberano: ['Coroa do Soberano', '👑', 'capacete', 0, { def: 52, hp: 700, pow: 38, crit: 0.07 }, 4, 'soberano'],
+    manto_soberano: ['Manto do Soberano Adormecido', '🦇', 'armadura', 0, { def: 105, hp: 1400, pow: 30, crit: 0.05 }, 4, 'soberano'],
+    olho_kravenox: ['Olho de Kravenox', '🔴', 'colar', 0, { pow: 40, crit: 0.12, hp: 600, sp: 300, spd: 0.05 }, 4, 'soberano'],
   };
   const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }, { n: 'Mítico', c: '#ff4a4a', hex: 0xff2020 }];
   const SETS = {
@@ -257,6 +258,16 @@ const Vida = (() => {
       ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: SL[(h >> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };
       D.drops.push(['carta_' + t, D.boss || D.mini ? 0.04 : 0.004]);
     } }
+  // ---------------- cartas em 4 níveis (ideia do Rone): Simples, Forte, Invocada e Suprema; cada uma bem mais rara que a anterior
+  const TIER_C = [[2, 'Forte', 1.6], [3, 'Invocada', 2.4], [4, 'Suprema', 3.5]];
+  for (const id of Object.keys(ITEMS).filter(k => ITEMS[k].kind === 'carta' && !/_t\d$/.test(k))) {
+    const I = ITEMS[id];
+    for (const [t, nome, f] of TIER_C) ITEMS[id + '_t' + t] = { ...I, name: `${I.name} ${nome}`, tier: t, mods: Object.fromEntries(Object.entries(I.mods).map(([k, v]) => [k, ['crit', 'spd'].includes(k) ? Math.round(v * f * 1000) / 1000 : Math.round(v * f)])), sell: I.sell * t * 2 };
+  }
+  // quando uma carta cai, sorteia o nível: Simples 80% · Forte 15% · Invocada 4% · Suprema 1%
+  function tierCarta(id) { const r = Math.random(); return r < 0.01 ? id + '_t4' : r < 0.05 ? id + '_t3' : r < 0.2 ? id + '_t2' : id; }
+  // monstro sem desenho (os dos mapas novos são 3D): usa o ícone do material que ele solta
+  const iconeMob = t => (ITEMS[MOB_MAT[t]] && ITEMS[MOB_MAT[t]].ic) || (MOBDEF[t] && MOBDEF[t].boss ? '👹' : '👾');
   // ---------------- caçadas do bestiário: 10 níveis por monstro; no nível 10 a carta dele é sua.
   // cada nível também deixa a carta dele um pouco mais fácil de cair (+10% da chance por nível). Nada de facilidade: chegar no 10 é longo.
   const NIV_COMUM = [10, 30, 60, 100, 200, 350, 500, 800, 1200, 2000], NIV_CHEFE = [1, 2, 3, 5, 8, 12, 16, 20, 25, 30];
@@ -671,10 +682,24 @@ const Vida = (() => {
     opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
     dialog('⚒️ Forjar', `Traga os materiais que os monstros soltam e eu faço a peça. <small>(✅ = você já tem tudo)</small><br><small>Coroas: <b>${P.zeny} cr</b></small>`, opts);
   }
+  // desmontar: cada peça vira Pó de Forja (mais pela raridade e pelo refino); com o pó o Doran faz outra peça
+  const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80][I.rar || 0] + refOf(id) * 5; };
+  function refazer() {
+    const pool = r => Object.keys(ITEMS).filter(k => { const I = ITEMS[k]; return I.kind === 'equip' && I.rar === r && !I.desafio && !I.preso && !['soberano', 'amigos'].includes(I.set) && !['lamina_verme', 'couraca_verme', 'anel_ninho'].includes(k); });
+    const OP = [[1, 'rara', 40, 5000], [2, 'épica', 120, 20000], [3, 'lendária', 400, 60000]];
+    const opts = OP.map(([r, nome, po, cr]) => ({ label: `🎲 Peça ${nome} sorteada — ${po} ⚙️ + ${cr.toLocaleString('pt-BR')} cr`, fn: () => {
+      if ((P.inv.po_forja || 0) < po || P.zeny < cr) { log(`Falta material: precisa de ${po} ⚙️ Pó de Forja e ${cr.toLocaleString('pt-BR')} cr (você tem ${P.inv.po_forja || 0} ⚙️).`, 'bad'); return true; }
+      const l = pool(r); if (!l.length) return; const id = l[Math.floor(Math.random() * l.length)];
+      P.inv.po_forja -= po; P.zeny -= cr; add(id, 1); Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffa040, 30, 3, 0.8);
+      log(`⚒️ Doran fundiu o pó e fez <b style="color:${RARITY[r].c}">${it(id).ic} ${it(id).name}</b>!`, 'gold'); refazer(); return true; } }));
+    opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
+    dialog('♻️ Refazer com Pó de Forja', `Equipamento que você não quer mais vira <b>⚙️ Pó de Forja</b> (mochila → peça → <b>⚒️ Desmontar</b>). Com o pó eu faço uma peça nova, sorteada.<br>Você tem <b>${P.inv.po_forja || 0} ⚙️</b>.`, opts);
+  }
   function smith(eu) {
     dialog('💬 Ferreiro Doran', `${eu ? `Ah, <b>${eu}</b>. ` : ''}O fogo desta forja nunca apagou, nem no dia do Cisma. Trago o aço de volta à vida: refino suas peças e forjo novas com o que você trouxer das caçadas.`, [
       { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
+      { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },
       { label: 'Até mais' }]);
   }
   // forja e bigorna ao lado do Ferreiro
@@ -784,7 +809,7 @@ const Vida = (() => {
     const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b>${better(id) ? '<em class="better">▲</em>' : ''}</div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
     let det = '<small>Toque num item para ver de perto.</small>', view = '';
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl];
-    const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : '<span class="nopic">❔</span>'; };
+    const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : `<span class="nopic">${iconeMob(t)}</span>`; };
     // carta desenhada: moldura dourada, retrato do monstro, bônus e onde encaixa
     const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
     const bigArt = (I, id) => I.kind === 'carta' ? cardArt(I) : `<div class="ibig r${I.kind === 'equip' ? I.rar : 'x'}"><span>${I.ic}</span></div>`;
@@ -800,6 +825,7 @@ const Vida = (() => {
     } else if (sel && P.inv[sel] > 0) {
       const I = ITEMS[sel], btns = [];
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
+      if (I.kind === 'equip' && !I.preso && !I.desafio) btns.push(`<button data-a="desmontar" data-v="${sel}">⚒️ Desmontar (${poDe(sel)} ⚙️)</button>`);
       if (I.sell > 0 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
       if (I.sell > 0 && P.inv[sel] > 1 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
       btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
@@ -831,6 +857,7 @@ const Vida = (() => {
     if (a === 'sel') sel = sel === v ? null : v;
     if (a === 'unsel') sel = null;
     if (a !== 'trash') trashArm = null;
+    if (a === 'desmontar' && P.inv[v] > 0) { const n = poDe(v); P.inv[v]--; P.inv.po_forja = (P.inv.po_forja || 0) + n; if (!P.inv[v] && P.refine) delete P.refine[v]; Audio8.sfx('hit'); log(`⚒️ Você desmontou <b>${it(v).name}</b> e ganhou <b>${n} ⚙️ Pó de Forja</b>. Com ele o Ferreiro Doran faz uma peça nova.`, 'item'); if (!P.inv[v]) sel = null; }
     if (a === 'sell1' || a === 'sellall') { const n = a === 'sell1' ? 1 : P.inv[v], z = ITEMS[v].sell * n; P.inv[v] -= n; P.zeny += z; Audio8.sfx('coin'); log(`💰 Vendeu ${n}× <b>${it(v).name}</b> por <b>${z.toLocaleString('pt-BR')} cr</b>.`, 'gold'); if (!P.inv[v]) sel = null; buildHotbar(); }
     if (a === 'trash') { if (trashArm !== v) trashArm = v; else { const n = P.inv[v]; P.inv[v] = 0; trashArm = null; sel = null; Audio8.sfx('miss'); log(`🗑️ Destruiu ${n}× <b>${it(v).name}</b>.`, 'sys'); buildHotbar(); } }
     if (a === 'hot') {                                   // põe/tira o item da barra de atalhos
@@ -1053,10 +1080,10 @@ const Vida = (() => {
     const regiao = t => { if (REGION[t]) return REGION[t]; const sp = SPAWNS.find(q => q.type === t); if (sp) { try { return ZONES[zoneOf(sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2)].name; } catch (e) { } } return MOBDEF[t].boss ? 'Chefe' : '—'; };
     sel = sel || w.dataset.sel || types[0]; w.dataset.sel = sel;
     const seen = P.bestiary || {}, d = MOBDEF[sel];
-    const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : '❔'); };
+    const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : `<span style="font-size:30px">${iconeMob(t)}</span>`); };
     const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}${seen[t] ? ` · ⚔️ ${seen[t].toLocaleString('pt-BR')} · ★${nivelCaca(t).lv}` : ''}</small></span></div>`).join('');
     const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.01 ? 2 : ch < 0.1 ? 1 : 0).replace('.', ',') + '%'}</em></div>`; }).join('');
-    w.innerHTML = `<div class="wt">📖 Bestiário <small>· ${Object.keys(seen).length}/${types.length} conhecidos</small><button class="x" data-b="x">×</button></div>
+    w.innerHTML = `<div class="wt">📖 Bestiário <small>· ${Object.keys(seen).length}/${types.length} conhecidos · ⚔️ ${Object.values(seen).reduce((a, b) => a + b, 0).toLocaleString('pt-BR')} abatidos</small><button class="x" data-b="x">×</button></div>
       <div class="bb"><div class="blist">${list}</div>
       <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${regiao(sel)}</small><br>${(() => { const c = nivelCaca(sel), pc = c.prox ? Math.floor((c.n - c.ant) / (c.prox - c.ant) * 100) : 100, cd = ITEMS['carta_' + sel];
         return `<small>⚔️ Abatidos: <b>${c.n.toLocaleString('pt-BR')}</b> · Nível de caça <b>${c.lv}/10</b>${c.prox ? ` (próximo: ${c.prox.toLocaleString('pt-BR')})` : ' ✅'}</small><div style="height:6px;background:#2a2036;border-radius:3px;margin:3px 0"><div style="width:${pc}%;height:6px;background:#ffb640;border-radius:3px"></div></div><small>${cd ? `🃏 No nível 10: <b>${cd.name}</b>${(P.bestCard || {})[sel] ? ' (já recebida ✅)' : ''} · cada nível deixa ela +10% mais fácil de cair` : ''}</small>`; })()}</div></div><div class="bdl">${drops}</div>`
@@ -1182,5 +1209,5 @@ const Vida = (() => {
     opts.push({ label: 'Cancelar' });
     dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
   }
-  return { bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

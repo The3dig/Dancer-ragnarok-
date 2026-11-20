@@ -398,10 +398,10 @@ const Kvx = (() => {
     log(`🏆 <b>KRAVENOX FOI DERROTADO!</b> Você recebeu o título <b>« Matador de Kravenox »</b>. Vitórias: ${P.kvxKills}.`, 'gold');
     log('Ele volta no próximo sábado, às 20h (fica acordado até as 2h).', 'sys');
     // prêmio à altura do pior do jogo: um Mítico garantido (às vezes dois), coroas, Essência e poções
-    const MIT = ['arma_soberano', 'coroa_soberano', 'manto_soberano', 'olho_kravenox'].sort(() => Math.random() - 0.5), got = MIT.slice(0, Math.random() < 0.25 ? 2 : 1);
+    const MIT = ['arma_soberano', 'coroa_soberano', 'manto_soberano', 'olho_kravenox'].sort(() => Math.random() - 0.5), got = MIT.slice(0, Math.random() < 0.3 ? 3 : 2);   // o chefe mais difícil do jogo: 2 Míticos garantidos (às vezes 3)
     for (const id of got) { P.inv[id] = (P.inv[id] || 0) + 1; log(`🔴 <b style="color:#ff4a4a">MÍTICO!</b> Você recebeu <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); }
-    P.inv.essencia = (P.inv.essencia || 0) + 8; P.inv.red += 40; P.inv.blue += 20; P.zeny += 30000;
-    log('💰 Tesouro do Soberano: <b>30.000 cr</b>, 8 Essências, 40 poções vermelhas e 20 azuis.', 'gold'); buildHotbar();
+    P.inv.essencia = (P.inv.essencia || 0) + 15; P.inv.red += 60; P.inv.blue += 40; P.zeny += 100000; P.inv.fragmento_dourado = (P.inv.fragmento_dourado || 0) + 5;
+    log('💰 Tesouro do Soberano: <b>100.000 cr</b>, 15 Essências, 5 Fragmentos Dourados, 60 poções vermelhas e 40 azuis.', 'gold'); buildHotbar();
     for (let i = 0; i < 8; i++) setTimeout(() => { ring(m.x, m.z, 4 + i * 2, [0xffcf40, 0xff4fa3, 0x4fd1ff][i % 3], 0.8); Audio8.sfx(i % 2 ? 'level' : 'coin'); }, i * 200);
     for (let i = 0; i < 20; i++) drops.push(makeDrop('zeny', irand(600, 1200), m.x + rand(-6, 6), m.z + rand(-6, 6)));
     teles.forEach(t => { scene.remove(t.fill); scene.remove(t.edge); }); teles = [];
