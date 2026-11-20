@@ -337,7 +337,7 @@ body.touch #prompt { top: calc(50px + env(safe-area-inset-top)); font-size: 12px
 .empty { opacity: .7; grid-column: 1 / -1; }
 @media (max-height: 470px) {
   #invwin { top: calc(46px + env(safe-area-inset-top)); max-height: calc(100% - 52px); font-size: 11px; }
-  .doll { width: 165px; } .doll-img { width: 44px; height: 54px; } .igrid { max-height: 92px; } .invb { padding: 6px; gap: 8px; }
+  .doll { width: 165px; } .doll-img { width: 44px; height: 54px; } #invwin .igrid { max-height: none; } .invb { padding: 6px; gap: 8px; }
   .eslot { padding: 2px 5px; } .eslot .ei { font-size: 16px; }
 }
 /* missão atual no canto direito (celular deitado) */
@@ -659,3 +659,8 @@ body.touch .dmg.item { font-size: 11px; }
 /* reset de habilidades e atributos (20/11) */
 .btn-reset { float: right; background: #3a2a5a; color: #fff; border: 1px solid #c8a050; border-radius: 8px; padding: 2px 8px; font: 800 11px Nunito, sans-serif; cursor: pointer; margin-left: 6px; }
 .btn-reset small { color: #f2c86a; font-weight: 800; }
+
+/* mochila: a grade de itens ocupa o espaço que sobra (antes ficava em 2 fileiras) */
+#invwin .invb { flex: 1 1 auto; }
+#invwin .invc { min-height: 0; }
+#invwin .igrid { flex: 1 1 auto; min-height: 92px; max-height: none; }

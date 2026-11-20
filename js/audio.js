@@ -124,8 +124,23 @@ const Audio8 = (() => {
     t.dr = t.drums.split(/\s+/);
   }
 
+  // iPhone: sem isto o som some com a chave do silencioso ligada (e no espelhamento para a TV)
+  function sessaoPlayback() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
+    // iOS mais antigo: um <audio> mudo tocando faz o sistema tratar o jogo como "mídia"
+    try {
+      if (!window.__somMudo && /iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document) {
+        const a = document.createElement('audio');
+        a.src = 'data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==';
+        a.loop = true; a.setAttribute('playsinline', ''); a.volume = 0.01;
+        const pr = a.play(); if (pr) pr.catch(() => { });
+        window.__somMudo = a;
+      } else if (window.__somMudo && window.__somMudo.paused) { const pr = window.__somMudo.play(); if (pr) pr.catch(() => { }); }
+    } catch (e) { }
+  }
   function init() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    sessaoPlayback();
+    if (ctx) { if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume(); return; }
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain(); master.gain.value = 0.8; master.connect(ctx.destination);
     // compressor + reverb de salão para a música soar orquestral

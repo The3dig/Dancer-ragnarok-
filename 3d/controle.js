@@ -25,13 +25,33 @@ const Controle = (() => {
   const jogando = () => typeof running !== 'undefined' && running;
 
   // ---------------------------------------------------------------- o que dá para apertar na tela
-  const SEL = 'button, a[href], input, select, textarea, [onclick], [role=button], [data-a], [data-b], [data-st], [data-learn], [data-pin], [data-reset], [data-share], [data-x], [data-n], [data-v], .icell, .itab, .eslot, .rail-btn, .sl-row';
+  const SEL = 'button, a[href], input, select, textarea, [onclick], [role=button], [data-a], [data-b], [data-st], [data-learn], [data-pin], [data-reset], [data-share], [data-x], [data-n], [data-v], [data-q], .qmore, .icell, .itab, .eslot, .rail-btn, .sl-row';
+  // rolagem que esconde o item (mochila, listas): vale se a lista em si aparece
+  function caixaRolagem(el) {
+    let e = el.parentElement;
+    while (e && e !== document.body) { const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2) return e; e = e.parentElement; }
+    return null;
+  }
+  function tocaEm(el, x, y) {
+    const h = document.elementFromPoint(Math.min(innerWidth - 1, Math.max(0, x)), Math.min(innerHeight - 1, Math.max(0, y))); if (!h) return false;
+    return h === el || el.contains(h) || h.contains(el) && h.closest(SEL) === el;   // não está tampado por outra janela
+  }
   function visivel(el) {
     if (el.disabled || el.closest('[disabled]')) return false;
-    const r = el.getBoundingClientRect(); if (r.width < 6 || r.height < 6 || r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return false;
-    const cx = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), cy = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2));
-    const h = document.elementFromPoint(cx, cy); if (!h) return false;
-    return h === el || el.contains(h) || h.contains(el) && h.closest(SEL) === el;   // não está tampado por outra janela
+    const r = el.getBoundingClientRect(); if (r.width < 6 || r.height < 6) return false;
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const rc = caixaRolagem(el);
+    if (rc) {
+      const q = rc.getBoundingClientRect();
+      if (cy < q.top || cy > q.bottom || cx < q.left || cx > q.right) {   // escondido pela rolagem: vale se a lista aparece
+        const mx = Math.max(q.left, Math.min(q.right, cx)), my = Math.max(q.top + 2, Math.min(q.bottom - 2, cy));
+        const h = document.elementFromPoint(mx, my); return !!h && (rc === h || rc.contains(h));
+      }
+    }
+    if (r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return false;
+    // meio e cantos: um botão por cima de parte do item (ex.: o de esquiva no painel de missões) não o esconde
+    const pts = [[cx, cy], [r.left + r.width * .2, cy], [r.left + r.width * .8, cy], [cx, r.top + r.height * .25], [cx, r.top + r.height * .75], [r.left + r.width * .2, r.top + r.height * .25]];
+    return pts.some(([x, y]) => tocaEm(el, x, y));
   }
   function alvos() {
     const set = new Set();
@@ -53,11 +73,12 @@ const Controle = (() => {
     Object.assign(caixa.style, { display: 'block', left: (r.left - 4) + 'px', top: (r.top - 4) + 'px', width: (r.width + 8) + 'px', height: (r.height + 8) + 'px' });
   }
   function escolherInicial() {
-    const l = alvos(); if (!l.length) { foco = null; return; }
+    let l = alvos(); if (!l.length) { foco = null; return; }
     // prefere o botão principal de uma conversa/janela aberta; senão o mais perto do meio da tela
-    const d = document.getElementById('dialog');
-    const naJanela = d && !d.classList.contains('hidden') ? l.filter(e => d.contains(e)) : [];
-    if (naJanela.length) { foco = naJanela[0]; return; }
+    const d = janelaTopo();
+    const naJanela = d ? l.filter(e => d.contains(e)) : [];
+    if (naJanela.length && d.id === 'dialog') { foco = naJanela[0]; return; }
+    if (naJanela.length) l = naJanela;
     const meio = { x: innerWidth / 2, y: innerHeight / 2 };
     foco = l.reduce((a, b) => { const ca = centro(a), cb = centro(b); return Math.hypot(cb.x - meio.x, cb.y - meio.y) < Math.hypot(ca.x - meio.x, ca.y - meio.y) ? b : a; });
   }
@@ -72,7 +93,7 @@ const Controle = (() => {
       const lado = Math.abs(vx * dy - vy * dx), v = ao + lado * 2.2;                     // de lado conta mais caro
       if (v < mv) { mv = v; melhor = el; }
     }
-    if (melhor) { foco = melhor; try { foco.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { } if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); }
+    if (melhor) { foco = melhor; try { foco.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { } setTimeout(desenhar, 30); if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); }
   }
   function apertar(el) {
     if (!el) return;
@@ -89,6 +110,12 @@ const Controle = (() => {
 
   // ---------------------------------------------------------------- quando o cursor fica ligado sozinho
   const JAN = ['#dialog', '#invwin', '#statwin', '#skillwin', '#bestwin', '#avisos', '#coswin', '#guildwin', '#bauwin'];
+  // a janela de cima (a conversa ganha das outras): quando abre uma nova, o cursor pula para dentro dela
+  function janelaTopo() {
+    for (const s of JAN) { const e = document.querySelector(s); if (e && !e.classList.contains('hidden') && e.style.display !== 'none' && e.offsetParent !== null) return e; }
+    return null;
+  }
+  let topoAnt = null;
   function janelaAberta() {
     if (typeof dialogOpen !== 'undefined' && dialogOpen) return true;
     for (const s of JAN) { const e = document.querySelector(s); if (e && !e.classList.contains('hidden') && e.style.display !== 'none' && e.offsetParent !== null) return true; }
@@ -144,6 +171,7 @@ const Controle = (() => {
     const ax = p.axes || [], bt = p.buttons || [];
     const cur = modoCursor();
     if (cur !== estavaCursor) { estavaCursor = cur; if (cur) { foco = null; escolherInicial(); } }
+    if (cur) { const t = janelaTopo(); if (t !== topoAnt) { topoAnt = t; if (t && !(foco && t.contains(foco))) { foco = null; escolherInicial(); } } } else topoAnt = null;
     // botões (só na hora que aperta)
     for (let i = 0; i < bt.length; i++) { const on = !!(bt[i] && (bt[i].pressed || bt[i].value > 0.5)); if (on && !ant[i]) apertou(i); ant[i] = on; }
     const lx = eixo(ax[0] || 0), ly = eixo(ax[1] || 0), rx = eixo(ax[2] || 0), ry = eixo(ax[3] || 0);
