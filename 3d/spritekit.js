@@ -41,7 +41,7 @@ const SpriteKit = (() => {
   //      { kind: 'hero', base: 'k' }      (Kravenox/Thornox: + 4 quadros de andar de lado e fúria)
   //      { kind: 'one', img: 'e_eco' }    (inimigo de um quadro só; espelha conforme o lado)
   // opt: { h (altura em metros, para 'one'), px (escala), shadow, float, faceRight }
-  const _OURO = new THREE.Color();
+  const _OURO = new THREE.Color(), _FURIA = new THREE.Color();
   function actor(set, opt = {}) {
     const root = new THREE.Group();
     const mat = new THREE.SpriteMaterial({ map: null, alphaTest: 0.5, transparent: false, fog: true, toneMapped: false });
@@ -69,8 +69,9 @@ const SpriteKit = (() => {
   function pick(a, st) {
     const S = a.set;
     if (S.kind === 'one') return S.img;
-    if (st.fury && has(S.base + '_furia')) return S.base + '_furia';
     const d = a.dir;
+    // fúria: o desenho com aura é só de frente; andando ou de costas usa o desenho da direção certa (com tom vermelho)
+    if (st.fury && has(S.base + '_furia') && !st.moving && d === 'down') return S.base + '_furia';
     if (S.kind === 'hero' && st.moving && (d === 'left' || d === 'right')) return `${S.base}_${d}_w${Math.floor(a.t * 9) % 4}`;
     const f = st.moving ? Math.floor(a.t * 6) % 2 : 0;
     return `${S.base}_${d}_${f}`;
@@ -116,6 +117,7 @@ const SpriteKit = (() => {
     a.tint.copy(light);
     if (st.sleeping) a.tint.multiplyScalar(0.35);
     if (st.dourado) a.tint.lerp(_OURO.setRGB(1.3, 1.1, 0.6), st.dourado > 1 ? 0.5 : 0.25);   // Irmandade Eterna: corpo dourado
+    if (st.fury && a.mat.map !== tex(a.set.base + '_furia')) a.tint.lerp(_FURIA.setRGB(1.4, 0.45, 0.45), 0.45);
     if (st.flash) a.tint.setRGB(1, 0.35, 0.35);
     if (st.beam) a.tint.lerp(new THREE.Color(1, 0.4, 0.4), Math.min(1, st.beam));
     a.mat.color.copy(a.tint);

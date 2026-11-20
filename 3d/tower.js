@@ -485,7 +485,14 @@ const Tower = (() => {
     const av = avanca(f), volta = av === 'sobe' ? 'desce' : 'sobe';
     const pc = fromAbove ? pontoRampa(f, av, 0.9) : pontoRampa(f, volta, 0.06);
     P.x = pc.x; P.z = pc.z; P.face = Math.atan2(f.x - P.x, f.z - P.z);
-    P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.cur = 3; camS.pitch = Math.max(camS.pitch, 0.42);
+    P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.pitch = Math.max(camS.pitch, 0.42);
+    // a chegada é colada na parede: com a câmera atrás do herói ela batia na parede e ficava grudada nele
+    // (aparecia o Kravenox gigante na tela). Gira a câmera para o lado de dentro do andar até caber inteira.
+    { const D = Math.max(6, camS.dist || 9), base = camS.yaw;
+      for (const off of [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.4, -1.4, 1.75, -1.75, 2.1, -2.1, 2.6, -2.6, Math.PI]) {
+        const y = base + off, cx = P.x + Math.sin(y) * Math.cos(camS.pitch) * D, cz = P.z + Math.cos(y) * Math.cos(camS.pitch) * D;
+        if (Math.hypot(cx - f.x, cz - f.z) < f.r - 1.5) { camS.yaw = y; break; } } }
+    camS.cur = camS.dist || 9;
     P.protT = time + 3;                                                 // 3 s sem apanhar ao chegar (dá para se situar)
     if (i === TOP || i === AB_FUNDO) { camS.dist = Math.max(camS.dist, 24); camS.pitch = Math.max(camS.pitch, 0.32); }
     blackout();
