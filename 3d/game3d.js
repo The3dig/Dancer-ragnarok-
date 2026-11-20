@@ -1919,9 +1919,11 @@ function useSkill(i) {
       addBuff(s.id, s.dur, s.mods, s.icon); Audio8.sfx('buff'); VFX.buff(s);
       if (s.heal) healP(stats.maxHp() * s.heal);
       log(`${s.icon} <b>${s.name}</b> ativo por ${s.dur}s.`, 'gold');
+      if (typeof Grupo !== 'undefined') Grupo.apoio(s);              // proteção também no grupo perto
       break;
     case 'heal':
       Audio8.sfx('heal'); healP(stats.maxHp() * s.pct); VFX.heal(s);
+      if (typeof Grupo !== 'undefined') Grupo.apoio(s);              // cura também no grupo perto
       break;
     case 'summon':
       Audio8.sfx('skill'); VFX.summon(s); summon(s.minion, s.life);

@@ -11,7 +11,7 @@
 'use strict';
 const Grupo = (() => {
   const MAX = 8, PERTO = 45;
-  let convite = null, vistos = new Set(), nomesAntes = null, chkT = 0, envios = [];
+  let convite = null, vistos = new Set(), nomesAntes = null, chkT = 0, envios = [], apoios = [], apoioVisto = new Set();
   const gp = () => P.grupo || null;
   const online = () => typeof Net !== 'undefined' && Net.connected && Net.me;
   function membros() { if (!gp() || !online()) return []; return Net.peers().filter(r => r.n && r.s.gp === gp()); }
@@ -19,7 +19,7 @@ const Grupo = (() => {
   const esc = t => String(t || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])).slice(0, 40);
   const perto = r => Math.hypot(r.x - P.x, r.z - P.z) < PERTO;
   // vai na presença: o meu grupo e o convite que estou mandando
-  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); return { gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null }; }
+  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); return { gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
   // ---------------- divisão dos itens da caçada (como o "dividir itens" do Ragnarok)
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
   // anti-leech (como o Ragnarok): só divide com quem tem nível parecido.
@@ -27,6 +27,15 @@ const Grupo = (() => {
   const peso = (a, b) => { const g = Math.abs((a || 1) - (b || 1)); return g <= 10 ? 1 : g >= 20 ? 0 : (20 - g) / 10; };
   const pertoDe = (m, ref) => membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO && peso(ref, r.s.lv) > 0);
   // quem mata sorteia cada item entre quem é do grupo, está perto e tem nível parecido (inclusive ele mesmo)
+  // ---------------- suporte: cura e proteção valem para o grupo perto (até 15 m)
+  // (Lyra, Thornox, Erya, Mãe e as outras curas/proteções; o Modo Fúria e buffs com lado ruim ficam só para quem usou)
+  function apoio(s) {
+    if (!gp() || !online() || !membros().length) return;
+    const ok = s.type === 'heal' || (s.type === 'buff' && !s.fury && !Object.values(s.mods || {}).some(v => v < 0) && !(s.mods && s.mods.poison));
+    if (!ok) return;
+    apoios.push({ k: Math.random().toString(36).slice(2, 8), id: s.id, nome: s.name, ic: s.icon, t: s.type, pct: s.pct || s.heal || 0, dur: s.dur || 0, mods: s.mods || null, at: Date.now() });
+    if (!P.apoioAviso) { P.apoioAviso = 1; log(`👥 <b>${s.name}</b> também vale para quem é do seu grupo e está perto (até 15 m).`, 'sys'); }
+  }
   function sortear(m) {
     if (!gp() || !online()) return null;
     const lista = [null, ...pertoDe(m, P.lv)];
@@ -71,6 +80,16 @@ const Grupo = (() => {
   // convites recebidos e quem entrou/saiu do grupo
   function update(dt) {
     if ((chkT -= dt) > 0 || !online()) return; chkT = 0.5;
+    // cura e proteção que um companheiro de grupo jogou perto de mim
+    for (const r of Net.peers()) {
+      if (r.s.gp !== gp() || !gp() || Math.hypot(r.x - P.x, r.z - P.z) > 15 || P.dead) continue;
+      for (const a of (r.s.ga || [])) {
+        if (!a || apoioVisto.has(a.k)) continue; apoioVisto.add(a.k); if (apoioVisto.size > 200) apoioVisto = new Set([...apoioVisto].slice(-100));
+        if (a.t === 'heal' && a.pct > 0) { const v = Math.round(stats.maxHp() * Math.min(0.6, a.pct)); P.hp = Math.min(stats.maxHp(), P.hp + v); floater(P.x, P.y + 2.4, P.z, '+' + v, 'heal'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x8affb0, 16, 2, 0.6); }
+        if (a.t === 'buff' && a.mods && typeof addBuff === 'function') { addBuff(a.id + '_g', Math.min(60, a.dur || 20), a.mods, a.ic); if (a.pct) P.hp = Math.min(stats.maxHp(), P.hp + stats.maxHp() * Math.min(0.3, a.pct)); }
+        log(`👥 ${esc(r.n)} usou <b>${esc(a.ic)} ${esc(a.nome)}</b> em você.`, 'sys');
+      }
+    }
     // itens que o grupo mandou para mim (cada um uma vez só, mesmo se o jogo recarregar)
     P.grRec = P.grRec || [];
     for (const r of Net.peers()) for (const g of (r.s.gi || [])) {
@@ -157,5 +176,5 @@ const Grupo = (() => {
 
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, PERTO };
+  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
 })();
