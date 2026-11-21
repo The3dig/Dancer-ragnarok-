@@ -25,7 +25,7 @@ const Controle = (() => {
   const jogando = () => typeof running !== 'undefined' && running;
 
   // ---------------------------------------------------------------- o que dá para apertar na tela
-  const SEL = 'button, a[href], input, select, textarea, [onclick], [role=button], [data-a], [data-b], [data-st], [data-learn], [data-pin], [data-reset], [data-share], [data-x], [data-n], [data-v], [data-q], .qmore, .icell, .snode, .itab, .eslot, .rail-btn, .sl-row';
+  const SEL = 'button, a[href], input, select, textarea, [onclick], [role=button], [data-a], [data-b], [data-st], [data-learn], [data-pin], [data-reset], [data-share], [data-x], [data-n], [data-v], [data-q], [data-qgo], .qmore, .icell, .snode, .itab, .eslot, .rail-btn, .sl-row';
   // rolagem que esconde o item (mochila, listas): vale se a lista em si aparece
   function caixaRolagem(el) {
     let e = el.parentElement;
@@ -152,6 +152,7 @@ const Controle = (() => {
   const ATALHOS = { 4: 0, 5: 1, 6: 2, 7: 3, 12: 4, 15: 5, 13: 6, 14: 7 };   // LB RB LT RT ↑ → ↓ ←
   const DIR = { 12: [0, -1], 13: [0, 1], 14: [-1, 0], 15: [1, 0] };
   function apertou(i) {
+    if (typeof Forja !== 'undefined' && Forja.aberta) { if (i === 0 || i === 1) Forja.botao(); return; }   // forja do refino: A ou B continua
     if (modoCursor()) {
       if (i in DIR) { mover(...DIR[i]); return; }
       if (i === 0) { if (!foco || !visivel(foco)) escolherInicial(); apertar(foco); return; }

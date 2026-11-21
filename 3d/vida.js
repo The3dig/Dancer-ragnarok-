@@ -29,6 +29,9 @@ const Vida = (() => {
     presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
     estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
     po_forja: ['Pó de Forja', '⚙️', 20, 0, 'mat'],
+    // refino (caem só na Mina da Forja): minério para arma, anéis e colar; têmpera para capacete, armadura, luvas e botas
+    minerio: ['Minério Rúnico', '🔶', 40, 0, 'mat'], tempera: ['Pedra de Têmpera', '🔷', 40, 0, 'mat'],
+    selo_forja: ['Selo da Forja Eterna', '🔰', 2500, 0, 'mat'],
     presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
@@ -277,8 +280,14 @@ const Vida = (() => {
   const nivTab = t => { const D = MOBDEF[t] || {}; return D.boss || D.mini || D.field ? NIV_CHEFE : NIV_COMUM; };
   function nivelCaca(t) { const n = (P.bestiary || {})[t] || 0, T = nivTab(t); let lv = 0; while (lv < 10 && n >= T[lv]) lv++; return { lv, n, prox: lv < 10 ? T[lv] : null, ant: lv ? T[lv - 1] : 0 }; }
   const bonusCarta = t => 1 + nivelCaca(t).lv * 0.1;
-  // refino (+1 a +7): cada nível soma 10% do dano/defesa/HP da peça; falhar só volta um nível, nunca quebra
-  const REF = [[100, 1], [200, 1], [400, 1], [800, 1], [1500, 0.6], [2500, 0.4], [4000, 0.25]];
+  // refino (+1 a +15): cada nível soma 10% do dano/defesa/HP da peça. [coroas, chance, material]
+  // material: 🔶 Minério Rúnico (arma, anéis, colar) ou 🔷 Pedra de Têmpera (capacete, armadura, luvas, botas), da Mina da Forja.
+  // Até o +10, falhar só volta um nível (do +5 em diante). Do +11 ao +15, falhar QUEBRA a peça (ela some),
+  // a não ser que use o 🔰 Selo da Forja Eterna (cai do Capataz da Mina): aí ela só volta um nível.
+  const REF = [[100, 1, 1], [200, 1, 1], [400, 1, 2], [800, 1, 2], [1500, 0.8, 3], [2500, 0.7, 4], [4000, 0.6, 5], [6000, 0.5, 6], [9000, 0.4, 8], [13000, 0.35, 10],
+    [20000, 0.3, 12], [30000, 0.25, 15], [45000, 0.2, 18], [65000, 0.15, 22], [90000, 0.1, 25]];
+  const REF_MAX = REF.length, REF_QUEBRA = 10;
+  const matRef = id => ['arma', 'anel', 'colar'].includes(ITEMS[id] && ITEMS[id].slot) ? 'minerio' : 'tempera';
   const refOf = id => (P.refine && P.refine[id]) || 0;
   const nameOf = id => (refOf(id) ? '+' + refOf(id) + ' ' : '') + it(id).name;
 
@@ -701,6 +710,7 @@ const Vida = (() => {
   function smith(eu) {
     dialog('💬 Ferreiro Doran', `${eu ? `Ah, <b>${eu}</b>. ` : ''}O fogo desta forja nunca apagou, nem no dia do Cisma. Trago o aço de volta à vida: refino suas peças e forjo novas com o que você trouxer das caçadas.`, [
       { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
+      { label: '⛏️ Descer à Mina da Forja (materiais do refino)', fn: () => { if (typeof Minas !== 'undefined') Minas.entrar(); } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
       { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },
       { label: 'Até mais' }]);
@@ -720,25 +730,53 @@ const Vida = (() => {
     box(0.9, 0.22, 0.35, metal, 2.2, 0.71, 1.2); box(0.35, 0.14, 0.22, metal, 2.75, 0.75, 1.2);   // bigorna
     addOb(fx, fz, 1.6); addOb(fx + 2.2, fz + 1.2, 0.6);
   }
+  // ---------------- refino: o Doran martela a peça na bigorna (animação) e o resultado aparece no fim
+  let usarSelo = false;
   function refine() {
     P.refine = P.refine || {};
     const eq = Object.keys(SLOTS).map(sl => P.equip && P.equip[sl]).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
-    const opts = eq.map(id => {
+    const selos = P.inv.selo_forja || 0;
+    const opts = [];
+    if (eq.some(id => refOf(id) >= REF_QUEBRA && refOf(id) < REF_MAX)) opts.push({ label: usarSelo ? `🔰 Selo da Forja: LIGADO (tem ${selos}) — a peça não quebra` : `▫️ Selo da Forja: desligado (tem ${selos}) — toque para usar`, fn: () => { if (!usarSelo && !selos) { log('Você não tem 🔰 <b>Selo da Forja Eterna</b>. Ele cai do <b>Capataz da Mina</b>, no fim da Mina da Forja.', 'bad'); Audio8.sfx('miss'); } else usarSelo = !usarSelo; refine(); return true; } });
+    for (const id of eq) {
       const r = refOf(id);
-      if (r >= 7) return { label: `${it(id).ic} +7 ${it(id).name} — refino máximo`, fn: () => { refine(); return true; } };
-      const [z, ch] = REF[r], lasca = r >= 4;
-      return { label: `${it(id).ic} ${nameOf(id)} → +${r + 1} — ${z}z${lasca ? ' + 1 🛡️ Lasca' : ''} · ${Math.round(ch * 100)}%`, fn: () => {
+      if (r >= REF_MAX) { opts.push({ label: `${it(id).ic} +${r} ${it(id).name} — refino máximo`, fn: () => { refine(); return true; } }); continue; }
+      const [z, ch, n] = REF[r], mat = matRef(id), arrisca = r >= REF_QUEBRA;
+      const risco = arrisca ? (usarSelo ? ' · 🔰 protegida' : ' · ⚠️ se falhar, QUEBRA') : r >= 4 ? ' · se falhar, volta 1' : '';
+      opts.push({ label: `${it(id).ic} ${nameOf(id)} → +${r + 1} — ${n} ${it(mat).ic} + ${z.toLocaleString('pt-BR')} cr · ${Math.round(ch * 100)}%${risco}`, fn: () => {
         if (P.zeny < z) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); refine(); return true; }
-        if (lasca && !has('lasca')) { log('Falta 🛡️ <b>Lasca de Armadura</b> (cai das criaturas da Torre).', 'bad'); Audio8.sfx('miss'); refine(); return true; }
-        P.zeny -= z; if (lasca) add('lasca', -1);
-        Audio8.sfx('anvil');
-        if (Math.random() < ch) { P.refine[id] = r + 1; setTimeout(() => Audio8.sfx('level'), 600); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); log(`🔨 Sucesso! <b>${nameOf(id)}</b>.`, 'gold'); if (r + 1 >= 5) banner(`Refino +${r + 1}!`); }
-        else { P.refine[id] = Math.max(4, r - 1); Audio8.sfx('miss'); log(`🔨 O refino falhou... a peça voltou para +${P.refine[id]} (ela nunca quebra).`, 'bad'); }
-        refine(); return true; } };
-    });
-    if (!opts.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { refine(); return true; } });
+        if ((P.inv[mat] || 0) < n) { log(`Falta material: precisa de <b>${n} ${it(mat).ic} ${it(mat).name}</b> (você tem ${P.inv[mat] || 0}). Ele cai na <b>⛏️ Mina da Forja</b> (fale com o Doran para descer).`, 'bad'); Audio8.sfx('miss'); refine(); return true; }
+        const selo = arrisca && usarSelo && (P.inv.selo_forja || 0) > 0;
+        if (arrisca && !selo) {
+          dialog('⚠️ A peça pode QUEBRAR', `Do <b>+${REF_QUEBRA}</b> para cima, se o refino falhar a peça <b>QUEBRA e some para sempre</b>.<br>Chance de dar certo: <b>${Math.round(ch * 100)}%</b>.<br><small>Para não correr esse risco, use o 🔰 <b>Selo da Forja Eterna</b> (cai do Capataz da Mina): com ele, se falhar, a peça só volta um nível.</small>`, [
+            { label: `🔨 Arriscar mesmo assim (${it(id).name})`, fn: () => { martelar(id, r, z, ch, n, mat, false); return true; } },
+            { label: '← Voltar', fn: () => { refine(); return true; } }]);
+          return true;
+        }
+        martelar(id, r, z, ch, n, mat, selo); return true; } });
+    }
+    if (!eq.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { refine(); return true; } });
     opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
-    dialog('🔨 Refinar', `Até +4 sempre dá certo. Do +5 ao +7 pode falhar, mas a peça só perde um nível — <b>nunca quebra</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Coroas: <b>${P.zeny} cr</b> · Lascas: ${P.inv.lasca || 0}</small>`, opts);
+    dialog('🔨 Refinar (até +15)', `Até <b>+4</b> sempre dá certo. Do <b>+5 ao +10</b> pode falhar e a peça volta um nível. <b style="color:#ff7060">Do +11 ao +15, se falhar, a peça QUEBRA e some</b>, a não ser que você use o 🔰 <b>Selo da Forja Eterna</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Arma, anéis e colar usam 🔶 <b>Minério Rúnico</b>; capacete, armadura, luvas e botas usam 🔷 <b>Pedra de Têmpera</b>. Os dois caem na ⛏️ Mina da Forja.<br>Você tem: <b>${P.inv.minerio || 0} 🔶 · ${P.inv.tempera || 0} 🔷 · ${P.inv.selo_forja || 0} 🔰 · ${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, opts);
+  }
+  // paga, sorteia e mostra o Doran martelando; o resultado só vale no fim da animação (mas já fica decidido aqui, para não dar para fugir)
+  function martelar(id, r, z, ch, n, mat, selo) {
+    P.zeny -= z; add(mat, -n); if (selo) add('selo_forja', -1);
+    const ok = Math.random() < ch, quebra = !ok && r >= REF_QUEBRA && !selo;
+    let res;
+    if (ok) { P.refine[id] = r + 1; res = 'sucesso'; }
+    else if (quebra) {
+      for (const sl of Object.keys(P.equip || {})) if (P.equip[sl] === id) { P.equip[sl] = null; break; }
+      delete P.refine[id]; res = 'quebrou';
+    } else { P.refine[id] = r >= 4 ? Math.max(4, r - 1) : r; res = 'falhou'; }
+    try { save(); } catch (e) { }
+    closeDialog();
+    Forja.animar({ ic: it(id).ic, nome: it(id).name, de: r, para: res === 'sucesso' ? r + 1 : res === 'falhou' ? P.refine[id] : 0, res, selo }, () => {
+      if (res === 'sucesso') { log(`🔨 <b>SUCESSO!</b> <b>+${r + 1} ${it(id).name}</b>.`, 'gold'); if (r + 1 >= 7) banner(`Refino +${r + 1}!`); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); }
+      else if (res === 'quebrou') log(`💥 <b>QUEBROU!</b> A <b>+${r} ${it(id).name}</b> se partiu na bigorna e sumiu.`, 'bad');
+      else log(`🔨 O refino falhou${selo ? ' (o 🔰 Selo protegeu a peça)' : ''}: <b>${it(id).name}</b> ficou <b>+${P.refine[id]}</b>.`, 'bad');
+      refine();
+    });
   }
   // vende ao NPC (materiais e colheita)
   function sellAll(kinds = ['mat', 'colheita']) {

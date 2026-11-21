@@ -371,7 +371,7 @@ const FL = id => id >= 100 ? ABF[id - 100] : FLOORS[id];
 // escadarias laterais: ângulo (θ: x = sen θ, z = cos θ) onde começam, quanto da volta ocupam e a largura
 const RAMPA = { sobe: 0.55 * Math.PI, desce: -0.45 * Math.PI, volta: 0.5 * Math.PI, larg: 4.2 };
 function rampa(f, x, z) {
-  if (!f || f.casa) return null;
+  if (!f || f.casa || f.mina) return null;
   const dx = x - f.x, dz = z - f.z, r = Math.hypot(dx, dz); if (r < f.r - RAMPA.larg - 0.3 || r > f.r + 0.6) return null;
   const th = Math.atan2(dx, dz), em = a0 => { const d = ((th - a0) % TAU + TAU) % TAU; return d <= RAMPA.volta ? d / RAMPA.volta : -1; };
   if (f.ab || f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
@@ -383,10 +383,12 @@ function rampa(f, x, z) {
 function pontoRampa(f, tipo, p) { const th = (tipo === 'sobe' ? RAMPA.sobe : RAMPA.desce) + p * RAMPA.volta, r = f.r - RAMPA.larg / 2 - 0.2; return { x: f.x + Math.sin(th) * r, z: f.z + Math.cos(th) * r, th }; }
 const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
+const MINA = { i: 'mina', mina: true, x: 720, z: TZ, y: 0, r: 24 };           // Mina da Forja (minas.js): caverna dos materiais de refino, fora do mapa
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
   if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
-  if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null;
+  if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA;
+  if (Math.hypot(x - MINA.x, z - MINA.z) < MINA.r + 6) return MINA; return null;
 }
 // altura nas escadarias laterais (rampa suave sob os degraus)
 function stairRise(f, x, z) { const r = rampa(f, x, z); return !r ? 0 : r.tipo === 'sobe' ? r.p * STAIR_H : -r.p * STAIR_H; }
@@ -400,7 +402,7 @@ function dRoad(x, z) {
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
-  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.fundo ? 'abfundo' : f && f.ab ? 'abismo' : f && f.i === TOP ? 'topo' : 'torre'; }
+  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.mina ? 'minas' : f && f.fundo ? 'abfundo' : f && f.ab ? 'abismo' : f && f.i === TOP ? 'topo' : 'torre'; }
   if (z < -300 && x > 1000) return CID_ZONA ? CID_ZONA(x, z) : 'cidade';
   if (z < -300 && x > 650) return VALE_ZONA ? VALE_ZONA(x, z) : 'vale';
   if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.zona(x, z) : 'floresta';
@@ -1737,7 +1739,7 @@ function onDeath() {
   if (eq.length && Math.random() < 0.10) { const [sl, id] = eq[Math.floor(Math.random() * eq.length)]; P.equip[sl] = null; items[id] = (items[id] || 0) + 1; eqLost = id; }
   if (!Object.keys(items).length) return;
   const zn = zoneOf(P.x, P.z), fT = inTower(P.z) ? floorAt(P.x, P.z) : null;
-  const at = zn === 'casa' ? { x: FARM.x - 11, z: FARM.z + 1 } : fT && !fT.casa ? { x: P.x, z: P.z, andar: fT.i } : inTower(P.z) ? { x: Tower.door.x + rand(-3, 3), z: Tower.door.z + 2 } : { x: P.x, z: P.z };
+  const at = zn === 'casa' ? { x: FARM.x - 11, z: FARM.z + 1 } : zn === 'minas' && typeof Minas !== 'undefined' ? { ...Minas.saida } : fT && !fT.casa ? { x: P.x, z: P.z, andar: fT.i } : inTower(P.z) ? { x: Tower.door.x + rand(-3, 3), z: Tower.door.z + 2 } : { x: P.x, z: P.z };
   P.graves = P.graves || []; if (P.grave) { P.graves.push({ x: P.grave.x, z: P.grave.z, items: { [P.grave.id]: P.grave.n } }); P.grave = null; }
   P.graves.push({ x: at.x, z: at.z, items, t: Date.now(), andar: at.andar });
   while (P.graves.length > 3) { P.graves.shift(); log('💨 Sua sacola mais antiga foi saqueada e sumiu.', 'bad'); }
@@ -2044,6 +2046,7 @@ const ZONES = {
   torre: { name: 'Torre do Cisma', music: 'torre_doom' },          // doom gótico (scripts/compor_torre2.py, versão B); a metal ópera ficou em torre_opera.mp4
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'semNome' },
+  minas: { name: 'Mina da Forja', music: 'masmorra' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
   acampamento: { name: 'Acampamento de Valdora', music: 'despedida', town: true },
   estrada: { name: 'Estrada de Valdora', music: 'guerra' },
@@ -2469,7 +2472,7 @@ function updateHUD() {
   const dsf = (typeof Grupo !== 'undefined' ? Grupo.html() : '') + (typeof Desafios !== 'undefined' && Desafios.painel ? Desafios.painel() : '');                // etapa dos amigos/desafios que você está caçando
   const qh3 = dsf ? (qh2.endsWith('</div></div>') ? qh2.slice(0, -6) + dsf + '</div>' : qh2 + `<div class="wb">${dsf}</div>`) : qh2;
   if ($('quest').dataset.h !== qh3) { $('quest').innerHTML = qh3; $('quest').dataset.h = qh3; }
-  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('[data-grupo]') && typeof Grupo !== 'undefined') { Grupo.painel(); return; } if (e.target.closest('[data-dsf]') && typeof Desafios !== 'undefined') { Desafios.abrirFoco(); return; } if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
+  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('[data-grupo]') && typeof Grupo !== 'undefined') { Grupo.painel(); return; } if (e.target.closest('[data-dsf]') && typeof Desafios !== 'undefined') { Desafios.abrirFoco(); return; } if (e.target.closest('[data-qgo]')) { if (AUTO.on) autoStop('🚶 Parou.'); else autoStart(); $('quest').dataset.h = ''; return; } if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo
@@ -2758,7 +2761,7 @@ function drawMinimap() {
   const M = curMap(), sx = mm.width / M.w, sz = mm.height / M.h;
   mg.drawImage(M.mm || mmBase, 0, 0, mm.width, mm.height);
   for (const m of mobs) { const k = m.d.boss ? 4 : m.d.alfa ? 3 : 2; mg.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; mg.fillRect((m.x - M.x0) * sx - 1, (m.z - M.z0) * sz - 1, k, k); }
-  if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } Tower.minimap(mg); return; }
+  if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } if (zoneOf(P.x, P.z) === 'minas' && typeof Minas !== 'undefined') { Minas.minimap(mg); return; } Tower.minimap(mg); return; }
   if (!inVal(P.z)) Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { const mk = n.markK || '', nw = mk.startsWith('!'), rd = mk.startsWith('?') && !mk.endsWith('#7a7a88'), s = nw || rd ? 5 : 3; mg.fillStyle = nw ? '#7dff6a' : rd ? '#6ab0ff' : '#ffcf40'; mg.fillRect((n.x - M.x0) * sx - s / 2, (n.z - M.z0) * sz - s / 2, s, s); }
   if (typeof Net !== 'undefined' && Net.peers && !inTower(P.z)) for (const r of Net.peers()) {            // outros jogadores (verde = do seu grupo)
@@ -3208,7 +3211,7 @@ function showHelp() {
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
-  ⚒️ <b>Ferreiro Doran</b> (praça de Solmira): refino +1 a +7 (nunca quebra) e forja com materiais.<br>
+  ⚒️ <b>Ferreiro Doran</b> (praça de Solmira): refino até +15 (do +11 em diante a peça pode quebrar), forja e a ⛏️ Mina da Forja, onde caem os materiais do refino.<br>
   ⭐ <b>Monstros Alfa:</b> de vez em quando um monstro maior aparece perto de você: dá para vencer sozinho e solta equipamento e carta com mais chance.<br>
   👹 <b>Chefes de campo:</b> a cada 20 min um chefe aparece para todos os jogadores (ponto vermelho grande). Sozinho não dá: chame um grupo. Agora: ${typeof Chefes !== 'undefined' ? Chefes.status() : '—'}.<br>
   🧭 <b>Viagem rápida:</b> nos Quadros de Caça, para cidades já visitadas (50 cr).<br>
@@ -3308,7 +3311,7 @@ function start(fromSave) {
     const s = loadSave();
     Object.assign(P, { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, dex: 3, luk: 3 }, s, { inv: { red: 0, blue: 0, ...s.inv } });
     if (!CLASSES[P.cls] || !CLASSES[P.cls].hero) { P.cls = OLD_TO_HERO[P.cls] || 'kravenox'; P.gender = CLASSES[P.cls].gender; P.race = 'humano'; }
-    if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { P.x = FARM.x - 11; P.z = FARM.z - 1; } else { P.x = CIT.x; P.z = CIT.z + 8; } }
+    if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { P.x = FARM.x - 11; P.z = FARM.z - 1; } else if (zoneOf(P.x, P.z) === 'minas' && typeof Minas !== 'undefined') { P.x = Minas.saida.x; P.z = Minas.saida.z; } else { P.x = CIT.x; P.z = CIT.z + 8; } }
     if (blocked(P.x, P.z)) { P.x = VIL.x; P.z = VIL.z + 10; }
   } else {
     Object.assign(P, CREATE, { name: $('name-in').value.trim().replace(/\s+/g, ' ').slice(0, 16) });
@@ -3420,7 +3423,7 @@ function loop(now) {
   if (running && typeof Net !== 'undefined' && Net.pausa) {      // sem conexão: o mundo para (o jogo é todo on-line)
     Net.update(dt); sky.position.copy(camera.position); draw();
   } else if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Minas !== 'undefined') Minas.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

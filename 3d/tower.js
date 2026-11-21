@@ -531,7 +531,7 @@ const Tower = (() => {
   // andar ainda com monstros: as DUAS escadas ficam trancadas (antes dava para fugir para o andar de trás e voltar, e ficava fácil)
   // só a saída do 1º andar continua livre (para ninguém ficar preso lá dentro)
   function selada(f, x, z) {
-    if (f.casa || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); if (!r || r.p >= 0.16) return false;
+    if (f.casa || f.mina || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); if (!r || r.p >= 0.16) return false;
     if (r.tipo === avanca(f)) return true;
     return !(f.i === 0 || f.i === 100);
   }
@@ -557,7 +557,7 @@ const Tower = (() => {
     if (!inTower(P.z) && !crateraArmada && dCrat > 6) crateraArmada = true;
     if (!inTower(P.z) && crateraArmada && dCrat < 2.8) { leaveT = 2.5; crateraArmada = false; enterFromCrater(); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); unbuild(); } return; }
-    const f = floorAt(P.x, P.z); if (!f || f.casa) return;
+    const f = floorAt(P.x, P.z); if (!f || f.casa || f.mina) return;
     if (f.i !== cur) { cur = f.i; buildFloor(f); }                  // asa de mosca / volta de outro jeito
     animFloor(dt);
     // escadaria norte: abre quando o andar está limpo e fica aberta
@@ -590,7 +590,7 @@ const Tower = (() => {
     g.fillStyle = '#b8a8d0'; g.font = '11px sans-serif'; if (cur < TOP) g.fillText(`monstros Nv ${lvOf(Math.max(0, cur))}`, W / 2, H / 2 + 41);
     g.textAlign = 'left';
   }
-  return { update, minimap, enter, corridor, selada, lvOf, get floor() { return cur; }, door: DOOR, roof };
+  return { update, minimap, enter, corridor, selada, lvOf, xpCampo, get floor() { return cur; }, door: DOOR, roof };
 })();
 
 // ---------------------------------------------------------------- modelos dos inimigos do Reino Quebrado

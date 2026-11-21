@@ -228,19 +228,22 @@ const Quests = (() => {
     const sv = S(); sv.vistas = sv.vistas || {}; const novo = new Set(novas().filter(q => !sv.vistas[q.id]).map(q => q.id)); for (const id of novo) sv.vistas[id] = 1;
     const done = Object.keys(S().done).length;
     const opts = [];
-    for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; } });
-    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${novo.has(q.id) ? '🆕 ' : ''}${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = g; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; } }); }
+    for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; andar(); } });
+    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${novo.has(q.id) ? '🆕 ' : ''}${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = { ...g, qt: q.title, qc: colorOf(q) }; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; andar(); } }); }
     opts.push({ label: 'Fechar' });
     dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
   }
+  // escolheu no diário: já sai andando sozinho até lá (antes só mudava a seta e ninguém ia)
+  function andar() { if (typeof autoStart === 'function' && !inTower(P.z)) { if (AUTO.on) autoStop(''); autoStart(); } }
   function follow(id) { if (!byId[id]) return; P.qFocus = id; Audio8.sfx('click'); log(`🧭 Seguindo <b style="color:${colorOf(byId[id])}">${byId[id].title}</b>.`, 'sys'); }
   function readyCount() { return Object.keys(S().act).map(id => byId[id]).filter(q => q && ready(q)).length; }
   function html(compact) {
     // principal primeiro, depois as mais novas (a última aceita aparece sempre); o resto vira "+N"
     const all = Object.keys(S().act).map(id => byId[id]).filter(Boolean), main = all.filter(q => q.type === 'principal'), rest = all.filter(q => q.type !== 'principal').reverse();
     const ord = main.concat(rest), fq = ord.find(q => q.id === focusId()), act = (fq ? [fq, ...ord.filter(q => q !== fq)] : ord).slice(0, compact ? 1 : 4), more = all.length - act.length;
-    if (!act.length) return `<div class="wt">📜 Missões</div><div class="wb"><div class="qi qmore">Nenhuma ativa · toque para ver as disponíveis</div></div>`;
-    return `<div class="wt">📜 Missões${typeof AUTO !== 'undefined' && AUTO.on ? ' <small>🚶 andando</small>' : ' <small>📖 diário</small>'}</div><div class="wb">` + act.map(q => q !== fq && act.length > 2 ? compact(q) : `<div class="qi${q.id === focusId() ? ' focus' : ''}" data-q="${q.id}"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + (more > 0 ? `<div class="qi qmore">+${more} ${more > 1 ? 'missões' : 'missão'} </div>` : '') + `</div>`;
+    const G = P.qGo && P.qGo.qt ? P.qGo : null, pegar = G ? `<div class="qi focus" data-qgo="1"><b style="color:${G.qc || 'var(--gold)'}">Pegar: ${G.qt}</b><br>com ${G.name}</div>` : '';
+    if (!act.length) return `<div class="wt">📜 Missões${typeof AUTO !== 'undefined' && AUTO.on ? ' <small>🚶 andando</small>' : ''}</div><div class="wb">${pegar}<div class="qi qmore">${G ? 'Ver o diário' : 'Nenhuma ativa · toque para ver as disponíveis'}</div></div>`;
+    return `<div class="wt">📜 Missões${typeof AUTO !== 'undefined' && AUTO.on ? ' <small>🚶 andando</small>' : ' <small>📖 diário</small>'}</div><div class="wb">` + pegar + act.map(q => q !== fq && act.length > 2 ? compact(q) : `<div class="qi${q.id === focusId() && !G ? ' focus' : ''}" data-q="${q.id}"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + (more > 0 ? `<div class="qi qmore">+${more} ${more > 1 ? 'missões' : 'missão'} </div>` : '') + `</div>`;
   }
   // destino da seta: missão principal ativa (ou a primeira)
   function target() {

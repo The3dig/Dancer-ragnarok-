@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 21/11
 
+- **🔨 Refino até +15 e a Mina da Forja**: O **Ferreiro Doran** agora refina até **+15**, mas precisa de muito material: arma, anéis e colar usam 🔶 **Minério Rúnico**; capacete, armadura, luvas e botas usam 🔷 **Pedra de Têmpera**. Os dois caem só na **⛏️ Mina da Forja** (fale com o Doran para descer): 3 ondas de monstros do seu nível e o **Capataz da Mina**, em 8 minutos, antes que ela desabe. Atenção: do +11 ao +15, se o refino falhar, a peça QUEBRA e some. Para não quebrar, use o 🔰 **Selo da Forja Eterna**, que cai do Capataz. E agora dá para ver o Doran martelando na bigorna! **Também:** escolher uma missão no 📖 diário já faz o personagem andar até ela (e ela aparece no quadro da direita), e as setas ◀ ▶ encolhem o quadro de mensagens e o de missões.
 - **🕳️ Escada do Abismo, XP da Torre e caminhada**: **Preso na escada:** ao descer um andar do Abismo (ou subir na Torre), a pessoa chegava em cima da escadaria trancada e não conseguia sair (o bug do vídeo do Ludi). Agora chega no chão, ao lado dela. **XP da Torre e do Abismo** igual ao de um monstro comum do mesmo nível nos mapas, inclusive os Guardiões (ideia do Ludi: dava para ganhar 5 níveis sem esforço). **Andar até a missão** volta a parar quando você ataca ou usa uma habilidade, e também se a vida cair abaixo da metade.
 
 ## 20/11

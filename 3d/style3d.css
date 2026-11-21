@@ -665,3 +665,19 @@ body.touch .dmg.item { font-size: 11px; }
 #invwin .invb { flex: 1 1 auto; }
 #invwin .invc { min-height: 0; }
 #invwin .igrid { flex: 1 1 auto; min-height: 92px; max-height: none; }
+/* setas para encolher o quadro de mensagens e o de missões */
+.enc-seta { position: fixed; z-index: 40; width: 22px; height: 22px; padding: 0; border-radius: 6px; border: 1px solid rgba(242,200,106,.55); background: rgba(20,14,30,.85); color: #f2c86a; font: 700 11px sans-serif; line-height: 20px; text-align: center; cursor: pointer; pointer-events: auto; }
+.enc-seta.fechado { background: rgba(60,40,20,.9); }
+body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
+/* Mina da Forja: relógio da corrida */
+#mina-hud { position: fixed; top: calc(52px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 4px 12px; border-radius: 10px; background: rgba(28,18,12,.85); border: 1px solid rgba(255,176,96,.6); color: #ffe0c0; font: 700 13px 'Nunito', sans-serif; pointer-events: none; white-space: nowrap; }
+#mina-hud .pouco { color: #ff6050; }
+#mina-hud.hidden { display: none; }
+/* forja do refino (Doran martelando) */
+#forja { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(6,4,10,.72); }
+#forja.hidden { display: none; }
+#forja .fj-caixa { width: min(92vw, 560px); background: #1a120c; border: 2px solid rgba(255,176,96,.6); border-radius: 14px; padding: 8px; box-shadow: 0 0 40px rgba(255,120,40,.35); text-align: center; }
+#forja canvas { width: 100%; max-height: 62vh; object-fit: contain; display: block; border-radius: 10px; }
+#forja .fj-txt { margin-top: 6px; color: #f0e4d8; font: 700 14px 'Nunito', sans-serif; min-height: 20px; }
+#forja .fj-ok { color: #ffd860; } #forja .fj-ruim { color: #ff5040; } #forja .fj-falhou { color: #c8c0d0; }
+#forja .fj-dica { color: #b8a898; font: 600 11px 'Nunito', sans-serif; transition: opacity .3s; }
