@@ -1023,7 +1023,7 @@ const MOBDEF = {
   fungolino: { name: 'Raiz Rastejante', lv: 5, hp: 110, atk: 12, def: 3, xp: 30, zeny: [6, 15], speed: 1.4, aggro: 0, respawn: 12, drops: [['red', 0.25], ['blue', 0.08]] },
   besouro:   { name: 'Larva Cristalina', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Sombra Errante', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
-  kravenox:  { name: 'Kravenox', lv: 60, hp: 300000, atk: 140, def: 42, xp: 90000, zeny: [8000, 12000], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
+  kravenox:  { name: 'Kravenox', lv: 90, hp: 900000, atk: 360, def: 70, xp: 400000, zeny: [8000, 12000], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
   vermeColosso: { name: 'Verme Colossal', lv: 100, hp: 900000, atk: 400, def: 85, xp: 260000, zeny: [15000, 25000], speed: 0, aggro: 0, rad: 6, respawn: 1e9, boss: true, world: true, drops: [['presa_verme', 1], ['presa_verme', 1], ['quitina_colossal', 0.5], ['blue', 1], ['red', 1]] },
   larva:     { name: 'Larva Alongada', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
@@ -1686,7 +1686,7 @@ function bossBar(dt) {
   if (!bar) { bar = document.createElement('div'); bar.id = 'bossbar'; bar.className = 'hidden'; bar.innerHTML = '<div class="kn"></div><div class="kt"><b></b><em></em></div>'; $('hud').appendChild(bar); }
   let best = null, bd = 1e9;
   for (const m of mobs) {
-    if (m.dead || m.type === 'kravenox' || !(m.d.boss || m.d.mini || m.d.field || m.d.alfa || m.towerGuard)) continue;
+    if (m.dead || m.type === 'kravenox' || m.servoKvx || !(m.d.boss || m.d.mini || m.d.field || m.d.alfa || m.towerGuard)) continue;
     const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < 40 && d < bd) { bd = d; best = m; }
   }
   if (!best) { bar.classList.add('hidden'); return; }
@@ -2252,7 +2252,7 @@ function separarMobs(dt) {
 }
 // mini chefes, alfas e chefes de campo chamam monstrinhos da região quando a luta começa (ideia do Ludi)
 function invocar(m, dt) {
-  if (m.invocado || m.d.world || !(m.d.mini || m.d.alfa || m.d.field) || P.dead) return;
+  if (m.invocado || m.servoKvx || m.d.world || !(m.d.mini || m.d.alfa || m.d.field) || P.dead) return;
   if (m.hp >= m.maxHp || Math.hypot(m.x - P.x, m.z - P.z) > 22) return;              // só depois que você bate nele
   if (m.invT === undefined) m.invT = 3;
   if ((m.invT -= dt) > 0) return; m.invT = 14;
@@ -2433,6 +2433,7 @@ function animateModel(dt) {
 }
 
 // ---------------------------------------------------------------- câmera
+let TREMOR = 0;                                                   // tremor da tela (golpes grandes)
 function updateCamera(dt) {
   const big = inTower(P.z) && (Tower.floor === TOP || Tower.floor === AB_FUNDO);                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
@@ -2454,6 +2455,7 @@ function updateCamera(dt) {
   cy = Math.max(cy, (inTower(cz) ? groundY(camS.x, camS.z) : height(cx, cz)) + 0.6);
   camera.position.set(cx, cy, cz);
   camera.lookAt(camS.x, camS.y, camS.z);
+  if (TREMOR > 0) { TREMOR = Math.max(0, TREMOR - dt); const k = Math.min(1, TREMOR) * 0.5; camera.position.x += rand(-k, k); camera.position.y += rand(-k, k); camera.position.z += rand(-k, k); }   // tremor dos golpes grandes do Kravenox
   hideTreesBetween(cx, cz, camS.x, camS.z, cy, camS.y);
   sun.position.set(P.x + SUN_OFF.x, P.y + SUN_OFF.y, P.z + SUN_OFF.z); sun.target.position.set(P.x, P.y, P.z);
 }

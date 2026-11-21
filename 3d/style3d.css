@@ -684,3 +684,5 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 /* a imagem 3D travou (sem memória de vídeo): aviso enquanto recarrega */
 #perdeu3d { position: fixed; inset: 0; z-index: 99; display: flex; align-items: center; justify-content: center; background: rgba(8,6,14,.92); color: #f0e8f8; font: 600 15px 'Nunito', sans-serif; text-align: center; padding: 20px; line-height: 1.5; }
 #perdeu3d b { color: #f2c86a; }
+/* clarão/escuridão da tela nos golpes do Kravenox (eclipse, mudança de fase) */
+#kvxflash { position: fixed; inset: 0; z-index: 25; pointer-events: none; opacity: 0; }
