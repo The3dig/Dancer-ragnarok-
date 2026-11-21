@@ -166,7 +166,7 @@ function autoDir(dt) {
   const T = AUTO.tg;
   if (!T) { autoStop('🚶 Objetivo concluído.'); return null; }
   // levar um golpe não para mais a caminhada; só para se a vida ficar baixa (aí é hora de lutar ou tomar poção)
-  if (P.hp < stats.maxHp() * 0.3) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }
+  if (P.hp < stats.maxHp() * 0.5) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }
   const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
   if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
   let a = Math.atan2(dx, dz);
@@ -1795,6 +1795,7 @@ function nearestMob(r, cone = true) {
 function handPos() { const v = new THREE.Vector3(); (L.orb || L.handR).getWorldPosition(v); return v; }
 function attack() {
   if (P.dead || dialogOpen || P.atkCd > 0) return;
+  if (AUTO.on) autoStop('🚶 Parou para lutar.');                   // atacou: para de andar sozinho até a missão
   const c = CLS();
   P.atkCd = stats.aspd(); P.attackAnim = 1; P.sit = false; P.atkSeq = (P.atkSeq || 0) + 1;
   const k = c.rhythm ? applyRhythm(rhythm()) : 1;
@@ -1848,6 +1849,7 @@ function useSkill(i) {
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
   if (SKILLS[i].type === 'passiva') { log(`${SKILLS[i].icon} <b>${SKILLS[i].name}</b> é passiva: já vale sozinha, não precisa usar.`, 'sys'); return; }
+  if (AUTO.on) autoStop('🚶 Parou para lutar.');
   const L = P.skillLv[SKILLS[i].id] || 0;
   if (!L) { log(`${SKILLS[i].name} ainda não foi aprendida. Use a árvore de habilidades (${TOUCH ? '📜' : 'K'}).`, 'bad'); return; }
   let s = scaleSkill(SKILLS[i], L);

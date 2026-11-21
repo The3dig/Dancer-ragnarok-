@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 21/11
+
+- **🕳️ Escada do Abismo, XP da Torre e caminhada**: **Preso na escada:** ao descer um andar do Abismo (ou subir na Torre), a pessoa chegava em cima da escadaria trancada e não conseguia sair (o bug do vídeo do Ludi). Agora chega no chão, ao lado dela. **XP da Torre e do Abismo** igual ao de um monstro comum do mesmo nível nos mapas, inclusive os Guardiões (ideia do Ludi: dava para ganhar 5 níveis sem esforço). **Andar até a missão** volta a parar quando você ataca ou usa uma habilidade, e também se a vida cair abaixo da metade.
+
 ## 20/11
 
 - **👾 Mais monstros e caminhada que não para**: Os mapas mais vazios ganharam **mais monstros** (os mesmos de cada lugar): Solmira, Campos, Valdora, Floresta Morta e Vale dos Mortos. Quando o personagem **anda sozinho até a missão**, levar um golpe não faz mais ele parar: só para se a vida ficar abaixo de 30%. No **controle**, o **Y** agora faz o personagem andar sozinho até a missão seguida (aperte de novo para parar); o ataque continua no **A**.

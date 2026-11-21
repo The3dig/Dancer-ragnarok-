@@ -424,9 +424,18 @@ const Tower = (() => {
     for (const m of mobs.filter(m => m.towerFloor !== undefined)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
     mobs = mobs.filter(m => m.towerFloor === undefined);
   }
+  // XP igual ao de um monstro comum dos mapas do mesmo nível (ideia do Ludi: antes rendia quase o dobro e subia nível rápido demais),
+  // inclusive para os Guardiões de cada 5 andares
+  const XPC = Object.values(MOBDEF).filter(d => !d.boss && !d.mini && !d.world && d.xp > 0).map(d => [d.lv, d.xp]).sort((a, b) => a[0] - b[0]);
+  function xpCampo(L) {
+    const n = XPC.length; if (L <= XPC[0][0]) return XPC[0][1];
+    if (L >= XPC[n - 1][0]) return Math.round(XPC[n - 1][1] * Math.pow(L / XPC[n - 1][0], 2.3));
+    let i = 0; while (XPC[i + 1][0] < L) i++; const [l0, x0] = XPC[i], [l1, x1] = XPC[i + 1];
+    return Math.round(l1 === l0 ? Math.max(x0, x1) : x0 + (x1 - x0) * (L - l0) / (l1 - l0));
+  }
   function scaleMob(m, L, k) {
     const d0 = m.d, kf = L / d0.lv;
-    m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.7) * 1.4 * k), atk: Math.round(d0.atk * kf * 1.2 * Math.sqrt(k)), def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * 1.8 * k), zeny: [Math.round(d0.zeny[0] * kf * k), Math.round(d0.zeny[1] * kf * 1.3 * k)], aggro: Math.max(d0.aggro, 18) };
+    m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.7) * 1.4 * k), atk: Math.round(d0.atk * kf * 1.2 * Math.sqrt(k)), def: Math.round(d0.def * kf), xp: xpCampo(L), zeny: [Math.round(d0.zeny[0] * kf * k), Math.round(d0.zeny[1] * kf * 1.3 * k)], aggro: Math.max(d0.aggro, 18) };
     m.hp = m.maxHp = m.d.hp; const sm = m.lab.querySelector('small'); if (sm) sm.textContent = 'Nv ' + L;
   }
   function spawnFloor(i) {
@@ -483,7 +492,10 @@ const Tower = (() => {
     if (fromAbove) opened[i] = true;                                    // quem volta já passou por aqui: a escadaria fica aberta
     // avançou: chega no começo da escadaria de volta (no chão do andar novo); voltou: chega no fim da que avança
     const av = avanca(f), volta = av === 'sobe' ? 'desce' : 'sobe';
-    const pc = fromAbove ? pontoRampa(f, av, 0.9) : pontoRampa(f, volta, 0.06);
+    // avançando, chega no chão ao lado do pé da escadaria de volta, fora dela: ela fica selada até limpar o andar,
+    // e chegar em cima do trecho selado deixava a pessoa presa na escada (bug do Ludi no Abismo)
+    let pc = fromAbove ? pontoRampa(f, av, 0.9) : pontoRampa(f, volta, 0.06);
+    if (!fromAbove) { const rr = f.r - RAMPA.larg - 1.6, a0 = Math.atan2(pc.x - f.x, pc.z - f.z); pc = { x: f.x + Math.sin(a0) * rr, z: f.z + Math.cos(a0) * rr }; }
     P.x = pc.x; P.z = pc.z; P.face = Math.atan2(f.x - P.x, f.z - P.z);
     P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.pitch = Math.max(camS.pitch, 0.42);
     // a chegada é colada na parede: com a câmera atrás do herói ela batia na parede e ficava grudada nele
