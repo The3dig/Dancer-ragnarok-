@@ -22,6 +22,17 @@ THREE.ColorManagement.legacyMode = false;
 { const setHSL0 = THREE.Color.prototype.setHSL; THREE.Color.prototype.setHSL = function (h, s, l) { setHSL0.call(this, h, s, l); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.0 : 2));
+// o celular ficou sem memória de vídeo (o iPhone "perde" o desenho 3D): a imagem congelava pela metade e só o chat
+// continuava funcionando (bug da Lady Ingrid na Ponte dos Mortos). Agora o jogo avisa, salva, liga o modo leve e recarrega sozinho.
+renderer.domElement.addEventListener('webglcontextlost', e => {
+  e.preventDefault();
+  try { localStorage.setItem('modoLeve', '1'); } catch (er) { }
+  const d = document.createElement('div'); d.id = 'perdeu3d';
+  d.innerHTML = '<div><b>🔄 A imagem do jogo travou</b><br>O celular ficou sem memória de vídeo. Seu progresso está salvo.<br>Voltando em instantes, com o <b>🐢 Modo leve</b> ligado.</div>';
+  document.body.appendChild(d);
+  try { if (typeof save === 'function') save(); } catch (er) { }
+  setTimeout(() => location.reload(), 2500);
+}, false);
 // tamanho real da área visível: no iPhone (Safari e app do Claude) a moldura pode
 // crescer para caber num canvas antigo após girar a tela; por isso o canvas segue
 // sempre 100% do elemento e o tamanho é medido nele, nunca imposto.

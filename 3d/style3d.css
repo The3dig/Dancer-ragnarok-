@@ -681,3 +681,6 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #forja .fj-txt { margin-top: 6px; color: #f0e4d8; font: 700 14px 'Nunito', sans-serif; min-height: 20px; }
 #forja .fj-ok { color: #ffd860; } #forja .fj-ruim { color: #ff5040; } #forja .fj-falhou { color: #c8c0d0; }
 #forja .fj-dica { color: #b8a898; font: 600 11px 'Nunito', sans-serif; transition: opacity .3s; }
+/* a imagem 3D travou (sem memória de vídeo): aviso enquanto recarrega */
+#perdeu3d { position: fixed; inset: 0; z-index: 99; display: flex; align-items: center; justify-content: center; background: rgba(8,6,14,.92); color: #f0e8f8; font: 600 15px 'Nunito', sans-serif; text-align: center; padding: 20px; line-height: 1.5; }
+#perdeu3d b { color: #f2c86a; }
