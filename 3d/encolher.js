@@ -14,10 +14,18 @@ const Encolher = (() => {
     b.classList.toggle('fechado', fechado);
     posicionar(q);
   }
+  // com mochila, diário, conversa ou outra janela aberta as setas somem (antes ficavam por cima da janela)
+  function janelaAberta() {
+    if (typeof dialogOpen !== 'undefined' && dialogOpen) return true;
+    if (typeof BigMap !== 'undefined' && BigMap.open) return true;
+    if (document.getElementById('avisos') || document.querySelector('#forja:not(.hidden)')) return true;
+    const ids = typeof JANELAS !== 'undefined' ? JANELAS : [];
+    return ids.some(id => { if (id === 'dialog' || id === 'bigmap' || id === 'kvx' || id === 'avisos') return false; const el = document.getElementById(id); return el && !el.classList.contains('hidden'); });
+  }
   // a seta fica colada no canto de cima do quadro (do lado de fora do jogo); com ele escondido, fica onde ele estava
   function posicionar(q) {
     const el = document.getElementById(q.id), b = q.btn; if (!el) return;
-    const hud = document.getElementById('hud'), some = !hud || hud.classList.contains('hidden');
+    const hud = document.getElementById('hud'), some = !hud || hud.classList.contains('hidden') || janelaAberta();
     const medir = !ler(q.id) || !pos[q.id];                         // escondido desde o começo: mostra um instante só para medir
     if (medir) {
       if (ler(q.id)) document.body.classList.remove('enc-' + q.id);
@@ -37,7 +45,7 @@ const Encolher = (() => {
       b.addEventListener('click', e => { e.stopPropagation(); gravar(q.id, !ler(q.id)); if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); aplicar(q); });
       document.body.appendChild(b); aplicar(q);
     }
-    setInterval(() => { for (const q of QUADROS) posicionar(q); }, 400);
+    setInterval(() => { for (const q of QUADROS) posicionar(q); }, 150);
     addEventListener('resize', () => { for (const q of QUADROS) posicionar(q); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
