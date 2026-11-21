@@ -78,7 +78,7 @@ const Controle = (() => {
     // prefere o botão principal de uma conversa/janela aberta; senão o mais perto do meio da tela
     const d = janelaTopo();
     const naJanela = d ? l.filter(e => d.contains(e)) : [];
-    if (naJanela.length && d.id === 'dialog') { foco = naJanela[0]; return; }
+    if (naJanela.length && d.id === 'dialog') { foco = naJanela.find(e => !e.matches('.wt .x')) || naJanela[0]; return; }   // começa na 1ª opção, não no ✕
     if (naJanela.length) l = naJanela;
     const meio = { x: innerWidth / 2, y: innerHeight / 2 };
     foco = l.reduce((a, b) => { const ca = centro(a), cb = centro(b); return Math.hypot(cb.x - meio.x, cb.y - meio.y) < Math.hypot(ca.x - meio.x, ca.y - meio.y) ? b : a; });

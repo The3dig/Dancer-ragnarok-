@@ -3055,8 +3055,10 @@ function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').cl
 // ---------------------------------------------------------------- diálogos
 function dialog(title, text, opts) {
   const d = $('dialog');
-  d.innerHTML = `<div class="wt">${title}</div><div class="dtext">${text}</div><div class="dopts"></div>`;
+  d.innerHTML = `<div class="wt">${title}<button class="x" aria-label="Fechar">✕</button></div><div class="dtext">${text}</div><div class="dopts"></div>`;
   const o = d.querySelector('.dopts');
+  // ✕ no canto: fecha na hora, sem rolar até o "Fechar" (se a janela tem "Fechar"/"Sair", faz o mesmo que ele)
+  d.querySelector('.wt .x').onclick = () => { Audio8.sfx('click'); const f = [...o.children].find(b => /^(Fechar|Sair)\b/.test(b.textContent.trim())); if (f) f.click(); else closeDialog(); };
   (opts || [{ label: 'Fechar' }]).forEach(op => {
     const b = document.createElement('button'); b.textContent = op.label;
     b.onclick = () => { Audio8.sfx('click'); const keep = op.fn && op.fn(); if (!keep) closeDialog(); };

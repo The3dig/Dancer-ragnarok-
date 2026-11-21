@@ -686,3 +686,9 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #perdeu3d b { color: #f2c86a; }
 /* clarão/escuridão da tela nos golpes do Kravenox (eclipse, mudança de fase) */
 #kvxflash { position: fixed; inset: 0; z-index: 25; pointer-events: none; opacity: 0; }
+
+/* ✕ para fechar no canto das janelas de conversa e dos avisos (não precisa rolar até o "Fechar") */
+#dialog .wt { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 2; }
+#dialog .wt .x, .av-x { margin-left: auto; flex: none; background: rgba(255,255,255,.1); border: 1px solid var(--line); color: var(--txt); border-radius: 10px; width: 40px; height: 36px; font-size: 20px; line-height: 1; padding: 0; cursor: pointer; font-family: inherit; }
+#dialog .wt .x:hover, .av-x:hover { background: rgba(255,90,70,.35); }
+.av-t { display: flex; align-items: center; gap: 8px; }

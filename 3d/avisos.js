@@ -8,6 +8,7 @@
 const Avisos = (() => {
   // novidades importantes, a mais nova no topo. Para avisar algo novo: põe aqui com um id novo.
   const NOVIDADES = [
+    { id: 'n85', data: '21/11', t: '✕ Botão de fechar nas janelas', d: 'As janelas de conversa, o diário e os quadros agora têm um <b>✕ no canto de cima</b>: não precisa mais rolar até o "Fechar" no meio da luta. No controle, o <b>B</b> continua fechando. <b>Diário:</b> quando os 6 contratos de caça do dia já foram usados, eles não aparecem mais como disponíveis (voltam amanhã).' },
     { id: 'n84', data: '21/11', t: '🚶 Andar até a missão e bater ao mesmo tempo', d: 'Agora, depois de tocar numa missão para ir até ela, você pode <b>atacar e usar habilidades sem parar de andar</b>: o herói vai batendo nos monstros pelo caminho (anda mais devagar só no instante do golpe). Ele ainda <b>para sozinho se a vida cair abaixo da metade</b>, para você não morrer no caminho. Mexer no analógico continua parando a caminhada.' },
     { id: 'n83', data: '21/11', t: '☠ Kravenox renasceu: o maior espetáculo da semana', d: 'Hoje, <b>sábado às 20h</b>, no <b>topo da Torre do Cisma</b>, Kravenox acorda <b>muito mais forte</b>: <b>nível 90</b> e <b>900 mil de vida</b> (dividida entre todos os jogadores). A luta tem <b>4 fases</b>: <b>🌋 O Despertar do Abismo</b> (70%: ele chama 2 <b>Generais do Cisma</b> e servos, e começa a <b>☄️ Chuva de Meteoros</b>), <b>🔥 A Fúria do Soberano</b> (40%: <b>raio triplo</b>, garras duplas, <b>⛓️ Correntes do Cisma</b> que te puxam e o <b>🌑 Eclipse</b>: só quem estiver num <b>círculo de luz dourada</b> escapa) e <b>☠ O Último Suspiro</b> (15%: os <b>Ecos do Soberano</b> e meteoros sem parar). A tela treme nos golpes grandes. Para ganhar o prêmio é preciso causar pelo menos <b>4.500</b> de dano. Vão juntos!' },
     { id: 'n82', data: '21/11', t: '⚔️ Mais difícil no nível alto (pedido do Ludi)', d: '<b>Defesa não zera mais o golpe:</b> antes, com equipamento refinado, a defesa passava do ataque dos monstros e cada golpe tirava 1 de vida. Agora todo golpe tira pelo menos 40% do ataque do monstro. <b>XP:</b> do nível 30 em diante cada nível pede mais experiência (no 55, 2,7 vezes; no 79, 4 vezes), e quem já está alto não perde nível. <b>👾 Mini chefes chamam ajudantes:</b> Guardiões da Torre e do Abismo, alfas, chefes de campo e o Capataz da Mina chamam até 3 crias de cada vez quando a luta começa (no máximo 6 juntas); quando o chefe cai, as crias somem.' },
@@ -104,7 +105,7 @@ const Avisos = (() => {
   }
   function html(lista) {
     const eco = typeof Net !== 'undefined' && Net.economia();
-    return `<div class="av-box"><div class="av-t">📢 Avisos e novidades</div><div class="av-corpo">
+    return `<div class="av-box"><div class="av-t">📢 Avisos e novidades<button class="av-x" aria-label="Fechar">✕</button></div><div class="av-corpo">
       <div class="av-item av-dados"><b>📶 Este jogo usa internet o tempo todo</b>
         <p>O Reino Quebrado é todo on-line. <b>No 4G/5G ele gasta dados do seu plano (crédito)</b>; no Wi-Fi, não.</p>
         <ul><li>Primeira vez: baixa uns <b>15 MB</b> (o jogo e as músicas). Depois fica guardado no aparelho e só baixa o que mudar.</li>
@@ -123,6 +124,7 @@ const Avisos = (() => {
     el = document.createElement('div'); el.id = 'avisos'; el.innerHTML = html(lista); document.body.appendChild(el);
     const ligar = () => {
       el.querySelector('.av-eco').onclick = () => { const on = !(typeof Net !== 'undefined' && Net.economia()); set('reino-economia', on ? '1' : '0'); if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); el.innerHTML = html(lista); ligar(); };
+      el.querySelector('.av-x').onclick = () => el.querySelector('.av-ok').click();
       el.querySelector('.av-ok').onclick = () => { if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); set('reino-avisos-vistos', NOVIDADES.map(n => n.id).join(',')); el.remove(); if (feito) feito(); };
     };
     ligar();

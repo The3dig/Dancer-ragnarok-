@@ -224,14 +224,16 @@ const Quests = (() => {
   function novasCount() { const v = S().vistas || {}; return novas().filter(q => !v[q.id]).length; }
   function journal() {
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
-    const avail = Q.filter(q => q.type !== 'oculta' && available(q));
+    // contratos de caça somem do diário quando o limite do dia já foi usado (antes apareciam e o quadro dizia "amanhã")
+    const cacaFechada = cacasUsadas() >= LIM_CACA;
+    const avail = Q.filter(q => q.type !== 'oculta' && available(q) && !(cacaFechada && q.type === 'caca'));
     const sv = S(); sv.vistas = sv.vistas || {}; const novo = new Set(novas().filter(q => !sv.vistas[q.id]).map(q => q.id)); for (const id of novo) sv.vistas[id] = 1;
     const done = Object.keys(S().done).length;
     const opts = [];
     for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; andar(); } });
     for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${novo.has(q.id) ? '🆕 ' : ''}${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = { ...g, qt: q.title, qc: colorOf(q) }; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; andar(); } }); }
     opts.push({ label: 'Fechar' });
-    dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
+    dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).${cacaFechada ? `<br><small>🔒 Os ${LIM_CACA} contratos de caça de hoje já foram usados: voltam amanhã.</small>` : ''}<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
   }
   // escolheu no diário: já sai andando sozinho até lá (antes só mudava a seta e ninguém ia)
   function andar() { if (typeof autoStart === 'function' && !inTower(P.z)) { if (AUTO.on) autoStop(''); autoStart(); } }
