@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 22/11
+
+- **⚔️ Mais difícil no nível alto (pedido do Ludi)**: **Defesa não zera mais o golpe:** antes, com equipamento refinado, a defesa passava do ataque dos monstros e cada golpe tirava 1 de vida. Agora todo golpe tira pelo menos 40% do ataque do monstro. **XP:** do nível 30 em diante cada nível pede mais experiência (no 55, 2,7 vezes; no 79, 4 vezes), e quem já está alto não perde nível. **👾 Mini chefes chamam ajudantes:** Guardiões da Torre e do Abismo, alfas, chefes de campo e o Capataz da Mina chamam até 3 crias de cada vez quando a luta começa (no máximo 6 juntas); quando o chefe cai, as crias somem.
+
 ## 21/11
 
 - **🔄 Tela que congelava pela metade**: Quando o celular fica sem memória de vídeo, a imagem do jogo congelava (metade da tela parada) e só o chat continuava funcionando, como aconteceu com a Lady Ingrid na Ponte dos Mortos. Agora o jogo percebe na hora, salva tudo e **volta sozinho em 2 segundos**, já com o **🐢 Modo leve** ligado (dá para desligar no menu ❓).

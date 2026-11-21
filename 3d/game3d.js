@@ -1403,7 +1403,7 @@ const stats = {
 };
 // nível máximo 200 (como o Ragnarok, cada nível pesa bem mais que o anterior)
 const LV_MAX = 200;
-const xpNeed = lv => Math.floor(40 + 25 * Math.pow(lv, 2.2));
+const xpNeed = lv => Math.floor((40 + 25 * Math.pow(lv, 2.2)) * (1 + Math.max(0, lv - 30) / 15));   // do 30 em diante sobe mais devagar (no 79: ~4x)
 // pontos de atributo: poucos por nível, e cada ponto custa mais quanto mais alto o atributo
 // (do 1 ao 10 custa 1, do 11 ao 20 custa 2, do 21 ao 30 custa 3…), como no Ragnarok
 const ptsNivel = lv => 2 + Math.floor(lv / 20);
@@ -1615,7 +1615,7 @@ function killMob(m, o = {}) {
   gainXp(xp);
   const q = QUESTS[P.quest];
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
-  if (m.type === 'guardiao') log('🏆 <b>A Sentinela sem Rosto caiu!</b> As ruínas estão livres.', 'gold');
+  if (m.type === 'guardiao' && m.towerFloor === undefined && !m.chefeDono) log('🏆 <b>A Sentinela sem Rosto caiu!</b> As ruínas estão livres.', 'gold');
   if (m.type === 'kravenox') { Kvx.onKill(m); return; }
   if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') { Verme.onKill(m); return; }
   if (m.noRespawn || m.nid) return;                                     // os compartilhados renascem pelo servidor
@@ -1650,7 +1650,9 @@ function gainXp(n) {
 function hurtPlayer(m, mult = 1) {
   if (P.dead || P.dashT > 0 || (P.protT && time < P.protT)) return;          // dash ou proteção de chegada (Torre)
   if (Math.random() < stats.flee()) { floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
-  const dmg = Math.max(1, Math.round(m.d.atk * mult * rand(0.85, 1.15) - stats.def()));
+  // antes era só "ataque − defesa": com equipamento refinado a defesa passava do ataque dos bichos e cada golpe tirava 1
+  // (o Ludi não morria nunca). Agora a defesa corta muito, mas o golpe sempre leva pelo menos 40% do ataque.
+  const bruto = m.d.atk * mult * rand(0.85, 1.15), dmg = Math.max(1, Math.round(Math.max(bruto - stats.def(), bruto * 0.4)));
   P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
   floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp()); breakCast();
   if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; onDeath(); }
@@ -2248,7 +2250,33 @@ function separarMobs(dt) {
     if (!blocked(b.x + ux * k, b.z + uz * k, 0.4)) { b.x += ux * k; b.z += uz * k; }
   }
 }
+// mini chefes, alfas e chefes de campo chamam monstrinhos da região quando a luta começa (ideia do Ludi)
+function invocar(m, dt) {
+  if (m.invocado || m.d.world || !(m.d.mini || m.d.alfa || m.d.field) || P.dead) return;
+  if (m.hp >= m.maxHp || Math.hypot(m.x - P.x, m.z - P.z) > 22) return;              // só depois que você bate nele
+  if (m.invT === undefined) m.invT = 3;
+  if ((m.invT -= dt) > 0) return; m.invT = 14;
+  const meus = mobs.filter(o => o.chefeDono === m && !o.dead); if (meus.length >= 6) return;
+  let t = m.d.base && MOBDEF[m.d.base] ? m.d.base : null;
+  if (!t) { let bd = 1e9; for (const sp of SPAWNS) { const D = MOBDEF[sp.type]; if (!D || D.boss || D.mini || D.field || D.alfa) continue; const cx = sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, cz = sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2, d = Math.hypot(cx - m.x, cz - m.z); if (d < bd) { bd = d; t = sp.type; } } }
+  if (inTower(m.z) && m.towerFloor !== undefined) { const viz = mobs.find(o => o.towerFloor === m.towerFloor && !o.d.mini && !o.chefeDono); t = viz ? viz.type : t; }
+  if (!t) return;
+  const n = Math.min(3, 6 - meus.length), base = mobs.find(o => o.towerFloor === m.towerFloor && o.type === t && !o.d.mini && !o.chefeDono);
+  for (let k = 0; k < n; k++) {
+    const a = rand(0, TAU); let x = m.x + Math.sin(a) * 2.5, z = m.z + Math.cos(a) * 2.5; if (blocked(x, z)) { x = m.x; z = m.z; }
+    const o = spawnMob(t, null, { x, z }); o.chefeDono = m; o.invocado = true; o.noRespawn = true; o.state = 'chase';
+    const d0 = base ? base.d : o.d, kf = Math.max(1, m.d.lv - 2) / d0.lv;
+    o.d = { ...d0, lv: Math.max(1, m.d.lv - 2), hp: Math.round(d0.hp * (base ? 0.6 : Math.pow(kf, 1.5) * 0.6)), atk: Math.round(d0.atk * (base ? 0.8 : kf * 0.8)), xp: Math.round(d0.xp * (base ? 0.3 : kf * 0.3)), aggro: 30, respawn: 1e9, drops: [['red', 0.1]], name: 'Cria de ' + m.d.name };
+    o.hp = o.maxHp = o.d.hp; if (m.towerFloor !== undefined) o.towerFloor = m.towerFloor; if (m.mina) o.mina = true;
+    const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `${o.d.name} <small>Nv ${o.d.lv}</small>`;
+    burst(new THREE.Vector3(x, groundY(x, z) + 0.5, z), 0x9a5aff, 12, 3, 0.5);
+  }
+  ring(m.x, m.z, 4, 0x9a5aff, 0.6); Audio8.sfx('warp');
+  if (!m.invAviso) { m.invAviso = 1; log(`👾 <b>${m.d.name}</b> chamou ajudantes!`, 'bad'); }
+}
 function updateMob(m, dt) {
+  invocar(m, dt);
+  if (m.chefeDono && m.chefeDono.dead && !m.dead) { m.dead = true; mobs = mobs.filter(o => o !== m); scene.remove(m.model.g); m.lab.remove(); burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.5, m.z), 0x9a5aff, 10, 2, 0.4); return; }   // o chefe caiu: as crias somem
   // monstro compartilhado que zerou a vida: espera o servidor confirmar a morte sem atacar; sem resposta em 4 s, cai aqui mesmo
   if (m.morrendo) {
     m.moving = false; m.atkCd = Math.max(m.atkCd, 0.5);
