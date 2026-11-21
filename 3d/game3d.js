@@ -1810,7 +1810,7 @@ function nearestMob(r, cone = true) {
 function handPos() { const v = new THREE.Vector3(); (L.orb || L.handR).getWorldPosition(v); return v; }
 function attack() {
   if (P.dead || dialogOpen || P.atkCd > 0) return;
-  if (AUTO.on) autoStop('🚶 Parou para lutar.');                   // atacou: para de andar sozinho até a missão
+  // atacar não para a caminhada até a missão: dá para ir andando e batendo (só para com vida baixa)
   const c = CLS();
   P.atkCd = stats.aspd(); P.attackAnim = 1; P.sit = false; P.atkSeq = (P.atkSeq || 0) + 1;
   const k = c.rhythm ? applyRhythm(rhythm()) : 1;
@@ -1864,7 +1864,6 @@ function useSkill(i) {
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
   if (SKILLS[i].type === 'passiva') { log(`${SKILLS[i].icon} <b>${SKILLS[i].name}</b> é passiva: já vale sozinha, não precisa usar.`, 'sys'); return; }
-  if (AUTO.on) autoStop('🚶 Parou para lutar.');
   const L = P.skillLv[SKILLS[i].id] || 0;
   if (!L) { log(`${SKILLS[i].name} ainda não foi aprendida. Use a árvore de habilidades (${TOUCH ? '📜' : 'K'}).`, 'bad'); return; }
   let s = scaleSkill(SKILLS[i], L);
@@ -2196,7 +2195,7 @@ function updatePlayer(dt) {
       P.sit = false;
       let df = ((Math.atan2(d.x, d.z) - P.face + Math.PI) % TAU + TAU) % TAU - Math.PI;
       if (P.attackAnim <= 0.3) P.face += df * Math.min(1, dt * 10);
-      const sp = stats.speed(); vx = d.x * sp; vz = d.z * sp; P.moving = true;
+      const sp = stats.speed() * (P.attackAnim > 0.5 ? 0.5 : 1); vx = d.x * sp; vz = d.z * sp; P.moving = true;   // golpeando, anda mais devagar
     }
   }
   if (ix || iz) {
