@@ -703,3 +703,9 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 .icell.r5 { border-color: #3dffd2; background: rgba(61,255,210,.16); box-shadow: 0 0 10px rgba(61,255,210,.6); animation: prim 2s ease-in-out infinite; }
 .ibig.r5 { border-color: #3dffd2; box-shadow: 0 0 24px rgba(61,255,210,.65) inset, 0 0 18px rgba(61,255,210,.6); animation: prim 2s ease-in-out infinite; }
 @keyframes prim { 50% { box-shadow: 0 0 22px rgba(61,255,210,.9), 0 0 6px rgba(255,255,255,.5); } }
+/* lista de cartas para encaixar na peça equipada */
+#invwin .clist { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; max-height: 38vh; overflow-y: auto; }
+#invwin .clist > b { color: var(--gold); font-size: 13px; }
+#invwin .clist button { text-align: left; background: var(--glass2); color: var(--txt); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; font-weight: 700; cursor: pointer; }
+#invwin .clist button small { color: #c8c0d0; font-weight: 600; }
+#invwin .clist button em { font-style: normal; font-weight: 600; font-size: 12px; color: #9fe0a0; }

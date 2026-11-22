@@ -845,7 +845,10 @@ const Vida = (() => {
     const sc = setCount(); for (const st in sc) { const B = setBonus(st, sc[st]); if (B) v += B[k] || 0; }
     return v;
   };
-  let sel = null, tab = 'tudo', trashArm = null;
+  let sel = null, tab = 'tudo', trashArm = null, cardPick = null;
+  // cartas da mochila que cabem neste espaço (o anel vale para os dois anéis), as mais fortes primeiro
+  const forcaCarta = c => { const m = it(c).mods || {}; return (m.pow || 0) + (m.def || 0) + (m.hp || 0) / 10 + (m.sp || 0) / 12 + (m.crit || 0) * 300 + (m.spd || 0) * 300; };
+  const cartasPara = sl => Object.keys(P.inv).filter(c => P.inv[c] > 0 && ITEMS[c] && ITEMS[c].kind === 'carta' && (ITEMS[c].cslot === sl || (ITEMS[c].cslot === 'anel' && sl.startsWith('anel')))).sort((a, b) => forcaCarta(b) - forcaCarta(a));
   // abas da mochila (do lado direito)
   const TABS = [
     ['tudo', '🎒', 'Tudo', () => true],
@@ -908,7 +911,8 @@ const Vida = (() => {
         view = `<div class="iview"><div class="iv-art">${bigArt(I, id)}${cd ? `<div class="iv-mini">${cardArt(it(cd))}</div>` : ''}</div><div class="iv-txt">
           <b class="iv-n" style="color:${RARITY[I.rar || 0].c}">${nameOf(id)}</b><small>${RARITY[I.rar || 0].n} · ${slotName(sl.startsWith('anel') ? 'anel' : sl)} · equipado</small>
           <p>${modTxt(I.mods)}${refOf(id) ? `<br>🔨 Refino +${refOf(id)}: +${refOf(id) * 10}% de dano, defesa e HP` : ''}${I.set ? `<br>🔗 ${SETS[I.set].name} (${setTxt(I.set)})` : ''}${cd ? `<br>🃏 ${it(cd).name}: ${modTxt(it(cd).mods)}` : `<br><small>🃏 Espaço de carta vazio</small>`}</p>
-          <div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}<button data-a="unsel">Fechar</button></div></div></div>`;
+          <div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cartasPara(sl).length ? `<button data-a="cardlist" data-v="${sl}">🃏 ${cd ? 'Trocar' : 'Encaixar'} carta (${cartasPara(sl).length})</button>` : ''}${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}<button data-a="unsel">Fechar</button></div>
+          ${cardPick === sl ? `<div class="clist"><b>🃏 Cartas que cabem em ${slotName(sl.startsWith('anel') ? 'anel' : sl)}</b>${cartasPara(sl).map(c => `<button data-a="cardpick" data-v="${c}">${it(c).name} <small>×${P.inv[c]}</small><br><em>${modTxt(it(c).mods)}</em></button>`).join('')}<button data-a="cardlist" data-v="">← Voltar</button></div>` : ''}</div></div>`;
       } else det = `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
     } else if (sel && P.inv[sel] > 0) {
       const I = ITEMS[sel], btns = [];
@@ -962,6 +966,12 @@ const Vida = (() => {
     if (a === 'use') { use(v); if (!P.inv[v]) sel = null; }
     if (a === 'card' && sel && ITEMS[sel] && ITEMS[sel].kind === 'carta') {
       Audio8.sfx('anvil'); P.cards = P.cards || {}; if (P.cards[v]) add(P.cards[v], 1); P.cards[v] = sel; log(`🃏 Encaixou <b>${it(sel).name}</b> em ${SLOTS[v]}.`, 'gold'); Audio8.sfx('buff'); add(sel, -1); sel = 'eq:' + v; }
+    if (a === 'cardlist') cardPick = v || null;
+    else if (a !== 'cardpick') cardPick = null;
+    if (a === 'cardpick' && cardPick && P.inv[v] > 0 && P.equip[cardPick]) {
+      const sl = cardPick; P.cards = P.cards || {}; if (P.cards[sl]) add(P.cards[sl], 1); P.cards[sl] = v; add(v, -1);
+      Audio8.sfx('anvil'); Audio8.sfx('buff'); log(`🃏 Encaixou <b>${it(v).name}</b> em <b>${it(P.equip[sl]).name}</b>.`, 'gold'); cardPick = null; sel = 'eq:' + sl;
+    }
     if (a === 'uncard') { const c = P.cards && P.cards[v]; if (c) { add(c, 1); P.cards[v] = null; log(`Tirou <b>${it(c).name}</b>.`, 'sys'); } }
     if (a === 'trade') { closeInv(); return tradePick(); }
     if (a === 'stall') { closeInv(); return st.stall ? closeStall() : stallSetup(); }
