@@ -1024,7 +1024,7 @@ const MOBDEF = {
   besouro:   { name: 'Larva Cristalina', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Sombra Errante', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
   kravenox:  { name: 'Kravenox', lv: 90, hp: 5000000, atk: 1500, def: 70, perfura: 0.6, xp: 400000, zeny: [8000, 12000], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
-  vermeColosso: { name: 'Verme Colossal', lv: 100, hp: 900000, atk: 400, def: 85, xp: 260000, zeny: [15000, 25000], speed: 0, aggro: 0, rad: 6, respawn: 1e9, boss: true, world: true, drops: [['presa_verme', 1], ['presa_verme', 1], ['quitina_colossal', 0.5], ['blue', 1], ['red', 1]] },
+  vermeColosso: { name: 'Verme Colossal', lv: 100, hp: 4000000, atk: 1300, def: 85, perfura: 0.6, xp: 260000, zeny: [15000, 25000], speed: 0, aggro: 0, rad: 6, respawn: 1e9, boss: true, world: true, drops: [['presa_verme', 1], ['presa_verme', 1], ['quitina_colossal', 0.5], ['blue', 1], ['red', 1]] },
   larva:     { name: 'Larva Alongada', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
   esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
@@ -1562,7 +1562,8 @@ function dmgMob(m, base, crit, magic, color) {
   const gapLv = !m.d.boss && !m.d.mini && !m.d.field && !m.d.alfa ? Math.max(0, P.lv - (m.d.lv || 1)) : 0;
   let dmg = Math.max(1, Math.round(base * (1 + Math.min(2, gapLv * 0.04)) * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
-  if (m.type === 'kravenox') dmg = Math.max(1, Math.round(dmg * Kvx.escudo()));   // Escudo do Cisma: com pouca gente na arena ele quase não sente
+  if (m.type === 'kravenox') dmg = Math.max(1, Math.round(dmg * Kvx.escudo()));
+  if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') dmg = Math.max(1, Math.round(dmg * Verme.escudo()));   // o Verme tem o mesmo escudo   // Escudo do Cisma: com pouca gente na arena ele quase não sente
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
   if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.addDmg(dmg);
   if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
@@ -1651,7 +1652,7 @@ function gainXp(n) {
 }
 function hurtPlayer(m, mult = 1) {
   if (P.dead || P.dashT > 0 || (P.protT && time < P.protT)) return;          // dash ou proteção de chegada (Torre)
-  if (Math.random() < (m.type === 'kravenox' || m.servoKvx ? Math.min(0.15, stats.flee()) : stats.flee())) {   /* contra o Kravenox a esquiva quase não salva: fuja dos círculos */ floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
+  if (Math.random() < (m.type === 'kravenox' || m.servoKvx || m.type === 'vermeColosso' || m.servoVerme ? Math.min(0.15, stats.flee()) : stats.flee())) {   /* contra o Kravenox a esquiva quase não salva: fuja dos círculos */ floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
   // antes era só "ataque − defesa": com equipamento refinado a defesa passava do ataque dos bichos e cada golpe tirava 1
   // (o Ludi não morria nunca). Agora a defesa corta muito, mas o golpe sempre leva pelo menos 40% do ataque.
   const bruto = m.d.atk * mult * rand(0.85, 1.15), dmg = Math.max(1, Math.round(Math.max(bruto - stats.def(), bruto * (m.d.perfura || 0.4))));   // Abismo e Kravenox atravessam mais a defesa
@@ -1685,10 +1686,10 @@ let bossT = 0;
 function bossBar(dt) {
   if ((bossT -= dt) > 0) return; bossT = 0.12;
   let bar = $('bossbar');
-  if (!bar) { bar = document.createElement('div'); bar.id = 'bossbar'; bar.className = 'hidden'; bar.innerHTML = '<div class="kn"></div><div class="kt"><b></b><em></em></div>'; $('hud').appendChild(bar); }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'bossbar'; bar.className = 'hidden'; bar.innerHTML = '<div class="kn"></div><div class="kt"><b></b><em></em></div><div class="kesc"></div>'; $('hud').appendChild(bar); }
   let best = null, bd = 1e9;
   for (const m of mobs) {
-    if (m.dead || m.type === 'kravenox' || m.servoKvx || !(m.d.boss || m.d.mini || m.d.field || m.d.alfa || m.towerGuard)) continue;
+    if (m.dead || m.type === 'kravenox' || m.servoKvx || m.servoVerme || !(m.d.boss || m.d.mini || m.d.field || m.d.alfa || m.towerGuard)) continue;
     const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < 40 && d < bd) { bd = d; best = m; }
   }
   if (!best) { bar.classList.add('hidden'); return; }
@@ -1698,6 +1699,8 @@ function bossBar(dt) {
   bar.querySelector('.kt b').style.width = pct + '%';
   bar.querySelector('.kt em').textContent = `${Math.max(0, Math.ceil(best.hp)).toLocaleString('pt-BR')} / ${best.maxHp.toLocaleString('pt-BR')} (${pct < 1 && pct > 0 ? '<1' : Math.round(pct)}%)`;
   bar.classList.toggle('alfa', !!best.d.alfa); bar.classList.remove('hidden');
+  const ke = bar.querySelector('.kesc'), et = best.type === 'vermeColosso' && typeof Verme !== 'undefined' ? Verme.txtEscudo() : '';
+  if (ke.dataset.t !== et) { ke.dataset.t = et; ke.innerHTML = et; }
   const ev = $('evocard'), er = ev && !ev.classList.contains('hidden') && !ev.classList.contains('mini') ? ev.getBoundingClientRect() : null;
   bar.style.top = er && er.height ? (er.bottom + 4) + 'px' : '';                       // não fica embaixo do aviso grande de evolução
 }

@@ -11,7 +11,7 @@
 'use strict';
 const Verme = (() => {
   const REF = new Date(2026, 10, 22, 20, 0, 0).getTime();   // primeiro despertar: domingo, 22/11/2026, 20h
-  const CICLO = 14 * 864e5, JANELA = 2 * 3600e3, MIN_DANO = 3000, VIDA = 900000;
+  const CICLO = 14 * 864e5, JANELA = 2 * 3600e3, MIN_DANO = 12000, VIDA = 4000000;   // feito para MUITA gente (antes 900 mil: dava para um só)
   const forced = () => /verme/i.test(location.hash);
   const ciclo = (t = Date.now()) => Math.floor((t - REF) / CICLO);
   const inicio = c => REF + c * CICLO;
@@ -22,6 +22,11 @@ const Verme = (() => {
   const fundo = () => FL(AB_FUNDO);
   const naArena = () => inTower(P.z) && Tower.floor === AB_FUNDO;
 
+  // ---------------- Escudo do Abismo: como o Kravenox, com pouca gente no Fundo ele quase não sente o dano
+  const ESCUDO = [0.05, 0.05, 0.14, 0.27, 0.42, 0.58, 0.74, 0.88, 1];
+  let nArena = 1, nT = 0;
+  const escudo = () => ESCUDO[Math.min(ESCUDO.length - 1, nArena)];
+  const txtEscudo = () => escudo() >= 1 ? `⚔️ ${nArena} no Fundo: o Escudo do Abismo caiu!` : `🛡️ Escudo: só <b>${Math.round(escudo() * 100)}%</b> do dano entra · ${nArena} no Fundo (8 quebram)`;
   // ---------------- os 8 buracos do Fundo
   const BUR = [{ x: 0, z: 0 }, ...Array.from({ length: 7 }, (_, k) => ({ x: Math.sin(k / 7 * TAU) * 17, z: Math.cos(k / 7 * TAU) * 17 }))];
   let buracos = null;
@@ -94,7 +99,8 @@ const Verme = (() => {
     const F = fundo(); m.atkCd = 9;                                      // nada do ataque comum: só os golpes daqui
     m.est = m.est || 'sobe'; m.estT = (m.estT ?? 1.4) - dt;
     const furioso = m.hp < m.maxHp * 0.4;
-    if (m.est === 'sobe') { m.invul = true; m.sobe = Math.min(1, (m.sobe || 0) + dt / 1.2); if (m.estT <= 0) { m.est = 'luta'; m.estT = furioso ? 7 : 9; m.golpeT = 1; m.invul = false; m.sobe = 1; } }
+    if (!m.furiaDita && furioso) { m.furiaDita = true; if (naArena()) { banner('🐛 O VERME ENFURECEU 🐛'); log('🔥 <b>O Verme enfureceu!</b> Sai e mergulha mais rápido, cospe mais ácido e chama mais crias.', 'bad'); Audio8.sfx('boom'); if (typeof TREMOR !== 'undefined') TREMOR = 1.2; } }
+    if (m.est === 'sobe') { m.invul = true; m.sobe = Math.min(1, (m.sobe || 0) + dt / 1.2); if (m.estT <= 0) { m.est = 'luta'; m.estT = furioso ? 7 : 9; m.golpeT = 1; m.invul = false; m.sobe = 1; crias(m, furioso ? 4 : 2); } }
     else if (m.est === 'luta') {
       const a = alvoPerto(m); if (a) m.face = Math.atan2(a.x - m.x, a.z - m.z);
       if ((m.golpeT -= dt) <= 0 && a) {
@@ -114,6 +120,20 @@ const Verme = (() => {
     m.moving = false;
   }
 
+  // ---------------- crias: cada vez que ele sai da terra, larvas saem junto (no máximo 10 vivas)
+  function crias(m, n) {
+    if (!naArena()) return;
+    const vivas = mobs.filter(o => o.servoVerme && !o.dead).length; n = Math.min(n, 10 - vivas);
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, TAU), x = m.x + Math.sin(a) * 5, z = m.z + Math.cos(a) * 5, t = ['larvaAbismo', 'larvaAntiga', 'larvaCristal'][i % 3], c = spawnMob(t, null, { x, z }), d0 = c.d, kf = 92 / d0.lv;
+      c.d = { ...d0, name: 'Cria do Verme', lv: 92, hp: Math.round(d0.hp * Math.pow(kf, 1.5) * 3), atk: Math.round(d0.atk * kf * 1.5), def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * 0.5), aggro: 40, respawn: 1e9, perfura: 0.5,
+        drops: [['nucleo_abismo', 0.08], ['frag_cisma', 0.15], ['red', 0.2]] };
+      c.hp = c.maxHp = c.d.hp; c.state = 'chase'; c.noRespawn = true; c.towerFloor = AB_FUNDO; c.servoVerme = true;
+      const sp = c.lab.querySelector('span'); if (sp) sp.innerHTML = `Cria do Verme <small>Nv 92</small>`;
+      burst(new THREE.Vector3(x, groundY(x, z) + 1, z), 0x8a5a3a, 16, 3, 0.7);
+    }
+  }
+  function limparCrias() { for (const o of mobs.filter(o => o.servoVerme)) { o.dead = true; scene.remove(o.model.g); o.lab.remove(); } mobs = mobs.filter(o => !o.servoVerme); }
   // ---------------- vida compartilhada
   function addDmg(d) { const w = cicloId(); if (!P.vermeDmg || P.vermeDmg.w !== w) P.vermeDmg = { w, d: 0 }; P.vermeDmg.d += d; }
   const meuDano = () => P.vermeDmg && P.vermeDmg.w === cicloId() ? P.vermeDmg.d : 0;
@@ -129,16 +149,17 @@ const Verme = (() => {
     banner('🐛 O VERME COLOSSAL ACORDOU 🐛'); Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 350);
     log('🐛 <b style="color:#ff7a40">O VERME COLOSSAL ACORDOU</b> no Fundo do Abismo! Ele sai de um buraco, ataca e mergulha: corra até o <b>círculo vermelho</b>, onde a terra treme.', 'bad');
   }
-  function sumir() { if (boss) { mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); } boss = null; limparAvisos(); }
+  function sumir() { if (boss) { mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); } boss = null; limparAvisos(); limparCrias(); }
   function onKill(m) {
-    boss = null; limparAvisos();
+    boss = null; limparAvisos(); setTimeout(limparCrias, 1500);
     if (meuDano() < MIN_DANO && !forced()) { banner('🐛 O VERME COLOSSAL CAIU'); log(`🐛 O Verme Colossal caiu, mas você não lutou o bastante para o prêmio (pelo menos ${MIN_DANO.toLocaleString('pt-BR')} de dano).`, 'sys'); P.vermeCiclo = cicloId(); return; }
     P.vermeCiclo = cicloId(); P.vermeKills = (P.vermeKills || 0) + 1;
     banner('🏆 O VERME COLOSSAL FOI DERROTADO! 🏆'); Audio8.sfx('level');
     const MIT = ['lamina_verme', 'anel_ninho', 'couraca_verme'].sort(() => Math.random() - 0.5), ids = MIT.slice(0, Math.random() < 0.3 ? 3 : 2), id = ids[0];   // 2 garantidos (às vezes os 3)
-    for (const k of ids) P.inv[k] = (P.inv[k] || 0) + 1; P.inv.quitina_colossal = (P.inv.quitina_colossal || 0) + 5; P.inv.presa_verme = (P.inv.presa_verme || 0) + 15; P.zeny += 120000; P.inv.essencia = (P.inv.essencia || 0) + 10;
+    for (const k of ids) P.inv[k] = (P.inv[k] || 0) + 1; P.inv.quitina_colossal = (P.inv.quitina_colossal || 0) + 5; P.inv.presa_verme = (P.inv.presa_verme || 0) + 15;
+    P.inv.nucleo_abismo = (P.inv.nucleo_abismo || 0) + 20; P.inv.frag_cisma = (P.inv.frag_cisma || 0) + 15; P.inv.selo_forja = (P.inv.selo_forja || 0) + 3; P.inv.lagrima_soberano = (P.inv.lagrima_soberano || 0) + 1;   // materiais do ✨ Despertar P.zeny += 120000; P.inv.essencia = (P.inv.essencia || 0) + 10;
     P.title = 'Matador do Verme'; $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
-    log(`🏆 <b>O VERME COLOSSAL FOI DERROTADO!</b> Você recebeu ${ids.map(k => `<b>${ITEMS[k].ic} ${ITEMS[k].name}</b>`).join(' e ')}, 5 Quitinas Colossais, 15 Presas do Abismo, 10 Essências e <b>120.000 cr</b>. Título: « Matador do Verme ». Vitórias: ${P.vermeKills}.`, 'gold');
+    log(`🏆 <b>O VERME COLOSSAL FOI DERROTADO!</b> Você recebeu ${ids.map(k => `<b>${ITEMS[k].ic} ${ITEMS[k].name}</b>`).join(' e ')}, 20 🌑 Núcleos do Abismo, 15 🔺 Fragmentos, 3 🔰 Selos, 1 🩸 Lágrima do Soberano, 5 Quitinas Colossais, 15 Presas do Abismo, 10 Essências e <b>120.000 cr</b>. Título: « Matador do Verme ». Vitórias: ${P.vermeKills}.`, 'gold');
     log(`🐛 Ele volta a acordar em 15 dias: <b>${fmtData(proximo())}, às 20h</b>.`, 'sys');
     for (let i = 0; i < 16; i++) drops.push(makeDrop('zeny', irand(800, 1600), m.x + rand(-7, 7), m.z + rand(-7, 7)));
     for (let i = 0; i < 6; i++) setTimeout(() => ring(m.x, m.z, 4 + i * 3, [0xffcf40, 0xff6020][i % 2], 0.8), i * 200);
@@ -162,10 +183,11 @@ const Verme = (() => {
     }
     if (boss && boss.dead) boss = null;
     if (boss) {
+      if ((nT -= dt) <= 0) { nT = 1; const F = fundo(); nArena = (aqui ? 1 : 0) + (typeof Net !== 'undefined' && Net.perto ? Net.perto(F.x, F.z, 45) : 0); nArena = Math.max(1, nArena); }
       boss.hp = Math.min(boss.maxHp, VIDA - meuDano() - danoOutros());
       if (boss.hp <= 0 && !boss.dead) { boss.hp = 0; killMob(boss, meuDano() >= MIN_DANO || forced() ? {} : { semPremio: true }); if (meuDano() < MIN_DANO && !forced()) onKill(boss); }
     }
     tickAvisos(dt);
   }
-  return { modelo, ai, update, addDmg, onKill, pres, msgFundo, acordado, proximo, get ativo() { return !!boss; } };
+  return { modelo, ai, update, addDmg, onKill, pres, escudo, txtEscudo, msgFundo, acordado, proximo, get ativo() { return !!boss; } };
 })();

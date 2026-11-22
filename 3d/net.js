@@ -225,7 +225,7 @@ const Net = (() => {
   // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
   function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
   return { peers, get me() { return myPeer; },
-    init, update, kvxOthers, fbOthers, perto, say, tickMyBubble, fora, jaConectou: false,
+    init, update, kvxOthers, fbOthers, perto, peers: () => [...remotes.values()], say, tickMyBubble, fora, jaConectou: false,
     on(t, f) { handlers[t] = f; }, economia, get uso() { return room && room.uso ? room.uso : { in: 0, out: 0, t0: Date.now() }; }, send(o) { return !!(room && room.send && room.send(o)); },
     get pausa() { return !!room && room.servidor && (!room.aberta || !!foraMsg); },
     get connected() { return !!room && (!room.servidor || room.aberta); }, get count() { return remotes.size + 1; } };

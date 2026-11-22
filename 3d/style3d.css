@@ -695,3 +695,6 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 /* Escudo do Cisma: aviso embaixo da barra do Kravenox */
 #kvxbar .kesc { margin-top: 3px; font: 600 11px 'Nunito', sans-serif; color: #ffe0a0; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 #kvxbar .kesc b { color: #ff8a6a; }
+#bossbar .kesc { margin-top: 3px; font: 600 11px 'Nunito', sans-serif; color: #ffe0a0; text-shadow: 0 0 4px #000, 0 0 2px #000; }
+#bossbar .kesc:empty { display: none; }
+#bossbar .kesc b { color: #ff8a6a; }
