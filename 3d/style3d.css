@@ -670,9 +670,9 @@ body.touch .dmg.item { font-size: 11px; }
 .enc-seta.fechado { background: rgba(60,40,20,.9); }
 body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 /* Mina da Forja: relógio da corrida */
-#mina-hud { position: fixed; top: calc(52px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 4px 12px; border-radius: 10px; background: rgba(28,18,12,.85); border: 1px solid rgba(255,176,96,.6); color: #ffe0c0; font: 700 13px 'Nunito', sans-serif; pointer-events: none; white-space: nowrap; }
-#mina-hud .pouco { color: #ff6050; }
-#mina-hud.hidden { display: none; }
+.masm-hud { position: fixed; top: calc(52px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 4px 12px; border-radius: 10px; background: rgba(28,18,12,.85); border: 1px solid rgba(255,176,96,.6); color: #ffe0c0; font: 700 13px 'Nunito', sans-serif; pointer-events: none; white-space: nowrap; }
+.masm-hud .pouco { color: #ff6050; }
+.masm-hud.hidden { display: none; }
 /* forja do refino (Doran martelando) */
 #forja { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(6,4,10,.72); }
 #forja.hidden { display: none; }

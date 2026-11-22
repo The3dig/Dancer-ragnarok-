@@ -902,7 +902,7 @@ const Vida = (() => {
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl] || 'Peça';
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : `<span class="nopic">${iconeMob(t)}</span>`; };
     // carta desenhada: moldura dourada, retrato do monstro, bônus e onde encaixa
-    const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
+    const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${I.arte ? `<span class="nopic arte">${I.arte}</span>` : mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
     const bigArt = (I, id) => I.kind === 'carta' ? cardArt(I) : `<div class="ibig r${I.kind === 'equip' ? I.rar : 'x'}"><span>${I.ic}</span></div>`;
     if (sel && sel.startsWith('eq:')) {
       const sl = sel.slice(3), id = P.equip[sl], cd = P.cards && P.cards[sl];
