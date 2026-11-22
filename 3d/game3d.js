@@ -1073,6 +1073,7 @@ function mobModel(type) {
   const r = { g, mats };
   if (type === 'vermeColosso' && typeof Verme !== 'undefined') return Verme.modelo(r, mt);
   if (type === 'kravenox') return kravenoxModel(r, mt);                 // o Soberano em 3D (o desenho pixelado gigante ficava borrado)
+  if (typeof ModelosIA !== 'undefined' && ModelosIA.has(type)) return ModelosIA.mob(type, r);        // chefes refeitos em 3D com IA (Meshy)
   if (typeof Modelos3D !== 'undefined' && Modelos3D.has(type)) return Modelos3D.mob(type, r);   // monstros 3D do jogo de plataforma
   if (typeof SpriteKit !== 'undefined' && SpriteKit.ready && SPR_MOBS[type]) return spriteMob(type, r);
   if (['larva', 'verme', 'esfera', 'sentinela'].includes(type)) return towerMobModel(type, r, mt);

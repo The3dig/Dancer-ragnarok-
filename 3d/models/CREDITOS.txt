@@ -4,3 +4,7 @@ Modelos 3D (CC0 1.0 — domínio público, uso livre):
 - Kenney (https://www.kenney.nl): personagem "worker".
 Obtidos do pacote npm @netforge/asset-library-files (MIT; arte CC0).
 Animações extras removidas e arquivos convertidos para .js (base64) para funcionar offline.
+
+Modelos feitos com IA (Meshy, meshy.ai), gerados pelo Rone no app do Meshy:
+- Guerreiro Cristalizado (models/guerreiro_ia.js): reduzido de 2 milhões para 16 mil triângulos,
+  cores da textura passadas para os vértices e dividido em 5 peças para animar. Original: docs/modelos-ia.md.
