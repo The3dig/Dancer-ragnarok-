@@ -1,7 +1,9 @@
 // =====================================================================
 //  Masmorras "escape" (criadas para o jogo, não estão no livro): uma caverna
 //  fora do mapa, 3 ondas de monstros do seu nível e um chefe no fim, contra o
-//  relógio. O mesmo molde serve para:
+//  relógio. Dá para ir SOZINHO ou EM GRUPO (até 6): no grupo os monstros são
+//  os mesmos para todos (o servidor divide a vida, como nos mapas abertos), são
+//  mais fortes e mais numerosos, e o saque é bem maior. O mesmo molde serve para:
 //  - Mina da Forja (Ferreiro Doran): 🔶 Minério Rúnico, 🔷 Pedra de Têmpera e o 🔰 Selo da Forja;
 //  - Cripta das Cartas (Cartomante Zaíra, cartas.js): 🧩 Fragmentos Arcanos e, raramente, uma Carta Arcana.
 // =====================================================================
@@ -30,44 +32,81 @@ function criarMasmorra(C) {
   const BASE = () => Object.keys(MOBDEF).filter(t => { const d = MOBDEF[t]; return !d.boss && !d.mini && !d.world && !d.alfa && !d.field && d.drops && t !== 'fungolino'; });
   function escolher(L) { return BASE().map(t => [t, Math.abs(MOBDEF[t].lv - L)]).sort((a, b) => a[1] - b[1]).slice(0, 4).map(x => x[0]); }
   const nivel = () => Math.max(10, Math.min(100, P.lv));
-  function escalar(m, L, chefe) {
+  // grupo de n pessoas: vida x(1 + 0,8 por pessoa a mais) e x1,3; ataque x1,35; chefe ainda x1,5; XP e saque multiplicados
+  const fatorVida = n => n > 1 ? (1 + 0.8 * (n - 1)) * 1.3 : 1;
+  function multDrops(l, n) { if (n <= 1) return l; const k = 1.6 * n, out = []; for (const [id, ch] of l) { let c = ch * k; while (c >= 1) { out.push([id, 1]); c -= 1; } if (c > 0.01) out.push([id, c]); } return out; }
+  function escalar(m, L, chefe, n = 1) {
     const d0 = m.d, kf = L / d0.lv, xp = typeof Tower !== 'undefined' && Tower.xpCampo ? Tower.xpCampo(L) : d0.xp;
-    m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.6) * (chefe ? 14 : 1)), atk: Math.round(d0.atk * kf * (chefe ? 1.4 : 1)), def: Math.round(d0.def * kf), xp: Math.round(xp * (chefe ? 6 : 0.7)),
-      zeny: [Math.round(d0.zeny[0] * kf), Math.round(d0.zeny[1] * kf)], aggro: 30, respawn: 1e9, drops: C.drops(chefe) };
-    if (chefe) { m.d.name = C.chefeNome; m.d.mini = true; }
+    m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.6) * (chefe ? 14 : 1) * fatorVida(n) * (chefe && n > 1 ? 1.5 : 1)), atk: Math.round(d0.atk * kf * (chefe ? 1.4 : 1) * (n > 1 ? 1.35 : 1)), def: Math.round(d0.def * kf), xp: Math.round(xp * (chefe ? 6 : 0.7) * (n > 1 ? 1.3 * n : 1)),
+      zeny: [Math.round(d0.zeny[0] * kf), Math.round(d0.zeny[1] * kf)], aggro: 30, respawn: 1e9, drops: multDrops(C.drops(chefe), n) };
+    if (chefe) { m.d.name = C.chefeNome; m.d.mini = true; m.model.g.scale.multiplyScalar(1.6); }
     m.hp = m.maxHp = m.d.hp; m.towerFloor = C.zona; m.noRespawn = true; m.masm = C.zona;
     const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${m.d.name} <small>Nv ${L}</small>`;
   }
+  // grupo: os monstros nascem no jogo de quem começou e vão para o servidor com um nome que diz tudo:
+  // dg:<zona>:<grupo>:<corrida>:<nível>:<tamanho do grupo>:<chefe 0/1>:<onda>:<número>
+  const novoDg = (tipo, x, z, L, chefeF, i, k) => {
+    const G = run.grupo, id = `${G.id}:${L}:${G.n}:${chefeF ? 1 : 0}:${i}:${k}`, m = spawnMob(tipo, null, { x, z });
+    escalar(m, L, chefeF, G.n); m.nid = id; m.dg = G.id; m.dono = Net.me; m.nx = m.x; m.nz = m.z; return m;
+  };
+  const semear = l => { for (let i = 0; i < l.length; i += 100) Net.send({ t: 'semente+', l: l.slice(i, i + 100).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: 3600, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) }); };
   function onda(i) {
-    const L = nivel(), tipos = escolher(L), n = ONDAS[i];
+    const L = nivel(), tipos = escolher(L), G = run.grupo, n = G ? Math.round(ONDAS[i] * (1 + 0.15 * (G.n - 1))) : ONDAS[i], novos = [];
     for (let k = 0; k < n; k++) {
-      const a = k / n * TAU + i, r = R * (0.35 + (k % 3) * 0.18);
-      escalar(spawnMob(tipos[k % tipos.length], null, { x: M.x + Math.sin(a) * r, z: M.z + Math.cos(a) * r * 0.85 - 2 }), L, false);
+      const a = k / n * TAU + i, r = R * (0.35 + (k % 3) * 0.18), x = M.x + Math.sin(a) * r, z = M.z + Math.cos(a) * r * 0.85 - 2;
+      if (G) novos.push(novoDg(tipos[k % tipos.length], x, z, L, false, i, k)); else escalar(spawnMob(tipos[k % tipos.length], null, { x, z }), L, false);
     }
+    if (G) semear(novos);
     banner(`ONDA ${i + 1} DE ${ONDAS.length}`);
     log(`${C.icone} <b>Onda ${i + 1} de ${ONDAS.length}:</b> ${n} criaturas ${C.txtOnda || 'saíram das rachaduras'}.`, 'bad');
   }
   function chefe() {
-    const L = nivel() + 3, m = spawnMob(escolher(L)[0], null, { x: M.x, z: M.z - 6 });
-    escalar(m, L, true); m.model.g.scale.multiplyScalar(1.6);
+    const L = nivel() + 3;
+    if (run.grupo) semear([novoDg(escolher(L)[0], M.x, M.z - 6, L, true, 9, 0)]);
+    else escalar(spawnMob(escolher(L)[0], null, { x: M.x, z: M.z - 6 }), L, true);
     banner(C.chefeNome.toUpperCase()); Audio8.sfx('boom'); log(C.msgChefe, 'bad');
   }
   const vivos = () => mobs.filter(m => m.masm === C.zona && !m.dead);
   function limpar() { for (const m of mobs.filter(m => m.masm === C.zona)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => m.masm !== C.zona); }
+  // monstro do grupo que nasceu no jogo de outro companheiro (chega pelo servidor)
+  function criarRemoto(o) {
+    const p = o.id.split(':'); if (p[1] !== C.zona || p[2] !== P.grupo) return null;
+    const m = spawnMob(o.type, null, { x: o.x, z: o.z }); escalar(m, +p[4], p[6] === '1', +p[5]);
+    m.nid = o.id; m.dg = p.slice(0, 4).join(':'); m.dono = o.dono; m.nx = o.x; m.nz = o.z; m.hp = Math.min(m.maxHp, o.hp ?? m.maxHp);
+    return m;
+  }
 
   // ---------------- entrar e sair
-  function entrar() {
+  // corrida do grupo que um companheiro começou (lida da presença dele)
+  function corridaDoGrupo() {
+    if (!P.grupo || typeof Grupo === 'undefined') return null;
+    for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === C.zona && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
+    return null;
+  }
+  function entrar(modo) {
     if (C.minLv && P.lv < C.minLv) { log(`${C.icone} A <b>${C.nome}</b> é para o nível ${C.minLv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
+    let grupo = null;
+    if (modo === 'grupo') {
+      const outra = corridaDoGrupo();
+      if (outra) grupo = { id: outra.id, n: outra.n, host: false, fimMs: outra.fim, de: outra.nome };
+      else {
+        const M_ = typeof Grupo !== 'undefined' ? Grupo.membros() : [];
+        if (!P.grupo || !M_.length || !Net.connected) { log(`${C.icone} Para ir em grupo, monte um grupo no 👥 (2 a 6 pessoas, todos on-line).`, 'bad'); Audio8.sfx('miss'); return; }
+        grupo = { id: `dg:${C.zona}:${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true, fimMs: Date.now() + TEMPO * 1000 };
+      }
+    }
     if (typeof autoStop === 'function') autoStop('');
     limpar();
     P.x = ENTRADA.x; P.z = ENTRADA.z; P.y = M.y; P.face = Math.PI; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.dist = Math.min(camS.dist || 9, 11);
     P.protT = time + 3; Audio8.sfx('warp'); leaveT = 1.5;
-    run = { onda: -1, fim: time + TEMPO, espera: 3, chefe: false, acabou: false };
-    banner(`${C.icone} ${C.nome.toUpperCase()}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
+    run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo };
+    banner(`${C.icone} ${C.nome.toUpperCase()}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
+    if (grupo) log(grupo.host ? `👥 <b>Corrida em grupo (${grupo.n} pessoas):</b> monstros mais fortes e em maior número, saque bem maior. Seus companheiros entram falando com o mesmo NPC.` : `👥 Você entrou na corrida do grupo de <b>${grupo.de}</b>.`, 'gold');
     hud(true);
   }
+  function fimGrupo() { if (run && run.grupo && run.grupo.host && Net.connected) Net.send({ t: 'dgfim', pref: run.grupo.id + ':' }); }
   function sair(msg) {
-    limpar(); run = null; hud(false);
+    fimGrupo(); limpar(); run = null; hud(false);
     P.x = C.saida.x; P.z = C.saida.z; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; Audio8.sfx('warp'); leaveT = 1.5;
     if (msg) log(msg, 'sys');
   }
@@ -80,13 +119,20 @@ function criarMasmorra(C) {
     if (tema.update) tema.update(dt);
     luzSaida.material.opacity = 0.45 + Math.sin(time * 2) * 0.15;
     const dentro = inTower(P.z) && zoneOf(P.x, P.z) === C.zona;
-    if (!dentro) { if (run) { limpar(); run = null; hud(false); } return; }
+    if (!dentro) { if (run) { fimGrupo(); limpar(); run = null; hud(false); } return; }
     if (!run) run = { onda: ONDAS.length, fim: time + 1, espera: 0, chefe: true, acabou: true };   // voltou de outro jeito (asa, morte): só a saída
+    const G = run.grupo;
+    if (G && !G.host) {                                                // companheiro: segue o relógio e as ondas de quem começou
+      const h = corridaDoGrupo();
+      if (h && h.id === G.id) { run.onda = h.onda; run.chefe = h.chefe; run.fim = time + (h.fim - Date.now()) / 1000; G.vistoT = time; }
+      else if (time - (G.vistoT || time) > 8 || (!h && !G.vistoT)) { run.acabou = true; G.host = null; log('👥 A corrida do grupo acabou (quem começou saiu ou a masmorra foi limpa). Saia pelo arco de luz.', 'sys'); }
+    }
     const falta = run.fim - time, v = vivos().length;
     hudEl.innerHTML = run.acabou ? `${C.icone} ${C.nome}: limpa · saia pelo arco de luz` : `${C.icone} ${run.chefe ? C.chefeCurto : 'Onda ' + Math.max(1, run.onda + 1) + '/' + ONDAS.length} · 👾 ${v} · <b class="${falta < 60 ? 'pouco' : ''}">⏳ ${mmss(falta)}</b>`;
     if (!run.acabou && falta <= 0 && !P.dead) { Audio8.sfx('boom'); sair(C.msgDesabou); return; }
-    if (!run.acabou && !P.dead && v === 0 && (run.espera -= dt) <= 0) {
-      if (run.chefe) { run.acabou = true; Audio8.sfx('level'); banner(`${C.nome.toUpperCase()}: LIMPA!`); log(C.msgLimpa, 'gold'); }
+    if (G && !G.host) { /* as ondas vêm do jogo de quem começou */ }
+    else if (!run.acabou && !P.dead && v === 0 && (run.espera -= dt) <= 0) {
+      if (run.chefe) { run.acabou = true; fimGrupo(); Audio8.sfx('level'); banner(`${C.nome.toUpperCase()}: LIMPA!`); log(C.msgLimpa, 'gold'); }
       else if (run.onda + 1 < ONDAS.length) { run.onda++; onda(run.onda); run.espera = 2.5; }
       else { run.chefe = true; chefe(); run.espera = 2.5; }
     }
@@ -99,10 +145,17 @@ function criarMasmorra(C) {
     if (run && !run.acabou) mg.fillText(`⏳ ${mmss(run.fim - time)}`, W / 2, H / 2 + 4);
     mg.font = '11px sans-serif'; mg.fillStyle = '#c8b8a8'; mg.fillText(run && run.acabou ? 'limpa' : run && run.chefe ? C.chefeCurto : run ? `onda ${Math.max(1, run.onda + 1)} de ${ONDAS.length}` : '', W / 2, H / 2 + 22); mg.textAlign = 'left';
   }
-  const api = { update, minimap, entrar, sair, saida: C.saida, get correndo() { return !!(run && !run.acabou); } };
+  // o que vai na presença de quem começou a corrida em grupo (os companheiros leem)
+  function pres() { const G = run && run.grupo; return G && G.host ? { id: G.id, z: C.zona, n: G.n, fim: Math.round(Date.now() + (run.fim - time) * 1000), onda: run.onda, chefe: run.chefe, acabou: run.acabou } : null; }
+  const api = { update, minimap, entrar, sair, criarRemoto, pres, corridaDoGrupo, saida: C.saida, get correndo() { return !!(run && !run.acabou); } };
   MASMORRAS[C.zona] = api;
   return api;
 }
+
+// presença: a corrida em grupo que eu comecei (uma de cada vez)
+function dgPres() { for (const k in MASMORRAS) { const p = MASMORRAS[k].pres(); if (p) return { dg: p }; } return { dg: null }; }
+// monstro "dg:..." que chegou do servidor: só cria se for do meu grupo e da masmorra certa
+function dgCriar(o) { const z = String(o.id).split(':')[1]; return MASMORRAS[z] ? MASMORRAS[z].criarRemoto(o) : null; }
 
 // ---------------- Mina da Forja (Ferreiro Doran): materiais do refino
 const Minas = criarMasmorra({

@@ -74,7 +74,8 @@ const Cartas = (() => {
     dialog('💬 Cartomante Zaíra', `${eu ? `Ah, <b>${eu}</b>... ` : ''}Toda carta tem um pedaço de alma. Traga os 🧩 <b>Fragmentos Arcanos</b> da <b>Cripta das Cartas</b> e eu monto a carta do monstro que você quiser. Carta que não serve, eu quebro e devolvo os fragmentos.<br><small>As <b>Cartas Arcanas</b> eu não sei fazer: só a Cripta dá, e muito raramente. Você tem <b>${frag()} 🧩</b>.</small>`, [
       { label: '🃏 Montar carta de monstro', fn: () => { montar(); return true; } },
       { label: '💔 Quebrar cartas (viram 🧩 fragmentos)', fn: () => { quebrar(); return true; } },
-      { label: '🏛️ Entrar na Cripta das Cartas (nível 30+)', fn: () => { Cripta.entrar(); } },
+      { label: '🏛️ Cripta das Cartas: sozinho (nível 30+)', fn: () => { Cripta.entrar(); } },
+      { label: Cripta.corridaDoGrupo() ? `👥 Entrar na Cripta com o seu grupo (${Cripta.corridaDoGrupo().nome} já começou)` : '👥 Cripta das Cartas em grupo (2 a 6: mais difícil, saque bem maior)', fn: () => { Cripta.entrar('grupo'); } },
       { label: 'Até mais' }]);
   }
   function montar(slot) {

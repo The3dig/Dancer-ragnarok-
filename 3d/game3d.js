@@ -2262,7 +2262,7 @@ function separarMobs(dt) {
 }
 // mini chefes, alfas e chefes de campo chamam monstrinhos da região quando a luta começa (ideia do Ludi)
 function invocar(m, dt) {
-  if (m.invocado || m.servoKvx || m.d.world || !(m.d.mini || m.d.alfa || m.d.field) || P.dead) return;
+  if (m.invocado || m.servoKvx || m.dg || m.d.world || !(m.d.mini || m.d.alfa || m.d.field) || P.dead) return;
   if (m.hp >= m.maxHp || Math.hypot(m.x - P.x, m.z - P.z) > 22) return;              // só depois que você bate nele
   if (m.invT === undefined) m.invT = 3;
   if ((m.invT -= dt) > 0) return; m.invT = 14;

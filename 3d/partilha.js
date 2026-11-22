@@ -22,6 +22,7 @@ const Partilha = (() => {
   function tirar(m) { m.dead = true; mobs = mobs.filter(o => o !== m); scene.remove(m.model.g); m.lab.remove(); }
   function spawnDe(id) { const si = parseInt(id, 10), s = SPAWNS[si]; return s || null; }
   function criar(o) {
+    if (String(o.id).startsWith('dg:')) return MOBDEF[o.type] && typeof dgCriar === 'function' ? dgCriar(o) : null;   // masmorra em grupo
     const s = spawnDe(o.id); if (!s || !MOBDEF[o.type]) return null;
     const m = spawnMob(o.type, s.area, { x: o.x, z: o.z });
     m.nid = o.id; m.area = s.area; m.at = s.at; m.sx = o.x; m.sz = o.z;
@@ -42,7 +43,7 @@ const Partilha = (() => {
     }
     // monstros que o servidor ainda não conhece (lugar novo, versão nova): manda para ele em vez de apagar
     const novos = [];
-    for (const [id, m] of loc) if (!vistos.has(id)) { if (m.dono === undefined || m.dono === null) { m.dono = me(); novos.push(m); } else tirar(m); }
+    for (const [id, m] of loc) if (!vistos.has(id)) { if (m.dg) continue; if (m.dono === undefined || m.dono === null) { m.dono = me(); novos.push(m); } else tirar(m); }
     for (let i = 0; i < novos.length; i += 150) Net.send({ t: 'semente+', l: novos.slice(i, i + 150).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
   }
   function semente() {
@@ -85,6 +86,7 @@ const Partilha = (() => {
       Net.send({ t: 'nasceu', id: m.id, x: +mb.x.toFixed(2), z: +mb.z.toFixed(2) });
     });
     Net.on('caiu', () => { });
+    Net.on('dgfim', m => { for (const mb of mobs.filter(x => x.nid && x.nid.startsWith(m.pref))) tirar(mb); });   // a corrida em grupo acabou
     Net.on('some', m => { const mb = porId().get(m.id); if (mb) { mortos.set(m.id, mb.type); tirar(mb); } });   // o servidor diz que ele já tinha morrido
   }
   // ---------------- o que eu mando

@@ -344,6 +344,8 @@ export class Mundo {
         if (!o || typeof o.id !== "string" || typeof o.type !== "string" || this.mobs.has(o.id) || this.mobs.size >= 1500) continue;
         const max = Math.max(1, Math.min(5e6, Number(o.max) || 1));
         const mob = { id: o.id, type: o.type, max, hp: Math.min(max, Number(o.hp) || max), resp: Math.max(5, Math.min(3600, Number(o.resp) || 20)), x: +o.x || 0, z: +o.z || 0, f: 0, st: 0, vivo: true, volta: 0, dono: d.peer, dano: {} };
+        // monstro de masmorra em grupo ("dg:<zona>:<grupo>:..."): só o grupo controla, some quando morre e expira em 20 min
+        if (o.id.startsWith("dg:")) { mob.gp = o.id.split(":")[2] || ""; mob.criado = agora; }
         this.mobs.set(o.id, mob);
         this.todos({ t: "mundo1", mob: { id: mob.id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono } }, ws);
       }
@@ -373,7 +375,14 @@ export class Mundo {
         mob.hp = 0; mob.vivo = false; mob.volta = agora + mob.resp * 1000;
         this.todos({ t: "morre", id: mob.id, by: d.peer, dano: mob.dano });
         mob.dano = {};
+        if (mob.gp !== undefined) this.mobs.delete(mob.id);                // masmorra: não renasce, sai da lista
+
       } else this.todos({ t: "hp", id: mob.id, hp: mob.hp, by: d.peer });
+    } else if (m.t === "dgfim" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 6) {
+      // a corrida da masmorra em grupo acabou: tira os monstros que sobraram
+      const fora = []; for (const id of this.mobs.keys()) if (id.startsWith(m.pref)) fora.push(id);
+      for (const id of fora) this.mobs.delete(id);
+      if (fora.length) this.todos({ t: "dgfim", pref: m.pref });
     } else if (m.t === "cura" && typeof m.id === "string") {
       const mob = this.mobs.get(m.id);
       if (mob && mob.vivo && mob.dono === d.peer) { mob.hp = Math.max(1, Math.min(mob.max, Number(m.hp) || mob.hp)); mob.dano = {}; this.todos({ t: "hp", id: mob.id, hp: mob.hp, by: null }); }
@@ -390,12 +399,19 @@ export class Mundo {
 
   tique(agora) {
     const gente = [];
-    for (const ws of this.vivos()) { const d = this.dados(ws); if (d.peer && d.s && typeof d.s.x === "number" && d.s.st !== "d") gente.push({ peer: d.peer, x: d.s.x, z: d.s.z }); }
+    for (const ws of this.vivos()) { const d = this.dados(ws); if (d.peer && d.s && typeof d.s.x === "number" && d.s.st !== "d") gente.push({ peer: d.peer, x: d.s.x, z: d.s.z, gp: d.s.gp || null }); }
     const todosPeers = new Set(this.vivos().map((ws) => this.dados(ws).peer));
     if (!gente.length) return;
     const perto = (x, z) => { let b = null, bd = 1e9; for (const g of gente) { const dd = Math.hypot(g.x - x, g.z - z); if (dd < bd) { bd = dd; b = g; } } return [b, bd]; };
     const mud = [];
-    for (const mob of this.mobs.values()) {
+    for (const [id, mob] of this.mobs) {
+      if (mob.gp !== undefined) {                                         // masmorra em grupo: expira e só passa entre o grupo
+        if (agora - mob.criado > 20 * 60e3) { this.mobs.delete(id); continue; }
+        const doGrupo = gente.filter((g) => g.gp === mob.gp); if (!doGrupo.length) continue;
+        let b = null, bd = 1e9; for (const g of doGrupo) { const dd = Math.hypot(g.x - mob.x, g.z - mob.z); if (dd < bd) { bd = dd; b = g; } }
+        if (!doGrupo.some((g) => g.peer === mob.dono) || (b.peer !== mob.dono && bd + 8 < Math.hypot((doGrupo.find((g) => g.peer === mob.dono) || b).x - mob.x, (doGrupo.find((g) => g.peer === mob.dono) || b).z - mob.z))) { mob.dono = b.peer; mud.push([mob.id, b.peer]); }
+        continue;
+      }
       const [g, dd] = perto(mob.x, mob.z);
       let dono = mob.dono;
       if (!todosPeers.has(dono)) dono = g.peer;
