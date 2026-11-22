@@ -2,6 +2,11 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 22/11
+
+- **✨ Despertar ★: o melhor equipamento ainda pode ficar melhor**: Quem já tem as peças Míticas agora tem por que voltar à Torre, ao Abismo e ao Kravenox: com o **Ferreiro Doran** (✨ Despertar equipamento) cada peça sobe de **★1 a ★10**, e cada estrela soma **8% de TODOS os atributos** dela (no ★10, +80%), junto com o refino. Materiais: **🔺 Fragmento do Cisma** (guardiões e andares altos da **Torre**), **🌑 Núcleo do Abismo** (só no **Abismo**) e **🩸 Lágrima do Soberano** (só do **Kravenox**, toda semana). Se falhar, perde os materiais, mas a peça não quebra. A Torre e o Abismo também passaram a soltar **🔶 Minério**, **🔷 Têmpera** e **🔰 Selo da Forja** para o refino até +15.
+- **☠ Kravenox agora é para MUITA gente junta**: O Ludi derrubou o Kravenox sozinho, e um chefe semanal não pode ser assim. Agora: **🛡️ Escudo do Cisma**: quanto menos gente na arena, menos dano ele sente (sozinho, só **5%**; com 4, 42%; com **8 ou mais o escudo cai**). A barra dele mostra quantos estão na arena. **Vida:** 5 milhões. **Golpes** muito mais fortes, que atravessam a defesa, e a esquiva quase não salva: **fuja dos círculos**. Generais do Cisma e servos bem mais duros. **Visual novo:** o Kravenox agora é a criatura de espinhos em 3D (o desenho pixelado gigante ficava borrado) e os **meteoros** são rochas em brasa com rastro de fogo. **🕳️ Abismo do Cisma** muito mais perigoso: monstros com quase 3x a vida, mais ataque e mais monstros por andar. **🐾 Mascote:** anda no seu passo e não afunda mais na escada.
+
 ## 21/11
 
 - **✕ Botão de fechar nas janelas**: As janelas de conversa, o diário e os quadros agora têm um **✕ no canto de cima**: não precisa mais rolar até o "Fechar" no meio da luta. No controle, o **B** continua fechando. **Diário:** quando os 6 contratos de caça do dia já foram usados, eles não aparecem mais como disponíveis (voltam amanhã).
