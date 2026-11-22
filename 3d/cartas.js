@@ -25,7 +25,7 @@ const Cartas = (() => {
   // ---------------- a Cripta das Cartas (o mesmo molde da Mina da Forja)
   const Cripta = criarMasmorra({
     zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 30,
-    saida: { x: VIL.x - 9, z: VIL.z + 15 },                              // na frente da Cartomante, em Solmira
+    saida: { x: VIL.x - 12.5, z: VIL.z + 5 },                            // na frente da tenda da Cartomante, em Solmira
     chefeNome: 'Guardião das Cartas', chefeCurto: 'Guardião', txtOnda: 'saíram das cartas espalhadas',
     corPedra: new THREE.Color(0.42, 0.36, 0.55), corTeto: 0x120a1c, corSaida: 0xd8b8ff, corMapa: '#160e22', corTitulo: '#c89aff',
     moldura: new THREE.MeshLambertMaterial({ color: 0x3a2850 }),
@@ -58,6 +58,26 @@ const Cartas = (() => {
     },
   });
 
+  // ---------------- a tenda da Cartomante (a oeste da praça de Solmira): pano roxo, faixas douradas, cartas na entrada
+  {
+    const tx = VIL.x - 19, tz = VIL.z + 5, g = new THREE.Group(); g.position.set(tx, groundY(tx, tz), tz); g.rotation.y = Math.PI / 2; scene.add(g);   // a entrada olha para a praça
+    const pano = new THREE.MeshLambertMaterial({ color: 0x5a2a8a, side: THREE.DoubleSide }), ouro = new THREE.MeshLambertMaterial({ color: 0xd8a840 }), madeira = new THREE.MeshLambertMaterial({ color: 0x5a3a24 });
+    const teto = new THREE.Mesh(new THREE.ConeGeometry(3.6, 3.2, 8, 1, true), pano); teto.position.y = 4.1; g.add(teto);
+    const parede = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.6, 2.5, 8, 1, true, 0.55, TAU - 1.1), pano); parede.position.y = 1.25; parede.rotation.y = -0.45 + Math.PI; g.add(parede);
+    const aro = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.12, 6, 32), ouro); aro.rotation.x = Math.PI / 2; aro.position.y = 2.5; g.add(aro);   // aro dourado na beira do telhado
+    const bola = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), ouro); bola.position.y = 5.75; g.add(bola);
+    const mastro = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 6.4), madeira); mastro.position.y = 3.2; g.add(mastro);
+    const bandeira = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), new THREE.MeshLambertMaterial({ color: 0xd8a840, side: THREE.DoubleSide })); bandeira.position.set(0.55, 6.1, 0); g.add(bandeira);
+    // placa com a carta na entrada
+    const c = document.createElement('canvas'); c.width = 128; c.height = 176; const x = c.getContext('2d');
+    x.fillStyle = '#f0e2c0'; x.fillRect(0, 0, 128, 176); x.strokeStyle = '#8a5ac8'; x.lineWidth = 10; x.strokeRect(5, 5, 118, 166); x.fillStyle = '#6a3aa8'; x.font = 'bold 76px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('✦', 64, 80);
+    x.font = 'bold 18px Georgia'; x.fillText('CARTAS', 64, 150);
+    const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
+    const placa = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false })); placa.position.set(2.2, 2.0, 3.0); placa.rotation.y = 0.5; g.add(placa);
+    const poste = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.4, 0.12), madeira); poste.position.set(2.2, 0.7, 3.0); g.add(poste);
+    const luz = new THREE.PointLight(0xb080ff, 0.9, 10); luz.position.set(0, 2, 2.5); g.add(luz);
+    addOb(tx, tz, 3.4);
+  }
   // ---------------- a Cartomante Zaíra
   // - MONTA cartas de monstro que já existem (as Cartas Arcanas não: essas só caem na Cripta), por muitos e muitos fragmentos;
   //   a carta montada sai Simples, Forte, Invocada ou Suprema, sorteada como no drop.

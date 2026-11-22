@@ -10,8 +10,8 @@
 'use strict';
 function criarMasmorra(C) {
   const M = C.lugar, R = M.r, ONDAS = C.ondas, TEMPO = C.tempo;
-  const ENTRADA = { x: M.x, z: M.z + R - 3 };                          // chegada (e saída) dentro da caverna
-  let run = null, leaveT = 0;
+  const ENTRADA = { x: M.x, z: M.z + R - 6.5 };                        // chegada: bem longe do arco da saída (antes caía em cima dele e já saía)
+  let run = null, leaveT = 0, saidaArmada = false;                   // o arco só leva para fora depois que você se afastou dele
 
   // ---------------- a caverna (paredes, chão, teto e o arco de luz da saída); o resto vem do tema
   const g = new THREE.Group(); g.position.set(M.x, M.y, M.z); scene.add(g);
@@ -98,7 +98,7 @@ function criarMasmorra(C) {
     if (typeof autoStop === 'function') autoStop('');
     limpar();
     P.x = ENTRADA.x; P.z = ENTRADA.z; P.y = M.y; P.face = Math.PI; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.dist = Math.min(camS.dist || 9, 11);
-    P.protT = time + 3; Audio8.sfx('warp'); leaveT = 1.5;
+    P.protT = time + 3; Audio8.sfx('warp'); leaveT = 1.5; saidaArmada = false;
     run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo };
     banner(`${C.icone} ${C.nome.toUpperCase()}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
     if (grupo) log(grupo.host ? `👥 <b>Corrida em grupo (${grupo.n} pessoas):</b> monstros mais fortes e em maior número, saque bem maior. Seus companheiros entram falando com o mesmo NPC.` : `👥 Você entrou na corrida do grupo de <b>${grupo.de}</b>.`, 'gold');
@@ -136,7 +136,8 @@ function criarMasmorra(C) {
       else if (run.onda + 1 < ONDAS.length) { run.onda++; onda(run.onda); run.espera = 2.5; }
       else { run.chefe = true; chefe(); run.espera = 2.5; }
     }
-    if (leaveT <= 0 && !P.dead && Math.hypot(P.x - SAIDA_IN.x, P.z - SAIDA_IN.z) < 1.6) sair(run.acabou ? `${C.icone} Você saiu da ${C.nome}.` : `${C.icone} Você saiu da ${C.nome} antes do fim (os monstros que sobraram ficaram lá).`);
+    const dSaida = Math.hypot(P.x - SAIDA_IN.x, P.z - SAIDA_IN.z); if (dSaida > 4) saidaArmada = true;
+    if (leaveT <= 0 && saidaArmada && !P.dead && dSaida < 1.6) sair(run.acabou ? `${C.icone} Você saiu da ${C.nome}.` : `${C.icone} Você saiu da ${C.nome} antes do fim (os monstros que sobraram ficaram lá).`);
   }
   function minimap(mg) {
     const W = mg.canvas.width, H = mg.canvas.height; mg.fillStyle = C.corMapa || '#1c1410'; mg.fillRect(0, 0, W, H);

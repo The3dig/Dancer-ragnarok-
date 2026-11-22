@@ -1232,7 +1232,7 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
-  { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 9, z: VIL.z + 11, look: [0x5a2a7a, 0x1a1030, 'veil'] },
+  { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 15.5, z: VIL.z + 5, look: [0x5a2a7a, 0x1a1030, 'veil'] },   // na frente da tenda dela (cartas.js)
   { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 2, z: VIL.z + 13, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
   { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 20, z: OAS.z - 12, look: [0xb5651d, 0x1a1a1a, 'veil'] },
   { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 12, z: CIT.z - 6, look: [0x3a3442, 0x1a1a1a, 'helm'] },
@@ -1342,9 +1342,9 @@ const PAPEL = { cartas: '🃏', shop: '🧪', healer: '❤️', smith: '⚒️',
 function iconeSprite(em) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
   x.fillStyle = 'rgba(16,10,24,.78)'; x.beginPath(); x.arc(48, 48, 44, 0, TAU); x.fill(); x.lineWidth = 5; x.strokeStyle = '#f2c86a'; x.stroke();
-  x.font = '54px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(em, 48, 52);
+  x.font = '58px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(em, 48, 52);
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: true, fog: false, toneMapped: false, transparent: true })); s.scale.setScalar(0.55); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: true, fog: false, toneMapped: false, transparent: true })); s.scale.setScalar(1.0); return s;   // maior: antes não dava para ver qual era
 }
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
@@ -1367,7 +1367,7 @@ for (const n of NPCS) {
   if (hat === 'turban') mesh(new THREE.TorusGeometry(0.15, 0.08, 8, 14), toon(0xf4d03f), 0, 1.72, 0, g).rotation.x = Math.PI / 2;
   if (hat === 'flower') for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.035, 6, 4), toon(0xff8ac0), 0.12 + Math.cos(k * TAU / 5) * 0.04, 1.72 + Math.sin(k * TAU / 5) * 0.04, 0.05, g, false);
   const bang = bangSprite(); bang.position.y = 2.3; g.add(bang); n.bang = bang; n.g = g;
-  const pap = PAPEL[n.id]; if (pap) { const ps = iconeSprite(pap); ps.position.y = 2.45; g.add(ps); n.papel = ps; }   // ícone do que ele faz (🧪 loja, ❤️ cura...)
+  const pap = PAPEL[n.id]; if (pap) { const ps = iconeSprite(pap); ps.position.y = 2.75; g.add(ps); n.papel = ps; }   // ícone do que ele faz (🧪 loja, ❤️ cura...)
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   addOutline(g);
   addOb(n.x, n.z, 1.6);
