@@ -21,6 +21,18 @@ const ModelosIA = (() => {
     } catch (e) { console.warn('Modelo IA indisponível:', arq, e); }
   }
   setTimeout(() => { for (const k in MAPA) carregar(MAPA[k].arq); }, 2500);
+  // vitrine para testar no celular: abra o jogo com #ver-guerreiro no fim do link.
+  // Aparece um Guerreiro parado na sua frente, que não ataca, não morre e some sozinho em 3 minutos (só você vê).
+  let vitrine = null;
+  setInterval(() => {
+    if (!/ver-guerreiro/.test(location.hash) || vitrine || typeof running === 'undefined' || !running || !has('cristalizado') || inTower(P.z)) return;
+    const x = P.x + Math.sin(P.face) * 7, z = P.z + Math.cos(P.face) * 7;
+    const m = spawnMob('cristalizado', null, { x, z }); vitrine = m;
+    m.d = { ...m.d, speed: 0, aggro: 0, atk: 0, drops: [], xp: 0, zeny: [0, 0] }; m.invul = true; m.noRespawn = true; m.state = 'idle'; m.face = Math.atan2(P.x - x, P.z - z);
+    log('🧪 <b>Vitrine:</b> o Guerreiro Cristalizado em 3D apareceu na sua frente (só você vê; some em 3 minutos). A cada pouco ele mostra o golpe.', 'sys');
+    const golpe = setInterval(() => { if (m.dead) return clearInterval(golpe); m.swing = 1; }, 4000);
+    setTimeout(() => { clearInterval(golpe); m.dead = true; mobs = mobs.filter(o => o !== m); scene.remove(m.model.g); m.lab.remove(); }, 180e3);
+  }, 1000);
   const has = t => !!(MAPA[t] && lib[MAPA[t].arq]);
 
   function mob(type, r) {
