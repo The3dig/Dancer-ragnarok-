@@ -18,9 +18,22 @@ const ModelosIA = (() => {
       const gltf = await new Promise((res, rej) => new THREE.GLTFLoader().parse(b64ToBuf(window.GLB[arq]), '', res, rej));
       delete window.GLB[arq];
       lib[arq] = gltf.scene;
+      trocarExistentes();
     } catch (e) { console.warn('Modelo IA indisponível:', arq, e); }
   }
-  setTimeout(() => { for (const k in MAPA) carregar(MAPA[k].arq); }, 2500);
+  // o chefe que já estava no mapa (nasceu antes do modelo carregar) troca o desenho antigo pelo 3D na hora
+  function trocarExistentes() {
+    if (typeof mobs === 'undefined' || typeof mobModel !== 'function') return;
+    for (const m of mobs) {
+      if (m.dead || !has(m.type) || (m.model && m.model.ia)) continue;
+      try {
+        const velho = m.model, novo = mobModel(m.type);
+        novo.g.position.copy(velho.g.position); novo.g.rotation.y = velho.g.rotation.y; novo.g.scale.copy(velho.g.scale);
+        scene.remove(velho.g); if (velho.spr && velho.spr.dispose) velho.spr.dispose(); scene.add(novo.g); m.model = novo;
+      } catch (e) { console.warn('troca do modelo', e); }
+    }
+  }
+  setTimeout(() => { for (const k in MAPA) carregar(MAPA[k].arq); }, 600);
   // vitrine para testar no celular: abra o jogo com #ver-guerreiro no fim do link.
   // Aparece um Guerreiro parado na sua frente, que não ataca, não morre e some sozinho em 3 minutos (só você vê).
   let vitrine = null;
@@ -56,5 +69,5 @@ const ModelosIA = (() => {
     };
     return r;
   }
-  return { has, mob };
+  return { has, mob, trocar: trocarExistentes };
 })();

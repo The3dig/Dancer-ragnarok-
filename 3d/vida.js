@@ -711,6 +711,7 @@ const Vida = (() => {
     dialog('⚒️ Forjar', `Traga os materiais que os monstros soltam e eu faço a peça. <small>(✅ = você já tem tudo)</small><br><small>Coroas: <b>${P.zeny} cr</b></small>`, opts);
   }
   // desmontar: cada peça vira Pó de Forja (mais pela raridade e pelo refino); com o pó o Doran faz outra peça
+  const poBase = id => [2, 5, 12, 30, 80, 200][ITEMS[id].rar || 0];                        // cópias sem refino (desmontar todos)
   const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80, 200][I.rar || 0] + refOf(id) * 5; };
   function refazer() {
     const pool = r => Object.keys(ITEMS).filter(k => { const I = ITEMS[k]; return I.kind === 'equip' && I.rar === r && !I.desafio && !I.preso && !['soberano', 'amigos'].includes(I.set) && !['lamina_verme', 'couraca_verme', 'anel_ninho'].includes(k); });
@@ -913,6 +914,7 @@ const Vida = (() => {
       const I = ITEMS[sel], btns = [];
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
       if (I.kind === 'equip' && !I.preso && !I.desafio) btns.push(`<button data-a="desmontar" data-v="${sel}">⚒️ Desmontar (${poDe(sel)} ⚙️)</button>`);
+      if (I.kind === 'equip' && !I.preso && !I.desafio && P.inv[sel] > 1) btns.push(`<button data-a="desmontartodos" data-v="${sel}">⚒️ Desmontar todos (${(poBase(sel) * P.inv[sel]).toLocaleString('pt-BR')} ⚙️)</button>`);
       if (I.sell > 0 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
       if (I.sell > 0 && P.inv[sel] > 1 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
       btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
@@ -945,6 +947,7 @@ const Vida = (() => {
     if (a === 'unsel') sel = null;
     if (a !== 'trash') trashArm = null;
     if (a === 'desmontar' && P.inv[v] > 0) { const n = poDe(v); P.inv[v]--; P.inv.po_forja = (P.inv.po_forja || 0) + n; if (!P.inv[v] && P.refine) delete P.refine[v]; Audio8.sfx('hit'); log(`⚒️ Você desmontou <b>${it(v).name}</b> e ganhou <b>${n} ⚙️ Pó de Forja</b>. Com ele o Ferreiro Doran faz uma peça nova.`, 'item'); if (!P.inv[v]) sel = null; }
+    if (a === 'desmontartodos' && P.inv[v] > 0) { const q = P.inv[v], n = poBase(v) * q; P.inv[v] = 0; P.inv.po_forja = (P.inv.po_forja || 0) + n; Audio8.sfx('anvil'); log(`⚒️ Você desmontou <b>${q}× ${it(v).name}</b> de uma vez e ganhou <b>${n} ⚙️ Pó de Forja</b>.`, 'item'); sel = null; }
     if (a === 'sell1' || a === 'sellall') { const n = a === 'sell1' ? 1 : P.inv[v], z = ITEMS[v].sell * n; P.inv[v] -= n; P.zeny += z; Audio8.sfx('coin'); log(`💰 Vendeu ${n}× <b>${it(v).name}</b> por <b>${z.toLocaleString('pt-BR')} cr</b>.`, 'gold'); if (!P.inv[v]) sel = null; buildHotbar(); }
     if (a === 'trash') { if (trashArm !== v) trashArm = v; else { const n = P.inv[v]; P.inv[v] = 0; trashArm = null; sel = null; Audio8.sfx('miss'); log(`🗑️ Destruiu ${n}× <b>${it(v).name}</b>.`, 'sys'); buildHotbar(); } }
     if (a === 'hot') {                                   // põe/tira o item da barra de atalhos
