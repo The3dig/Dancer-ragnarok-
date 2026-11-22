@@ -100,7 +100,7 @@ const SpriteKit = (() => {
     sx *= 1 + lunge * 0.12; sy *= 1 - lunge * 0.05;
     let y = 0;
     if (a.opt.float) y += 0.35 + Math.sin(a.t * 2.4) * 0.18;
-    else if (st.moving && a.set.kind === 'one') { y += Math.abs(Math.sin(a.t * 8)) * 0.08 * a.h; sy *= 1 - Math.abs(Math.sin(a.t * 8)) * 0.05; }
+    else if (st.moving && a.set.kind === 'one') { y += Math.abs(Math.sin(a.t * 9)) * 0.14 * a.h; sy *= 1 - Math.abs(Math.sin(a.t * 9)) * 0.08; }   // pulinhos de quem anda (desenho de um quadro só)
     else if (!st.moving) sy *= 1 + Math.sin(a.t * 2.2) * 0.012;          // respiração
     if (st.sleeping) sy *= 0.92 + Math.sin(a.t * 0.8) * 0.02;
     if (st.sit) sy *= 0.78;
@@ -108,7 +108,7 @@ const SpriteKit = (() => {
     a.spr.scale.set(sx, sy, 1);
     // morte: deita e some
     if (st.dead) { a.mat.rotation = lerpA(a.mat.rotation, Math.PI / 2 * (sx < 0 ? -1 : 1), dt * 8); }
-    else a.mat.rotation = lerpA(a.mat.rotation, 0, dt * 10);
+    else a.mat.rotation = lerpA(a.mat.rotation, st.moving && a.set.kind === 'one' && !a.opt.float ? Math.sin(a.t * 9) * 0.13 : 0, dt * 10);   // e gingado de um lado para o outro
     a.spr.center.set(0.5, st.dead ? 0.15 : 0);
     a.spr.position.y = y;
     if (st.gy !== undefined) a.shadow.position.y = st.gy + 0.03;

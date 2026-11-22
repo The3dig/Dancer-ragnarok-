@@ -692,3 +692,6 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #dialog .wt .x, .av-x { margin-left: auto; flex: none; background: rgba(255,255,255,.1); border: 1px solid var(--line); color: var(--txt); border-radius: 10px; width: 40px; height: 36px; font-size: 20px; line-height: 1; padding: 0; cursor: pointer; font-family: inherit; }
 #dialog .wt .x:hover, .av-x:hover { background: rgba(255,90,70,.35); }
 .av-t { display: flex; align-items: center; gap: 8px; }
+/* Escudo do Cisma: aviso embaixo da barra do Kravenox */
+#kvxbar .kesc { margin-top: 3px; font: 600 11px 'Nunito', sans-serif; color: #ffe0a0; text-shadow: 0 0 4px #000, 0 0 2px #000; }
+#kvxbar .kesc b { color: #ff8a6a; }

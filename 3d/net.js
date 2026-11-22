@@ -196,9 +196,11 @@ const Net = (() => {
   // dano que os outros jogadores já causaram no Kravenox nesta semana
   function kvxOthers(week) {
     let t = 0;
-    for (const r of remotes.values()) { const kd = r.s && r.s.kd; if (kd && kd.w === week && typeof kd.d === 'number') t += Math.max(0, Math.min(1e6, kd.d)); }
+    for (const r of remotes.values()) { const kd = r.s && r.s.kd; if (kd && kd.w === week && typeof kd.d === 'number') t += Math.max(0, Math.min(2e7, kd.d)); }
     return t;
   }
+  // quantos outros jogadores estão perto de um ponto (ex.: na arena do Kravenox)
+  function perto(x, z, r) { let n = 0; for (const rm of remotes.values()) if (Math.hypot(rm.tx - x, rm.tz - z) < r) n++; return n; }
   // dano que os outros jogadores já causaram no chefe de campo desta janela
   function fbOthers(slot) {
     let t = 0;
@@ -223,7 +225,7 @@ const Net = (() => {
   // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
   function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
   return { peers, get me() { return myPeer; },
-    init, update, kvxOthers, fbOthers, say, tickMyBubble, fora, jaConectou: false,
+    init, update, kvxOthers, fbOthers, perto, say, tickMyBubble, fora, jaConectou: false,
     on(t, f) { handlers[t] = f; }, economia, get uso() { return room && room.uso ? room.uso : { in: 0, out: 0, t0: Date.now() }; }, send(o) { return !!(room && room.send && room.send(o)); },
     get pausa() { return !!room && room.servidor && (!room.aberta || !!foraMsg); },
     get connected() { return !!room && (!room.servidor || room.aberta); }, get count() { return remotes.size + 1; } };

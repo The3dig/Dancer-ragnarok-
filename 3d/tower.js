@@ -410,7 +410,7 @@ const Tower = (() => {
   const avanca = f => f.ab ? 'desce' : 'sobe';                      // a escadaria que leva adiante
   function waveOf(i) {
     if (i >= 100) { const k = i - 100, pool = k < 10 ? ['larvaAntiga', 'raizOssuda', 'larvaCristal', 'memoria'] : k < 20 ? ['maoPalida', 'sombraVale', 'guardaOssos', 'damaSemOlhos'] : ['larvaAbismo', 'ecoCidade', 'sentinelaSubmersa', 'cristalVivo'];
-      return Array.from({ length: Math.min(18, 11 + Math.floor(k / 3)) }, (_, j) => pool[(j * 7 + k) % pool.length]); }
+      return Array.from({ length: Math.min(22, 14 + Math.floor(k / 3)) }, (_, j) => pool[(j * 7 + k) % pool.length]); }
     const pool = i < 4 ? ['larva', 'verme'] : i < 10 ? ['larva', 'verme', 'esfera'] : i < 20 ? ['verme', 'esfera', 'sentinela', 'larva'] : ['sentinela', 'esfera', 'sentinela', 'verme'];
     const n = Math.min(18, 10 + Math.floor(i / 2));
     return Array.from({ length: n }, (_, k) => pool[(k * 7 + i) % pool.length]);
@@ -444,13 +444,15 @@ const Tower = (() => {
     list.forEach((type, k) => {
       const rin = f.r - RAMPA.larg - 0.3, a = (k / list.length) * TAU + i * 0.7, r = rin * (0.25 + (k % 3) * 0.22);
       const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r });
-      m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), 1);
+      m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), f.ab ? 2.8 : 1);   // Abismo: bem pior que a Torre (vida x2,8, ataque x1,7)
+      if (f.ab) m.d.perfura = 0.55;                                    // e o golpe atravessa mais a defesa
     });
     if (GN) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
       const big = kk % 10 === 9;
       const pg = pontoRampa(f, avanca(f), 0), m = spawnMob(f.ab ? 'verme' : 'guardiao', null, { x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 });   // guarda a escadaria que sobe
       m.towerFloor = i; m.noRespawn = true; m.towerGuard = true; scaleMob(m, lvOf(i) + 3, big ? 1.6 : 0.9);
-      m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8));
+      m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8) * (f.ab ? 3 : 1));
+      if (f.ab) { m.d.atk = Math.round(m.d.atk * 1.5); m.d.perfura = 0.6; }
       m.d.drops = [...m.d.drops, ['essencia', 1], ...(f.ab ? [['presa_verme', 1], ...(big ? [['lamina_verme', 0.15], ['couraca_verme', 0.15], ['anel_ninho', 0.1]] : [['couraca_verme', 0.06]])] : []), ...(f.ab ? [] : big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
       const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GN} <small>Nv ${m.d.lv}</small>`;
       m.model.g.scale.multiplyScalar(big ? 1.5 : 1.2);

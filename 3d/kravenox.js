@@ -10,10 +10,13 @@
 function kravenoxModel(r, mt) {
   // Criatura de espinhos do desenho original: corpo negro, cabeça redonda com coroa de
   // espinhos, olhos vermelhos, sorriso de dentes pontudos, barriga em placas e garras.
-  const S = 6;                                                    // gigante: ~19 m
+  const S = 4;                                                    // gigante: ~15 m (com 6 a câmera de perto só pegava os pés)
   const g = r.g, b = new THREE.Group(); b.scale.setScalar(S); g.add(b); r.b = b;
   const glowM = (c, i = 1.4) => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: i });
-  const black = mt(0x141118), black2 = mt(0x1d1922), plate = mt(0x2a2530), claw = mt(0x3a3440), tooth = mt(0xe8e2d8), mouthM = mt(0x2a0608);
+  // cores um pouco mais claras e um brilho próprio arroxeado: antes era quase preto e virava só uma sombra na arena escura
+  const black = mt(0x2a2232), black2 = mt(0x382c42), plate = mt(0x4a3c52), claw = mt(0x6a5a74), tooth = mt(0xf0eae0), mouthM = mt(0x6a0a10);
+  [[black, 0x120814], [black2, 0x1a0a1c], [plate, 0x24101e], [mouthM, 0x5a0008]].forEach(([m, e]) => { m.userData.em = e; m.emissive.setHex(e); });
+  const luz = new THREE.PointLight(0xff3040, 2.2, 40, 1.6); luz.position.set(0, 2.2 * S, 3.5 * S); g.add(luz); r.luz = luz;   // luz vermelha na frente dele
   const eyeM = new THREE.MeshBasicMaterial({ color: 0xff0a0a, toneMapped: false }), auraM = new THREE.MeshBasicMaterial({ color: 0xff1a1a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false });
   r.eyeM = eyeM;
   const add = (geo, m, x, y, z, p = b) => mesh(geo, m, x, y, z, p);
@@ -129,14 +132,20 @@ const Kvx = (() => {
   const proximoAgora = () => srv ? (agoraSrv() < srv.inicio ? srv.inicio : srv.proximo) - srv.dif : nextStart().getTime();
   const mortoNoServidor = () => !forced && srv && srv.morto;
   const killedThisWeek = () => P.kvxWeek === semanaAtual() || !!mortoNoServidor();
-  const MIN_DANO = 4500;                                        // só ganha o prêmio quem lutou (0,5% da vida dele)
+  const MIN_DANO = 15000;                                       // só ganha o prêmio quem lutou de verdade
+  // ---------------- Escudo do Cisma: o Kravenox foi feito para MUITA gente junta.
+  // Quanto menos jogadores na arena, menos dano ele sente (sozinho, só 5%). Com 8 ou mais, o escudo cai.
+  const ESCUDO = [0.05, 0.05, 0.14, 0.27, 0.42, 0.58, 0.74, 0.88, 1];
+  let naArenaN = 1, arenaT = 0;
+  function contarArena() { const A = AR(); naArenaN = 1 + (typeof Net !== 'undefined' && Net.perto ? Net.perto(A.x, A.z, 42) : 0); }
+  function escudo() { return ESCUDO[Math.min(ESCUDO.length - 1, naArenaN)]; }
 
   function init() {
     forced = forcedByLink();
     addEventListener('hashchange', () => { forced = forcedByLink(); checkT = 0; });
     const el = document.createElement('div'); el.id = 'kvx'; el.className = 'win'; $('hud').appendChild(el);
     const bar = document.createElement('div'); bar.id = 'kvxbar'; bar.className = 'hidden';
-    bar.innerHTML = '<div class="kn">☠ KRAVENOX <small>Nv 90 · Chefe Mundial</small></div><div class="kt"><b></b><em></em></div>'; $('hud').appendChild(bar);
+    bar.innerHTML = '<div class="kn">☠ KRAVENOX <small>Nv 90 · Chefe Mundial</small></div><div class="kt"><b></b><em></em></div><div class="kesc"></div>'; $('hud').appendChild(bar);
     if (P.title) $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
     checkT = 0;
   }
@@ -332,7 +341,7 @@ const Kvx = (() => {
     for (let i = 0; i < n; i++) {
       const a = a0 + i / n * TAU, r = chefe ? 14 : rand(8, 20); let x = A.x + Math.sin(a) * r, z = A.z + Math.cos(a) * r; if (blocked(x, z)) { x = A.x; z = A.z + 4; }
       const t = tipo || SERVOS[irand(0, SERVOS.length - 1)], c = spawnMob(t, null, { x, z }), d0 = c.d, kf = lv / d0.lv;
-      c.d = { ...d0, lv, hp: chefe ? (nome === 'Eco do Soberano' ? 45000 : 60000) : Math.round(d0.hp * Math.pow(kf, 1.5) * 1.3), atk: Math.round(d0.atk * kf * (chefe ? 1.3 : 1)), def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * (chefe ? 3 : 0.6)), aggro: 40, respawn: 1e9,
+      c.d = { ...d0, lv, hp: chefe ? (nome === 'Eco do Soberano' ? 250000 : 350000) : Math.round(d0.hp * Math.pow(kf, 1.5) * 4), atk: Math.round(d0.atk * kf * (chefe ? 2.2 : 1.6)), perfura: 0.5, def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * (chefe ? 3 : 0.6)), aggro: 40, respawn: 1e9,
         drops: chefe ? [['essencia', 1], ['red', 1], ['blue', 1], ['minerio', 1], ['tempera', 1], ['selo_forja', 0.15]] : [['red', 0.2]] };
       if (chefe) { c.d.name = nome; c.d.mini = true; c.model.g.scale.multiplyScalar(1.5); }
       c.hp = c.maxHp = c.d.hp; c.state = 'chase'; c.noRespawn = true; c.towerFloor = TOP; c.servoKvx = true; c.sx = A.x; c.sz = A.z;
@@ -340,14 +349,36 @@ const Kvx = (() => {
       if (naArena()) { burst(new THREE.Vector3(x, groundY(x, z) + 1, z), 0xb01020, 24, 4, 0.8); ring(x, z, 3, 0xff2a2a, 0.6); }
     }
   }
-  // meteoro: uma bola de fogo cai do céu sobre o círculo vermelho
-  const metGeo = new THREE.SphereGeometry(1.3, 12, 10);
+  // meteoro: uma rocha em brasa cai do céu, com brilho e rastro de fogo, sobre o círculo laranja.
+  // (antes era uma bola laranja lisa: perto da câmera virava um disco chapado cobrindo a tela)
+  const metGeo = new THREE.IcosahedronGeometry(1.1, 0);
+  const metMat = new THREE.MeshLambertMaterial({ color: 0x3a1a10, emissive: 0xff5a10, emissiveIntensity: 0.9, flatShading: true });
+  const brilhoMat = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 2, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,240,180,1)'); gr.addColorStop(0.35, 'rgba(255,140,40,.8)'); gr.addColorStop(1, 'rgba(255,60,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    const t = new THREE.CanvasTexture(c); return new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  })();
   function meteoro(x, z, delay) {
     telegraph(x, z, 4.2, delay, 1.6, 0xff6a10);
     if (!naArena()) return;
-    const b = new THREE.Mesh(metGeo, new THREE.MeshBasicMaterial({ color: 0xffa040, toneMapped: false })), y0 = groundY(x, z);
-    b.position.set(x + 8, y0 + 40, z - 6); scene.add(b);
-    const t0 = time; const cai = () => { const k = Math.min(1, (time - t0) / delay); b.position.set(x + 8 * (1 - k), y0 + 40 * (1 - k * k) + 0.5, z - 6 * (1 - k)); if (k < 1 && boss) { burst(b.position.clone(), 0xff7020, 2, 1, 0.3); requestAnimationFrame(cai); } else { scene.remove(b); if (boss && typeof SpriteKit !== 'undefined' && SpriteKit.ready) SpriteKit.fx('fx_explosao', { x, y: y0 + 1, z, h: 7, life: 0.6, grow: 1.6 }); tremer(0.25); } };
+    const g = new THREE.Group(), rocha = new THREE.Mesh(metGeo, metMat), brilho = new THREE.Sprite(brilhoMat), y0 = groundY(x, z);
+    brilho.scale.setScalar(4.2); g.add(rocha, brilho); scene.add(g);
+    const dx = rand(-5, 5), dz = rand(-5, 5);                            // cai quase de pé, de um lado qualquer (não passa na frente da câmera)
+    const t0 = time; let rastro = 0;
+    const cai = () => {
+      const k = Math.min(1, (time - t0) / delay);
+      g.position.set(x + dx * (1 - k), y0 + 45 * (1 - k * k) + 0.6, z + dz * (1 - k));
+      rocha.rotation.x += 0.15; rocha.rotation.y += 0.11;
+      g.visible = g.position.distanceTo(camera.position) > 7;          // perto demais da câmera: some (nada de disco na tela)
+      if (k < 1 && boss) {
+        if ((rastro = (rastro + 1) % 2) === 0) burst(g.position.clone(), rastro ? 0xffb040 : 0xff5a10, 2, 0.8, 0.35);
+        requestAnimationFrame(cai);
+      } else {
+        scene.remove(g);
+        if (boss) { if (typeof SpriteKit !== 'undefined' && SpriteKit.ready) SpriteKit.fx('fx_explosao', { x, y: y0 + 1, z, h: 7, life: 0.6, grow: 1.6 }); ring(x, z, 4.2, 0xff7a20, 0.5); burst(new THREE.Vector3(x, y0 + 0.6, z), 0x2a1a14, 10, 3, 0.7); }
+        tremer(0.25);
+      }
+    };
     requestAnimationFrame(cai);
   }
   // Eclipse: o topo escurece; só quem está dentro de um dos círculos de luz não leva o golpe
@@ -509,6 +540,7 @@ const Kvx = (() => {
     }
     if (boss && boss.dead) boss = null;
     if (boss) {
+      arenaT -= dt; if (arenaT <= 0) { arenaT = 1; contarArena(); }
       boss.hp = Math.min(boss.maxHp, sharedHp(boss));
       if (boss.hp <= 0 && !boss.dead) {
         boss.hp = 0; const meu = P.kvxDmg && P.kvxDmg.w === curWeek() ? P.kvxDmg.d : 0;
@@ -532,6 +564,9 @@ const Kvx = (() => {
       bar.querySelector('b').style.width = (boss.hp / boss.maxHp * 100) + '%';
       bar.querySelector('em').textContent = `${Math.max(0, Math.ceil(boss.hp)).toLocaleString('pt-BR')} / ${boss.maxHp.toLocaleString('pt-BR')}`;
       bar.classList.toggle('enraged', !!boss.enraged);
+      const esc = escudo(), ke = bar.querySelector('.kesc');
+      const txt = esc >= 1 ? `⚔️ ${naArenaN} na arena: o Escudo do Cisma caiu!` : `🛡️ Escudo: só <b>${Math.round(esc * 100)}%</b> do dano entra · ${naArenaN} na arena (8 quebram)`;
+      if (ke.dataset.t !== txt) { ke.dataset.t = txt; ke.innerHTML = txt; }
     } else bar.classList.add('hidden');
   }
   function panel() {
@@ -554,5 +589,5 @@ const Kvx = (() => {
     g.beginPath(); g.arc(x, y, 5 + pulse, 0, TAU); g.fill();
     g.fillStyle = '#fff'; g.font = 'bold 8px sans-serif'; g.textAlign = 'center'; g.fillText('☠', x, y + 3); g.textAlign = 'left';
   }
-  return { init, update, ai, onKill, minimap, addDmg, weekId, windowNow, nextStart, get active() { return !!boss; } };
+  return { init, update, ai, onKill, minimap, addDmg, escudo, weekId, windowNow, nextStart, get active() { return !!boss; } };
 })();

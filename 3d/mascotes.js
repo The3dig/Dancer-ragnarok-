@@ -115,9 +115,11 @@ const Mascotes = (() => {
       } catch (e) { }
     }
   }
-  function mexer(o, dt, alvoX, alvoZ, longe) {
+  function mexer(o, dt, alvoX, alvoZ, longe, segue) {
     const dx = alvoX - o.x, dz = alvoZ - o.z, d = Math.hypot(dx, dz), anda = d > (longe || 0.4);
-    if (anda) { const v = Math.min(d, dt * (d > 6 ? 9 : 3.2)); o.x += dx / d * v; o.z += dz / d * v; o.face = Math.atan2(dx, dz); }
+    // o que segue o herói anda no passo dele (antes ia a 3,2 e depois corria a 9: parecia arrastado)
+    const vel = segue ? Math.max(3.2, stats.speed() * (d > 3 ? 1.25 : 1)) : d > 6 ? 9 : 3.2;
+    if (anda) { const v = Math.min(d, dt * vel); o.x += dx / d * v; o.z += dz / d * v; o.face = Math.atan2(dx, dz); }
     o.g.position.set(o.x, groundY(o.x, o.z), o.z); o.g.rotation.y = o.face;
     o.fake.moving = anda; o.fake.face = o.face; o.fake.x = o.x; o.fake.z = o.z;
     try { if (o.r.anim) o.r.anim(o.fake, time); if (o.r.spr) o.r.spr.update(dt, { face: o.face, moving: anda }); if (o.r.inst) o.r.inst.update(dt); } catch (e) { }
@@ -185,8 +187,7 @@ const Mascotes = (() => {
       if (seg) {
         const tx = P.x - Math.sin(P.face) * 1.8 + Math.cos(P.face) * 0.9, tz = P.z - Math.cos(P.face) * 1.8 - Math.sin(P.face) * 0.9;
         if (Math.hypot(tx - seg.x, tz - seg.z) > 25) { seg.x = tx; seg.z = tz; }
-        mexer(seg, dt, tx, tz, 0.6); seg.g.visible = !P.dead;
-        if (inTower(P.z)) seg.g.position.y = P.y;
+        mexer(seg, dt, tx, tz, 0.6, true); seg.g.visible = !P.dead;   // na Torre também usa o chão do degrau onde ele está (antes usava a altura do herói e afundava na escada)
       }
     } else if (P.petAtivo && S()[P.petAtivo]) montarSeg();
   }
