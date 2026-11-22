@@ -25,7 +25,7 @@ const Cartas = (() => {
   // ---------------- a Cripta das Cartas (o mesmo molde da Mina da Forja)
   const Cripta = criarMasmorra({
     zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 30,
-    saida: { x: VIL.x - 12.5, z: VIL.z + 5 },                            // na frente da tenda da Cartomante, em Solmira
+    saida: { x: VIL.x - 10.5, z: VIL.z + 5 },                            // na frente da tenda da Cartomante, em Solmira
     chefeNome: 'Guardião das Cartas', chefeCurto: 'Guardião', txtOnda: 'saíram das cartas espalhadas',
     corPedra: new THREE.Color(0.42, 0.36, 0.55), corTeto: 0x120a1c, corSaida: 0xd8b8ff, corMapa: '#160e22', corTitulo: '#c89aff',
     moldura: new THREE.MeshLambertMaterial({ color: 0x3a2850 }),

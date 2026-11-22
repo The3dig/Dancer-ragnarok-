@@ -1232,7 +1232,7 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
-  { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 15.5, z: VIL.z + 5, look: [0x5a2a7a, 0x1a1030, 'veil'] },   // na frente da tenda dela (cartas.js)
+  { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 13.5, z: VIL.z + 5, look: [0x5a2a7a, 0x1a1030, 'veil'] },   // na frente da tenda dela (cartas.js)
   { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 2, z: VIL.z + 13, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
   { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 20, z: OAS.z - 12, look: [0xb5651d, 0x1a1a1a, 'veil'] },
   { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 12, z: CIT.z - 6, look: [0x3a3442, 0x1a1a1a, 'helm'] },
