@@ -155,7 +155,8 @@ const Verme = (() => {
     if (meuDano() < MIN_DANO && !forced()) { banner('🐛 O VERME COLOSSAL CAIU'); log(`🐛 O Verme Colossal caiu, mas você não lutou o bastante para o prêmio (pelo menos ${MIN_DANO.toLocaleString('pt-BR')} de dano).`, 'sys'); P.vermeCiclo = cicloId(); return; }
     P.vermeCiclo = cicloId(); P.vermeKills = (P.vermeKills || 0) + 1;
     banner('🏆 O VERME COLOSSAL FOI DERROTADO! 🏆'); Audio8.sfx('level');
-    const MIT = ['lamina_verme', 'anel_ninho', 'couraca_verme'].sort(() => Math.random() - 0.5), ids = MIT.slice(0, Math.random() < 0.3 ? 3 : 2), id = ids[0];   // 2 garantidos (às vezes os 3)
+    // 2 peças PRIMORDIAIS garantidas (às vezes 3), as melhores do jogo; completar as 5 leva várias vitórias
+    const MIT = ['presa_primordial', 'elmo_primordial', 'carapaca_primordial', 'anel_primordial', 'coracao_verme'].sort(() => Math.random() - 0.5), ids = MIT.slice(0, Math.random() < 0.3 ? 3 : 2), id = ids[0];
     for (const k of ids) P.inv[k] = (P.inv[k] || 0) + 1; P.inv.quitina_colossal = (P.inv.quitina_colossal || 0) + 5; P.inv.presa_verme = (P.inv.presa_verme || 0) + 15;
     P.inv.nucleo_abismo = (P.inv.nucleo_abismo || 0) + 20; P.inv.frag_cisma = (P.inv.frag_cisma || 0) + 15; P.inv.selo_forja = (P.inv.selo_forja || 0) + 3; P.inv.lagrima_soberano = (P.inv.lagrima_soberano || 0) + 1;   // materiais do ✨ Despertar P.zeny += 120000; P.inv.essencia = (P.inv.essencia || 0) + 10;
     P.title = 'Matador do Verme'; $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;

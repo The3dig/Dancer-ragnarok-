@@ -126,6 +126,12 @@ const Vida = (() => {
     lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 125, crit: 0.1, spd: 0.06, hp: 250 }, 4],
     couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 100, hp: 1350, pow: 20 }, 4],
     anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 42, hp: 480, crit: 0.07, def: 24 }, 4],
+    // PRIMORDIAL: só caem do Verme Colossal (o chefe mais impossível do jogo). As melhores peças que existem, de longe.
+    presa_primordial: ['Presa Primordial do Verme', '🦷', 'arma', 0, { pow: 185, crit: 0.17, spd: 0.07, hp: 450 }, 5, 'primordial'],
+    elmo_primordial: ['Bocarra Primordial', '🪖', 'capacete', 0, { def: 74, hp: 1000, pow: 52, crit: 0.08 }, 5, 'primordial'],
+    carapaca_primordial: ['Carapaça Primordial', '🪨', 'armadura', 0, { def: 150, hp: 2000, pow: 44, crit: 0.06 }, 5, 'primordial'],
+    anel_primordial: ['Anel do Ninho Primordial', '💍', 'anel', 0, { pow: 62, hp: 680, crit: 0.09, def: 34 }, 5, 'primordial'],
+    coracao_verme: ['Coração do Verme Colossal', '❤️‍🔥', 'colar', 0, { pow: 58, crit: 0.15, hp: 850, sp: 360, spd: 0.06 }, 5, 'primordial'],
     // Vale dos Mortos (Nv 55–72): o conjunto da névoa e o cajado do Primeiro Guardião (lendários)
     capuz_vale: ['Capuz do Vale dos Mortos', '🧕', 'capacete', 0, { def: 22, hp: 240 }, 3, 'vale'],
     manto_vale: ['Manto da Névoa', '🌫️', 'armadura', 0, { def: 46, hp: 460 }, 3, 'vale'],
@@ -144,7 +150,7 @@ const Vida = (() => {
     manto_soberano: ['Manto do Soberano Adormecido', '🦇', 'armadura', 0, { def: 105, hp: 1400, pow: 30, crit: 0.05 }, 4, 'soberano'],
     olho_kravenox: ['Olho de Kravenox', '🔴', 'colar', 0, { pow: 40, crit: 0.12, hp: 600, sp: 300, spd: 0.05 }, 4, 'soberano'],
   };
-  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }, { n: 'Mítico', c: '#ff4a4a', hex: 0xff2020 }];
+  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }, { n: 'Mítico', c: '#ff4a4a', hex: 0xff2020 }, { n: 'Primordial', c: '#3dffd2', hex: 0x20ffc8 }];   // Primordial: só do Verme Colossal, acima de tudo
   const SETS = {
     couro: { name: 'Conjunto de Couro', bonus: { hp: 60, def: 3 } },
     areias: { name: 'Conjunto das Areias', bonus: { crit: 0.05, spd: 0.05, hp: 80 } },
@@ -157,8 +163,9 @@ const Vida = (() => {
     // uma peça por amigo do Rone (desafios.js); bônus em níveis: 2, 4 e as 8 peças (o completo é muito mais forte)
     amigos: { name: 'Conjunto da Irmandade Eterna', pecas: 8, tiers: [[2, { pow: 15, def: 15, hp: 250 }], [4, { pow: 40, def: 35, hp: 600, crit: 0.05 }], [8, { pow: 120, def: 90, hp: 1800, crit: 0.15, spd: 0.15, sp: 300 }]] },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
+    primordial: { name: 'Conjunto Primordial', pecas: 5, tiers: [[3, { pow: 55, def: 45, hp: 750, crit: 0.05 }], [5, { pow: 150, def: 120, hp: 2400, crit: 0.16, spd: 0.12, sp: 300 }]] },
   };
-  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
+  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000, 60000][rar]) / 2) };
   const SLOTS = { arma: 'Arma', capacete: 'Capacete', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas', anel1: 'Anel', anel2: 'Anel', colar: 'Colar' };
   const MODN = { pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' };
   const modTxt = m => Object.entries(m || {}).map(([k, v]) => `${MODN[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(' · ');
@@ -704,7 +711,7 @@ const Vida = (() => {
     dialog('⚒️ Forjar', `Traga os materiais que os monstros soltam e eu faço a peça. <small>(✅ = você já tem tudo)</small><br><small>Coroas: <b>${P.zeny} cr</b></small>`, opts);
   }
   // desmontar: cada peça vira Pó de Forja (mais pela raridade e pelo refino); com o pó o Doran faz outra peça
-  const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80][I.rar || 0] + refOf(id) * 5; };
+  const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80, 200][I.rar || 0] + refOf(id) * 5; };
   function refazer() {
     const pool = r => Object.keys(ITEMS).filter(k => { const I = ITEMS[k]; return I.kind === 'equip' && I.rar === r && !I.desafio && !I.preso && !['soberano', 'amigos'].includes(I.set) && !['lamina_verme', 'couraca_verme', 'anel_ninho'].includes(k); });
     const OP = [[1, 'rara', 40, 5000], [2, 'épica', 120, 20000], [3, 'lendária', 400, 60000]];
@@ -1126,7 +1133,7 @@ const Vida = (() => {
     const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = -0.37; grp.add(sh);   // sombrinha no chão
     const rar = I.kind === 'equip' ? I.rar : I.kind === 'carta' ? 3 : -1;
     if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade
-      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7, 0.85][Math.max(0, rar)];
+      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7, 0.85, 1][Math.max(0, rar)];
       const mk = (o, fog) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog });
       const beam = new THREE.Mesh(beamGeo, mk(base, false)); beam.position.y = 2.6; grp.add(beam);
       const core = new THREE.Mesh(coreGeo, mk(Math.min(1, base + 0.3), false)); core.position.y = 2.6; grp.add(core);
