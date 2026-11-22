@@ -32,6 +32,8 @@ const Vida = (() => {
     // refino (caem só na Mina da Forja): minério para arma, anéis e colar; têmpera para capacete, armadura, luvas e botas
     minerio: ['Minério Rúnico', '🔶', 40, 0, 'mat'], tempera: ['Pedra de Têmpera', '🔷', 40, 0, 'mat'],
     selo_forja: ['Selo da Forja Eterna', '🔰', 2500, 0, 'mat'],
+    // Despertar ★ (só caem na Torre, no Abismo e do Kravenox): mesmo quem já tem o melhor equipamento sempre tem o que buscar
+    frag_cisma: ['Fragmento do Cisma', '🔺', 300, 0, 'mat'], nucleo_abismo: ['Núcleo do Abismo', '🌑', 1500, 0, 'mat'], lagrima_soberano: ['Lágrima do Soberano', '🩸', 6000, 0, 'mat'],
     presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
@@ -289,7 +291,14 @@ const Vida = (() => {
   const REF_MAX = REF.length, REF_QUEBRA = 10;
   const matRef = id => ['arma', 'anel', 'colar'].includes(ITEMS[id] && ITEMS[id].slot) ? 'minerio' : 'tempera';
   const refOf = id => (P.refine && P.refine[id]) || 0;
-  const nameOf = id => (refOf(id) ? '+' + refOf(id) + ' ' : '') + it(id).name;
+  const despOf = id => (P.desp && P.desp[id]) || 0;
+  const nameOf = id => (refOf(id) ? '+' + refOf(id) + ' ' : '') + it(id).name + (despOf(id) ? ' ' + '★'.repeat(despOf(id)) : '');
+  // ---------------- Despertar ★ (1 a 10): cada estrela soma 8% de TODOS os atributos da peça (no ★10, +80%).
+  // Materiais só da Torre (🔺), do Abismo (🌑) e do Kravenox (🩸): a Torre, o Abismo e o chefe semanal sempre valem a pena.
+  // [fragmentos, núcleos, lágrimas, coroas, chance]; se falhar, perde os materiais mas a peça fica como estava (não quebra).
+  const DESP = [[5, 0, 0, 20000, 1], [10, 0, 0, 40000, 1], [15, 0, 0, 70000, 0.9], [20, 3, 0, 100000, 0.8], [25, 6, 0, 150000, 0.7],
+    [30, 10, 0, 220000, 0.6], [35, 12, 1, 300000, 0.55], [40, 15, 2, 400000, 0.5], [50, 20, 3, 550000, 0.45], [60, 25, 5, 800000, 0.4]];
+  const DESP_MAX = DESP.length;
 
   // ---------------------------------------------------------------- Sítio
   const CROPS = {
@@ -710,6 +719,7 @@ const Vida = (() => {
   function smith(eu) {
     dialog('💬 Ferreiro Doran', `${eu ? `Ah, <b>${eu}</b>. ` : ''}O fogo desta forja nunca apagou, nem no dia do Cisma. Trago o aço de volta à vida: refino suas peças e forjo novas com o que você trouxer das caçadas.`, [
       { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
+      { label: '✨ Despertar equipamento (★1 a ★10)', fn: () => { despertar(); return true; } },
       { label: '⛏️ Descer à Mina da Forja (materiais do refino)', fn: () => { if (typeof Minas !== 'undefined') Minas.entrar(); } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
       { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },
@@ -778,6 +788,35 @@ const Vida = (() => {
       refine();
     });
   }
+  // ---------------- Despertar ★
+  function despertar() {
+    P.desp = P.desp || {};
+    const eq = Object.keys(SLOTS).map(sl => P.equip && P.equip[sl]).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+    const tem = id => P.inv[id] || 0, opts = [];
+    for (const id of eq) {
+      const s = despOf(id);
+      if (s >= DESP_MAX) { opts.push({ label: `${it(id).ic} ${nameOf(id)} — despertar máximo`, fn: () => { despertar(); return true; } }); continue; }
+      const [fr, nu, la, z, ch] = DESP[s];
+      const custo = [fr && `${fr} 🔺`, nu && `${nu} 🌑`, la && `${la} 🩸`].filter(Boolean).join(' + ');
+      opts.push({ label: `${it(id).ic} ${nameOf(id)} → ★${s + 1} — ${custo} + ${z.toLocaleString('pt-BR')} cr · ${Math.round(ch * 100)}%`, fn: () => {
+        if (P.zeny < z) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); despertar(); return true; }
+        const falta = [[fr, 'frag_cisma', 'na Torre do Cisma (guardiões e andares altos)'], [nu, 'nucleo_abismo', 'no Abismo do Cisma'], [la, 'lagrima_soberano', 'só do Kravenox (sábado, 20h)']].find(([n, m]) => tem(m) < n);
+        if (falta) { log(`Falta <b>${falta[0]} ${it(falta[1]).ic} ${it(falta[1]).name}</b> (você tem ${tem(falta[1])}). Cai ${falta[2]}.`, 'bad'); Audio8.sfx('miss'); despertar(); return true; }
+        P.zeny -= z; add('frag_cisma', -fr); if (nu) add('nucleo_abismo', -nu); if (la) add('lagrima_soberano', -la);
+        const ok = Math.random() < ch; if (ok) P.desp[id] = s + 1;
+        try { save(); } catch (e) { }
+        closeDialog();
+        Forja.animar({ ic: it(id).ic, nome: it(id).name + (s ? ' ' + '★'.repeat(s) : ''), de: refOf(id), para: refOf(id), res: ok ? 'sucesso' : 'falhou', selo: false, desp: ok ? s + 1 : s }, () => {
+          if (ok) { log(`✨ <b>DESPERTOU!</b> <b>${nameOf(id)}</b>: todos os atributos da peça +${(s + 1) * 8}%.`, 'gold'); if (s + 1 >= 5) banner(`★${s + 1} ${it(id).name}!`); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xff6ad0, 40, 4, 1); }
+          else log(`✨ O despertar falhou: os materiais se perderam, mas a <b>${nameOf(id)}</b> continua inteira.`, 'bad');
+          despertar();
+        });
+        return true; } });
+    }
+    if (!eq.length) opts.push({ label: 'Equipe uma peça para despertar.', fn: () => { despertar(); return true; } });
+    opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
+    dialog('✨ Despertar (★1 a ★10)', `Cada <b>★</b> soma <b>8% de todos os atributos</b> da peça (no ★10, +80%), e vale junto com o refino. Se falhar, perde os materiais, mas a peça <b>não quebra</b>.<br>Materiais: <b>🔺 Fragmento do Cisma</b> (Torre do Cisma) <b>${tem('frag_cisma')}</b> · <b>🌑 Núcleo do Abismo</b> (Abismo) <b>${tem('nucleo_abismo')}</b> · <b>🩸 Lágrima do Soberano</b> (só do Kravenox) <b>${tem('lagrima_soberano')}</b>`, opts);
+  }
   // vende ao NPC (materiais e colheita)
   function sellAll(kinds = ['mat', 'colheita']) {
     let z = 0, parts = [];
@@ -792,7 +831,7 @@ const Vida = (() => {
   const setTxt = st => SETS[st].tiers ? SETS[st].tiers.map(([q, b]) => `${q === SETS[st].pecas ? 'completo' : q} peças: ${modTxt(b)}`).join(' · ') : `4 peças: ${modTxt(SETS[st].bonus)}`;
   function setCount() { const c = {}; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set) c[I.set] = (c[I.set] || 0) + 1; } return c; }
   const gear = k => {
-    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1); }
+    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1) * (1 + 0.08 * despOf(id)); }   // refino + despertar ★
     for (const sl in (P.cards || {})) { const c = P.cards[sl]; if (c && P.equip && P.equip[sl] && ITEMS[c]) v += ITEMS[c].mods[k] || 0; }   // carta só vale com peça no espaço
     if (k === 'pow' || k === 'def' || k === 'hp' || k === 'sp') v = Math.round(v);
     const sc = setCount(); for (const st in sc) { const B = setBonus(st, sc[st]); if (B) v += B[k] || 0; }

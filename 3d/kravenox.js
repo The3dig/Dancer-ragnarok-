@@ -342,7 +342,7 @@ const Kvx = (() => {
       const a = a0 + i / n * TAU, r = chefe ? 14 : rand(8, 20); let x = A.x + Math.sin(a) * r, z = A.z + Math.cos(a) * r; if (blocked(x, z)) { x = A.x; z = A.z + 4; }
       const t = tipo || SERVOS[irand(0, SERVOS.length - 1)], c = spawnMob(t, null, { x, z }), d0 = c.d, kf = lv / d0.lv;
       c.d = { ...d0, lv, hp: chefe ? (nome === 'Eco do Soberano' ? 250000 : 350000) : Math.round(d0.hp * Math.pow(kf, 1.5) * 4), atk: Math.round(d0.atk * kf * (chefe ? 2.2 : 1.6)), perfura: 0.5, def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * (chefe ? 3 : 0.6)), aggro: 40, respawn: 1e9,
-        drops: chefe ? [['essencia', 1], ['red', 1], ['blue', 1], ['minerio', 1], ['tempera', 1], ['selo_forja', 0.15]] : [['red', 0.2]] };
+        drops: chefe ? [['essencia', 1], ['red', 1], ['blue', 1], ['minerio', 1], ['tempera', 1], ['selo_forja', 0.25], ['frag_cisma', 1], ['frag_cisma', 1], ['nucleo_abismo', 1], ['lagrima_soberano', 0.2]] : [['red', 0.2], ['frag_cisma', 0.15]] };
       if (chefe) { c.d.name = nome; c.d.mini = true; c.model.g.scale.multiplyScalar(1.5); }
       c.hp = c.maxHp = c.d.hp; c.state = 'chase'; c.noRespawn = true; c.towerFloor = TOP; c.servoKvx = true; c.sx = A.x; c.sz = A.z;
       const sp = c.lab.querySelector('span'); if (sp) sp.innerHTML = `${c.d.name} <small>Nv ${lv}</small>`;
@@ -351,8 +351,10 @@ const Kvx = (() => {
   }
   // meteoro: uma rocha em brasa cai do céu, com brilho e rastro de fogo, sobre o círculo laranja.
   // (antes era uma bola laranja lisa: perto da câmera virava um disco chapado cobrindo a tela)
-  const metGeo = new THREE.IcosahedronGeometry(1.1, 0);
-  const metMat = new THREE.MeshLambertMaterial({ color: 0x3a1a10, emissive: 0xff5a10, emissiveIntensity: 0.9, flatShading: true });
+  const metGeo = new THREE.IcosahedronGeometry(0.85, 1);
+  const metMat = new THREE.MeshLambertMaterial({ color: 0x2a1a14, emissive: 0xff4a10, emissiveIntensity: 0.28, flatShading: true });   // pedra escura com brasa (antes brilhava tanto que virava um hexágono laranja chapado)
+  const caudaGeo = new THREE.ConeGeometry(0.75, 7, 10, 1, true); caudaGeo.translate(0, 3.5, 0);
+  const caudaMat = new THREE.MeshBasicMaterial({ color: 0xff7a20, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   const brilhoMat = (() => {
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 2, 32, 32, 32);
     gr.addColorStop(0, 'rgba(255,240,180,1)'); gr.addColorStop(0.35, 'rgba(255,140,40,.8)'); gr.addColorStop(1, 'rgba(255,60,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
@@ -361,9 +363,10 @@ const Kvx = (() => {
   function meteoro(x, z, delay) {
     telegraph(x, z, 4.2, delay, 1.6, 0xff6a10);
     if (!naArena()) return;
-    const g = new THREE.Group(), rocha = new THREE.Mesh(metGeo, metMat), brilho = new THREE.Sprite(brilhoMat), y0 = groundY(x, z);
-    brilho.scale.setScalar(4.2); g.add(rocha, brilho); scene.add(g);
+    const g = new THREE.Group(), rocha = new THREE.Mesh(metGeo, metMat), brilho = new THREE.Sprite(brilhoMat), cauda = new THREE.Mesh(caudaGeo, caudaMat), y0 = groundY(x, z);
+    brilho.scale.setScalar(2.4); g.add(cauda, brilho, rocha); scene.add(g);
     const dx = rand(-5, 5), dz = rand(-5, 5);                            // cai quase de pé, de um lado qualquer (não passa na frente da câmera)
+    cauda.rotation.set(Math.atan2(dz, 45), 0, -Math.atan2(dx, 45));          // a cauda de fogo aponta para trás do caminho
     const t0 = time; let rastro = 0;
     const cai = () => {
       const k = Math.min(1, (time - t0) / delay);
@@ -514,6 +517,10 @@ const Kvx = (() => {
     // prêmio à altura do pior do jogo: um Mítico garantido (às vezes dois), coroas, Essência e poções
     const MIT = ['arma_soberano', 'coroa_soberano', 'manto_soberano', 'olho_kravenox'].sort(() => Math.random() - 0.5), got = MIT.slice(0, Math.random() < 0.3 ? 3 : 2);   // o chefe mais difícil do jogo: 2 Míticos garantidos (às vezes 3)
     for (const id of got) { P.inv[id] = (P.inv[id] || 0) + 1; log(`🔴 <b style="color:#ff4a4a">MÍTICO!</b> Você recebeu <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); }
+    // materiais do Despertar ★: a Lágrima do Soberano só cai dele (por isso todo sábado vale a pena)
+    const lag = 3 + (Math.random() < 0.5 ? 2 : 0);
+    P.inv.lagrima_soberano = (P.inv.lagrima_soberano || 0) + lag; P.inv.frag_cisma = (P.inv.frag_cisma || 0) + 25; P.inv.nucleo_abismo = (P.inv.nucleo_abismo || 0) + 10; P.inv.selo_forja = (P.inv.selo_forja || 0) + 3;
+    log(`🩸 <b>${lag} Lágrimas do Soberano</b>, 25 🔺 Fragmentos do Cisma, 10 🌑 Núcleos do Abismo e 3 🔰 Selos da Forja (para o ✨ Despertar com o Doran).`, 'gold');
     P.inv.essencia = (P.inv.essencia || 0) + 15; P.inv.red += 60; P.inv.blue += 40; P.zeny += 100000; P.inv.fragmento_dourado = (P.inv.fragmento_dourado || 0) + 5;
     log('💰 Tesouro do Soberano: <b>100.000 cr</b>, 15 Essências, 5 Fragmentos Dourados, 60 poções vermelhas e 40 azuis.', 'gold'); buildHotbar();
     for (let i = 0; i < 8; i++) setTimeout(() => { ring(m.x, m.z, 4 + i * 2, [0xffcf40, 0xff4fa3, 0x4fd1ff][i % 3], 0.8); Audio8.sfx(i % 2 ? 'level' : 'coin'); }, i * 200);
@@ -589,5 +596,5 @@ const Kvx = (() => {
     g.beginPath(); g.arc(x, y, 5 + pulse, 0, TAU); g.fill();
     g.fillStyle = '#fff'; g.font = 'bold 8px sans-serif'; g.textAlign = 'center'; g.fillText('☠', x, y + 3); g.textAlign = 'left';
   }
-  return { init, update, ai, onKill, minimap, addDmg, escudo, weekId, windowNow, nextStart, get active() { return !!boss; } };
+  return { init, update, ai, onKill, minimap, addDmg, escudo, meteoro, weekId, windowNow, nextStart, get active() { return !!boss; } };
 })();

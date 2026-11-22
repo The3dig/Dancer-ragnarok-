@@ -446,6 +446,9 @@ const Tower = (() => {
       const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r });
       m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), f.ab ? 2.8 : 1);   // Abismo: bem pior que a Torre (vida x2,8, ataque x1,7)
       if (f.ab) m.d.perfura = 0.55;                                    // e o golpe atravessa mais a defesa
+      // materiais do Despertar ★ e do refino: a Torre e o Abismo sempre valem a pena, mesmo para quem já tem tudo
+      if (f.ab) m.d.drops = [...m.d.drops, ['frag_cisma', 0.12], ['nucleo_abismo', 0.025], ['minerio', 0.12], ['tempera', 0.12]];
+      else if (kk >= 15) m.d.drops = [...m.d.drops, ['frag_cisma', 0.05], ['minerio', 0.06], ['tempera', 0.06]];
     });
     if (GN) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
       const big = kk % 10 === 9;
@@ -454,6 +457,8 @@ const Tower = (() => {
       m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8) * (f.ab ? 3 : 1));
       if (f.ab) { m.d.atk = Math.round(m.d.atk * 1.5); m.d.perfura = 0.6; }
       m.d.drops = [...m.d.drops, ['essencia', 1], ...(f.ab ? [['presa_verme', 1], ...(big ? [['lamina_verme', 0.15], ['couraca_verme', 0.15], ['anel_ninho', 0.1]] : [['couraca_verme', 0.06]])] : []), ...(f.ab ? [] : big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
+      const vezes = (id, n) => Array.from({ length: n }, () => [id, 1]);
+      m.d.drops = [...m.d.drops, ...vezes('frag_cisma', f.ab ? (big ? 10 : 6) : (big ? 6 : 3)), ...(f.ab ? vezes('nucleo_abismo', big ? 4 : 2) : []), ...vezes('minerio', big ? 4 : 2), ...vezes('tempera', big ? 4 : 2), ['selo_forja', f.ab ? (big ? 0.5 : 0.3) : (big ? 0.25 : 0.1)]];
       const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GN} <small>Nv ${m.d.lv}</small>`;
       m.model.g.scale.multiplyScalar(big ? 1.5 : 1.2);
     }

@@ -24,7 +24,7 @@ const Forja = (() => {
 
   const GOLPES = [0.55, 1.15, 1.75], REVELA = 2.25;
   function animar(o, cb) {
-    montar(); el.classList.remove('hidden'); el.querySelector('.fj-txt').innerHTML = `🔨 Doran martela <b>${o.ic} +${o.de} ${o.nome}</b>${o.selo ? ' <small>(🔰 com Selo)</small>' : ''}…`;
+    montar(); el.classList.remove('hidden'); el.querySelector('.fj-txt').innerHTML = o.desp !== undefined ? `✨ Doran desperta <b>${o.ic} ${o.nome}</b> com a força do Cisma…` : `🔨 Doran martela <b>${o.ic} +${o.de} ${o.nome}</b>${o.selo ? ' <small>(🔰 com Selo)</small>' : ''}…`;
     el.querySelector('.fj-dica').style.opacity = 0;
     if (typeof dialogOpen !== 'undefined') dialogOpen = true;           // o herói não anda nem ataca enquanto a forja trabalha
     const t0 = performance.now(), faiscas = [], cacos = []; let golpe = 0, revelou = false;
@@ -38,9 +38,9 @@ const Forja = (() => {
       if (!revelou && t >= REVELA) {
         revelou = true; fim.pode = true; setTimeout(() => { if (fim) el.querySelector('.fj-dica').style.opacity = 1; }, 500);
         const tx = el.querySelector('.fj-txt');
-        if (o.res === 'sucesso') { Audio8.sfx('level'); tx.innerHTML = `<b class="fj-ok">SUCESSO!</b> ${o.ic} <b>+${o.para} ${o.nome}</b>`; for (let k = 0; k < 40; k++) faiscas.push({ x: 300, y: 190, vx: (Math.random() - 0.5) * 520, vy: -Math.random() * 420, v: 0.9 + Math.random() * 0.6, t: 0, ouro: true }); }
+        if (o.res === 'sucesso') { Audio8.sfx('level'); tx.innerHTML = o.desp !== undefined ? `<b class="fj-ok">DESPERTOU!</b> ${o.ic} <b>${o.nome.replace(/ ★+$/, '')} ${'★'.repeat(o.desp)}</b>` : `<b class="fj-ok">SUCESSO!</b> ${o.ic} <b>+${o.para} ${o.nome}</b>`; for (let k = 0; k < 40; k++) faiscas.push({ x: 300, y: 190, vx: (Math.random() - 0.5) * 520, vy: -Math.random() * 420, v: 0.9 + Math.random() * 0.6, t: 0, ouro: true }); }
         else if (o.res === 'quebrou') { Audio8.sfx('boom'); tx.innerHTML = `<b class="fj-ruim">QUEBROU!</b> A ${o.ic} <b>+${o.de} ${o.nome}</b> se partiu e sumiu.`; for (let k = 0; k < 14; k++) cacos.push({ x: 300, y: 186, vx: (Math.random() - 0.5) * 380, vy: -Math.random() * 300 - 80, r: Math.random() * 6, vr: (Math.random() - 0.5) * 12, s: 6 + Math.random() * 10 }); }
-        else { Audio8.sfx('miss'); tx.innerHTML = `<b class="fj-falhou">FALHOU…</b> ${o.selo ? '🔰 O Selo protegeu a peça: ' : ''}${o.ic} <b>${o.nome}</b> ficou <b>+${o.para}</b>.`; }
+        else { Audio8.sfx('miss'); tx.innerHTML = o.desp !== undefined ? `<b class="fj-falhou">FALHOU…</b> Os materiais se perderam, mas ${o.ic} <b>${o.nome}</b> continua inteira.` : `<b class="fj-falhou">FALHOU…</b> ${o.selo ? '🔰 O Selo protegeu a peça: ' : ''}${o.ic} <b>${o.nome}</b> ficou <b>+${o.para}</b>.`; }
       }
       desenhar(t, o, faiscas, cacos, revelou);
       raf = requestAnimationFrame(passo);
