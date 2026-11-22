@@ -1652,7 +1652,7 @@ function gainXp(n) {
 }
 function hurtPlayer(m, mult = 1) {
   if (P.dead || P.dashT > 0 || (P.protT && time < P.protT)) return;          // dash ou proteção de chegada (Torre)
-  if (Math.random() < (m.type === 'kravenox' || m.servoKvx || m.type === 'vermeColosso' || m.servoVerme ? Math.min(0.15, stats.flee()) : stats.flee())) {   /* contra o Kravenox a esquiva quase não salva: fuja dos círculos */ floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
+  if (Math.random() < (m.type === 'kravenox' || m.servoKvx || m.type === 'vermeColosso' || m.servoVerme ? Math.min(0.15, stats.flee()) : m.d.perfura ? Math.min(0.3, stats.flee()) : stats.flee())) {   /* contra o Kravenox a esquiva quase não salva: fuja dos círculos */ floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
   // antes era só "ataque − defesa": com equipamento refinado a defesa passava do ataque dos bichos e cada golpe tirava 1
   // (o Ludi não morria nunca). Agora a defesa corta muito, mas o golpe sempre leva pelo menos 40% do ataque.
   const bruto = m.d.atk * mult * rand(0.85, 1.15), dmg = Math.max(1, Math.round(Math.max(bruto - stats.def(), bruto * (m.d.perfura || 0.4))));   // Abismo e Kravenox atravessam mais a defesa
