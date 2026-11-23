@@ -926,17 +926,17 @@ const Vida = (() => {
     P.equip = P.equip || {};
     const C = CLASSES[P.cls], spr = C.sprite ? (C.sprite.kind === 'dir' ? C.sprite.base + '_down_0' : C.sprite.base + '_down_0') : null;
     const img = spr && window.SPR && SPR[spr] ? `<img class="doll-img" src="data:image/png;base64,${SPR[spr]}">` : '';
-    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on r' + (it(id).rar || 0) : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? it(id).ic : '·'}</span><span><small>${nm}${P.cards && P.cards[sl] ? ' 🃏' : ''}</small><br>${id ? nameOf(id) : '<i>vazio</i>'}</span></div>`; }).join('');
+    const slots = Object.entries(SLOTS).map(([sl, nm]) => { const id = P.equip[sl]; return `<div class="eslot${id ? ' on r' + (it(id).rar || 0) : ''}${sel === 'eq:' + sl ? ' sel' : ''}" data-a="eq" data-v="${sl}"><span class="ei">${id ? (typeof Icones !== 'undefined' ? Icones.html(id) : it(id).ic) : '·'}</span><span><small>${nm}${P.cards && P.cards[sl] ? ' 🃏' : ''}</small><br>${id ? nameOf(id) : '<i>vazio</i>'}</span></div>`; }).join('');
     const allIds = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
     const tabF = (TABS.find(t => t[0] === tab) || TABS[0])[3], ids = allIds.filter(id => tabF(ITEMS[id], id));
     const tabsHtml = `<div class="itabs">${TABS.map(([k, ic, nm, f]) => { const n = allIds.filter(id => f(ITEMS[id], id)).length; return `<div class="itab${tab === k ? ' on' : ''}" data-a="tab" data-v="${k}"><span>${ic}</span><small>${nm}</small>${k !== 'tudo' && n ? `<b>${n}</b>` : ''}</div>`; }).join('')}</div>`;
-    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${P.inv[id]}</b>${better(id) ? '<em class="better">▲</em>' : ''}</div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
+    const cells = ids.map(id => `<div class="icell${sel === id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${id}" title="${it(id).name}">${typeof Icones !== 'undefined' ? Icones.html(id) : `<span>${it(id).ic}</span>`}<b>${P.inv[id]}</b>${better(id) ? '<em class="better">▲</em>' : ''}</div>`).join('') || `<i class="empty">${tab === 'tudo' ? 'Vazia. Derrote monstros para juntar materiais.' : tab === 'missao' ? 'Nenhum item pedido pelas suas missões.' : 'Nada nesta aba.'}</i>`;
     let det = '<small>Toque num item para ver de perto.</small>', view = '';
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl] || 'Peça';
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : `<span class="nopic">${iconeMob(t)}</span>`; };
     // carta desenhada: moldura dourada, retrato do monstro, bônus e onde encaixa
     const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${I.arte ? `<span class="nopic arte">${I.arte}</span>` : mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
-    const bigArt = (I, id) => I.kind === 'carta' ? cardArt(I) : `<div class="ibig r${I.kind === 'equip' ? I.rar : 'x'}"><span>${I.ic}</span></div>`;
+    const bigArt = (I, id) => I.kind === 'carta' ? cardArt(I) : `<div class="ibig r${I.kind === 'equip' ? I.rar : 'x'}">${typeof Icones !== 'undefined' && id ? Icones.html(id, 'big') : `<span>${I.ic}</span>`}</div>`;
     if (sel && sel.startsWith('eq:')) {
       const sl = sel.slice(3), id = P.equip[sl], cd = P.cards && P.cards[sl];
       if (id) {

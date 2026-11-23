@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 24/11
 
+- **🎨 Ícones novos dos equipamentos**: Todos os equipamentos ganharam **ícones desenhados** no lugar dos emojis: espadas, arcos, cajados, garras, elmos, capuzes, coroas, armaduras, mantos, luvas, botas, anéis e colares, com metal brilhante, gemas e as cores do material de cada peça (névoa, cristal, sombra, ouro, raiz, osso, primordial...). A cor de fundo mostra a raridade.
 - **⚔️ Portão novo da Arena**: A entrada da **Arena de Solmira** (Mestre Brakus) virou um portal de coliseu de verdade: colunas com anéis de ouro, arco de pedra, espadas cruzadas no escudo, estandartes, braseiros acesos e a luz dourada dentro do arco.
 - **🔢 Atalhos melhores**: Ao tocar em **📌 Pôr no atalho** (na mochila ou nas habilidades), agora você escolhe **em qual barra** vai: 1, 2 ou 3 (com quantos espaços livres cada uma tem). E no modo **✏️**, **segure um atalho e arraste** para o espaço que quiser: os dois trocam de lugar.
 - **🏆 Recordes com os 5 primeiros e botão AUTO**: O 🏆 **Recordes** (☰ Mais) já mostra os **5 primeiros** de cada lugar, em tempo e em dano. No celular, a caça automática agora é o botão redondo **AUTO** ao lado do ataque (fica verde e pulsando enquanto caça; toque de novo para parar). E as setas que encolhem os quadros ficaram mais bonitas.
