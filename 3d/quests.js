@@ -287,6 +287,41 @@ const Quests = (() => {
   const BOARDS = { margem: { x: MREF.x + 9, z: MREF.z - 6 }, solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 }, praia: { x: PVILA.x + 10, z: PVILA.z - 2 }, vigilia: { x: VIGIL.x + 9, z: VIGIL.z + 4 }, refugio: { x: CREF.x - 9, z: CREF.z - 3 } };
   const opened = () => (P.secrets = P.secrets || {});
   const glintMats = [];
+  // 🟣 mais baús escondidos (pedido do Rone): um no canto de metade das áreas de caça de todos os mapas (Reino, Valdora,
+  // Floresta, Vale, Cidade Submersa, Rio das Memórias) e dois na Praia. Prêmio pelo nível dos bichos do lugar.
+  function gerarBaus() {
+    if (SECRETS.some(s => s.gerado)) return;
+    const NOMES = ['Baú Esquecido', 'Arca Enterrada', 'Cofre do Viajante', 'Baú Coberto de Musgo', 'Arca do Desertor', 'Caixa de Oferendas', 'Relicário Perdido', 'Baú do Caçador'];
+    const MSG = ['Meio enterrado, quase invisível, um baú que alguém escondeu com pressa.', 'Atrás das pedras, uma arca que ninguém lembrou de buscar.', 'Um cofre pequeno, preso por raízes. Alguém fugiu e deixou para trás.', 'O musgo cobre tudo, menos a fechadura dourada.'];
+    const pot = L => L >= 80 ? ['red_x', 'blue_g'] : L >= 60 ? ['red_g', 'blue_m'] : L >= 40 ? ['red_m', 'blue_m'] : ['red', 'blue'];
+    const premio = L => { const [r, b] = pot(L), it = { [r]: 3 + Math.floor(L / 25), [b]: 2 + Math.floor(L / 30) }; if (L >= 20) it.frag_carta = 1 + Math.floor(L / 40); if (L >= 50) it.frag_cisma = 1 + Math.floor(L / 50); return { zeny: Math.round(L * L * 3 + 300), items: it }; };
+    const vistos = new Set(); let k = 0;
+    for (const sp of SPAWNS) {
+      if (!sp.area || !MOBDEF[sp.type] || MOBDEF[sp.type].boss) continue; const key = sp.area.join(','); if (vistos.has(key)) continue; vistos.add(key);
+      if (k++ % 2) continue;
+      const [x0, x1, z0, z1] = sp.area, L = MOBDEF[sp.type].lv;
+      let pt = null; const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2; for (const [cx, cz] of [[x0 + 1.5, z0 + 1.5], [x1 - 1.5, z1 - 1.5], [x0 + 1.5, z1 - 1.5], [x1 - 1.5, z0 + 1.5], [mx, z0 + 1.5], [mx, z1 - 1.5], [x0 + 1.5, mz], [x1 - 1.5, mz], [mx + 2, mz + 2]]) if (!blocked(cx, cz, 0.9)) { pt = [cx, cz]; break; }
+      if (!pt) continue;
+      SECRETS.push({ id: 'bx' + key.replace(/[^0-9-]/g, '').slice(0, 14), gerado: 1, kind: 'bau', name: NOMES[k % NOMES.length], x: pt[0], z: pt[1], lv: Math.max(1, L - 5), rw: premio(L), msg: MSG[k % MSG.length] });
+    }
+    // Praia de Cômodo (sem monstros): perto do farol e atrás da vila
+    for (const [id, bx, bz] of [['bpraia1', PFAROL.x + 7, PFAROL.z + 5], ['bpraia2', PVILA.x - 16, PVILA.z + 12]]) {
+      let pt = null; for (let r = 0; r < 10 && !pt; r += 2) for (let a = 0; a < 6.3 && !pt; a += 0.8) { const x = bx + Math.cos(a) * r, z = bz + Math.sin(a) * r; if (!blocked(x, z, 0.9)) pt = [x, z]; }
+      if (pt) SECRETS.push({ id, gerado: 1, kind: 'bau', name: 'Baú do Náufrago', x: pt[0], z: pt[1], rw: premio(25), msg: 'A maré trouxe um baú e a areia escondeu. Ainda está seco por dentro.' });
+    }
+  }
+  function montarBau(s) {
+    const g = new THREE.Group(); g.position.set(s.x, groundY(s.x, s.z), s.z); scene.add(g); s.g = g;
+    mesh(new THREE.BoxGeometry(1.1, 0.7, 0.75), PM('madeira.jpg', [1, 0.5], 0x7a5a3a), 0, 0.35, 0, g);
+    mesh(new THREE.BoxGeometry(1.15, 0.12, 0.8), new THREE.MeshLambertMaterial({ color: 0x4a3a20 }), 0, 0.72, 0, g);
+    const glint = new THREE.Sprite(new THREE.SpriteMaterial({ map: markTex('✦:#ffe8a0'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); glint.scale.setScalar(0.6); glint.position.y = 1.2; g.add(glint); s.glint = glint;
+    addOb(s.x, s.z, 0.7);
+  }
+  let bausGerados = false;
+  function gerarDepois() {                                 // só depois que todos os mapas (Floresta, Vale, Cidade, Rio, Praia) carregaram
+    if (bausGerados || typeof running === 'undefined' || !running || typeof Memorias === 'undefined' || typeof Praia === 'undefined') return;
+    bausGerados = true; const antes = SECRETS.length; try { gerarBaus(); } catch (e) { } for (const s of SECRETS.slice(antes)) montarBau(s);
+  }
   function build() {
     for (const [city, b] of Object.entries(BOARDS)) {
       const g = new THREE.Group(); g.position.set(b.x, groundY(b.x, b.z), b.z); g.rotation.y = Math.atan2(P.x - b.x, P.z - b.z) * 0; scene.add(g);
@@ -339,6 +374,7 @@ const Quests = (() => {
   let tAcc = 0;
   function update(dt) {
     tAcc += dt; if (tAcc < 0.4) return; tAcc = 0;
+    gerarDepois();
     for (const s of SECRETS) if (s.glint) s.glint.visible = !opened()[s.id] && Math.hypot(s.x - P.x, s.z - P.z) < 22;
     for (const id in S().act) { const q = byId[id]; if (!q) continue; if (q.steps.some(st => st.reach === 'topo') && inTower(P.z) && Tower.floor === TOP && !S().act[id].r) { S().act[id].r = 1; log(`🟡 Você chegou ao topo. Volte ao <b>${q.giver}</b>.`, 'gold'); } }
     for (const id in S().act) { const q = byId[id]; if (!q) continue; const st = q.steps.find(t => Array.isArray(t.reach)); if (st && !S().act[id].r && Math.hypot(P.x - st.reach[0], P.z - st.reach[1]) < st.reach[2]) { S().act[id].r = 1; Audio8.sfx('level'); log(`${TYPE[q.type].dot} <b>${q.title}</b>: você chegou! Volte a ${q.to || q.giver}.`, 'gold'); } }
@@ -353,6 +389,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { quadroPerto, warp, readyCount, novasCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { _baus: () => SECRETS.filter(s => s.kind === 'bau').map(s => [s.name, Math.round(s.x), Math.round(s.z), s.lv || 0]), quadroPerto, warp, readyCount, novasCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();

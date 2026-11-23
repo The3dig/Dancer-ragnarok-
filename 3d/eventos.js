@@ -122,9 +122,17 @@ const Eventos = (() => {
 
   const NOMES = { dourada: '🌟 Hora Dourada', invasao: '⚔️ Invasão', estrelas: '✨ Chuva de Estrelas', mercador: '🧳 Mercador Raro' };
   const DESC = e => ({ dourada: '+50% de XP e de drop em todo o Reino!', invasao: `monstros atacam a <b>${e.cid.n}</b>! Defenda a praça: eles soltam fragmentos.`, estrelas: 'estrelas caem perto de quem está caçando fora das cidades (até 15 por pessoa), algumas raras 🌠, e outras caem nos monstros: pegue-as!', mercador: `o <b>Mercador Orlo</b> está na praça de <b>${e.cid.n}</b> vendendo raridades.` })[e.tipo];
+  // 🥁 música de batalha na cidade invadida (pedido do Rone: a música calma da vila não combinava com o caos)
+  let musInv = '';
+  function musicaInvasao(e) {
+    const zn = zoneOf(P.x, P.z), quer = e.ativo && e.tipo === 'invasao' && zn === e.cid.z && !inTower(P.z), k = (quer ? 'guerra' : 'zona') + zn;
+    if (k === musInv) return; const antes = musInv; musInv = k;
+    if (quer) Audio8.play('guerra'); else if (antes.startsWith('guerra') && ZONES[zn]) Audio8.play(ZONES[zn].music);
+  }
   function update(dt) {
     if (!running) return;
     const e = agora();
+    try { musicaInvasao(e); } catch (er) { }
     if (!e.ativo && e.comecaEm > 0 && e.comecaEm < 120 && avisou !== e.h) { avisou = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: 'EM 2 MINUTOS', titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, '') }); log(`⚡ Em <b>2 minutos</b>: ${NOMES[e.tipo]} — ${DESC(e)}`, 'gold'); }
     if (e.ativo && ultimo !== e.h) { ultimo = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: `EVENTO SURPRESA · ${e.dur} MIN`, titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, ''), cor: 'verde' }); Audio8.sfx('level'); log(`⚡ <b>Evento:</b> ${NOMES[e.tipo]} por ${DUR} minutos — ${DESC(e)}`, 'gold'); }
     if (!e.ativo) { if (orlo) tirarOrlo(); if (ultimo === e.h && e.falta < 0) { ultimo = -e.h; log(`⚡ ${NOMES[e.tipo]} acabou. O próximo evento é às :${INI} da próxima hora.`, 'sys'); for (const m of mobs.filter(m => m.invasor)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => !m.invasor); } return; }

@@ -13,13 +13,24 @@ const Jogadores = (() => {
   // 📢 "me sigam": quem chama manda uma ordem na presença; o companheiro de grupo começa a seguir sozinho (mexer o joystick cancela)
   let ordem = null; const ordVistas = new Map();
   function pres() { const o = { ...(typeof presAura === 'function' ? presAura() : {}) }; if (emo && Date.now() - emo.at < 6000) o.emo = emo; if (ordem && Date.now() - ordem.at < 8000) o.ord = ordem; return o; }
+  // ⏳ o líder chamou: você tem 30 segundos para recusar; se não recusar, começa a seguir sozinho
+  let pedSeg = null;
+  function pedidoSeguir(r) {
+    if (pedSeg) { clearInterval(pedSeg.t); pedSeg.el.remove(); }
+    const el = document.createElement('div'); el.className = 'seg-pedido'; document.body.appendChild(el);
+    let falta = 30; const desenha = () => { el.innerHTML = `📢 <b>${esc(r.n)}</b> (líder) chamou o grupo para segui-lo. Você começa a seguir em <b>${falta} s</b>. <button data-n>✋ Recusar</button><button data-s>🚶 Seguir já</button>`; };
+    const fim = seguir => { clearInterval(pedSeg.t); el.remove(); pedSeg = null; if (!seguir) { log('📢 Você recusou seguir o líder.', 'sys'); return; } const rr = achar(r.peer); if (!rr) return; const fe = fechado(rr); if (fe) { naoDa(rr, fe); return; } seguindo = r.peer; banner(`📢 SEGUINDO ${String(r.n).toUpperCase()}`); log(`📢 Agora você está <b>seguindo</b> <b>${esc(r.n)}</b>. Mexa o personagem para parar.`, 'gold'); Audio8.sfx('buff'); };
+    el.addEventListener('pointerdown', e => { if (e.target.closest('[data-n]')) { e.preventDefault(); fim(false); } else if (e.target.closest('[data-s]')) { e.preventDefault(); fim(true); } });
+    desenha(); Audio8.sfx('buff');
+    pedSeg = { el, t: setInterval(() => { falta--; if (falta <= 0) fim(true); else desenha(); }, 1000) };
+  }
   function chamarSeguir(peers) { ordem = { to: peers, at: Date.now() }; Audio8.sfx('buff'); log(`📢 Você chamou ${peers.length > 1 ? 'o grupo' : '<b>' + esc((achar(peers[0]) || {}).n || '') + '</b>'} para seguir você.`, 'sys'); }
   setInterval(() => {
     if (typeof running === 'undefined' || !running || typeof Net === 'undefined' || !Net.peers || !P.grupo) return;
     for (const r of Net.peers()) { const o = r.s && r.s.ord; if (!o || ordVistas.get(r.peer) === o.at || Date.now() - o.at > 8000) continue; ordVistas.set(r.peer, o.at);
       if (r.s.gp !== P.grupo || !Array.isArray(o.to) || !o.to.includes(Net.me)) continue;
       const fe = fechado(r); if (fe) { naoDa(r, fe); continue; }
-      seguindo = r.peer; banner(`📢 SEGUINDO ${String(r.n).toUpperCase()}`); log(`📢 <b>${esc(r.n)}</b> chamou você: agora você está <b>seguindo</b>. Mexa o personagem para parar.`, 'gold'); Audio8.sfx('buff'); }
+      pedidoSeguir(r); }
   }, 700);
   function menu(peer) {
     const r = achar(peer); if (!r) return; const s = r.s || {}, d = Math.round(Math.hypot(r.x - P.x, r.z - P.z));
@@ -27,7 +38,7 @@ const Jogadores = (() => {
     const opts = [
       { label: '👤 Ver perfil', fn: () => { perfil(peer); return true; } },
       { label: seguindo === peer ? '⏹️ Parar de seguir' : '🚶 Seguir', fn: () => { if (seguindo === peer) parar('🚶 Você parou de seguir.'); else if (fechado(r)) naoDa(r, fechado(r)); else { seguindo = peer; log(`🚶 Seguindo <b>${esc(r.n)}</b>. Mexa o personagem para parar.`, 'sys'); } } },
-      ...(meuGrupo ? [{ label: '📢 Fazer ele me seguir', fn: () => { chamarSeguir([peer]); } }] : []),
+      ...(meuGrupo && typeof Grupo !== 'undefined' && Grupo.souLider && Grupo.souLider() ? [{ label: '📢 Fazer ele me seguir', fn: () => { chamarSeguir([peer]); } }, { label: '👑 Passar a liderança para ele', fn: () => { Grupo.passarLider(r); } }] : []),
       { label: '🤝 Trocar itens', fn: () => { if (typeof Vida !== 'undefined' && Vida.trocarCom) Vida.trocarCom(peer); return true; } },
       { label: '😀 Mandar emoji', fn: () => { emojis(peer); return true; } },
       ...(!meuGrupo && typeof Grupo !== 'undefined' ? [{ label: '👥 Chamar para o grupo', fn: () => { Grupo.convidar(r); } }] : []),

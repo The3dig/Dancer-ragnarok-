@@ -919,3 +919,9 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 .gr-av img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; border-radius: inherit; }
 .gr-todos { margin-left: 6px; padding: 2px 8px; border-radius: 8px; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; font-weight: 800; font-size: 11px; }
 #grupowin .gr-av { width: 54px; height: 54px; overflow: hidden; }
+
+/* ⏳ pedido do líder para seguir (30 s para recusar) */
+.seg-pedido { position: fixed; left: 50%; top: calc(60px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 60; max-width: min(560px, 92vw); padding: 9px 12px; border-radius: 12px; background: rgba(20,14,34,.95); border: 1px solid #f2c86a; color: #f0e8dc; font: 600 13px 'Nunito', sans-serif; box-shadow: 0 6px 22px rgba(0,0,0,.5); }
+.seg-pedido button { margin-left: 8px; padding: 5px 10px; border-radius: 9px; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; font-weight: 800; }
+.seg-pedido button[data-n] { background: rgba(255,255,255,.1); color: #f0e8dc; border-color: rgba(255,255,255,.3); }
+#grupowin .gr-card.lider { border-color: #f2c86a !important; }

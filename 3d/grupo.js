@@ -92,7 +92,7 @@ const Grupo = (() => {
     if (mVistas.size > 400) mVistas.clear();
   }
   setInterval(() => { try { if (typeof running !== 'undefined' && running && online()) receberMortes(); } catch (e) { } }, 700);
-  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); mortes = mortes.filter(e => t - e.at < 9000); return { gm: mortes.length ? mortes : null, gd: pedido && t < pedido.ate ? { id: pedido.id, z: pedido.z, nome: pedido.nome, dif: pedido.dif, gp: gp() } : null, gr: resposta && t < resposta.ate ? { id: resposta.id, ok: resposta.ok } : null, gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
+  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); mortes = mortes.filter(e => t - e.at < 9000); return { gl: P.grupo && P.grupoLider ? P.grupoLider : null, gm: mortes.length ? mortes : null, gd: pedido && t < pedido.ate ? { id: pedido.id, z: pedido.z, nome: pedido.nome, dif: pedido.dif, gp: gp() } : null, gr: resposta && t < resposta.ate ? { id: resposta.id, ok: resposta.ok } : null, gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
   // ---------------- divisão dos itens da caçada (como o "dividir itens" do Ragnarok)
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
   // anti-leech (como o Ragnarok): só divide com quem tem nível parecido.
@@ -145,14 +145,24 @@ const Grupo = (() => {
     const I = ITEMS[id]; if (I) log(`👥 ${I.ic} <b>${I.name}</b> foi para <b>${r.n}</b> (sorteio do grupo).`, 'sys');
   }
 
+  // 👑 líder do grupo (pedido do Rone): quem cria é o líder; ele pode passar a liderança para outro.
+  // Cada um publica quem acha que é o líder (gl = { n: nome, at }); a declaração mais nova vale para todos.
+  function lider() {
+    let L = P.grupoLider || null;
+    for (const r of membros()) { const g = r.s && r.s.gl; if (g && g.n && (!L || (g.at || 0) > (L.at || 0))) L = g; }
+    if (L && (!P.grupoLider || L.at > (P.grupoLider.at || 0))) P.grupoLider = { n: L.n, at: L.at };
+    return P.grupoLider ? P.grupoLider.n : null;
+  }
+  const souLider = () => !!P.grupo && lider() === P.name;
+  function passarLider(r) { P.grupoLider = { n: r.n, at: Date.now() }; Audio8.sfx('buff'); log(`👑 Você passou a liderança do grupo para <b>${esc(r.n)}</b>.`, 'gold'); }
   function convidar(r) {
-    if (!P.grupo) P.grupo = 'g' + Math.random().toString(36).slice(2, 9);
+    if (!P.grupo) { P.grupo = 'g' + Math.random().toString(36).slice(2, 9); P.grupoLider = { n: P.name, at: Date.now() }; }
     if (membros().length + 1 >= MAX) { log(`👥 O grupo já tem ${MAX} pessoas.`, 'bad'); return; }
     convite = { to: r.peer, gp: P.grupo, id: Math.random().toString(36).slice(2, 8), ate: Date.now() + 60000 };
     log(`📨 Convite para o grupo enviado para <b>${r.n}</b>. Espere ele aceitar.`, 'sys'); Audio8.sfx('click');
   }
   function sair() {
-    if (!P.grupo) return; P.grupo = null; convite = null; nomesAntes = null;
+    if (!P.grupo) return; P.grupo = null; P.grupoLider = null; convite = null; nomesAntes = null;
     log('👥 Você saiu do grupo.', 'sys'); if (typeof save === 'function') save();
   }
   // ---------------- painel do grupo (janela própria, pedido do Rone: o antigo era só uma lista)
@@ -168,6 +178,7 @@ const Grupo = (() => {
         const a = t.dataset.a, v = t.dataset.v, r = Net.peers().find(x => x.peer === v);
         if (a === 'x') { fechar(); return; }
         if (a === 'menu' && r && typeof Jogadores !== 'undefined' && !e.target.closest('button')) { fechar(); Jogadores.menu(r.peer); return; }
+        if (a === 'lider' && r) { passarLider(r); desenhar(); return; }
         if (a === 'todos' && typeof Jogadores !== 'undefined') { Jogadores.chamarSeguir(membros().map(x => x.peer)); return; }
         if (a === 'chamar' && r) convidar(r);
         if (a === 'ir' && r && typeof Jogadores !== 'undefined' && Jogadores.fechado(r)) { Jogadores.naoDa(r, Jogadores.fechado(r)); return; }
@@ -187,14 +198,15 @@ const Grupo = (() => {
     const cls = r => { try { const c = CLASSES[r.s.look && r.s.look.cls]; return c ? (c.name[r.s.look.gender] || c.name.f) : ''; } catch (e) { return ''; } };
     // retrato do personagem como ele é (a classe e o visual dele); tocar no quadro abre o menu (trocar, seguir, fazer seguir...)
     const rosto = look => { try { const c = CLASSES[look && look.cls]; return c && window.SPR && SPR[c.portrait] ? `<img src="data:image/png;base64,${SPR[c.portrait]}">` : ''; } catch (e) { return ''; } };
-    const card = (nome, lv, classe, hp, dist, botoes, eu, look, peer) => `<div class="gr-card${eu ? ' eu' : ''}"${peer ? ` data-a="menu" data-v="${peer}"` : ''}><div class="gr-av">${rosto(look) || esc(nome).slice(0, 1).toUpperCase()}</div><div class="gr-info"><div><b>${esc(nome)}</b>${eu ? ' <small>(você)</small>' : ''} <span class="gr-lv">Nv ${lv || '?'}</span></div><small>${esc(classe)}${dist}</small><div class="gr-hp"><i style="width:${hp}%;background:${corV(hp)}"></i></div></div><div class="gr-bt">${botoes}</div></div>`;
+    const L = lider();
+    const card = (nome, lv, classe, hp, dist, botoes, eu, look, peer) => `<div class="gr-card${eu ? ' eu' : ''}${nome === L ? ' lider' : ''}"${peer ? ` data-a="menu" data-v="${peer}"` : ''}><div class="gr-av">${rosto(look) || esc(nome).slice(0, 1).toUpperCase()}</div><div class="gr-info"><div><b>${nome === L ? '👑 ' : ''}${esc(nome)}</b>${eu ? ' <small>(você)</small>' : ''} <span class="gr-lv">Nv ${lv || '?'}</span></div><small>${esc(classe)}${dist}</small><div class="gr-hp"><i style="width:${hp}%;background:${corV(hp)}"></i></div></div><div class="gr-bt">${botoes}</div></div>`;
     const meuHp = Math.round(P.hp / stats.maxHp() * 100);
     const eu = card(P.name, P.lv, className(P.cls, P.gender), meuHp, '', '', true, { cls: P.cls, gender: P.gender });
     const lista = M.map(r => { const hp = Math.max(0, Math.min(100, r.s.hp ?? 100)), d = Math.round(Math.hypot(r.x - P.x, r.z - P.z));
-      return card(r.n, r.s.lv, cls(r), r.s.st === 'd' ? 0 : hp, ` · ${r.s.st === 'd' ? '💀 caído' : perto(r) ? '<span class="gr-perto">perto</span>' : d + ' m'}`, `<button data-a="ir" data-v="${r.peer}" title="Ir até">🧭</button>`, false, r.s.look, r.peer); }).join('');
+      return card(r.n, r.s.lv, cls(r), r.s.st === 'd' ? 0 : hp, ` · ${r.s.st === 'd' ? '💀 caído' : perto(r) ? '<span class="gr-perto">perto</span>' : d + ' m'}`, `${souLider() ? `<button data-a="lider" data-v="${r.peer}" title="Passar a liderança">👑</button>` : ''}<button data-a="ir" data-v="${r.peer}" title="Ir até">🧭</button>`, false, r.s.look, r.peer); }).join('');
     const chamar = fora.slice(0, 12).map(r => `<div class="gr-fora"><span><b>${esc(r.n)}</b> <small>Nv ${r.s.lv || '?'} · ${esc(cls(r))}${r.s.gp ? ' · já tem grupo' : ''}</small></span><button data-a="chamar" data-v="${r.peer}">➕ Chamar</button></div>`).join('');
     const h = `<div class="wt">👥 Grupo <small>${gp() ? `${M.length + 1} de ${MAX}` : 'sem grupo'}</small><span class="x" data-a="x">×</span></div><div class="gr-b">
-      <div class="gr-sec">⚔️ Companheiros <small>(toque no quadro para trocar, seguir…)</small>${M.length ? ' <button data-a="todos" class="gr-todos">📢 Todos me sigam</button>' : ''}</div>${eu}${lista || '<div class="gr-vazio">Ninguém no grupo ainda. Chame alguém aqui embaixo!</div>'}
+      <div class="gr-sec">⚔️ Companheiros <small>(toque no quadro para trocar, seguir…)</small>${M.length && souLider() ? ' <button data-a="todos" class="gr-todos">📢 Todos me sigam</button>' : ''}</div>${eu}${lista || '<div class="gr-vazio">Ninguém no grupo ainda. Chame alguém aqui embaixo!</div>'}
       <div class="gr-sec">📨 Chamar para o grupo</div>${chamar || '<div class="gr-vazio">Não tem mais ninguém on-line agora.</div>'}
       <div class="gr-sec gr-reg" data-a="regras">📜 Como funciona o grupo ${regras ? '▲' : '▼'}</div>${regras ? `<div class="gr-txt">Quando um de vocês mata um monstro e o outro está no <b>mesmo mapa</b>, <b>o XP é dividido</b> com +10% por companheiro, entre quem tem nível parecido (até 10 níveis de diferença). Quem está <b>mais de 10 níveis abaixo</b> pega <b>carona</b>: ganha um pouco de XP (até 0,8% de um nível por bicho) sem tirar nada de quem matou, mas a carona não conta para missões nem itens. O monstro conta nas <b>missões, desafios e aventuras</b> de todos, e os <b>itens são sorteados</b> entre quem está perto. Curas e proteções valem para o grupo perto (15 m). Nas masmorras em grupo, <b>todos precisam aceitar</b> para entrar.</div>` : ''}
       ${gp() ? '<div class="gr-fim"><button data-a="sair" class="perigo">🚪 Sair do grupo</button></div>' : ''}</div>`;
@@ -228,7 +240,7 @@ const Grupo = (() => {
       if (P.grupo === c.gp) continue;
       Audio8.sfx('buff'); log(`👥 <b>${r.n}</b> te chamou para o grupo!`, 'gold');
       dialog('👥 Convite para o grupo', `<b>${r.n}</b> (Nv ${r.s.lv || '?'}) te chamou para caçar junto.<br><small>No grupo, quem está perto ganha XP e conta o monstro nas missões quando o outro mata.</small>`, [
-        { label: '✅ Entrar no grupo', fn: () => { P.grupo = c.gp; nomesAntes = null; log(`👥 Você entrou no grupo de <b>${r.n}</b>!`, 'gold'); if (typeof save === 'function') save(); } },
+        { label: '✅ Entrar no grupo', fn: () => { P.grupo = c.gp; P.grupoLider = { n: r.n, at: 1 }; nomesAntes = null; log(`👥 Você entrou no grupo de <b>${r.n}</b>!`, 'gold'); if (typeof save === 'function') save(); } },
         { label: 'Recusar' }]);
     }
     if (convite && Date.now() > convite.ate) convite = null;
@@ -313,5 +325,5 @@ const Grupo = (() => {
 
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { avisarMorte, juntos, repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
+  return { lider, souLider, passarLider, avisarMorte, juntos, repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
 })();

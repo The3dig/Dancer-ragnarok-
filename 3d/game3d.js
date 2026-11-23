@@ -2712,56 +2712,114 @@ const BigMap = (() => {
   // (as terras do norte ficam longe do Reino no mundo; aqui elas encostam, para caber na tela)
   const mapaReg = id => { const M = id === 'reino' ? Object.assign({}, REINO_MAP, { base }) : (REG.find(r => r.id === id) || {}).M?.(); if (M && M.pintar) M.pintar(); return M || null; };
   // quadros do mapa (fração da tela 16:9): em cima as terras do norte, embaixo Praia, Reino e Torre
-  const QUAD = { valdora: [0.01, 0.02, 0.19, 0.46], floresta: [0.207, 0.02, 0.19, 0.46], vale: [0.404, 0.02, 0.19, 0.46], cidade: [0.601, 0.02, 0.19, 0.46], memorias: [0.798, 0.02, 0.192, 0.46], praia: [0.01, 0.52, 0.2, 0.46], reino: [0.225, 0.52, 0.53, 0.46], torre: [0.77, 0.52, 0.22, 0.46] };
+  // 🗺️ o mapa do mundo DESENHADO (pedido do Rone: "mais cara de mapa, sem os quadrados"): cada lugar é uma terra de
+  // contorno natural, no lugar da geografia (oeste a Praia e o mar, no meio o Reino, ao norte Valdora, Floresta e Vale,
+  // a leste as ilhas da Cidade Submersa e, embaixo delas, o lago do Rio das Memórias). Tocar numa terra abre o mapa dela.
+  const GEO = {
+    praia: { cx: 0.11, cy: 0.70, rx: 0.075, ry: 0.15, cor: '#d8c088', s: 3 }, reino: { cx: 0.36, cy: 0.70, rx: 0.155, ry: 0.2, cor: '#8aa456', s: 7 },
+    torre: { cx: 0.555, cy: 0.80, rx: 0.045, ry: 0.11, cor: '#6a4a8a', s: 11 }, valdora: { cx: 0.24, cy: 0.27, rx: 0.1, ry: 0.17, cor: '#b08a62', s: 13 },
+    floresta: { cx: 0.43, cy: 0.25, rx: 0.095, ry: 0.17, cor: '#4e5a48', s: 17 }, vale: { cx: 0.615, cy: 0.27, rx: 0.09, ry: 0.17, cor: '#7a7680', s: 19 },
+    cidade: { cx: 0.79, cy: 0.32, rx: 0.095, ry: 0.19, cor: '#5a4a7a', s: 23 }, memorias: { cx: 0.8, cy: 0.77, rx: 0.1, ry: 0.15, cor: '#2a7a8a', s: 29 },
+  };
   function layout(W = 16, H = 9) {
     const L = {};
-    for (const id in QUAD) {
-      const [qx, qy, qw, qh] = QUAD[id], x = qx * W, y = qy * H, w = qw * W, h = qh * H, faixa = h * 0.2, M = id === 'torre' ? null : mapaReg(id);
-      const T = { id, x, y, w, h, faixa, M };
-      if (M && M.w) { const k = Math.min(w / M.w, (h - faixa) / M.h); T.k = k; T.ox = x + (w - M.w * k) / 2; T.oy = y + faixa + (h - faixa - M.h * k) / 2; }
-      L[id] = T;
+    for (const id in GEO) {
+      const o = GEO[id], M = id === 'torre' ? null : mapaReg(id);
+      L[id] = { id, x: (o.cx - o.rx) * W, y: (o.cy - o.ry) * H, w: o.rx * 2 * W, h: o.ry * 2 * H, cx: o.cx * W, cy: o.cy * H, rx: o.rx * W, ry: o.ry * H, cor: o.cor, s: o.s, M };
     }
     return L;
   }
-  const ptQ = (T, x, z) => [T.ox + (x - T.M.x0) * T.k, T.oy + (z - T.M.z0) * T.k];
+  const ptQ = (T, x, z) => { const M = T.M; if (!M || !M.w) return [T.cx, T.cy]; const u = (x - M.x0) / M.w - 0.5, v = (z - M.z0) / M.h - 0.5; return [T.cx + u * 2 * T.rx * 0.74, T.cy + v * 2 * T.ry * 0.74]; };
   const regPt = (x, z) => { const r = inTower(z) ? 'torre' : mapaDe(x, z); return r; };
   function cliqueMundo(fx, fy) {
-    const L = layout(1, 1), T = Object.values(L).find(T => fx > T.x && fx < T.x + T.w && fy > T.y && fy < T.y + T.h); if (!T) return;
+    const L = layout(1, 1), T = Object.values(L).map(T => ({ T, d: Math.hypot((fx - T.cx) / T.rx, (fy - T.cy) / T.ry) })).filter(o => o.d < 1.15).sort((a, b) => a.d - b.d).map(o => o.T)[0]; if (!T) return;
     Audio8.sfx('click'); const aqui = regDe();
     if (T.id === 'torre') { if (aqui === 'torre') { log('Você já está na Torre do Cisma.', 'sys'); return; } if (aqui === 'reino') go(Tower.door.x, Tower.door.z + 5, 'a porta da Torre do Cisma'); else { const w = rota(aqui, 'torre'); go(w.x, w.z, `${w.name}, caminho para a Torre do Cisma`, { reg: 'torre', regN: 'Torre do Cisma' }); } return; }
     show(null, T.id === aqui ? null : T.id);
   }
-  function drawMundo() {
-    const W = cv.width, H = cv.height, L = layout(W, H), aqui = regDe(), t = performance.now() / 1000, f = Math.max(14, W / 60);
-    g.fillStyle = '#100c18'; g.fillRect(0, 0, W, H);
-    const caber = (txt, peso, tam, maxW) => { let k = tam; g.font = `${peso} ${Math.round(k)}px Nunito, sans-serif`; while (k > 9 && g.measureText(txt).width > maxW) { k -= 1; g.font = `${peso} ${Math.round(k)}px Nunito, sans-serif`; } };
-    // passagens: do arco de um quadro ao arco do outro
+  // ---------------- desenho do mapa do mundo (a parte que não muda fica guardada numa imagem)
+  let fundoMundo = null;
+  function semente(n) { let x = n * 9301 + 49297; return () => { x = (x * 9301 + 49297) % 233280; return x / 233280; }; }
+  function contorno(gg, T, rnd, k = 1) {                                  // terra de contorno natural (elipse com a beira irregular)
+    gg.beginPath();
+    const N = 46, ph = rnd() * 6, ph2 = rnd() * 6;
+    for (let i = 0; i <= N; i++) { const a = i / N * TAU, w = 1 + Math.sin(a * 3 + ph) * 0.07 + Math.sin(a * 7 + ph2) * 0.04 + Math.sin(a * 13 + ph) * 0.02;
+      const x = T.cx + Math.cos(a) * T.rx * w * k, y = T.cy + Math.sin(a) * T.ry * w * k; i ? gg.lineTo(x, y) : gg.moveTo(x, y); }
+    gg.closePath();
+  }
+  function desenharFundo(W, H) {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const gg = c.getContext('2d'), L = layout(W, H), f = Math.max(14, W / 60);
+    // pergaminho
+    const pg = gg.createRadialGradient(W * 0.45, H * 0.45, W * 0.1, W * 0.5, H * 0.5, W * 0.75); pg.addColorStop(0, '#efe0b8'); pg.addColorStop(1, '#bfa070'); gg.fillStyle = pg; gg.fillRect(0, 0, W, H);
+    const rn = semente(5); for (let i = 0; i < 2600; i++) { gg.fillStyle = `rgba(90,60,30,${rn() * 0.06})`; gg.fillRect(rn() * W, rn() * H, 2 + rn() * 3, 2 + rn() * 3); }
+    // o mar do oeste (Praia de Cômodo)
+    const mar = gg.createLinearGradient(0, 0, W * 0.2, 0); mar.addColorStop(0, '#3a6a8a'); mar.addColorStop(1, 'rgba(90,140,170,0)'); gg.fillStyle = mar; gg.fillRect(0, H * 0.4, W * 0.22, H * 0.6);
+    gg.strokeStyle = 'rgba(230,245,255,.5)'; gg.lineWidth = Math.max(1, W / 900); for (let i = 0; i < 40; i++) { const x = rn() * W * 0.12, y = H * 0.45 + rn() * H * 0.5; gg.beginPath(); gg.arc(x, y, f * 0.4, Math.PI * 1.1, Math.PI * 1.9); gg.stroke(); }
+    // o vazio onde a Cidade Submersa flutua (céu escuro com estrelas)
+    { const v = gg.createRadialGradient(L.cidade.cx, L.cidade.cy, 0, L.cidade.cx, L.cidade.cy, L.cidade.rx * 1.8); v.addColorStop(0, 'rgba(30,20,50,.85)'); v.addColorStop(1, 'rgba(30,20,50,0)'); gg.fillStyle = v; gg.fillRect(0, 0, W, H);
+      for (let i = 0; i < 70; i++) { const a = rn() * TAU, r = rn() * L.cidade.rx * 1.6; gg.fillStyle = `rgba(255,255,230,${0.4 + rn() * 0.6})`; gg.fillRect(L.cidade.cx + Math.cos(a) * r, L.cidade.cy + Math.sin(a) * r * 1.6, 1.5, 1.5); } }
+    // estradas tracejadas entre as passagens (ficam por baixo das terras)
     const PAS = [[VGATE_R, 'reino', VGATE_V, 'valdora'], [RGATE_P, 'reino', PGATE, 'praia'], [VGATE_VF, 'valdora', FGATE, 'floresta'], [FGATE_V, 'floresta', VALE_GATE, 'vale'], [VGATE_C, 'vale', CGATE, 'cidade'], [MGATE_C, 'cidade', MGATE, 'memorias']];
-    const pontas = [];
-    for (const [a, ra, b, rb] of PAS) if (L[ra].M && L[rb].M) pontas.push([ptQ(L[ra], a.x, a.z), ptQ(L[rb], b.x, b.z)]);
-    const torreR = L.reino.M ? ptQ(L.reino, Tower.door.x, Tower.door.z) : null, Tq = L.torre;
-    if (torreR) pontas.push([torreR, [Tq.x + Tq.w * 0.5, Tq.y + Tq.h * 0.6]]);
+    const pontas = []; for (const [a, ra, b, rb] of PAS) pontas.push([ptQ(L[ra], a.x, a.z), ptQ(L[rb], b.x, b.z)]);
+    pontas.push([ptQ(L.reino, Tower.door.x, Tower.door.z), [L.torre.cx, L.torre.cy]]);
+    gg.save(); gg.setLineDash([f * 0.45, f * 0.3]); gg.strokeStyle = 'rgba(120,40,30,.85)'; gg.lineWidth = Math.max(2, W / 420); gg.lineCap = 'round';
+    for (const [[ax, ay], [bx, by]] of pontas) { const mx = (ax + bx) / 2 + (by - ay) * 0.12, my = (ay + by) / 2 - (bx - ax) * 0.12; gg.beginPath(); gg.moveTo(ax, ay); gg.quadraticCurveTo(mx, my, bx, by); gg.stroke(); }
+    gg.restore();
+    // as terras
     for (const id in L) {
-      const T = L[id], eu = id === aqui, r = REG.find(r => r.id === id);
-      g.fillStyle = id === 'torre' ? '#2a1a40' : '#1c1626'; g.fillRect(T.x, T.y, T.w, T.h);
-      if (T.M && T.M.base) { g.imageSmoothingEnabled = true; g.drawImage(T.M.base, T.ox, T.oy, T.M.w * T.k, T.M.h * T.k); }
-      if (id === 'torre') { g.textAlign = 'center'; g.font = `${Math.round(T.h * 0.42)}px sans-serif`; g.fillText('🗼', T.x + T.w / 2, T.y + T.h * 0.78); }
-      // faixa com o nome e o nível
-      g.fillStyle = 'rgba(10,6,16,.85)'; g.fillRect(T.x, T.y, T.w, T.faixa);
-      g.textAlign = 'center'; g.fillStyle = '#f7e2a8'; caber(r.n, 800, T.faixa * 0.5, T.w - 10); g.fillText(r.n, T.x + T.w / 2, T.y + T.faixa * 0.5);
-      g.fillStyle = '#ffb0d0'; const lv = id === 'praia' ? 'Nv 18–34' : id === 'torre' ? 'Nv 18–60 · 30 andares' : r.lv; caber(lv, 800, T.faixa * 0.36, T.w - 10); g.fillText(lv, T.x + T.w / 2, T.y + T.faixa * 0.9);
-      g.strokeStyle = eu ? '#ffcf40' : 'rgba(247,226,168,.6)'; g.lineWidth = eu ? Math.max(4, W / 220) : 1.5; g.strokeRect(T.x, T.y, T.w, T.h);
-      // cidades: ponto amarelo
-      if (T.M) { const cs = T.M.cities || (id === 'reino' ? CITIES : []); for (const c of cs) { const [x, y] = ptQ(T, c.c.x, c.c.z); g.fillStyle = '#ffcf40'; g.beginPath(); g.arc(x, y, f * 0.32, 0, TAU); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); } }
+      const T = L[id], r = semente(T.s);
+      gg.save(); contorno(gg, T, semente(T.s), 1.06); gg.fillStyle = 'rgba(70,45,20,.35)'; gg.fill(); gg.restore();          // sombra da beira
+      contorno(gg, T, semente(T.s)); const lg = gg.createRadialGradient(T.cx - T.rx * 0.3, T.cy - T.ry * 0.3, 0, T.cx, T.cy, Math.max(T.rx, T.ry) * 1.1); lg.addColorStop(0, T.cor); lg.addColorStop(1, 'rgba(40,30,20,.85)'); gg.fillStyle = T.cor; gg.fill(); gg.globalAlpha = 0.35; gg.fillStyle = lg; gg.fill(); gg.globalAlpha = 1;
+      gg.strokeStyle = '#4a3018'; gg.lineWidth = Math.max(2, W / 500); gg.stroke();
+      gg.save(); contorno(gg, T, semente(T.s)); gg.clip(); desenhosDe(gg, id, T, r, f); gg.restore();
     }
-    g.save(); g.setLineDash([f * 0.5, f * 0.35]); g.strokeStyle = 'rgba(255,233,168,.95)'; g.lineWidth = Math.max(2, W / 450);
-    for (const [[ax, ay], [bx, by]] of pontas) { g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke(); }
-    g.restore();
-    for (const pr of pontas) for (const [x, y] of pr) { g.fillStyle = 'rgba(16,10,24,.9)'; g.beginPath(); g.arc(x, y, f * 0.55, 0, TAU); g.fill(); g.textAlign = 'center'; g.font = `${Math.round(f * 0.65)}px sans-serif`; g.fillText('🚪', x, y + f * 0.23); }
+    // portas das passagens
+    for (const pr of pontas) for (const [x, y] of pr) { gg.fillStyle = '#f2e4c0'; gg.strokeStyle = '#4a3018'; gg.lineWidth = 2; gg.beginPath(); gg.arc(x, y, f * 0.42, 0, TAU); gg.fill(); gg.stroke(); gg.textAlign = 'center'; gg.font = `${Math.round(f * 0.5)}px sans-serif`; gg.fillText('🚪', x, y + f * 0.18); }
+    // cidades
+    for (const id in L) { const T = L[id]; if (!T.M) continue; const cs = T.M.cities || (id === 'reino' ? CITIES : []);
+      for (const c of cs) { const [x, y] = ptQ(T, c.c.x, c.c.z); gg.textAlign = 'center'; gg.font = `${Math.round(f * 0.85)}px sans-serif`; gg.fillText('🏰', x, y + f * 0.3); gg.font = `700 ${Math.round(f * 0.6)}px Georgia, serif`; gg.lineWidth = 3; gg.strokeStyle = 'rgba(244,228,190,.95)'; gg.strokeText(c.n, x, y + f * 1.1); gg.fillStyle = '#2a1808'; gg.fillText(c.n, x, y + f * 1.1); } }
+    // nomes num pergaminho
+    for (const id in L) { const T = L[id], rg = REG.find(r => r.id === id); if (!rg) continue; const lv = id === 'praia' ? 'Nv 18–34' : rg.lv, y = T.cy - T.ry - f * 0.15;
+      gg.font = `700 ${Math.round(f * 0.78)}px Georgia, serif`; const w = Math.max(gg.measureText(rg.n).width, f * 4) / 2 + f * 0.6;
+      gg.fillStyle = 'rgba(244,228,190,.95)'; gg.strokeStyle = '#6a4020'; gg.lineWidth = 1.5; gg.beginPath(); gg.moveTo(T.cx - w, y - f * 0.75); gg.lineTo(T.cx + w, y - f * 0.75); gg.lineTo(T.cx + w - f * 0.3, y + f * 0.05); gg.lineTo(T.cx + w, y + f * 0.85); gg.lineTo(T.cx - w, y + f * 0.85); gg.lineTo(T.cx - w + f * 0.3, y + f * 0.05); gg.closePath(); gg.fill(); gg.stroke();
+      gg.textAlign = 'center'; gg.fillStyle = '#3a1a08'; gg.fillText(rg.n, T.cx, y + f * 0.02); gg.font = `700 ${Math.round(f * 0.46)}px Nunito, sans-serif`; gg.fillStyle = '#8a2a2a'; gg.fillText(lv, T.cx, y + f * 0.62); }
+    // rosa dos ventos e título
+    { const x = W * 0.94, y = H * 0.88, R = f * 1.6; gg.save(); gg.translate(x, y); gg.fillStyle = '#6a4020'; for (let k = 0; k < 4; k++) { gg.rotate(Math.PI / 2); gg.beginPath(); gg.moveTo(0, -R); gg.lineTo(R * 0.18, 0); gg.lineTo(-R * 0.18, 0); gg.closePath(); gg.fill(); }
+      gg.font = `700 ${Math.round(f * 0.6)}px Georgia, serif`; gg.textAlign = 'center'; gg.fillText('N', 0, -R - f * 0.2); gg.restore(); }
+    gg.font = `700 ${Math.round(f * 1.1)}px Georgia, serif`; gg.textAlign = 'left'; gg.fillStyle = 'rgba(60,30,10,.85)'; gg.fillText('Reino Quebrado', W * 0.015, H * 0.06);
+    gg.strokeStyle = '#5a3818'; gg.lineWidth = Math.max(3, W / 300); gg.strokeRect(4, 4, W - 8, H - 8);
+    return c;
+  }
+  // desenhos de cada terra (árvores, dunas, montanhas, túmulos, cristais...)
+  function desenhosDe(gg, id, T, r, f) {
+    const pt = () => { const a = r() * TAU, d = Math.sqrt(r()) * 0.85; return [T.cx + Math.cos(a) * T.rx * d, T.cy + Math.sin(a) * T.ry * d]; };
+    const arvore = (x, y, c) => { gg.fillStyle = c; gg.beginPath(); gg.moveTo(x, y - f * 0.55); gg.lineTo(x + f * 0.3, y + f * 0.1); gg.lineTo(x - f * 0.3, y + f * 0.1); gg.closePath(); gg.fill(); gg.fillStyle = '#4a3018'; gg.fillRect(x - f * 0.04, y + f * 0.1, f * 0.08, f * 0.14); };
+    const monte = (x, y, s2, c) => { gg.fillStyle = c; gg.beginPath(); gg.moveTo(x - f * 0.6 * s2, y); gg.lineTo(x, y - f * 0.8 * s2); gg.lineTo(x + f * 0.6 * s2, y); gg.closePath(); gg.fill(); gg.strokeStyle = 'rgba(40,25,10,.6)'; gg.lineWidth = 1; gg.stroke(); gg.fillStyle = '#f4efe4'; gg.beginPath(); gg.moveTo(x - f * 0.18 * s2, y - f * 0.56 * s2); gg.lineTo(x, y - f * 0.8 * s2); gg.lineTo(x + f * 0.18 * s2, y - f * 0.56 * s2); gg.closePath(); gg.fill(); };
+    if (id === 'reino') { for (let i = 0; i < 26; i++) { const [x, y] = pt(); if (x > T.cx + T.rx * 0.2 && y < T.cy) { gg.strokeStyle = 'rgba(150,100,40,.7)'; gg.lineWidth = 1.5; gg.beginPath(); gg.arc(x, y, f * 0.3, Math.PI * 1.1, Math.PI * 1.9); gg.stroke(); } else arvore(x, y, '#3a6a2a'); }
+      gg.strokeStyle = '#4a8ab0'; gg.lineWidth = Math.max(2, f * 0.18); gg.beginPath(); gg.moveTo(T.cx + T.rx * 0.05, T.cy - T.ry); gg.bezierCurveTo(T.cx - T.rx * 0.1, T.cy - T.ry * 0.2, T.cx + T.rx * 0.15, T.cy + T.ry * 0.3, T.cx, T.cy + T.ry); gg.stroke(); }
+    if (id === 'praia') { gg.fillStyle = 'rgba(70,130,170,.55)'; gg.fillRect(T.cx - T.rx, T.cy - T.ry, T.rx * 0.55, T.ry * 2); for (let i = 0; i < 6; i++) { const [x, y] = pt(); if (x > T.cx - T.rx * 0.3) { gg.strokeStyle = '#3a6a2a'; gg.lineWidth = 2; gg.beginPath(); gg.moveTo(x, y); gg.lineTo(x, y - f * 0.5); gg.stroke(); gg.fillStyle = '#4a8a3a'; gg.beginPath(); gg.arc(x, y - f * 0.55, f * 0.22, 0, TAU); gg.fill(); } } }
+    if (id === 'valdora') { for (let i = 0; i < 9; i++) { const [x, y] = pt(); monte(x, y, 0.8 + r() * 0.5, '#8a6a4a'); } for (let i = 0; i < 5; i++) { const [x, y] = pt(); gg.fillStyle = '#6a5a4a'; gg.fillRect(x - f * 0.2, y - f * 0.35, f * 0.12, f * 0.35); gg.fillRect(x + f * 0.05, y - f * 0.25, f * 0.12, f * 0.25); } }
+    if (id === 'floresta') for (let i = 0; i < 34; i++) { const [x, y] = pt(); arvore(x, y, r() < 0.5 ? '#2a3428' : '#3a4436'); }
+    if (id === 'vale') { for (let i = 0; i < 26; i++) { const [x, y] = pt(); gg.strokeStyle = 'rgba(230,230,235,.8)'; gg.lineWidth = Math.max(1.5, f * 0.08); gg.beginPath(); gg.moveTo(x, y - f * 0.3); gg.lineTo(x, y + f * 0.1); gg.moveTo(x - f * 0.12, y - f * 0.18); gg.lineTo(x + f * 0.12, y - f * 0.18); gg.stroke(); }
+      gg.fillStyle = 'rgba(240,240,245,.25)'; for (let i = 0; i < 6; i++) { const [x, y] = pt(); gg.beginPath(); gg.ellipse(x, y, f * 1.4, f * 0.4, 0, 0, TAU); gg.fill(); } }
+    if (id === 'cidade') { for (let i = 0; i < 12; i++) { const [x, y] = pt(); gg.fillStyle = '#c8a8ff'; gg.beginPath(); gg.moveTo(x, y - f * 0.45); gg.lineTo(x + f * 0.18, y); gg.lineTo(x, y + f * 0.2); gg.lineTo(x - f * 0.18, y); gg.closePath(); gg.fill(); }
+      for (let i = 0; i < 6; i++) { const [x, y] = pt(); gg.fillStyle = '#3a2a50'; gg.fillRect(x - f * 0.1, y - f * 0.6, f * 0.2, f * 0.6); } }
+    if (id === 'memorias') { gg.fillStyle = 'rgba(10,40,55,.6)'; gg.beginPath(); gg.ellipse(T.cx, T.cy, T.rx * 0.75, T.ry * 0.6, 0, 0, TAU); gg.fill();
+      for (let i = 0; i < 60; i++) { const [x, y] = pt(); gg.fillStyle = `rgba(${170 + r() * 80 | 0},240,255,${0.5 + r() * 0.5})`; gg.beginPath(); gg.arc(x, y, 1 + r() * 2, 0, TAU); gg.fill(); }
+      gg.fillStyle = '#e8d8a8'; gg.font = `${Math.round(f * 0.7)}px sans-serif`; gg.textAlign = 'center'; gg.fillText('🚪', T.cx + T.rx * 0.65, T.cy + f * 0.2); }
+    if (id === 'torre') { const x = T.cx, y = T.cy + T.ry * 0.5, h = T.ry * 1.3, w = T.rx * 0.6; gg.fillStyle = '#2a1a3a'; gg.beginPath(); gg.moveTo(x - w / 2, y); gg.lineTo(x - w * 0.35, y - h); gg.lineTo(x + w * 0.35, y - h); gg.lineTo(x + w / 2, y); gg.closePath(); gg.fill(); gg.fillStyle = '#b070ff'; gg.beginPath(); gg.arc(x, y - h, w * 0.32, 0, TAU); gg.fill(); }
+  }
+  function drawMundo() {
+    const W = cv.width, H = cv.height, aqui = regDe(), t = performance.now() / 1000, f = Math.max(14, W / 60);
+    if (!fundoMundo || fundoMundo.width !== W || fundoMundo.height !== H) fundoMundo = desenharFundo(W, H);
+    g.drawImage(fundoMundo, 0, 0);
+    const L = layout(W, H), T = L[aqui];
+    // a terra onde você está brilha
+    if (T) { g.save(); contorno(g, T, semente(T.s)); g.strokeStyle = `rgba(255,210,60,${0.6 + Math.sin(t * 4) * 0.3})`; g.lineWidth = Math.max(4, W / 220); g.stroke(); g.restore(); }
     // você está aqui
-    const T = L[aqui], pxy = aqui === 'torre' ? [Tq.x + Tq.w / 2, Tq.y + Tq.h * 0.55] : T && T.M ? ptQ(T, P.x, P.z) : null;
-    if (pxy) { const [px, py] = pxy, pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(255,79,163,.35)'; g.beginPath(); g.arc(px, py, f * 1.1 * pul, 0, TAU); g.fill(); g.fillStyle = '#ff4fa3'; g.beginPath(); g.arc(px, py, f * 0.45, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
-      g.font = `800 ${Math.round(f * 0.8)}px Nunito, sans-serif`; const tw = g.measureText('📍 VOCÊ').width / 2 + 6, ly = Math.min(H - 4, py + f * 2); g.fillStyle = 'rgba(255,79,163,.95)'; g.fillRect(px - tw, ly - f * 0.85, tw * 2, f * 1.1); g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText('📍 VOCÊ', px, ly); }
+    const pxy = aqui === 'torre' ? [L.torre.cx, L.torre.cy] : T ? ptQ(T, P.x, P.z) : null;
+    if (pxy) { const [px, py] = pxy, pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(220,40,90,.35)'; g.beginPath(); g.arc(px, py, f * 1.1 * pul, 0, TAU); g.fill(); g.fillStyle = '#e0306a'; g.beginPath(); g.arc(px, py, f * 0.42, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+      g.font = `800 ${Math.round(f * 0.75)}px Nunito, sans-serif`; g.textAlign = 'center'; const tw = g.measureText('📍 VOCÊ').width / 2 + 6, ly = Math.min(H - 6, py + f * 1.9); g.fillStyle = 'rgba(224,48,106,.95)'; g.fillRect(px - tw, ly - f * 0.82, tw * 2, f * 1.05); g.fillStyle = '#fff'; g.fillText('📍 VOCÊ', px, ly); }
   }
   function show(city, reg) {
     if (reg !== undefined || city === 'mundo') vm = reg || null;
@@ -3559,7 +3617,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   const src = P._duelo ? { ...P, ...P._duelo } : P;   // ⚖️ no Duelo da Guilda salva o personagem de verdade, não o igualado
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, src[k]])))); } catch (e) { }
 }
