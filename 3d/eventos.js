@@ -124,8 +124,8 @@ const Eventos = (() => {
   function update(dt) {
     if (!running) return;
     const e = agora();
-    if (!e.ativo && e.comecaEm > 0 && e.comecaEm < 120 && avisou !== e.h) { avisou = e.h; log(`⚡ Em <b>2 minutos</b>: ${NOMES[e.tipo]} — ${DESC(e)}`, 'gold'); }
-    if (e.ativo && ultimo !== e.h) { ultimo = e.h; banner(NOMES[e.tipo].toUpperCase()); Audio8.sfx('level'); log(`⚡ <b>Evento:</b> ${NOMES[e.tipo]} por ${DUR} minutos — ${DESC(e)}`, 'gold'); }
+    if (!e.ativo && e.comecaEm > 0 && e.comecaEm < 120 && avisou !== e.h) { avisou = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: 'EM 2 MINUTOS', titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, '') }); log(`⚡ Em <b>2 minutos</b>: ${NOMES[e.tipo]} — ${DESC(e)}`, 'gold'); }
+    if (e.ativo && ultimo !== e.h) { ultimo = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: 'EVENTO SURPRESA · 20 MIN', titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, ''), cor: 'verde' }); Audio8.sfx('level'); log(`⚡ <b>Evento:</b> ${NOMES[e.tipo]} por ${DUR} minutos — ${DESC(e)}`, 'gold'); }
     if (!e.ativo) { if (orlo) tirarOrlo(); if (ultimo === e.h && e.falta < 0) { ultimo = -e.h; log(`⚡ ${NOMES[e.tipo]} acabou. O próximo evento é às :${INI} da próxima hora.`, 'sys'); for (const m of mobs.filter(m => m.invasor)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => !m.invasor); } return; }
     if (e.tipo === 'invasao') invasao(e, dt);
     else if (e.tipo === 'estrelas') estrelas(dt, e);

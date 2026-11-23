@@ -146,7 +146,7 @@ const Verme = (() => {
     boss = spawnMob('vermeColosso', null, { x: F.x + b0.x, z: F.z + b0.z });
     boss.noRespawn = true; boss.hp = boss.maxHp = VIDA; boss.est = 'viaja'; boss.estT = 2.5; boss.prox = { x: boss.x, z: boss.z }; boss.sobe = 0; boss.invul = true;
     aviso(boss.x, boss.z, 7, 2.5, 2.6);
-    banner('🐛 O VERME COLOSSAL ACORDOU 🐛'); Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 350);
+    banner('🐛 O VERME COLOSSAL ACORDOU 🐛'); if (!naArena()) typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '🐛', cor: 'sangue', tag: 'CHEFE DO MUNDO', titulo: 'O Verme Colossal acordou!', sub: 'No Fundo do Abismo do Cisma. Corra para lá!', som: 'boom', seg: 9 }); Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 350);
     log('🐛 <b style="color:#ff7a40">O VERME COLOSSAL ACORDOU</b> no Fundo do Abismo! Ele sai de um buraco, ataca e mergulha: corra até o <b>círculo vermelho</b>, onde a terra treme.', 'bad');
   }
   function sumir() { if (boss) { mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); } boss = null; limparAvisos(); limparCrias(); }

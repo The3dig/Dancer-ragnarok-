@@ -91,7 +91,7 @@ const Guerra = (() => {
     if ((donaT -= dt) <= 0) { donaT = 120; buscarDona(); }
     const dentro = inTower(P.z) && zoneOf(P.x, P.z) === 'forte'; g.visible = dentro;
     const a = ativa(), k = a ? 'on' : 'off';
-    if (k !== avisou) { if (a && avisou) { banner('🏰 GUERRA DE GUILDAS!'); log('🏰 <b>A Guerra de Guildas começou!</b> Fale com o Comandante Varek, em Solmira, para entrar na Fortaleza das Bandeiras.', 'gold'); } avisou = k; }
+    if (k !== avisou) { if (a && avisou) { banner('🏰 GUERRA DE GUILDAS!'); typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '🏰', cor: 'azul', tag: 'COMEÇOU', titulo: 'Guerra de Guildas', sub: 'Até as 19h. Fale com o Comandante Varek, em Solmira, para entrar na Fortaleza.', seg: 9 }); log('🏰 <b>A Guerra de Guildas começou!</b> Fale com o Comandante Varek, em Solmira, para entrar na Fortaleza das Bandeiras.', 'gold'); } avisou = k; }
     if (!dentro) { dentroAntes = false; return; }
     if (!dentroAntes) { dentroAntes = true; armada = false; }
     if (!a) { sair('🏰 A guerra acabou: a Fortaleza fechou.'); return; }

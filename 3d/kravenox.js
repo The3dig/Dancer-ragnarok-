@@ -157,6 +157,7 @@ const Kvx = (() => {
     active = true;
     const jaEstava = srv && agoraSrv() - srv.inicio > 90e3;               // quem entra depois das 20h: aviso grande de que ele ESTÁ acordado
     banner(jaEstava ? '☠ KRAVENOX ESTÁ ACORDADO ☠' : '☠ KRAVENOX DESPERTOU ☠');
+    if (!naArena()) typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '☠️', cor: 'sangue', tag: 'CHEFE DO MUNDO', titulo: jaEstava ? 'O Kravenox está acordado!' : 'O Kravenox despertou!', sub: 'No topo da Torre do Cisma. Todos os aventureiros estão subindo!', som: 'boom', seg: 9 });
     Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 300);
     if (naArena()) { tremer(2.2); flashTela('rgba(200,0,0,.6)', 2); for (let i = 0; i < 8; i++) setTimeout(() => { if (boss) { ring(boss.x, boss.z, 4 + i * 4, i % 2 ? 0xff2a2a : 0x6a0a20, 0.9); burst(new THREE.Vector3(boss.x, groundY(boss.x, boss.z) + 4, boss.z), 0xff2020, 20, 8, 1); } }, i * 160); }
     log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> no topo da Torre do Cisma! Todos os aventureiros estão subindo!', 'bad');
