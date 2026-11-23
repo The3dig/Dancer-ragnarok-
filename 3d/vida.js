@@ -55,6 +55,7 @@ const Vida = (() => {
     coracao_floresta: ['Coração da Floresta', '🫀', 1500, 0, 'mat'], runa_ordem: ['Runa da Ordem', '🔹', 1800, 0, 'mat'], fragmento_dourado: ['Fragmento Dourado', '✴️', 2000, 0, 'mat'],
     seiva_branca: ['Seiva Branca', '🥛', 30, 0, 'comida', { heal: 0.25 }],
     // Cidade Submersa (Nv 70–86)
+    lume_memoria: ['Lume de Memória', '🫧', 175, 0, 'mat'], agua_memoria: ['Água do Rio das Memórias', '💧', 180, 0, 'mat'], raiz_rio: ['Raiz do Rio', '🪢', 185, 0, 'mat'], placa_lembrada: ['Placa Lembrada', '🔩', 195, 0, 'mat'], espinho_porta: ['Espinho da Porta', '🌵', 210, 0, 'mat'],
     raiz_suspensa: ['Raiz Suspensa', '🪢', 140, 0, 'mat'], estilhaco_vivo: ['Estilhaço Vivo', '💠', 150, 0, 'mat'], eco_cidade: ['Eco da Cidade', '🏛️', 155, 0, 'mat'],
     placa_submersa: ['Placa Submersa', '🛡️', 165, 0, 'mat'], ovo_abismo: ['Ovo do Abismo', '🥚', 170, 0, 'mat'],
     cristal_tres: ['Cristal dos Três Irmãos', '🔱', 3500, 0, 'mat'], raiz_fonte: ['Raiz da Fonte', '🌑', 6000, 0, 'mat'],
@@ -124,6 +125,12 @@ const Vida = (() => {
     botas_valdora: ['Botas de Valdora', '🥾', 'botas', 0, { def: 6, spd: 0.1, hp: 70 }, 2, 'valdora'],
     arma_valdora: ['Espada de Valdora', '⚔️', 'arma', 0, { pow: 34, crit: 0.04 }, 2],
     // Cidade Submersa (Nv 70–86): o conjunto do vazio e a lâmina de raiz negra (lendários)
+    // Rio das Memórias (Nv 86–110): o conjunto e a lança do Guardião Branco
+    elmo_memorias: ['Elmo das Lembranças', '🪖', 'capacete', 0, { def: 34, hp: 380, pow: 6 }, 3, 'memorias'],
+    couraca_memorias: ['Couraça do Rio das Memórias', '🛡️', 'armadura', 0, { def: 66, hp: 660 }, 3, 'memorias'],
+    luvas_memorias: ['Manoplas dos Três Espinhos', '🧤', 'luvas', 0, { def: 18, pow: 38, crit: 0.02 }, 3, 'memorias'],
+    botas_memorias: ['Botas da Margem', '🥾', 'botas', 0, { def: 18, spd: 0.14, hp: 210 }, 3, 'memorias'],
+    lanca_guardiao: ['Lança do Guardião Branco', '🔱', 'arma', 0, { pow: 96, crit: 0.07, hp: 150 }, 4],
     elmo_cidade: ['Elmo da Cidade Submersa', '🪖', 'capacete', 0, { def: 28, hp: 300 }, 3, 'cidade'],
     couraca_cidade: ['Couraça das Torres Rachadas', '🛡️', 'armadura', 0, { def: 56, hp: 560 }, 3, 'cidade'],
     luvas_cidade: ['Luvas de Cristal Vivo', '🧤', 'luvas', 0, { def: 15, pow: 30 }, 3, 'cidade'],
@@ -170,6 +177,7 @@ const Vida = (() => {
     sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
     valdora: { name: 'Conjunto da Guarda de Valdora', bonus: { pow: 18, def: 22, hp: 220 } },
+    memorias: { name: 'Conjunto do Rio das Memórias', bonus: { pow: 54, def: 58, hp: 660, crit: 0.06 } },
     cidade: { name: 'Conjunto da Cidade Submersa', bonus: { pow: 42, def: 46, hp: 520, crit: 0.05 } },
     vale: { name: 'Conjunto do Vale dos Mortos', bonus: { pow: 34, def: 38, hp: 420, crit: 0.04 } },
     floresta: { name: 'Conjunto da Floresta Morta', bonus: { pow: 24, def: 28, hp: 300 } },
@@ -189,7 +197,7 @@ const Vida = (() => {
   const add = (id, n) => { P.inv[id] = Math.max(0, (P.inv[id] || 0) + n); if (id === 'red' || id === 'blue') buildHotbar(); };
 
   // materiais que cada monstro solta
-  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem', raizSuspensa: 'raiz_suspensa', cristalVivo: 'estilhaco_vivo', ecoCidade: 'eco_cidade', sentinelaSubmersa: 'placa_submersa', larvaAbismo: 'ovo_abismo', sombraFonte: 'raiz_fonte', maoPalida: 'unha_palida', sussurro: 'eco_voz', damaSemOlhos: 'veu_branco', sombraVale: 'sombra_densa', guardaOssos: 'osso_ponte', primeiroGuardiao: 'lasca_cajado', caranguejo: 'garra', medusa: 'tentaculo', tartaruga: 'casco', serpenteOnda: 'escama_mar', reiCaranguejo: 'coroa_caranguejo' };
+  const MOB_MAT = { memoriaAfogada: 'agua_memoria', lumeErrante: 'lume_memoria', raizRio: 'raiz_rio', soldadoMemoria: 'placa_lembrada', guardaEspinhos: 'espinho_porta', guardiaoBrancoRio: 'espinho_porta', pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem', raizSuspensa: 'raiz_suspensa', cristalVivo: 'estilhaco_vivo', ecoCidade: 'eco_cidade', sentinelaSubmersa: 'placa_submersa', larvaAbismo: 'ovo_abismo', sombraFonte: 'raiz_fonte', maoPalida: 'unha_palida', sussurro: 'eco_voz', damaSemOlhos: 'veu_branco', sombraVale: 'sombra_densa', guardaOssos: 'osso_ponte', primeiroGuardiao: 'lasca_cajado', caranguejo: 'garra', medusa: 'tentaculo', tartaruga: 'casco', serpenteOnda: 'escama_mar', reiCaranguejo: 'coroa_caranguejo' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.55]);
   // tabela no jeito do Ragnarok: um comum (~20–30%), uma fruta/erva (~10%), um incomum e uma raridade (1–3%)
   const MOB_LOOT = {
@@ -220,6 +228,9 @@ const Vida = (() => {
     sentinelaSubmersa: [['placa_vazio', 0.2], ['luz_suspensa', 0.1], ['cristal_tres', 0.01]],
     larvaAbismo: [['essencia', 0.08], ['erva_azul', 0.12], ['cristal_tres', 0.01]],
     sombraFonte: [['cristal_tres', 0.8], ['cristal_memoria', 0.6], ['fragmento_dourado', 0.6]],
+    memoriaAfogada: [['agua_memoria', 0.25], ['erva_azul', 0.1], ['cristal_memoria', 0.012]], lumeErrante: [['lume_memoria', 0.25], ['po_estelar', 0.05], ['cristal_memoria', 0.012]],
+    raizRio: [['raiz_rio', 0.25], ['fibra', 0.12], ['nucleo_ferro', 0.02]], soldadoMemoria: [['placa_lembrada', 0.22], ['nucleo_ferro', 0.05], ['fragmento_dourado', 0.012]],
+    guardaEspinhos: [['espinho_porta', 0.22], ['placa_lembrada', 0.12], ['fragmento_dourado', 0.015]], guardiaoBrancoRio: [['espinho_porta', 1], ['cristal_memoria', 0.7], ['fragmento_dourado', 0.7], ['selo_forja', 0.3]],
     maoPalida: [['flor_tumulo', 0.1], ['osso_raiz', 0.2], ['cristal_memoria', 0.006]],
     sussurro: [['erva_azul', 0.15], ['lembranca', 0.2], ['cristal_memoria', 0.01]],
     damaSemOlhos: [['flor_tumulo', 0.12], ['veu', 0.2], ['cristal_memoria', 0.012]],
@@ -251,6 +262,8 @@ const Vida = (() => {
     larvaCinza: [['luvas_valdora', 0.012], ['couraca_valdora', 0.008]],
     raizSuspensa: [['luvas_cidade', 0.007]], cristalVivo: [['luvas_cidade', 0.007], ['elmo_cidade', 0.006]], ecoCidade: [['elmo_cidade', 0.007]],
     sentinelaSubmersa: [['couraca_cidade', 0.006], ['botas_cidade', 0.006]], larvaAbismo: [['botas_cidade', 0.007]],
+    guardiaoBrancoRio: [['lanca_guardiao', 0.14], ['couraca_memorias', 0.15], ['elmo_memorias', 0.15], ['luvas_memorias', 0.15], ['botas_memorias', 0.15]],
+    memoriaAfogada: [['elmo_memorias', 0.003]], raizRio: [['botas_memorias', 0.003]], soldadoMemoria: [['couraca_memorias', 0.003]], guardaEspinhos: [['luvas_memorias', 0.004]],
     sombraFonte: [['lamina_raiz', 0.12], ['couraca_cidade', 0.15], ['elmo_cidade', 0.15], ['luvas_cidade', 0.15], ['botas_cidade', 0.15]],
     maoPalida: [['luvas_vale', 0.008]], sussurro: [['capuz_vale', 0.008]], damaSemOlhos: [['manto_vale', 0.006], ['capuz_vale', 0.006]],
     sombraVale: [['botas_vale', 0.008]], guardaOssos: [['luvas_vale', 0.008], ['manto_vale', 0.006]],

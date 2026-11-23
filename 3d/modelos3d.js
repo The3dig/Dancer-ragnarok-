@@ -170,6 +170,21 @@ const Modelos3D = (() => {
         add(r.inner, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, .04, 5), raiz, 0, 0, 0, false); }
       return r;
     },
+    // Rio das Memórias (livro I, cap. 11): nomes do jogo
+    memoriaAfogada: () => makeGhost({ c1: 0x4ab0c8, eye: 0xd8ffff, glow: true }),
+    lumeErrante: () => { const r = makeGhost({ c1: 0xffe6a0, eye: 0xffffff, glow: true, crystal: true }); r.g.scale.setScalar(0.85); return r; },
+    raizRio: () => makeRoot({ c1: 0x0a1c22, c2: 0x1a3a44, eye: 0x6affff, eyes: 3, n: 12, mouth: true }),
+    soldadoMemoria: () => makeSentinel({ c1: 0x8ab0c0, c2: 0x3a5a68, eye: 0xd8ffff, trim: 0x9af0ff }),
+    guardaEspinhos: () => makeSentinel({ c1: 0x2a2a30, c2: 0x141418, eye: 0xffd040, trim: 0xffd040 }),
+    guardiaoBrancoRio: () => {                                                // o Guardião Branco (livro I, cap. 11): armadura branca, máscara e lança
+      const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+      const S = makeSentinel({ c1: 0xf4f4fa, c2: 0xc0c4d0, eye: 0x9af0ff, faceless: true, trim: 0xffe9a8 }); S.g.scale.setScalar(2.3); inner.add(S.g);
+      const haste = M(0xe8d8a8, { roughness: .35, metalness: .4 }), ponta = M(0xf0f8ff, { roughness: .15, metalness: .7 }), runa = new THREE.MeshBasicMaterial({ color: 0x9af0ff });
+      const l = add(inner, new THREE.CylinderGeometry(.06, .06, 4.8, 6), haste, 1.05, 2.4, .35, false); l.rotation.x = .1;
+      const pt = add(inner, new THREE.ConeGeometry(.16, .8, 6), ponta, 1.05, 5.0, .58, false); pt.rotation.x = .1;
+      for (let k = 0; k < 3; k++) { const e = add(inner, new THREE.ConeGeometry(.09, .5, 5), runa, -.4 + k * .4, 3.55, .38, false); e.rotation.x = -.2; }   // os três espinhos no peito
+      return { g, inner };
+    },
     // Vale dos Mortos e Ponte dos Mortos
     maoPalida: () => makeMao({ c1: 0xd8d4cc }),
     sussurro: () => makeGhost({ c1: 0xa8b0bc, eye: 0x9ad8ff, glow: true }),
@@ -188,7 +203,7 @@ const Modelos3D = (() => {
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
   const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'serpenteOnda', 'larvaAbismo']);   // larvas olham para +x
-  const FLOAT = new Set(['zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'sombraVale', 'ecoCidade', 'sombraFonte']);
+  const FLOAT = new Set(['memoriaAfogada', 'lumeErrante', 'zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'sombraVale', 'ecoCidade', 'sombraFonte']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];
