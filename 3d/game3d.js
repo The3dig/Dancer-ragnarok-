@@ -2712,114 +2712,160 @@ const BigMap = (() => {
   // (as terras do norte ficam longe do Reino no mundo; aqui elas encostam, para caber na tela)
   const mapaReg = id => { const M = id === 'reino' ? Object.assign({}, REINO_MAP, { base }) : (REG.find(r => r.id === id) || {}).M?.(); if (M && M.pintar) M.pintar(); return M || null; };
   // quadros do mapa (fração da tela 16:9): em cima as terras do norte, embaixo Praia, Reino e Torre
-  // 🗺️ o mapa do mundo DESENHADO (pedido do Rone: "mais cara de mapa, sem os quadrados"): cada lugar é uma terra de
-  // contorno natural, no lugar da geografia (oeste a Praia e o mar, no meio o Reino, ao norte Valdora, Floresta e Vale,
-  // a leste as ilhas da Cidade Submersa e, embaixo delas, o lago do Rio das Memórias). Tocar numa terra abre o mapa dela.
-  const GEO = {
-    praia: { cx: 0.11, cy: 0.70, rx: 0.075, ry: 0.15, cor: '#d8c088', s: 3 }, reino: { cx: 0.36, cy: 0.70, rx: 0.155, ry: 0.2, cor: '#8aa456', s: 7 },
-    torre: { cx: 0.555, cy: 0.80, rx: 0.045, ry: 0.11, cor: '#6a4a8a', s: 11 }, valdora: { cx: 0.24, cy: 0.27, rx: 0.1, ry: 0.17, cor: '#b08a62', s: 13 },
-    floresta: { cx: 0.43, cy: 0.25, rx: 0.095, ry: 0.17, cor: '#4e5a48', s: 17 }, vale: { cx: 0.615, cy: 0.27, rx: 0.09, ry: 0.17, cor: '#7a7680', s: 19 },
-    cidade: { cx: 0.79, cy: 0.32, rx: 0.095, ry: 0.19, cor: '#5a4a7a', s: 23 }, memorias: { cx: 0.8, cy: 0.77, rx: 0.1, ry: 0.15, cor: '#2a7a8a', s: 29 },
-  };
+  // 🗺️ o mapa do mundo, versão 2 (pedido do Rone: "pode ficar melhor"): um CONTINENTE só, com as regiões como territórios
+  // que dividem fronteiras irregulares, litoral com água rasa, montanhas com luz e sombra, florestas, dunas, túmulos, rio e
+  // estradas. A Cidade Submersa é um arquipélago flutuando no vazio, a leste; o Rio das Memórias fica num recorte redondo,
+  // "sob a Cidade". A Torre aparece dentro do Reino, onde ela fica. Tocar num território abre o mapa dele.
+  const hsh = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+  const vn = (x, y) => { const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), a = hsh(ix, iy), b = hsh(ix + 1, iy), c = hsh(ix, iy + 1), d = hsh(ix + 1, iy + 1); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+  const fbm = (x, y) => vn(x, y) * 0.55 + vn(x * 2.1 + 3, y * 2.1) * 0.3 + vn(x * 4.3, y * 4.3 + 7) * 0.15;
+  const TERR = [
+    { id: 'praia', x: 0.125, y: 0.64, w: 0.7, cor: [218, 200, 146] }, { id: 'reino', x: 0.37, y: 0.67, w: 1.3, cor: [166, 178, 102] },
+    { id: 'valdora', x: 0.235, y: 0.29, w: 0.98, cor: [196, 158, 110] }, { id: 'floresta', x: 0.43, y: 0.27, w: 0.92, cor: [112, 126, 90] },
+    { id: 'vale', x: 0.6, y: 0.3, w: 0.86, cor: [150, 146, 160] },
+  ];
+  const ARQ = { cx: 0.84, cy: 0.3, ilhas: [[0.79, 0.24, 0.032], [0.855, 0.2, 0.036], [0.83, 0.34, 0.04], [0.9, 0.3, 0.03], [0.88, 0.41, 0.034]] };
+  const INSET = { cx: 0.865, cy: 0.75, r: 0.2 };        // r em fração da ALTURA
+  const terraV = (fx, fy) => { const dx = (fx - 0.37) / 0.35, dy = (fy - 0.52) / 0.43; return 1 - dx * dx - dy * dy + (fbm(fx * 5, fy * 5) - 0.5) * 0.95 - Math.max(0, (fx - 0.64) * 14); };
+  function terrDe(fx, fy) { const wx = fx + (fbm(fx * 6 + 9, fy * 6) - 0.5) * 0.08, wy = fy + (fbm(fx * 6, fy * 6 + 5) - 0.5) * 0.08; let b = 0, bd = 1e9; TERR.forEach((t, i) => { const d = Math.hypot((wx - t.x) * 1.78, wy - t.y) / t.w; if (d < bd) { bd = d; b = i; } }); return b; }
+  let GRADE = null;                                          // territórios calculados (meia resolução)
+  function grade(W, H) {
+    if (GRADE && GRADE.W === W && GRADE.H === H) return GRADE;
+    const gw = Math.round(W / 2), gh = Math.round(H / 2), reg = new Int8Array(gw * gh), tv = new Float32Array(gw * gh), caixa = TERR.map(() => [1, 1, 0, 0]);
+    for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) { const fx = i / gw, fy = j / gh, t = terraV(fx, fy), k = j * gw + i; tv[k] = t;
+      if (t > 0) { const r = terrDe(fx, fy); reg[k] = r; const c = caixa[r]; if (fx < c[0]) c[0] = fx; if (fy < c[1]) c[1] = fy; if (fx > c[2]) c[2] = fx; if (fy > c[3]) c[3] = fy; } else reg[k] = -1; }
+    return (GRADE = { W, H, gw, gh, reg, tv, caixa });
+  }
   function layout(W = 16, H = 9) {
-    const L = {};
-    for (const id in GEO) {
-      const o = GEO[id], M = id === 'torre' ? null : mapaReg(id);
-      L[id] = { id, x: (o.cx - o.rx) * W, y: (o.cy - o.ry) * H, w: o.rx * 2 * W, h: o.ry * 2 * H, cx: o.cx * W, cy: o.cy * H, rx: o.rx * W, ry: o.ry * H, cor: o.cor, s: o.s, M };
-    }
+    const Gd = grade(Math.max(W, 64) === W ? W : 1600, Math.max(W, 64) === W ? H : 900), L = {};
+    TERR.forEach((t, i) => { const [x0, y0, x1, y1] = Gd.caixa[i]; L[t.id] = { id: t.id, x: x0 * W, y: y0 * H, w: (x1 - x0) * W, h: (y1 - y0) * H, cx: (x0 + x1) / 2 * W, cy: (y0 + y1) / 2 * H, rx: (x1 - x0) / 2 * W, ry: (y1 - y0) / 2 * H, M: mapaReg(t.id) }; });
+    L.cidade = { id: 'cidade', x: 0.76 * W, y: 0.15 * H, w: 0.17 * W, h: 0.31 * H, cx: ARQ.cx * W, cy: ARQ.cy * H, rx: 0.085 * W, ry: 0.15 * H, M: mapaReg('cidade') };
+    const ir = INSET.r * H; L.memorias = { id: 'memorias', x: INSET.cx * W - ir, y: INSET.cy * H - ir, w: ir * 2, h: ir * 2, cx: INSET.cx * W, cy: INSET.cy * H, rx: ir * 0.72, ry: ir * 0.55, M: mapaReg('memorias') };
+    const tp = ptQ(L.reino, Tower.door.x, Tower.door.z); L.torre = { id: 'torre', x: tp[0] - 0.02 * W, y: tp[1] - 0.06 * H, w: 0.04 * W, h: 0.08 * H, cx: tp[0], cy: tp[1], rx: 0.02 * W, ry: 0.04 * H, M: null };
     return L;
   }
-  const ptQ = (T, x, z) => { const M = T.M; if (!M || !M.w) return [T.cx, T.cy]; const u = (x - M.x0) / M.w - 0.5, v = (z - M.z0) / M.h - 0.5; return [T.cx + u * 2 * T.rx * 0.74, T.cy + v * 2 * T.ry * 0.74]; };
+  const ptQ = (T, x, z) => { const M = T.M; if (!M || !M.w) return [T.cx, T.cy]; const u = (x - M.x0) / M.w - 0.5, v = (z - M.z0) / M.h - 0.5; return [T.cx + u * 2 * T.rx * 0.78, T.cy + v * 2 * T.ry * 0.78]; };
+  // qual lugar está debaixo do toque (frações da tela)
+  function regiaoEm(fx, fy) {
+    if (Math.hypot((fx - INSET.cx) * 16 / 9, fy - INSET.cy) < INSET.r) return 'memorias';
+    if (fx > 0.75 && fx < 0.95 && fy > 0.13 && fy < 0.48) return 'cidade';
+    const L = layout(1600, 900), tp = L.torre; if (Math.hypot(fx * 1600 - tp.cx, fy * 900 - tp.cy) < 40) return 'torre';
+    const Gd = GRADE || grade(1600, 900), i = Math.min(Gd.gw - 1, Math.max(0, Math.floor(fx * Gd.gw))), j = Math.min(Gd.gh - 1, Math.max(0, Math.floor(fy * Gd.gh))), r = Gd.reg[j * Gd.gw + i];
+    return r >= 0 ? TERR[r].id : null;
+  }
   const regPt = (x, z) => { const r = inTower(z) ? 'torre' : mapaDe(x, z); return r; };
   function cliqueMundo(fx, fy) {
-    const L = layout(1, 1), T = Object.values(L).map(T => ({ T, d: Math.hypot((fx - T.cx) / T.rx, (fy - T.cy) / T.ry) })).filter(o => o.d < 1.15).sort((a, b) => a.d - b.d).map(o => o.T)[0]; if (!T) return;
+    const id = regiaoEm(fx, fy); if (!id) return; const T = { id };
     Audio8.sfx('click'); const aqui = regDe();
     if (T.id === 'torre') { if (aqui === 'torre') { log('Você já está na Torre do Cisma.', 'sys'); return; } if (aqui === 'reino') go(Tower.door.x, Tower.door.z + 5, 'a porta da Torre do Cisma'); else { const w = rota(aqui, 'torre'); go(w.x, w.z, `${w.name}, caminho para a Torre do Cisma`, { reg: 'torre', regN: 'Torre do Cisma' }); } return; }
     show(null, T.id === aqui ? null : T.id);
   }
-  // ---------------- desenho do mapa do mundo (a parte que não muda fica guardada numa imagem)
+  // ---------------- desenho (a parte que não muda fica guardada numa imagem)
   let fundoMundo = null;
-  function semente(n) { let x = n * 9301 + 49297; return () => { x = (x * 9301 + 49297) % 233280; return x / 233280; }; }
-  function contorno(gg, T, rnd, k = 1) {                                  // terra de contorno natural (elipse com a beira irregular)
-    gg.beginPath();
-    const N = 46, ph = rnd() * 6, ph2 = rnd() * 6;
-    for (let i = 0; i <= N; i++) { const a = i / N * TAU, w = 1 + Math.sin(a * 3 + ph) * 0.07 + Math.sin(a * 7 + ph2) * 0.04 + Math.sin(a * 13 + ph) * 0.02;
-      const x = T.cx + Math.cos(a) * T.rx * w * k, y = T.cy + Math.sin(a) * T.ry * w * k; i ? gg.lineTo(x, y) : gg.moveTo(x, y); }
-    gg.closePath();
-  }
+  const semente = n => { let x = n * 9301 + 49297; return () => { x = (x * 9301 + 49297) % 233280; return x / 233280; }; };
   function desenharFundo(W, H) {
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const gg = c.getContext('2d'), L = layout(W, H), f = Math.max(14, W / 60);
-    // pergaminho
-    const pg = gg.createRadialGradient(W * 0.45, H * 0.45, W * 0.1, W * 0.5, H * 0.5, W * 0.75); pg.addColorStop(0, '#efe0b8'); pg.addColorStop(1, '#bfa070'); gg.fillStyle = pg; gg.fillRect(0, 0, W, H);
-    const rn = semente(5); for (let i = 0; i < 2600; i++) { gg.fillStyle = `rgba(90,60,30,${rn() * 0.06})`; gg.fillRect(rn() * W, rn() * H, 2 + rn() * 3, 2 + rn() * 3); }
-    // o mar do oeste (Praia de Cômodo)
-    const mar = gg.createLinearGradient(0, 0, W * 0.2, 0); mar.addColorStop(0, '#3a6a8a'); mar.addColorStop(1, 'rgba(90,140,170,0)'); gg.fillStyle = mar; gg.fillRect(0, H * 0.4, W * 0.22, H * 0.6);
-    gg.strokeStyle = 'rgba(230,245,255,.5)'; gg.lineWidth = Math.max(1, W / 900); for (let i = 0; i < 40; i++) { const x = rn() * W * 0.12, y = H * 0.45 + rn() * H * 0.5; gg.beginPath(); gg.arc(x, y, f * 0.4, Math.PI * 1.1, Math.PI * 1.9); gg.stroke(); }
-    // o vazio onde a Cidade Submersa flutua (céu escuro com estrelas)
-    { const v = gg.createRadialGradient(L.cidade.cx, L.cidade.cy, 0, L.cidade.cx, L.cidade.cy, L.cidade.rx * 1.8); v.addColorStop(0, 'rgba(30,20,50,.85)'); v.addColorStop(1, 'rgba(30,20,50,0)'); gg.fillStyle = v; gg.fillRect(0, 0, W, H);
-      for (let i = 0; i < 70; i++) { const a = rn() * TAU, r = rn() * L.cidade.rx * 1.6; gg.fillStyle = `rgba(255,255,230,${0.4 + rn() * 0.6})`; gg.fillRect(L.cidade.cx + Math.cos(a) * r, L.cidade.cy + Math.sin(a) * r * 1.6, 1.5, 1.5); } }
-    // estradas tracejadas entre as passagens (ficam por baixo das terras)
-    const PAS = [[VGATE_R, 'reino', VGATE_V, 'valdora'], [RGATE_P, 'reino', PGATE, 'praia'], [VGATE_VF, 'valdora', FGATE, 'floresta'], [FGATE_V, 'floresta', VALE_GATE, 'vale'], [VGATE_C, 'vale', CGATE, 'cidade'], [MGATE_C, 'cidade', MGATE, 'memorias']];
-    const pontas = []; for (const [a, ra, b, rb] of PAS) pontas.push([ptQ(L[ra], a.x, a.z), ptQ(L[rb], b.x, b.z)]);
-    pontas.push([ptQ(L.reino, Tower.door.x, Tower.door.z), [L.torre.cx, L.torre.cy]]);
-    gg.save(); gg.setLineDash([f * 0.45, f * 0.3]); gg.strokeStyle = 'rgba(120,40,30,.85)'; gg.lineWidth = Math.max(2, W / 420); gg.lineCap = 'round';
-    for (const [[ax, ay], [bx, by]] of pontas) { const mx = (ax + bx) / 2 + (by - ay) * 0.12, my = (ay + by) / 2 - (bx - ax) * 0.12; gg.beginPath(); gg.moveTo(ax, ay); gg.quadraticCurveTo(mx, my, bx, by); gg.stroke(); }
-    gg.restore();
-    // as terras
-    for (const id in L) {
-      const T = L[id], r = semente(T.s);
-      gg.save(); contorno(gg, T, semente(T.s), 1.06); gg.fillStyle = 'rgba(70,45,20,.35)'; gg.fill(); gg.restore();          // sombra da beira
-      contorno(gg, T, semente(T.s)); const lg = gg.createRadialGradient(T.cx - T.rx * 0.3, T.cy - T.ry * 0.3, 0, T.cx, T.cy, Math.max(T.rx, T.ry) * 1.1); lg.addColorStop(0, T.cor); lg.addColorStop(1, 'rgba(40,30,20,.85)'); gg.fillStyle = T.cor; gg.fill(); gg.globalAlpha = 0.35; gg.fillStyle = lg; gg.fill(); gg.globalAlpha = 1;
-      gg.strokeStyle = '#4a3018'; gg.lineWidth = Math.max(2, W / 500); gg.stroke();
-      gg.save(); contorno(gg, T, semente(T.s)); gg.clip(); desenhosDe(gg, id, T, r, f); gg.restore();
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const gg = c.getContext('2d'), f = Math.max(14, W / 60), Gd = grade(W, H), L = layout(W, H), rn = semente(7);
+    // 1) o chão: mar, vazio do leste e os territórios, pintados ponto a ponto (meia resolução)
+    const img = gg.createImageData(Gd.gw, Gd.gh), d = img.data;
+    for (let j = 0; j < Gd.gh; j++) for (let i = 0; i < Gd.gw; i++) {
+      const k = j * Gd.gw + i, o = k * 4, fx = i / Gd.gw, fy = j / Gd.gh, t = Gd.tv[k], r = Gd.reg[k], pap = (fbm(fx * 40, fy * 40) - 0.5) * 18;
+      let R, G, B;
+      if (r < 0) {
+        const raso = Math.max(0, Math.min(1, 1 + t * 4)), vaz = Math.max(0, Math.min(1, (fx - 0.66) / 0.1));
+        R = 70 + raso * 70; G = 108 + raso * 66; B = 138 + raso * 40;                       // mar: fundo azul, raso claro
+        if (raso > 0.92) { R += 10; G += 10; B += 8; }
+        R = R * (1 - vaz) + 22 * vaz; G = G * (1 - vaz) + 18 * vaz; B = B * (1 - vaz) + 38 * vaz;   // a leste vira o vazio
+      } else {
+        const T0 = TERR[r].cor, sombra = (fbm(fx * 16, fy * 16) - 0.5) * 0.5 + (fbm(fx * 40 + 3, fy * 40) - 0.5) * 0.15, praia = t < 0.07 ? (0.07 - t) / 0.07 : 0;
+        R = T0[0] * (1 + sombra) * (1 - praia) + 226 * praia; G = T0[1] * (1 + sombra) * (1 - praia) + 206 * praia; B = T0[2] * (1 + sombra) * (1 - praia) + 150 * praia;
+        const viz = [Gd.reg[k + 1], Gd.reg[k - 1], Gd.reg[k + Gd.gw], Gd.reg[k - Gd.gw]];
+        if (viz.some(v => v === -1)) { R = 74; G = 54; B = 34; }                                   // litoral
+        else if (viz.some(v => v >= 0 && v !== r) && (i + j) % 3 !== 0) { R *= 0.55; G *= 0.5; B *= 0.48; }   // fronteira tracejada
+      }
+      d[o] = R + pap; d[o + 1] = G + pap; d[o + 2] = B + pap * 0.8; d[o + 3] = 255;
     }
-    // portas das passagens
-    for (const pr of pontas) for (const [x, y] of pr) { gg.fillStyle = '#f2e4c0'; gg.strokeStyle = '#4a3018'; gg.lineWidth = 2; gg.beginPath(); gg.arc(x, y, f * 0.42, 0, TAU); gg.fill(); gg.stroke(); gg.textAlign = 'center'; gg.font = `${Math.round(f * 0.5)}px sans-serif`; gg.fillText('🚪', x, y + f * 0.18); }
-    // cidades
-    for (const id in L) { const T = L[id]; if (!T.M) continue; const cs = T.M.cities || (id === 'reino' ? CITIES : []);
-      for (const c of cs) { const [x, y] = ptQ(T, c.c.x, c.c.z); gg.textAlign = 'center'; gg.font = `${Math.round(f * 0.85)}px sans-serif`; gg.fillText('🏰', x, y + f * 0.3); gg.font = `700 ${Math.round(f * 0.6)}px Georgia, serif`; gg.lineWidth = 3; gg.strokeStyle = 'rgba(244,228,190,.95)'; gg.strokeText(c.n, x, y + f * 1.1); gg.fillStyle = '#2a1808'; gg.fillText(c.n, x, y + f * 1.1); } }
-    // nomes num pergaminho
-    for (const id in L) { const T = L[id], rg = REG.find(r => r.id === id); if (!rg) continue; const lv = id === 'praia' ? 'Nv 18–34' : rg.lv, y = T.cy - T.ry - f * 0.15;
-      gg.font = `700 ${Math.round(f * 0.78)}px Georgia, serif`; const w = Math.max(gg.measureText(rg.n).width, f * 4) / 2 + f * 0.6;
-      gg.fillStyle = 'rgba(244,228,190,.95)'; gg.strokeStyle = '#6a4020'; gg.lineWidth = 1.5; gg.beginPath(); gg.moveTo(T.cx - w, y - f * 0.75); gg.lineTo(T.cx + w, y - f * 0.75); gg.lineTo(T.cx + w - f * 0.3, y + f * 0.05); gg.lineTo(T.cx + w, y + f * 0.85); gg.lineTo(T.cx - w, y + f * 0.85); gg.lineTo(T.cx - w + f * 0.3, y + f * 0.05); gg.closePath(); gg.fill(); gg.stroke();
-      gg.textAlign = 'center'; gg.fillStyle = '#3a1a08'; gg.fillText(rg.n, T.cx, y + f * 0.02); gg.font = `700 ${Math.round(f * 0.46)}px Nunito, sans-serif`; gg.fillStyle = '#8a2a2a'; gg.fillText(lv, T.cx, y + f * 0.62); }
-    // rosa dos ventos e título
-    { const x = W * 0.94, y = H * 0.88, R = f * 1.6; gg.save(); gg.translate(x, y); gg.fillStyle = '#6a4020'; for (let k = 0; k < 4; k++) { gg.rotate(Math.PI / 2); gg.beginPath(); gg.moveTo(0, -R); gg.lineTo(R * 0.18, 0); gg.lineTo(-R * 0.18, 0); gg.closePath(); gg.fill(); }
-      gg.font = `700 ${Math.round(f * 0.6)}px Georgia, serif`; gg.textAlign = 'center'; gg.fillText('N', 0, -R - f * 0.2); gg.restore(); }
-    gg.font = `700 ${Math.round(f * 1.1)}px Georgia, serif`; gg.textAlign = 'left'; gg.fillStyle = 'rgba(60,30,10,.85)'; gg.fillText('Reino Quebrado', W * 0.015, H * 0.06);
-    gg.strokeStyle = '#5a3818'; gg.lineWidth = Math.max(3, W / 300); gg.strokeRect(4, 4, W - 8, H - 8);
+    const tmp = document.createElement('canvas'); tmp.width = Gd.gw; tmp.height = Gd.gh; tmp.getContext('2d').putImageData(img, 0, 0);
+    gg.imageSmoothingEnabled = true; gg.drawImage(tmp, 0, 0, W, H);
+    // ondas no mar e estrelas no vazio
+    gg.strokeStyle = 'rgba(235,245,250,.45)'; gg.lineWidth = Math.max(1, W / 1000);
+    for (let n = 0; n < 160; n++) { const fx = rn() * 0.7, fy = rn(); const i = Math.floor(fx * Gd.gw), j = Math.floor(fy * Gd.gh); if (Gd.reg[j * Gd.gw + i] !== -1 || Gd.tv[j * Gd.gw + i] > -0.08) continue; const x = fx * W, y = fy * H; gg.beginPath(); gg.arc(x, y, f * 0.35, Math.PI * 1.15, Math.PI * 1.85); gg.stroke(); gg.beginPath(); gg.arc(x + f * 0.55, y, f * 0.35, Math.PI * 1.15, Math.PI * 1.85); gg.stroke(); }
+    for (let n = 0; n < 260; n++) { const x = (0.7 + rn() * 0.3) * W, y = rn() * H; gg.fillStyle = `rgba(255,250,220,${0.3 + rn() * 0.7})`; const s = rn() < 0.1 ? 2.5 : 1.3; gg.fillRect(x, y, s, s); }
+    // 2) rio do Reino (nasce nos morros de Valdora e corre para o mar do sul)
+    { const R0 = L.reino; gg.strokeStyle = '#5a8ab0'; gg.lineCap = 'round'; gg.lineWidth = Math.max(2.5, f * 0.2); gg.beginPath(); gg.moveTo(R0.cx - R0.rx * 0.15, R0.y + R0.h * 0.05); gg.bezierCurveTo(R0.cx + R0.rx * 0.2, R0.cy - R0.ry * 0.2, R0.cx - R0.rx * 0.25, R0.cy + R0.ry * 0.4, R0.cx + R0.rx * 0.05, R0.y + R0.h * 1.08); gg.stroke();
+      gg.strokeStyle = 'rgba(200,230,250,.5)'; gg.lineWidth = Math.max(1, f * 0.06); gg.stroke(); }
+    // 3) desenhos de cada território
+    const dentro = (x, y, id) => { const i = Math.floor(x / W * Gd.gw), j = Math.floor(y / H * Gd.gh); if (i < 0 || j < 0 || i >= Gd.gw || j >= Gd.gh) return false; const k = j * Gd.gw + i; return Gd.reg[k] >= 0 && TERR[Gd.reg[k]].id === id && Gd.tv[k] > 0.12; };
+    const longeDoNome = (x, y, T) => Math.hypot((x - T.cx) / (f * 5), (y - T.cy) / (f * 1.6)) > 1;
+    const pinheiro = (x, y, s, cor) => { gg.fillStyle = 'rgba(40,30,15,.25)'; gg.beginPath(); gg.ellipse(x + s * 0.15, y + s * 0.05, s * 0.35, s * 0.1, 0, 0, TAU); gg.fill(); for (let k = 0; k < 3; k++) { const yy = y - s * (0.25 + k * 0.28), ww = s * (0.42 - k * 0.1); gg.fillStyle = k % 2 ? cor : shade(cor, -18); gg.beginPath(); gg.moveTo(x, yy - s * 0.42); gg.lineTo(x + ww, yy); gg.lineTo(x - ww, yy); gg.closePath(); gg.fill(); } gg.fillStyle = '#4a2e14'; gg.fillRect(x - s * 0.05, y - s * 0.25, s * 0.1, s * 0.25); };
+    const arvore = (x, y, s, cor) => { gg.fillStyle = 'rgba(40,30,15,.25)'; gg.beginPath(); gg.ellipse(x + s * 0.15, y + s * 0.05, s * 0.4, s * 0.12, 0, 0, TAU); gg.fill(); gg.fillStyle = '#4a2e14'; gg.fillRect(x - s * 0.06, y - s * 0.4, s * 0.12, s * 0.4); gg.fillStyle = cor; gg.beginPath(); gg.arc(x, y - s * 0.62, s * 0.36, 0, TAU); gg.fill(); gg.fillStyle = shade(cor, 22); gg.beginPath(); gg.arc(x - s * 0.1, y - s * 0.72, s * 0.17, 0, TAU); gg.fill(); };
+    const montanha = (x, y, s) => { const h = s * (0.9 + rn() * 0.4); gg.fillStyle = '#b39470'; gg.beginPath(); gg.moveTo(x - s * 0.75, y); gg.lineTo(x - s * 0.05, y - h); gg.lineTo(x + s * 0.12, y); gg.closePath(); gg.fill(); gg.fillStyle = '#7a5e42'; gg.beginPath(); gg.moveTo(x - s * 0.05, y - h); gg.lineTo(x + s * 0.75, y); gg.lineTo(x + s * 0.12, y); gg.closePath(); gg.fill();
+      gg.fillStyle = '#f4efe4'; gg.beginPath(); gg.moveTo(x - s * 0.05, y - h); gg.lineTo(x - s * 0.24, y - h * 0.72); gg.lineTo(x - s * 0.05, y - h * 0.78); gg.lineTo(x + s * 0.12, y - h * 0.7); gg.closePath(); gg.fill(); gg.strokeStyle = '#4a3018'; gg.lineWidth = 1.2; gg.beginPath(); gg.moveTo(x - s * 0.75, y); gg.lineTo(x - s * 0.05, y - h); gg.lineTo(x + s * 0.75, y); gg.stroke(); };
+    const duna = (x, y, s) => { gg.strokeStyle = 'rgba(140,90,40,.8)'; gg.lineWidth = 1.5; gg.beginPath(); gg.moveTo(x - s * 0.6, y); gg.quadraticCurveTo(x - s * 0.1, y - s * 0.4, x + s * 0.6, y); gg.stroke(); gg.strokeStyle = 'rgba(140,90,40,.4)'; gg.beginPath(); gg.moveTo(x - s * 0.3, y + s * 0.15); gg.quadraticCurveTo(x + s * 0.1, y - s * 0.1, x + s * 0.5, y + s * 0.15); gg.stroke(); };
+    const tumulo = (x, y, s) => { gg.fillStyle = '#d8d4dc'; gg.beginPath(); gg.moveTo(x - s * 0.16, y); gg.lineTo(x - s * 0.16, y - s * 0.3); gg.arc(x, y - s * 0.3, s * 0.16, Math.PI, 0); gg.lineTo(x + s * 0.16, y); gg.closePath(); gg.fill(); gg.strokeStyle = '#5a5060'; gg.lineWidth = 1; gg.stroke(); };
+    const palmeira = (x, y, s) => { gg.strokeStyle = '#6a4a24'; gg.lineWidth = s * 0.08; gg.beginPath(); gg.moveTo(x, y); gg.quadraticCurveTo(x + s * 0.15, y - s * 0.4, x + s * 0.05, y - s * 0.75); gg.stroke(); gg.strokeStyle = '#3a7a2a'; gg.lineWidth = s * 0.09; for (const a of [-2.6, -2, -1.1, -0.5]) { gg.beginPath(); gg.moveTo(x + s * 0.05, y - s * 0.75); gg.quadraticCurveTo(x + s * 0.05 + Math.cos(a) * s * 0.3, y - s * 0.75 + Math.sin(a) * s * 0.3 - s * 0.1, x + s * 0.05 + Math.cos(a) * s * 0.45, y - s * 0.75 + Math.sin(a) * s * 0.2 + s * 0.15); gg.stroke(); } };
+    const espalhar = (id, n, fn) => { const T = L[id]; const pts = []; for (let k = 0; k < n * 8 && pts.length < n; k++) { const x = T.x + rn() * T.w, y = T.y + rn() * T.h; if (dentro(x, y, id) && longeDoNome(x, y, T)) pts.push([x, y]); } pts.sort((a, b) => a[1] - b[1]).forEach(([x, y]) => fn(x, y)); };
+    espalhar('valdora', 22, (x, y) => montanha(x, y, f * (0.9 + rn() * 0.6)));
+    espalhar('floresta', 70, (x, y) => pinheiro(x, y, f * (0.7 + rn() * 0.4), rn() < 0.5 ? '#2e3a2a' : '#3a4834'));
+    espalhar('vale', 34, (x, y) => tumulo(x, y, f * 0.7));
+    espalhar('praia', 12, (x, y) => palmeira(x, y, f * 0.9));
+    espalhar('reino', 60, (x, y) => { const T = L.reino; if (x > T.cx + T.rx * 0.15 && y < T.cy + T.ry * 0.1) duna(x, y, f * 0.9); else arvore(x, y, f * (0.6 + rn() * 0.3), rn() < 0.5 ? '#4a7a2e' : '#5a8a36'); });
+    { const T = L.vale; gg.fillStyle = 'rgba(245,245,250,.28)'; for (let k = 0; k < 7; k++) { gg.beginPath(); gg.ellipse(T.cx + (rn() - 0.5) * T.w * 0.8, T.cy + (rn() - 0.5) * T.h * 0.8, f * 1.8, f * 0.45, 0, 0, TAU); gg.fill(); } }
+    // 4) estradas entre as passagens
+    const PAS = [[VGATE_R, 'reino', VGATE_V, 'valdora'], [RGATE_P, 'reino', PGATE, 'praia'], [VGATE_VF, 'valdora', FGATE, 'floresta'], [FGATE_V, 'floresta', VALE_GATE, 'vale'], [VGATE_C, 'vale', CGATE, 'cidade']];
+    gg.save(); gg.setLineDash([f * 0.35, f * 0.25]); gg.strokeStyle = 'rgba(110,40,25,.9)'; gg.lineWidth = Math.max(2, W / 520); gg.lineCap = 'round';
+    const pontas = []; for (const [a, ra, b, rb] of PAS) { const A = ptQ(L[ra], a.x, a.z), B2 = ptQ(L[rb], b.x, b.z); pontas.push(A, B2); const mx = (A[0] + B2[0]) / 2 + (B2[1] - A[1]) * 0.15, my = (A[1] + B2[1]) / 2 - (B2[0] - A[0]) * 0.15; gg.beginPath(); gg.moveTo(A[0], A[1]); gg.quadraticCurveTo(mx, my, B2[0], B2[1]); gg.stroke(); }
+    gg.restore();
+    // 5) a Cidade Submersa: ilhas flutuando no vazio, ligadas por pontes
+    { gg.strokeStyle = 'rgba(200,180,255,.7)'; gg.lineWidth = Math.max(1.5, W / 900); const I = ARQ.ilhas.map(([x, y, r]) => [x * W, y * H, r * W]);
+      for (const [a, b] of [[0, 1], [0, 2], [2, 3], [2, 4], [1, 3]]) { gg.beginPath(); gg.moveTo(I[a][0], I[a][1]); gg.lineTo(I[b][0], I[b][1]); gg.stroke(); }
+      I.forEach(([x, y, r], k) => { const rr = semente(40 + k); gg.fillStyle = '#2a2236'; gg.beginPath(); gg.moveTo(x - r, y); gg.quadraticCurveTo(x, y + r * 1.9, x + r, y); gg.closePath(); gg.fill();
+        gg.beginPath(); for (let q = 0; q <= 24; q++) { const a = q / 24 * TAU, w = 1 + (rr() - 0.5) * 0.25; gg.lineTo(x + Math.cos(a) * r * w, y + Math.sin(a) * r * 0.42 * w); } gg.closePath(); gg.fillStyle = '#8a7aa8'; gg.fill(); gg.strokeStyle = '#3a2a4a'; gg.lineWidth = 1.5; gg.stroke();
+        for (let q = 0; q < 3; q++) { const cx2 = x + (rr() - 0.5) * r, cy2 = y - r * 0.1; gg.fillStyle = q % 2 ? '#c8a8ff' : '#ffd890'; gg.beginPath(); gg.moveTo(cx2, cy2 - r * 0.5); gg.lineTo(cx2 + r * 0.1, cy2); gg.lineTo(cx2 - r * 0.1, cy2); gg.closePath(); gg.fill(); } });
+      pontas.push([I[0][0], I[0][1]]); }
+    // 6) o Rio das Memórias: recorte redondo "sob a Cidade"
+    { const x = INSET.cx * W, y = INSET.cy * H, r = INSET.r * H, I2 = ARQ.ilhas[4];
+      gg.save(); gg.setLineDash([f * 0.2, f * 0.25]); gg.strokeStyle = 'rgba(160,230,255,.8)'; gg.lineWidth = 2; gg.beginPath(); gg.moveTo(I2[0] * W, I2[1] * H + f * 0.5); gg.lineTo(x, y - r); gg.stroke(); gg.restore();
+      gg.save(); gg.beginPath(); gg.arc(x, y, r, 0, TAU); gg.clip();
+      const cg = gg.createRadialGradient(x, y, r * 0.1, x, y, r); cg.addColorStop(0, '#16303a'); cg.addColorStop(1, '#05090c'); gg.fillStyle = cg; gg.fillRect(x - r, y - r, r * 2, r * 2);
+      gg.fillStyle = '#0e4a58'; gg.beginPath(); gg.ellipse(x, y + r * 0.1, r * 0.72, r * 0.42, 0, 0, TAU); gg.fill();
+      const rr = semente(99); for (let q = 0; q < 90; q++) { const a = rr() * TAU, dd = Math.sqrt(rr()); gg.fillStyle = `rgba(${170 + rr() * 80 | 0},240,255,${0.4 + rr() * 0.6})`; gg.beginPath(); gg.arc(x + Math.cos(a) * r * 0.7 * dd, y + r * 0.1 + Math.sin(a) * r * 0.4 * dd, 0.8 + rr() * 1.8, 0, TAU); gg.fill(); }
+      gg.fillStyle = '#5a6a72'; for (const [a, b] of [[-0.55, 0.05], [0.1, -0.25], [0.6, 0.12]]) { gg.beginPath(); gg.ellipse(x + a * r, y + b * r, r * 0.14, r * 0.07, 0, 0, TAU); gg.fill(); }
+      gg.fillStyle = '#efe0b8'; gg.fillRect(x + r * 0.62, y - r * 0.12, r * 0.12, r * 0.22); gg.fillStyle = '#ffe9a8'; gg.font = `${Math.round(r * 0.1)}px sans-serif`; gg.textAlign = 'center'; gg.fillText('✶', x + r * 0.68, y + r * 0.02);
+      gg.restore();
+      gg.strokeStyle = '#4a3018'; gg.lineWidth = Math.max(3, W / 350); gg.beginPath(); gg.arc(x, y, r, 0, TAU); gg.stroke(); gg.strokeStyle = '#c8a060'; gg.lineWidth = Math.max(1.5, W / 900); gg.beginPath(); gg.arc(x, y, r - Math.max(4, W / 300), 0, TAU); gg.stroke(); }
+    // 7) passagens, cidades e a Torre
+    for (const [x, y] of pontas) { gg.fillStyle = '#f2e4c0'; gg.strokeStyle = '#4a3018'; gg.lineWidth = 1.5; gg.beginPath(); gg.arc(x, y, f * 0.3, 0, TAU); gg.fill(); gg.stroke(); gg.fillStyle = '#6a2a1a'; gg.fillRect(x - f * 0.1, y - f * 0.14, f * 0.2, f * 0.26); }
+    const vila = (x, y, s) => { for (const [dx, dy, k] of [[-0.35, 0.05, 0.8], [0.3, 0.1, 0.75], [0, -0.1, 1]]) { const xx = x + dx * s, yy = y + dy * s, w = s * 0.32 * k; gg.fillStyle = '#e8d8b8'; gg.fillRect(xx - w / 2, yy - w * 0.7, w, w * 0.7); gg.fillStyle = '#a83a28'; gg.beginPath(); gg.moveTo(xx - w * 0.6, yy - w * 0.7); gg.lineTo(xx, yy - w * 1.25); gg.lineTo(xx + w * 0.6, yy - w * 0.7); gg.closePath(); gg.fill(); gg.strokeStyle = '#3a2010'; gg.lineWidth = 1; gg.strokeRect(xx - w / 2, yy - w * 0.7, w, w * 0.7); } };
+    const caixas = [];                                         // nomes que já foram escritos (para não encavalar)
+    const nome = (txt, x, y, tam, cor = '#2a1808', escuro = false) => { gg.font = `700 ${Math.round(tam)}px Georgia, serif`; gg.textAlign = 'center'; const w = gg.measureText(txt).width;
+      for (let k = 0; k < 4 && caixas.some(c => Math.abs(c[0] - x) < (c[2] + w) / 2 + tam * 0.8 && Math.abs(c[1] - y) < tam * 1.1); k++) y += tam * 1.1;
+      caixas.push([x, y, w]); gg.lineWidth = Math.max(3, tam * 0.3); gg.strokeStyle = escuro ? 'rgba(12,8,24,.95)' : 'rgba(246,234,204,.92)'; gg.lineJoin = 'round'; gg.strokeText(txt, x, y); gg.fillStyle = cor; gg.fillText(txt, x, y); };
+    for (const id of ['reino', 'praia', 'valdora', 'floresta', 'vale', 'cidade', 'memorias']) { const T = L[id]; if (!T.M) continue; const cs = T.M.cities || (id === 'reino' ? CITIES : []);
+      for (const c of cs) { const [x, y] = ptQ(T, c.c.x, c.c.z); vila(x, y, f * 1.1); nome(c.n, x, y + f * 0.85, f * 0.55, id === 'cidade' || id === 'memorias' ? '#f4e8c8' : '#2a1808', id === 'cidade' || id === 'memorias'); } }
+    { const T = L.torre, x = T.cx, y = T.cy, s = f * 2.2; gg.fillStyle = '#2a1a3a'; gg.beginPath(); gg.moveTo(x - s * 0.22, y); gg.lineTo(x - s * 0.14, y - s); gg.lineTo(x + s * 0.14, y - s); gg.lineTo(x + s * 0.22, y); gg.closePath(); gg.fill(); gg.fillStyle = '#4a2a6a'; gg.fillRect(x - s * 0.2, y - s * 1.05, s * 0.4, s * 0.1); gg.fillStyle = '#c080ff'; gg.beginPath(); gg.arc(x, y - s * 1.2, s * 0.1, 0, TAU); gg.fill(); nome('Torre do Cisma', x, y + f * 0.8, f * 0.55, '#3a1a5a'); }
+    // 8) nomes dos territórios (letra de mapa antigo) e o nível
+    const rotulo = (id, x, y) => { const rg = REG.find(r => r.id === id); if (!rg) return; const lv = id === 'praia' ? 'Nv 18–34' : rg.lv; const tt = rg.n.toUpperCase(); nome(tt, x, y, f * 0.9, id === 'cidade' || id === 'memorias' ? '#ffe9a8' : '#3a1a08', id === 'cidade' || id === 'memorias'); gg.font = `italic 700 ${Math.round(f * 0.5)}px Georgia, serif`; gg.lineWidth = 3; gg.strokeStyle = id === 'cidade' || id === 'memorias' ? 'rgba(20,14,34,.9)' : 'rgba(246,234,204,.92)'; gg.strokeText(lv, x, y + f * 0.7); gg.fillStyle = '#8a2a2a'; if (id === 'cidade' || id === 'memorias') gg.fillStyle = '#ffd0e0'; gg.fillText(lv, x, y + f * 0.7); };
+    for (const t of TERR) { const T = L[t.id]; rotulo(t.id, T.cx, T.cy - T.ry * 0.05); }
+    { const ys = ARQ.cy * H - 0.17 * H; gg.save(); gg.font = `700 ${Math.round(f * 0.9)}px Georgia, serif`; gg.restore(); gg.fillStyle = 'rgba(20,14,34,.0)'; rotulo('cidade', ARQ.cx * W, ys); }
+    rotulo('memorias', INSET.cx * W, INSET.cy * H - INSET.r * H * 0.55);
+    { gg.font = `italic ${Math.round(f * 0.45)}px Georgia, serif`; gg.fillStyle = 'rgba(200,230,240,.85)'; gg.textAlign = 'center'; gg.fillText('(sob a Cidade Submersa)', INSET.cx * W, INSET.cy * H + INSET.r * H * 0.72); }
+    // 9) rosa dos ventos, título e moldura
+    { const x = W * 0.66, y = H * 0.86, R = f * 1.7; gg.save(); gg.translate(x, y); for (let k = 0; k < 8; k++) { gg.rotate(Math.PI / 4); const lr = k % 2 ? R * 0.6 : R; gg.fillStyle = '#6a4020'; gg.beginPath(); gg.moveTo(0, -lr); gg.lineTo(R * 0.13, 0); gg.lineTo(0, 0); gg.closePath(); gg.fill(); gg.fillStyle = '#e8d4a8'; gg.beginPath(); gg.moveTo(0, -lr); gg.lineTo(-R * 0.13, 0); gg.lineTo(0, 0); gg.closePath(); gg.fill(); }
+      gg.strokeStyle = '#6a4020'; gg.lineWidth = 1.5; gg.beginPath(); gg.arc(0, 0, R * 0.45, 0, TAU); gg.stroke(); gg.font = `700 ${Math.round(f * 0.6)}px Georgia, serif`; gg.fillStyle = '#4a2a10'; gg.textAlign = 'center'; gg.fillText('N', 0, -R - f * 0.15); gg.restore(); }
+    { gg.font = `700 ${Math.round(f * 0.95)}px Georgia, serif`; const x = W * 0.02, y = H * 0.03, w = gg.measureText('REINO QUEBRADO').width + f * 1.6, h = f * 2; gg.fillStyle = 'rgba(244,230,196,.95)'; gg.strokeStyle = '#5a3818'; gg.lineWidth = 2; gg.fillRect(x, y, w, h); gg.strokeRect(x, y, w, h); gg.strokeRect(x + 4, y + 4, w - 8, h - 8);
+      gg.font = `700 ${Math.round(f * 0.95)}px Georgia, serif`; gg.fillStyle = '#3a1a08'; gg.textAlign = 'center'; gg.fillText('REINO QUEBRADO', x + w / 2, y + h * 0.62); }
+    gg.strokeStyle = '#4a2e14'; gg.lineWidth = Math.max(4, W / 260); gg.strokeRect(3, 3, W - 6, H - 6); gg.strokeStyle = '#b8945a'; gg.lineWidth = Math.max(1.5, W / 900); gg.strokeRect(10, 10, W - 20, H - 20);
     return c;
   }
-  // desenhos de cada terra (árvores, dunas, montanhas, túmulos, cristais...)
-  function desenhosDe(gg, id, T, r, f) {
-    const pt = () => { const a = r() * TAU, d = Math.sqrt(r()) * 0.85; return [T.cx + Math.cos(a) * T.rx * d, T.cy + Math.sin(a) * T.ry * d]; };
-    const arvore = (x, y, c) => { gg.fillStyle = c; gg.beginPath(); gg.moveTo(x, y - f * 0.55); gg.lineTo(x + f * 0.3, y + f * 0.1); gg.lineTo(x - f * 0.3, y + f * 0.1); gg.closePath(); gg.fill(); gg.fillStyle = '#4a3018'; gg.fillRect(x - f * 0.04, y + f * 0.1, f * 0.08, f * 0.14); };
-    const monte = (x, y, s2, c) => { gg.fillStyle = c; gg.beginPath(); gg.moveTo(x - f * 0.6 * s2, y); gg.lineTo(x, y - f * 0.8 * s2); gg.lineTo(x + f * 0.6 * s2, y); gg.closePath(); gg.fill(); gg.strokeStyle = 'rgba(40,25,10,.6)'; gg.lineWidth = 1; gg.stroke(); gg.fillStyle = '#f4efe4'; gg.beginPath(); gg.moveTo(x - f * 0.18 * s2, y - f * 0.56 * s2); gg.lineTo(x, y - f * 0.8 * s2); gg.lineTo(x + f * 0.18 * s2, y - f * 0.56 * s2); gg.closePath(); gg.fill(); };
-    if (id === 'reino') { for (let i = 0; i < 26; i++) { const [x, y] = pt(); if (x > T.cx + T.rx * 0.2 && y < T.cy) { gg.strokeStyle = 'rgba(150,100,40,.7)'; gg.lineWidth = 1.5; gg.beginPath(); gg.arc(x, y, f * 0.3, Math.PI * 1.1, Math.PI * 1.9); gg.stroke(); } else arvore(x, y, '#3a6a2a'); }
-      gg.strokeStyle = '#4a8ab0'; gg.lineWidth = Math.max(2, f * 0.18); gg.beginPath(); gg.moveTo(T.cx + T.rx * 0.05, T.cy - T.ry); gg.bezierCurveTo(T.cx - T.rx * 0.1, T.cy - T.ry * 0.2, T.cx + T.rx * 0.15, T.cy + T.ry * 0.3, T.cx, T.cy + T.ry); gg.stroke(); }
-    if (id === 'praia') { gg.fillStyle = 'rgba(70,130,170,.55)'; gg.fillRect(T.cx - T.rx, T.cy - T.ry, T.rx * 0.55, T.ry * 2); for (let i = 0; i < 6; i++) { const [x, y] = pt(); if (x > T.cx - T.rx * 0.3) { gg.strokeStyle = '#3a6a2a'; gg.lineWidth = 2; gg.beginPath(); gg.moveTo(x, y); gg.lineTo(x, y - f * 0.5); gg.stroke(); gg.fillStyle = '#4a8a3a'; gg.beginPath(); gg.arc(x, y - f * 0.55, f * 0.22, 0, TAU); gg.fill(); } } }
-    if (id === 'valdora') { for (let i = 0; i < 9; i++) { const [x, y] = pt(); monte(x, y, 0.8 + r() * 0.5, '#8a6a4a'); } for (let i = 0; i < 5; i++) { const [x, y] = pt(); gg.fillStyle = '#6a5a4a'; gg.fillRect(x - f * 0.2, y - f * 0.35, f * 0.12, f * 0.35); gg.fillRect(x + f * 0.05, y - f * 0.25, f * 0.12, f * 0.25); } }
-    if (id === 'floresta') for (let i = 0; i < 34; i++) { const [x, y] = pt(); arvore(x, y, r() < 0.5 ? '#2a3428' : '#3a4436'); }
-    if (id === 'vale') { for (let i = 0; i < 26; i++) { const [x, y] = pt(); gg.strokeStyle = 'rgba(230,230,235,.8)'; gg.lineWidth = Math.max(1.5, f * 0.08); gg.beginPath(); gg.moveTo(x, y - f * 0.3); gg.lineTo(x, y + f * 0.1); gg.moveTo(x - f * 0.12, y - f * 0.18); gg.lineTo(x + f * 0.12, y - f * 0.18); gg.stroke(); }
-      gg.fillStyle = 'rgba(240,240,245,.25)'; for (let i = 0; i < 6; i++) { const [x, y] = pt(); gg.beginPath(); gg.ellipse(x, y, f * 1.4, f * 0.4, 0, 0, TAU); gg.fill(); } }
-    if (id === 'cidade') { for (let i = 0; i < 12; i++) { const [x, y] = pt(); gg.fillStyle = '#c8a8ff'; gg.beginPath(); gg.moveTo(x, y - f * 0.45); gg.lineTo(x + f * 0.18, y); gg.lineTo(x, y + f * 0.2); gg.lineTo(x - f * 0.18, y); gg.closePath(); gg.fill(); }
-      for (let i = 0; i < 6; i++) { const [x, y] = pt(); gg.fillStyle = '#3a2a50'; gg.fillRect(x - f * 0.1, y - f * 0.6, f * 0.2, f * 0.6); } }
-    if (id === 'memorias') { gg.fillStyle = 'rgba(10,40,55,.6)'; gg.beginPath(); gg.ellipse(T.cx, T.cy, T.rx * 0.75, T.ry * 0.6, 0, 0, TAU); gg.fill();
-      for (let i = 0; i < 60; i++) { const [x, y] = pt(); gg.fillStyle = `rgba(${170 + r() * 80 | 0},240,255,${0.5 + r() * 0.5})`; gg.beginPath(); gg.arc(x, y, 1 + r() * 2, 0, TAU); gg.fill(); }
-      gg.fillStyle = '#e8d8a8'; gg.font = `${Math.round(f * 0.7)}px sans-serif`; gg.textAlign = 'center'; gg.fillText('🚪', T.cx + T.rx * 0.65, T.cy + f * 0.2); }
-    if (id === 'torre') { const x = T.cx, y = T.cy + T.ry * 0.5, h = T.ry * 1.3, w = T.rx * 0.6; gg.fillStyle = '#2a1a3a'; gg.beginPath(); gg.moveTo(x - w / 2, y); gg.lineTo(x - w * 0.35, y - h); gg.lineTo(x + w * 0.35, y - h); gg.lineTo(x + w / 2, y); gg.closePath(); gg.fill(); gg.fillStyle = '#b070ff'; gg.beginPath(); gg.arc(x, y - h, w * 0.32, 0, TAU); gg.fill(); }
-  }
+  const shade = (hex, d) => { const n = parseInt(hex.slice(1), 16), cl = v => Math.max(0, Math.min(255, v)); return `rgb(${cl((n >> 16) + d)},${cl(((n >> 8) & 255) + d)},${cl((n & 255) + d)})`; };
   function drawMundo() {
     const W = cv.width, H = cv.height, aqui = regDe(), t = performance.now() / 1000, f = Math.max(14, W / 60);
     if (!fundoMundo || fundoMundo.width !== W || fundoMundo.height !== H) fundoMundo = desenharFundo(W, H);
     g.drawImage(fundoMundo, 0, 0);
     const L = layout(W, H), T = L[aqui];
-    // a terra onde você está brilha
-    if (T) { g.save(); contorno(g, T, semente(T.s)); g.strokeStyle = `rgba(255,210,60,${0.6 + Math.sin(t * 4) * 0.3})`; g.lineWidth = Math.max(4, W / 220); g.stroke(); g.restore(); }
-    // você está aqui
     const pxy = aqui === 'torre' ? [L.torre.cx, L.torre.cy] : T ? ptQ(T, P.x, P.z) : null;
-    if (pxy) { const [px, py] = pxy, pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(220,40,90,.35)'; g.beginPath(); g.arc(px, py, f * 1.1 * pul, 0, TAU); g.fill(); g.fillStyle = '#e0306a'; g.beginPath(); g.arc(px, py, f * 0.42, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
-      g.font = `800 ${Math.round(f * 0.75)}px Nunito, sans-serif`; g.textAlign = 'center'; const tw = g.measureText('📍 VOCÊ').width / 2 + 6, ly = Math.min(H - 6, py + f * 1.9); g.fillStyle = 'rgba(224,48,106,.95)'; g.fillRect(px - tw, ly - f * 0.82, tw * 2, f * 1.05); g.fillStyle = '#fff'; g.fillText('📍 VOCÊ', px, ly); }
+    if (pxy) { const [px, py] = pxy, pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(220,40,90,.3)'; g.beginPath(); g.arc(px, py, f * 1.1 * pul, 0, TAU); g.fill(); g.fillStyle = '#e0306a'; g.beginPath(); g.arc(px, py, f * 0.4, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+      g.font = `800 ${Math.round(f * 0.7)}px Nunito, sans-serif`; g.textAlign = 'center'; const tw = g.measureText('📍 VOCÊ').width / 2 + 6, ly = Math.min(H - 8, py + f * 1.8); g.fillStyle = 'rgba(224,48,106,.95)'; g.fillRect(px - tw, ly - f * 0.78, tw * 2, f * 1.0); g.fillStyle = '#fff'; g.fillText('📍 VOCÊ', px, ly); }
   }
   function show(city, reg) {
     if (reg !== undefined || city === 'mundo') vm = reg || null;
