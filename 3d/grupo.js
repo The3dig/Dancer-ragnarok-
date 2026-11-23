@@ -73,7 +73,9 @@ const Grupo = (() => {
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
   // anti-leech (como o Ragnarok): só divide com quem tem nível parecido.
   // até 10 níveis de diferença: parte inteira; de 10 a 20: vai caindo; mais de 20: nada da caçada do outro
-  const peso = (a, b) => { const g = Math.abs((a || 1) - (b || 1)); return g <= 10 ? 1 : g >= 20 ? 0 : (20 - g) / 10; };
+  // pedido do Rone (o Imperio e o Balhulk começaram agora): até 10 níveis de diferença divide normal; mais que isso,
+  // quem está abaixo pega CARONA (leech): ganha um pouco de XP sem tirar nada de quem matou (ver killMob, o.leech)
+  const peso = (a, b) => { const g = Math.abs((a || 1) - (b || 1)); return g <= 10 ? 1 : 0; };
   const pertoDe = (m, ref) => membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO && peso(ref, r.s.lv) > 0);
   // quem mata sorteia cada item entre quem é do grupo, está perto e tem nível parecido (inclusive ele mesmo)
   // ---------------- suporte: cura e proteção valem para o grupo perto (até 15 m)
@@ -96,7 +98,7 @@ const Grupo = (() => {
   // do lado de quem NÃO matou: a parte dele, já com o desconto de diferença de nível (0 = leech: não ganha)
   function parteDoMatador(m, peer) {
     const k = Net.peers().find(r => r.peer === peer); if (!k) return { parte: 0 };
-    const w = peso(P.lv, k.s.lv); if (w <= 0) return { parte: 0, lvK: k.s.lv };
+    const w = peso(P.lv, k.s.lv); if (w <= 0) return { parte: 0, lvK: k.s.lv, leech: P.lv < (k.s.lv || 1) };
     const n = 1 + pertoDe(m, k.s.lv).length;                           // eu + os do grupo perto (o matador entra aqui)
     return { parte: (n > 1 ? (1 + 0.1 * (n - 1)) / n : 1) * w, n, w };
   }
@@ -151,7 +153,7 @@ const Grupo = (() => {
     const h = `<div class="wt">👥 Grupo <small>${gp() ? `${M.length + 1} de ${MAX}` : 'sem grupo'}</small><span class="x" data-a="x">×</span></div><div class="gr-b">
       <div class="gr-sec">⚔️ Companheiros</div>${eu}${lista || '<div class="gr-vazio">Ninguém no grupo ainda. Chame alguém aqui embaixo!</div>'}
       <div class="gr-sec">📨 Chamar para o grupo</div>${chamar || '<div class="gr-vazio">Não tem mais ninguém on-line agora.</div>'}
-      <div class="gr-sec gr-reg" data-a="regras">📜 Como funciona o grupo ${regras ? '▲' : '▼'}</div>${regras ? `<div class="gr-txt">Quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> com +10% por companheiro (só com nível parecido: até 10 níveis de diferença, parte inteira; mais de 20, nada). O monstro conta nas <b>missões, desafios e aventuras</b> de todos, e os <b>itens são sorteados</b> entre quem está perto. Curas e proteções valem para o grupo perto (15 m). Nas masmorras em grupo, <b>todos precisam aceitar</b> para entrar.</div>` : ''}
+      <div class="gr-sec gr-reg" data-a="regras">📜 Como funciona o grupo ${regras ? '▲' : '▼'}</div>${regras ? `<div class="gr-txt">Quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> com +10% por companheiro, entre quem tem nível parecido (até 10 níveis de diferença). Quem está <b>mais de 10 níveis abaixo</b> pega <b>carona</b>: ganha um pouco de XP (até 0,8% de um nível por bicho) sem tirar nada de quem matou, mas a carona não conta para missões nem itens. O monstro conta nas <b>missões, desafios e aventuras</b> de todos, e os <b>itens são sorteados</b> entre quem está perto. Curas e proteções valem para o grupo perto (15 m). Nas masmorras em grupo, <b>todos precisam aceitar</b> para entrar.</div>` : ''}
       ${gp() ? '<div class="gr-fim"><button data-a="sair" class="perigo">🚪 Sair do grupo</button></div>' : ''}</div>`;
     if (win.dataset.h !== h) { win.innerHTML = h; win.dataset.h = h; }
   }

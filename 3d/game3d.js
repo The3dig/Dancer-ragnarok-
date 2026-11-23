@@ -1618,6 +1618,11 @@ function killMob(m, o = {}) {
   else if (m.model.m3) corpses.push({ g: m.model.g, m3: m.model.body, t: 1.0 });
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
+  if (o.leech) {                                                        // 🍼 carona do grupo: só XP (sem missão, item nem bestiário), no máximo 0,8% de um nível por bicho
+    const xp = Math.max(1, Math.round(Math.min(m.d.xp * 0.6, xpNeed(P.lv) * 0.008) * (1 + gBon('xp'))));
+    if (!P.leechAviso2) { P.leechAviso2 = 1; log('🍼 <b>Carona no grupo:</b> quando alguém bem mais forte do seu grupo mata perto de você, você ganha um pouco de XP (até 0,8% de um nível por bicho). Missões e itens só valem caçando você mesmo!', 'gold'); }
+    log(`🍼 +${xp} XP de carona${o.de ? ` (${o.de} derrotou ${m.d.name})` : ''}`, 'xp'); gainXp(xp); return;
+  }
   if (!o.ajuda || o.ajuda >= 0.25 || o.grupo) { P.kills = (P.kills || 0) + 1; if (typeof Trajes !== 'undefined') Trajes.kill(); }
   if (m.castelo && typeof Castelo !== 'undefined') Castelo.onKill(m);
   if (typeof Tarefas !== 'undefined' && (!o.ajuda || o.ajuda >= 0.25 || o.grupo)) { Tarefas.evento('mata'); if (m.d.boss || m.d.mini || m.d.alfa || m.d.field || m.towerGuard) Tarefas.evento('chefe'); }   // 📅 tarefas
@@ -3040,7 +3045,7 @@ function fazerReset(t) {
   if (t === 'atr') {
     const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = ptsTotais(P.lv, P.tier);
+    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0);   // + pontos dos cômodos completos da casa
   } else {
     let tot = 0; for (const id in P.skillLv) tot += P.skillLv[id] || 0;
     const primeira = SKILLS[0].id; P.skillLv = { [primeira]: 1 }; P.skillPts += Math.max(0, tot - 1);
@@ -3466,7 +3471,7 @@ function start(fromSave) {
   if (fromSave && P.statV !== 2) {
     const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = ptsTotais(P.lv, P.tier); P.statV = 2;
+    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0); P.statV = 2;
     setTimeout(() => { P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
       dialog('📊 Atributos novos', `O jogo agora vai até o <b>nível 200</b>. Para isso, os atributos mudaram como no Ragnarok: menos pontos por nível, e <b>cada ponto custa mais</b> quanto mais alto o atributo (do 1 ao 10 custa 1, do 11 ao 20 custa 2…).<br>Seus pontos foram <b>devolvidos</b>: você tem <b>${P.statPts}</b> para distribuir de novo.`,
         [{ label: '📊 Distribuir agora', fn: () => { toggleStats(); } }, { label: 'Depois' }]); }, 3500);

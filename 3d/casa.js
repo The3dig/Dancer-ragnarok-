@@ -153,7 +153,7 @@ const Casa = (() => {
       return { label: `${ok ? '🔨' : '▫️'} ${ic} ${nome} — ${preco} cr + ${txt}`, fn: () => {
         if (!ok) { const falta = Object.entries(need).filter(([id, n]) => (P.inv[id] || 0) < n).map(([id, n]) => `${n - (P.inv[id] || 0)} ${it(id).name}`); log(falta.length ? `Falta: ${falta.join(', ')}.` : 'Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); reformas(); return true; }
         P.zeny -= preco; for (const [id, n] of Object.entries(need)) P.inv[id] -= n;
-        S().mov[k] = 1; furnish(); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffd060, 24, 3, 0.7);
+        S().mov[k] = 1; furnish(); if (typeof Comodos !== 'undefined') Comodos.completos(); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffd060, 24, 3, 0.7);
         log(`🏠 <b>${nome}</b> foi colocado na sua casa!`, 'gold'); save(); reformas(); return true; } };
     });
     opts.push({ label: 'Fechar' });

@@ -192,7 +192,7 @@ function criarMasmorra(C) {
 // presença: a corrida em grupo que eu comecei (uma de cada vez)
 function dgPres() { for (const k in MASMORRAS) { const p = typeof MASMORRAS[k].pres === 'function' ? MASMORRAS[k].pres() : null; if (p) return { dg: p }; } return { dg: null }; }   // (se quebrar aqui, a presença inteira para de ir)
 // monstro "dg:..." que chegou do servidor: só cria se for do meu grupo e da masmorra certa
-function dgCriar(o) { const z = String(o.id).split(':')[1]; return MASMORRAS[z] ? MASMORRAS[z].criarRemoto(o) : null; }
+function dgCriar(o) { const z = String(o.id).split(':')[1]; if (z === 'torre') return typeof Tower !== 'undefined' ? Tower.criarRemoto(o) : null; return MASMORRAS[z] ? MASMORRAS[z].criarRemoto(o) : null; }
 
 // ---------------- Mina da Forja (Ferreiro Doran): materiais do refino
 const Minas = criarMasmorra({

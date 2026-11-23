@@ -420,9 +420,10 @@ const Tower = (() => {
   const GUARD = { 4: 'Guardião do Portão', 9: 'Carcereiro do Cisma', 14: 'Guardião das Brasas', 19: 'Arauto do Soberano', 24: 'Guardião do Gelo Vazio', 29: 'Mão de Kravenox' };
   const RESPAWN = 90;                          // segundos até o andar se encher de novo
   let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1, portaArmada = true, crateraArmada = true;
-  function clearFloorMobs() {
-    for (const m of mobs.filter(m => m.towerFloor !== undefined)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
-    mobs = mobs.filter(m => m.towerFloor === undefined);
+  function clearFloorMobs(tudo = true) {                          // trocando de andar em grupo, os bichos do grupo continuam (o companheiro pode estar lá)
+    const sai = m => m.towerFloor !== undefined && (tudo || !(m.dg && String(m.dg).startsWith('dg:torre:')));
+    for (const m of mobs.filter(sai)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
+    mobs = mobs.filter(m => !sai(m));
   }
   // XP igual ao de um monstro comum dos mapas do mesmo nível (ideia do Ludi: antes rendia quase o dobro e subia nível rápido demais),
   // inclusive para os Guardiões de cada 5 andares
@@ -438,32 +439,65 @@ const Tower = (() => {
     m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.7) * 1.4 * k), atk: Math.round(d0.atk * kf * 1.2 * Math.sqrt(k)), def: Math.round(d0.def * kf), xp: xpCampo(L), zeny: [Math.round(d0.zeny[0] * kf * k), Math.round(d0.zeny[1] * kf * 1.3 * k)], aggro: Math.max(d0.aggro, 18) };
     m.hp = m.maxHp = m.d.hp; const sm = m.lab.querySelector('small'); if (sm) sm.textContent = 'Nv ' + L;
   }
-  function spawnFloor(i) {
-    if (i === TOP || i === AB_FUNDO || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
-    const f = FL(i), list = waveOf(i), GN = guardOf(i), kk = i >= 100 ? i - 100 : i;
-    list.forEach((type, k) => {
-      const rin = f.r - RAMPA.larg - 0.3, a = (k / list.length) * TAU + i * 0.7, r = rin * (0.25 + (k % 3) * 0.22);
-      const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r });
+  // ---------------- 👥 Torre em grupo (pedido do Rone: "a ideia era o Ludi ajudar a matar pro Imperio subir")
+  // Em grupo, os monstros do andar vão para o servidor com um nome igual para todos (dg:torre:<grupo>:<andar>-<tempo>:<n>):
+  // todo mundo do grupo vê e bate nos MESMOS bichos, o andar abre junto e a carona de XP funciona aqui também.
+  const emGrupo = () => !!(P.grupo && typeof Net !== 'undefined' && Net.connected && typeof Grupo !== 'undefined' && Grupo.membros().length);
+  const grupoLimpou = i => typeof Grupo !== 'undefined' && Grupo.membros().some(r => r.s && r.s.tw && Array.isArray(r.s.tw.ok) && r.s.tw.ok.includes(i));
+  function criarUm(i, k, x, z) {                                     // k = posição na onda, ou 'g' para o Guardião
+    const f = FL(i), kk = i >= 100 ? i - 100 : i;
+    if (k !== 'g') {
+      const type = waveOf(i)[k]; if (!type) return null;
+      const m = spawnMob(type, null, { x, z });
       m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), f.ab ? 2.8 : 1);   // Abismo: bem pior que a Torre (vida x2,8, ataque x1,7)
       if (f.ab) m.d.perfura = 0.55;                                    // e o golpe atravessa mais a defesa
       // materiais do Despertar ★ e do refino: a Torre e o Abismo sempre valem a pena, mesmo para quem já tem tudo
       if (f.ab) m.d.drops = [...m.d.drops, ['frag_cisma', 0.12], ['nucleo_abismo', 0.025], ['minerio', 0.12], ['tempera', 0.12]];
       else if (kk >= 15) m.d.drops = [...m.d.drops, ['frag_cisma', 0.05], ['minerio', 0.06], ['tempera', 0.06]];
-    });
-    if (GN) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
-      const big = kk % 10 === 9;
-      const pg = pontoRampa(f, avanca(f), 0), m = spawnMob(f.ab ? 'verme' : 'guardiao', null, { x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 });   // guarda a escadaria que sobe
-      m.towerFloor = i; m.noRespawn = true; m.towerGuard = true; scaleMob(m, lvOf(i) + 3, big ? 1.6 : 0.9);
-      m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8) * (f.ab ? 3 : 1));
-      if (f.ab) { m.d.atk = Math.round(m.d.atk * 2.6); m.d.perfura = 0.6; }   // antes batia mais fraco que os monstros comuns do andar
-      m.d.drops = [...m.d.drops, ['essencia', 1], ...(f.ab ? [['presa_verme', 1], ...(big ? [['lamina_verme', 0.15], ['couraca_verme', 0.15], ['anel_ninho', 0.1]] : [['couraca_verme', 0.06]])] : []), ...(f.ab ? [] : big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
-      const vezes = (id, n) => Array.from({ length: n }, () => [id, 1]);
-      m.d.drops = [...m.d.drops, ...vezes('frag_cisma', f.ab ? (big ? 10 : 6) : (big ? 6 : 3)), ...(f.ab ? vezes('nucleo_abismo', big ? 4 : 2) : []), ...vezes('minerio', big ? 4 : 2), ...vezes('tempera', big ? 4 : 2), ['selo_forja', f.ab ? (big ? 0.5 : 0.3) : (big ? 0.25 : 0.1)]];
-      const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GN} <small>Nv ${m.d.lv}</small>`;
-      m.model.g.scale.multiplyScalar(big ? 1.5 : 1.2);
+      return m;
     }
+    const big = kk % 10 === 9;
+    const GN = guardOf(i), m = spawnMob(f.ab ? 'verme' : 'guardiao', null, { x, z });   // guarda a escadaria que sobe
+    m.towerFloor = i; m.noRespawn = true; m.towerGuard = true; scaleMob(m, lvOf(i) + 3, big ? 1.6 : 0.9);
+    m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8) * (f.ab ? 3 : 1));
+    if (f.ab) { m.d.atk = Math.round(m.d.atk * 2.6); m.d.perfura = 0.6; }   // antes batia mais fraco que os monstros comuns do andar
+    m.d.drops = [...m.d.drops, ['essencia', 1], ...(f.ab ? [['presa_verme', 1], ...(big ? [['lamina_verme', 0.15], ['couraca_verme', 0.15], ['anel_ninho', 0.1]] : [['couraca_verme', 0.06]])] : []), ...(f.ab ? [] : big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
+    const vezes = (id, n) => Array.from({ length: n }, () => [id, 1]);
+    m.d.drops = [...m.d.drops, ...vezes('frag_cisma', f.ab ? (big ? 10 : 6) : (big ? 6 : 3)), ...(f.ab ? vezes('nucleo_abismo', big ? 4 : 2) : []), ...vezes('minerio', big ? 4 : 2), ...vezes('tempera', big ? 4 : 2), ['selo_forja', f.ab ? (big ? 0.5 : 0.3) : (big ? 0.25 : 0.1)]];
+    const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GN} <small>Nv ${m.d.lv}</small>`;
+    m.model.g.scale.multiplyScalar(big ? 1.5 : 1.2);
+    return m;
+  }
+  // onde cada um nasce (igual em todos os jogos do grupo)
+  function lugares(i) {
+    const f = FL(i), list = waveOf(i), out = list.map((_, k) => { const rin = f.r - RAMPA.larg - 0.3, a = (k / list.length) * TAU + i * 0.7, r = rin * (0.25 + (k % 3) * 0.22); return { k, x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r }; });
+    if (guardOf(i)) { const pg = pontoRampa(f, avanca(f), 0); out.push({ k: 'g', x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 }); }
+    return out;
+  }
+  function spawnFloor(i, renasce) {
+    if (i === TOP || i === AB_FUNDO || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
+    if (emGrupo()) {
+      if (mobs.some(m => m.towerFloor === i && m.dg && !m.dead)) { clearedAt[i] = 0; return; }        // o grupo já está lutando aqui: entra na mesma luta
+      if (!renasce && grupoLimpou(i)) { opened[i] = true; log('👥 Seu grupo já limpou este andar: a escadaria está aberta.', 'sys'); return; }
+      const pref = `dg:torre:${P.grupo}:${i}-${Math.floor(Date.now() / 120000).toString(36)}`, ja = new Set(mobs.map(m => m.nid)), novos = [];
+      for (const L of lugares(i)) {
+        const id = `${pref}:${L.k}`; if (ja.has(id)) continue;          // um companheiro criou no mesmo instante: o servidor fica com um só
+        const m = criarUm(i, L.k, L.x, L.z); if (!m) continue; m.nid = id; m.dg = pref; m.dono = Net.me; m.nx = m.x; m.nz = m.z; novos.push(m);
+      }
+      for (let j = 0; j < novos.length; j += 100) Net.send({ t: 'semente+', l: novos.slice(j, j + 100).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: 3600, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
+    } else for (const L of lugares(i)) criarUm(i, L.k, L.x, L.z);
     clearedAt[i] = 0;
   }
+  // monstro do andar que nasceu no jogo de um companheiro do grupo (chega pelo servidor)
+  function criarRemoto(o) {
+    const p = String(o.id).split(':'); if (p[1] !== 'torre' || p[2] !== P.grupo) return null;
+    const i = parseInt(p[3], 10), k = p[4] === 'g' ? 'g' : +p[4]; if (!(i >= 0) || !FL(i)) return null;
+    const m = criarUm(i, k, o.x, o.z); if (!m) return null;
+    m.nid = o.id; m.dg = p.slice(0, 4).join(':'); m.dono = o.dono; m.nx = o.x; m.nz = o.z; m.hp = Math.min(m.maxHp, o.hp ?? m.maxHp);
+    return m;
+  }
+  // presença: em que andar estou e quais o grupo já pode atravessar
+  const pres = () => emGrupo() && cur >= 0 ? { tw: { f: cur, ok: Object.keys(opened).filter(k => opened[k]).map(Number).slice(-40) } } : {};
   const fade = (() => { const d = document.createElement('div'); d.id = 'tfade'; document.body.appendChild(d); return d; })();
   function blackout() { fade.style.transition = 'none'; fade.style.opacity = 1; void fade.offsetWidth; fade.style.transition = 'opacity .6s'; requestAnimationFrame(() => requestAnimationFrame(() => { fade.style.opacity = 0; })); }
   // ponto de retorno: depois de vencer o chefe do 10º/20º andar, a entrada deixa começar do 11º/21º
@@ -495,7 +529,7 @@ const Tower = (() => {
       else if (i === TOP) Ranking.terminar('torre');
       else if (i === AB_FUNDO) Ranking.terminar('abismo');
     }
-    clearFloorMobs();
+    clearFloorMobs(i < 0 || i === 99);
     if (i === 99) {                                                    // sai do Abismo pela Cratera
       cur = -1; unbuild(); P.x = LAIR.x; P.z = LAIR.z + 7; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; crateraArmada = false; blackout();
       log('Você subiu de volta para a <b>Cratera do Cisma</b>.', 'sys'); return;
@@ -580,7 +614,7 @@ const Tower = (() => {
     const left = mobs.filter(m => m.towerFloor === cur).length;
     if (cur !== TOP && cur !== AB_FUNDO) {
       if (left === 0 && !clearedAt[cur]) clearedAt[cur] = time;
-      if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN && Math.hypot(P.x - f.x, P.z - f.z) < f.r) { spawnFloor(cur); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
+      if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN && Math.hypot(P.x - f.x, P.z - f.z) < f.r) { spawnFloor(cur, true); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
       if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(f.ab ? `✨ Andar limpo! A escadaria para o <b>${cur + 1 === AB_FUNDO ? 'Fundo' : (cur - 98) + 'º andar'}</b> do Abismo se abriu (a que desce pelo vão).` : `✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu (a que sobe pela parede).`, 'gold'); }
       const pe = pontoRampa(f, avanca(f), 0.08);
       const pv = pontoRampa(f, avanca(f) === 'sobe' ? 'desce' : 'sobe', 0.08), naVolta = !(cur === 0 || cur === 100) && Math.hypot(P.x - pv.x, P.z - pv.z) < 4;
@@ -606,7 +640,7 @@ const Tower = (() => {
     g.fillStyle = '#b8a8d0'; g.font = '11px sans-serif'; if (cur < TOP) g.fillText(`monstros Nv ${lvOf(Math.max(0, cur))}`, W / 2, H / 2 + 41);
     g.textAlign = 'left';
   }
-  return { update, minimap, enter, corridor, selada, lvOf, xpCampo, get floor() { return cur; }, door: DOOR, roof };
+  return { update, minimap, enter, corridor, selada, criarRemoto, pres, lvOf, xpCampo, get floor() { return cur; }, door: DOOR, roof };
 })();
 
 // ---------------------------------------------------------------- modelos dos inimigos do Reino Quebrado

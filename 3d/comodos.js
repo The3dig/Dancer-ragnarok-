@@ -183,12 +183,26 @@ const Comodos = (() => {
           dialog(`${m.ic} ${m.nome}`, `+${m.conf} de conforto<br>💰 ${m.cr.toLocaleString('pt-BR')} cr<br>${matTxt(m.mat)}`, [
             { label: ok ? '🔨 Fazer' : '🔒 Falta material ou coroas', fn: () => { if (!ok) { Audio8.sfx('miss'); moveis(R); return true; }
               P.zeny -= m.cr; for (const [id, n] of Object.entries(m.mat)) P.inv[id] -= n; S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil');
-              log(`🏠 <b>${m.nome}</b> está na ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } moveis(R); return true; } },
+              log(`🏠 <b>${m.nome}</b> está na ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } completos(); moveis(R); return true; } },
             { label: '← Voltar', fn: () => { moveis(R); return true; } }]);
           return true; } }; }),
       { label: '← Voltar', fn: () => { governanta(); return true; } }]);
   }
 
+  // ---------------- 📖 livro da casa (ideia do Rone): cada cômodo completo (5 móveis) dá +1 ponto de atributo e
+  // uma placa dourada no cômodo; a sala da casa completa (os 8 móveis da bancada) também vale
+  function completos() {
+    const c = S(); c.ok = c.ok || {};
+    const marcar = (k, nome) => { if (c.ok[k]) return; c.ok[k] = 1; P.statPts = (P.statPts || 0) + 1; P.ptsExtra = (P.ptsExtra || 0) + 1; banner('📖 CÔMODO COMPLETO'); Audio8.sfx('level');
+      log(`📖 <b>${nome}</b> completo! Você ganhou <b>+1 ponto de atributo</b> (📊 Atributos) e uma placa dourada no cômodo.`, 'gold'); try { save(); } catch (e) { } };
+    if (Object.keys(c.mov || {}).length >= 8) marcar('sala', 'Sala da casa');
+    for (const R of ROOMS) if (MOVEIS[R.id].every(m => c.mob[m.id])) { marcar(R.id, R.nome); if (R.g && !R.placa) placa(R); }
+  }
+  function placa(R) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#ffe7a0'); gr.addColorStop(1, '#b0781a'); x.fillStyle = gr; x.fillRect(0, 0, 256, 128);
+    x.strokeStyle = '#5a3a10'; x.lineWidth = 6; x.strokeRect(5, 5, 246, 118); x.fillStyle = '#3a2208'; x.font = 'bold 20px Georgia'; x.textAlign = 'center'; x.fillText('★ CÔMODO COMPLETO ★', 128, 48); x.font = 'bold 24px Georgia'; x.fillText(R.nome, 128, 90);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.9), new THREE.MeshPhongMaterial({ map: t, shininess: 90, emissive: 0x2a1800 })); m.position.set(-3.2, 2.4, -H + 0.3); R.g.add(m); R.placa = m;
+  }
   // ---------------- laço
   let dentroAntes = false;
   let iniciou = false;
@@ -196,7 +210,7 @@ const Comodos = (() => {
     if (!iniciou && running) { iniciou = true; init(); }
     prepararSprites();
     const aqui = salaAqui();
-    if (aqui >= 0 && aqui !== update.ultima) { montarSala(ROOMS[aqui]); mobiliar(ROOMS[aqui]); } update.ultima = aqui;
+    if (aqui >= 0 && aqui !== update.ultima) { montarSala(ROOMS[aqui]); mobiliar(ROOMS[aqui]); if (S().ok && S().ok[ROOMS[aqui].id] && !ROOMS[aqui].placa) placa(ROOMS[aqui]); } update.ultima = aqui;
     for (const R of ROOMS) if (R.g) R.g.visible = aqui === R.k;
     if (portaCasa) { portaCasa.visible = aqui === -1; portaCasa.material.opacity = 0.4 + Math.sin(time * 2.5) * 0.15; }
     // bônus: saiu de casa → 1 hora Descansado
@@ -232,6 +246,6 @@ const Comodos = (() => {
     if (salaAqui() === -1 && gov.g.visible && Math.hypot(P.x - gov.x, P.z - gov.z) < 2.6) return { label: '🧹 Falar com a Governanta', fn: () => governanta() };
     return null;
   }
-  function init() { for (const R of ROOMS) if (S().salas[R.id]) montarSala(R); if (tem(0)) montarPortaCasa(); if (P.larAte > Date.now() && typeof addBuff === 'function') addBuff('lar', Math.round((P.larAte - Date.now()) / 1000), {}, '🏠'); }
-  return { update, nearest, bonus, conforto, init, SALAS, MOVEIS };
+  function init() { for (const R of ROOMS) if (S().salas[R.id]) montarSala(R); if (tem(0)) montarPortaCasa(); completos(); if (P.larAte > Date.now() && typeof addBuff === 'function') addBuff('lar', Math.round((P.larAte - Date.now()) / 1000), {}, '🏠'); }
+  return { update, nearest, bonus, conforto, init, completos, SALAS, MOVEIS };
 })();

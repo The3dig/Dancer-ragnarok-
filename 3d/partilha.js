@@ -76,7 +76,7 @@ const Partilha = (() => {
       const grupo = gq && gq.parte > 0;
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
       else if (grupo) killMob(mb, { ajuda: gq.parte, grupo: true, n: gq.n, w: gq.w });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
-      else if (gq && gq.lvK && !P.leechAviso) { P.leechAviso = 1; log(`👥 Diferença de nível grande demais (mais de 20) com quem matou: no grupo, a caçada só se divide entre níveis parecidos.`, 'sys'); killMob(mb, parte > 0.02 ? { ajuda: parte } : { semPremio: true }); }
+      else if (gq && gq.leech) killMob(mb, { leech: true, de: (Net.peers().find(r => r.peer === m.by) || {}).n });   // 🍼 carona: companheiro bem mais forte matou perto
       else if (parte > 0.02) killMob(mb, { ajuda: parte });
       else killMob(mb, { semPremio: true });
     });
