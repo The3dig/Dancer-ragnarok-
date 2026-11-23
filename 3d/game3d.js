@@ -2466,6 +2466,7 @@ function animateModel(dt) {
 // ---------------------------------------------------------------- câmera
 let TREMOR = 0;                                                   // tremor da tela (golpes grandes)
 function updateCamera(dt) {
+  if (window.VR_ATIVO && typeof VR !== 'undefined') { VR.cameraVR(); return; }   // 🥽 câmera maquete
   const big = inTower(P.z) && (Tower.floor === TOP || Tower.floor === AB_FUNDO);                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
   // a câmera nunca gira sozinha: só quem joga vira a câmera (antes ela se alinhava nas escadarias da Torre e trocava a direção do joystick)
@@ -3492,7 +3493,7 @@ P.y = groundY(P.x, P.z);
 // no celular, 30 quadros por segundo: metade do trabalho da placa de vídeo, bem menos calor e bateria
 const FRAME_MS = TOUCH ? 1000 / 30 : 0; let lastFrame = 0;
 function loop(now) {
-  requestAnimationFrame(loop);
+  if (!window.VR_ATIVO) requestAnimationFrame(loop);                  // no VR quem chama é o óculos (vr.js)
   if (document.hidden) return;
   if (FRAME_MS && now - lastFrame < FRAME_MS - 3) return;
   lastFrame = now;

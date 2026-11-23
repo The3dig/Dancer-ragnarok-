@@ -53,3 +53,13 @@ Os painéis ficam para depois.
 - Os testes reais são com o Rone, porque aqui não há óculos. É o mesmo jeito
   dos testes com o iPhone.
 - A versão VR não pode mudar nada no jogo de celular.
+
+## Situação em 23/11/2026
+
+A etapa 2 foi feita como **experimental** (`3d/vr.js`):
+
+- O botão 🥽 aparece lá em cima **só** se o navegador tiver VR (no Quest).
+- Câmera "maquete", controles do Quest (analógico esquerdo anda, gatilho direito
+  ataca, A e B habilidades, analógico direito gira a vista) e modo leve ligado.
+- Ainda **não foi testada nos óculos** (aqui não há Quest). Falta também a
+  vida, a mana e as mensagens dentro dos óculos (os painéis ficam para depois).
