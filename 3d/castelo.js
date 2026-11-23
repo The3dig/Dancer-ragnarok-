@@ -175,7 +175,7 @@ const Castelo = (() => {
   // ----- gente que anda pelo castelo
   const NPCS_C = [
     { base: 's_aldeao', nome: 'Guarda Bertoldo', fala: 'Ronda no saguão, como sempre. Ninguém entra sem ser da guilda!', pts: [[-9, 8], [-9, -6], [9, -6], [9, 8]], vel: 1.4, ic: '🛡️' },
-    { base: 's_estranho', nome: 'Guarda Odair', fala: 'O arsenal está em ordem. Lança afiada, escudo polido.', pts: [[-13, 0], [-21, -3], [-21, 3], [-13, 2]], vel: 1.2, ic: '⚔️' },
+    { base: 's_estranho', nome: 'Capitão da Guarda de Auren', fala: 'Servi na guarda de Auren no dia em que o céu rachou. Hoje cuido do arsenal da guilda e das relíquias do Campeão Sombrio.', pts: [[-13, 0], [-21, -3], [-21, 3], [-13, 2]], vel: 1.2, ic: '⚔️' },
     { base: 's_senhora', nome: 'Criada Matilde', fala: 'Ai, essa poeira não acaba! Toda noite alguém derruba coisa no banquete.', pts: [[13, -4], [22, -4], [22, 4], [13, 4], [4, 6], [-4, 6]], vel: 1, ic: '🧹' },
     { base: 's_mascate', nome: 'Cozinheiro Godofredo', fala: 'Hoje tem javali assado! Se a guilda vencer a guerra, tem dobrado.', pts: [[20, -5.5], [23, 4], [16, 5]], vel: 0.9, ic: '🍗' },
     { base: 's_bibliotecario', nome: 'Bibliotecário Anselmo', fala: 'Silêncio, por favor. Os livros desta biblioteca contam a história de cada guilda do Reino.', pts: [[-4, -19], [3, -19], [5, -14], [-4, -13]], vel: 0.7, ic: '📚' },
@@ -235,16 +235,16 @@ const Castelo = (() => {
   // 🐉 saque do Campeão Sombrio: cada um que ajudou sorteia o seu (peças do conjunto e a carta só caem dele)
   const SAQUE_CHEFE = [['carta_campeao', 0.05], ['lamina_campeao', 0.04], ['elmo_campeao', 0.06], ['couraca_campeao', 0.05], ['manoplas_campeao', 0.06], ['grevas_campeao', 0.06], ['selo_forja', 0.3], ['nucleo_abismo', 0.35], ['frag_carta', 1], ['frag_cisma', 0.8]];
   function saqueChefe() {
-    const ganhou = ['emblema_campeao']; P.inv.emblema_campeao = (P.inv.emblema_campeao || 0) + 1;   // 🎖️ todo mundo que ajudou ganha 1 emblema (troca com o Guarda Odair: não fica só na sorte)
+    const ganhou = ['emblema_campeao']; P.inv.emblema_campeao = (P.inv.emblema_campeao || 0) + 1;   // 🎖️ todo mundo que ajudou ganha 1 emblema (troca com o Capitão da Guarda de Auren: não fica só na sorte)
     for (const [id0, ch] of SAQUE_CHEFE) if (ITEMS[id0] && Math.random() < ch) { const id = id0 === 'carta_campeao' && typeof Vida !== 'undefined' && Vida.tierCarta ? Vida.tierCarta(id0) : id0; P.inv[id] = (P.inv[id] || 0) + 1; ganhou.push(id); }
     for (const id of ganhou) { const I = ITEMS[id] || ITEMS[id.replace(/_t\d$/, '')]; if (!I) continue; const raro = /campeao/.test(id); log(`🐉 ${raro ? '🎉 ' : ''}Do Campeão Sombrio: <b>${I.ic} ${I.name}</b>!`, raro ? 'gold' : 'item'); if (raro) { banner(`🐉 ${I.name}`); Audio8.sfx('level'); } }
     try { buildHotbar(); save(); } catch (e) { }
   }
-  // 🎖️ Guarda Odair troca Emblemas do Campeão: a carta e as peças também saem por esforço, não só por sorte
+  // 🎖️ Capitão da Guarda de Auren troca Emblemas do Campeão: a carta e as peças também saem por esforço, não só por sorte
   const TROCA = [['carta_campeao', 40], ['lamina_campeao', 25], ['couraca_campeao', 20], ['elmo_campeao', 15], ['manoplas_campeao', 15], ['grevas_campeao', 15]];
   function troca() {
     const n = P.inv.emblema_campeao || 0;
-    dialog('⚔️ Guarda Odair', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 20h), quem ajudou ganha 1 🎖️ <b>Emblema do Campeão</b>. Junte e troque comigo.<br><small>Seus emblemas: <b>${n}</b></small>`,
+    dialog('⚔️ Capitão da Guarda de Auren', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 20h), quem ajudou ganha 1 🎖️ <b>Emblema do Campeão</b>. Junte e troque comigo.<br><small>Seus emblemas: <b>${n}</b></small>`,
       [...TROCA.map(([id, c]) => ({ label: `${n >= c ? '🎖️' : '🔒'} ${ITEMS[id].ic} ${ITEMS[id].name} — ${c} emblemas`, fn: () => {
         if ((P.inv.emblema_campeao || 0) < c) { Audio8.sfx('miss'); log(`🎖️ Faltam ${c - (P.inv.emblema_campeao || 0)} emblemas.`, 'bad'); return; }
         P.inv.emblema_campeao -= c; P.inv[id] = (P.inv[id] || 0) + 1; Audio8.sfx('level'); banner(`🎖️ ${ITEMS[id].name}`); log(`🎖️ Você trocou ${c} emblemas por <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); try { buildHotbar(); save(); } catch (e) { } } })),
@@ -401,7 +401,7 @@ const Castelo = (() => {
   function nearest() {
     if (!dentro()) return null;
     if (Math.hypot(P.x - bobo.x, P.z - bobo.z) < 2.6) return { label: '🃏 Jogar jokenpô com o Bobo', fn: () => jokenpo() };
-    for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return n.nome === 'Guarda Odair' ? { label: '🎖️ Trocar emblemas com o Guarda Odair', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
+    for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return n.nome === 'Capitão da Guarda de Auren' ? { label: '🎖️ Trocar emblemas com o Capitão da Guarda de Auren', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
     for (const b of baus) if (Math.hypot(P.x - b.x, P.z - b.z) < 2) return { label: '🎁 Abrir o baú', fn: () => abrirBau(b) };
     if (Math.hypot(P.x - QUADRO.x, P.z - QUADRO.z) < 2.6) return { label: '📜 Brincadeiras das 20h', fn: () => info(true) };
     return null;

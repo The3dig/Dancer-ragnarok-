@@ -3331,12 +3331,12 @@ addEventListener('pointerup', e => {
   // PC: clique rápido (sem arrastar) = clicar no mundo, como no Ragnarok. Arrastar continua girando a câmera.
   if (d.mouse && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 7 && performance.now() - d.t0 < 450) cliqueMundo(e.clientX, e.clientY);
   // celular: toque rápido em cima de outro jogador (no boneco ou no nome) abre o menu dele (convidar para grupo/guilda, seguir...)
-  else if (!d.mouse && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 14 && performance.now() - d.t0 < 400) { const pr = jogadorNoToque(e.clientX, e.clientY); if (pr && typeof Jogadores !== 'undefined') { Audio8.sfx('click'); Jogadores.menu(pr); } }
+  else if (!d.mouse && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 22 && performance.now() - d.t0 < 700) { const pr = jogadorNoToque(e.clientX, e.clientY); if (pr && typeof Jogadores !== 'undefined') { Audio8.sfx('click'); Jogadores.menu(pr); } }
 });
 // outro jogador debaixo do dedo/cursor (o corpo ou o nome em cima da cabeça)
 function jogadorNoToque(cx, cy) {
   if (typeof Net === 'undefined' || !Net.peers || dialogOpen) return null;
-  let best = null, bd = 48;
+  let best = null, bd = 60;
   for (const r of Net.peers()) {
     if (!r.n || typeof r.x !== 'number') continue; const y0 = (r.s && r.s.y) || groundY(r.x, r.z);
     for (const h of [0.9, 2.3]) { const sp = toScreen(r.x, y0 + h, r.z); if (!sp.vis) continue; const dd = Math.hypot(sp.x - cx, sp.y - cy); if (dd < bd) { bd = dd; best = r.peer; } }
