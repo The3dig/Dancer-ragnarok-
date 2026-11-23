@@ -11,6 +11,13 @@ const Vida = (() => {
   // ---------------------------------------------------------------- itens
   Object.assign(ITEMS.red, { ic: '🧪', sell: 12, use: 'pot' });
   Object.assign(ITEMS.blue, { ic: '💧', sell: 45, use: 'pot' });
+  // 🧪 poções maiores (pedido do Rone): Média a partir do Nv 40, Grande do 60 e Gigante do 80. Curam uma parte da
+  // vida/SP máxima (a pequena cura só 60, que no nível alto não é nada). 10 de um tamanho se FUNDEM em 1 do próximo.
+  const POTS = [
+    ['red_m', 'Poção Vermelha Média', '❤️‍🩹', 40, 'hp', 0.20, 400, 'red'], ['red_g', 'Poção Vermelha Grande', '💖', 60, 'hp', 0.35, 1500, 'red_m'], ['red_x', 'Poção Vermelha Gigante', '❤️‍🔥', 80, 'hp', 0.60, 5000, 'red_g'],
+    ['blue_m', 'Poção Azul Média', '💠', 40, 'sp', 0.20, 1200, 'blue'], ['blue_g', 'Poção Azul Grande', '🔷', 60, 'sp', 0.35, 4000, 'blue_m'], ['blue_x', 'Poção Azul Gigante', '🌀', 80, 'sp', 0.60, 12000, 'blue_g'],
+  ];
+  for (const [id, name, ic, lvMin, rec, pct, price, de] of POTS) { ITEMS[id] = { name, ic, price, sell: Math.round(price / 5), use: 'pot', lvMin, rec, pct }; ITEMS[de].funde = id; }
   // id: [nome, ícone, valor de venda ao NPC, preço de compra, tipo, extra]
   const NEW = {
     gosma: ['Gosma de Larva', '🟢', 8, 0, 'mat'], po_eco: ['Pó de Eco', '🌫️', 10, 0, 'mat'], raiz: ['Raiz Seca', '🪵', 12, 0, 'mat'],
@@ -921,9 +928,10 @@ const Vida = (() => {
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
       if (I.kind === 'equip' && !I.preso && !I.desafio) btns.push(`<button data-a="desmontar" data-v="${sel}">⚒️ Desmontar (${poDe(sel)} ⚙️)</button>`);
       if (I.kind === 'equip' && !I.preso && !I.desafio && P.inv[sel] > 1) btns.push(`<button data-a="desmontartodos" data-v="${sel}">⚒️ Desmontar todos (${(poBase(sel) * P.inv[sel]).toLocaleString('pt-BR')} ⚙️)</button>`);
-      if (I.sell > 0 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
-      if (I.sell > 0 && P.inv[sel] > 1 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
+      if (I.sell > 0 && I.use !== 'pot') btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
+      if (I.sell > 0 && P.inv[sel] > 1 && I.use !== 'pot') btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
       btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
+      if (I.funde && P.inv[sel] >= 10) { const N = it(I.funde); btns.push(`<button data-a="fundir" data-v="${sel}">⚗️ Fundir 10 → 1 ${N.ic} ${N.name}</button>`); if (P.inv[sel] >= 20) btns.push(`<button data-a="fundirtodas" data-v="${sel}">⚗️ Fundir todas (${Math.floor(P.inv[sel] / 10) * 10} → ${Math.floor(P.inv[sel] / 10)})</button>`); }
       if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = ensureBar().includes('i:' + sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
       let extra = '';
       if (I.kind === 'carta') {
@@ -933,7 +941,7 @@ const Vida = (() => {
       }
       const txt = I.kind === 'equip' ? `${RARITY[I.rar].n} · ${slotName(I.slot)}${I.set ? ` · 🔗 ${SETS[I.set].name}` : ''} · vende por ${I.sell} cr${compareHtml(sel)}`
         : I.kind === 'carta' ? `Carta de monstro · rara<p>${modTxt(I.mods)}<br>Encaixa em: <b>${slotName(I.cslot)}</b>${extra}<br><small>A carta vale enquanto houver uma peça no espaço.</small></p>`
-        : I.heal ? `Comida<p>Cura ${Math.round(I.heal * 100)}% do HP</p>` : I.use ? `Poção<p>Recupera ${sel === 'blue' ? 'SP' : 'HP'}</p>` : `${I.kind === 'semente' ? 'Semente: plante no Sítio' : I.kind === 'colheita' ? 'Produção do Sítio' : 'Material de monstro: o Ferreiro Doran usa para forjar'}<p><small>Vende por ${I.sell} cr</small></p>`;
+        : I.heal ? `Comida<p>Cura ${Math.round(I.heal * 100)}% do HP</p>` : I.use ? `Poção<p>${I.rec ? `Recupera <b>${Math.round(I.pct * 100)}%</b> do ${I.rec === 'hp' ? 'HP' : 'SP'} máximo${I.lvMin ? ` · a partir do <b>Nv ${I.lvMin}</b>${P.lv < I.lvMin ? ' 🔒' : ''}` : ''}` : `Recupera ${sel === 'blue' ? 'SP' : 'HP'}`}${I.funde ? `<br><small>⚗️ 10 desta se fundem em 1 ${it(I.funde).name} (Nv ${it(I.funde).lvMin}+).</small>` : ''}</p>` : `${I.kind === 'semente' ? 'Semente: plante no Sítio' : I.kind === 'colheita' ? 'Produção do Sítio' : 'Material de monstro: o Ferreiro Doran usa para forjar'}<p><small>Vende por ${I.sell} cr</small></p>`;
       view = `<div class="iview"><div class="iv-art">${bigArt(I, sel)}</div><div class="iv-txt"><b class="iv-n" style="color:${I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#f0e6d0'}">${I.name}</b> <small>×${P.inv[sel]}</small><small>${txt}</small>
         <div class="ibtn">${btns.join('')}<button data-a="unsel">Fechar</button></div></div></div>`;
     }
@@ -953,6 +961,12 @@ const Vida = (() => {
     if (a === 'unsel') sel = null;
     if (a !== 'trash') trashArm = null;
     if (a === 'desmontar' && P.inv[v] > 0) { const n = poDe(v); P.inv[v]--; P.inv.po_forja = (P.inv.po_forja || 0) + n; if (!P.inv[v] && P.refine) delete P.refine[v]; Audio8.sfx('hit'); log(`⚒️ Você desmontou <b>${it(v).name}</b> e ganhou <b>${n} ⚙️ Pó de Forja</b>. Com ele o Ferreiro Doran faz uma peça nova.`, 'item'); if (!P.inv[v]) sel = null; }
+    if ((a === 'fundir' || a === 'fundirtodas') && it(v).funde && P.inv[v] >= 10) {
+      const k = a === 'fundir' ? 1 : Math.floor(P.inv[v] / 10), N = it(it(v).funde);
+      P.inv[v] -= k * 10; P.inv[it(v).funde] = (P.inv[it(v).funde] || 0) + k; Audio8.sfx('buff'); buildHotbar();
+      log(`⚗️ <b>${k * 10}× ${it(v).ic} ${it(v).name}</b> se fundiram em <b>${k}× ${N.ic} ${N.name}</b>${P.lv < N.lvMin ? ` <small>(usa a partir do Nv ${N.lvMin})</small>` : ''}.`, 'item');
+      if (!(P.inv[v] > 0)) sel = null; try { save(); } catch (e) { }
+    }
     if (a === 'desmontartodos' && P.inv[v] > 0) { const q = P.inv[v], n = poBase(v) * q; P.inv[v] = 0; P.inv.po_forja = (P.inv.po_forja || 0) + n; Audio8.sfx('anvil'); log(`⚒️ Você desmontou <b>${q}× ${it(v).name}</b> de uma vez e ganhou <b>${n} ⚙️ Pó de Forja</b>.`, 'item'); sel = null; }
     if (a === 'sell1' || a === 'sellall') { const n = a === 'sell1' ? 1 : P.inv[v], z = ITEMS[v].sell * n; P.inv[v] -= n; P.zeny += z; Audio8.sfx('coin'); log(`💰 Vendeu ${n}× <b>${it(v).name}</b> por <b>${z.toLocaleString('pt-BR')} cr</b>.`, 'gold'); if (!P.inv[v]) sel = null; buildHotbar(); }
     if (a === 'trash') { if (trashArm !== v) trashArm = v; else { const n = P.inv[v]; P.inv[v] = 0; trashArm = null; sel = null; Audio8.sfx('miss'); log(`🗑️ Destruiu ${n}× <b>${it(v).name}</b>.`, 'sys'); buildHotbar(); } }
@@ -1139,8 +1153,8 @@ const Vida = (() => {
       const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: glintTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); gl.scale.setScalar(0.5); gl.position.y = -0.1; grp.add(gl);
       gl.onBeforeRender = () => { const k = Math.max(0, Math.sin(time * 2.5 + grp.id)); gl.material.opacity = k * k; gl.material.rotation = time; };
       grp.userData.flat = true;
-    } else if (id === 'red' || id === 'blue') {
-      grp.add(potion(id === 'red' ? 0xe02a2a : 0x2a6ae8));
+    } else if (id === 'red' || id === 'blue' || (I.use === 'pot' && I.rec)) {
+      const pp = potion(I.rec ? (I.rec === 'hp' ? 0xe02a2a : 0x2a6ae8) : id === 'red' ? 0xe02a2a : 0x2a6ae8); if (I.lvMin) pp.scale.multiplyScalar(1 + (I.lvMin - 20) / 80); grp.add(pp);
     } else {
       const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemIcon(I.ic), transparent: true, depthWrite: false, toneMapped: false }));
       spr.scale.setScalar(1.05); spr.position.y = 0.15; grp.add(spr);

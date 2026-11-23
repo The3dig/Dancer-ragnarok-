@@ -2073,8 +2073,12 @@ function updateMinions(dt) {
 function usePotion(id) {
   if (P.dead) return;
   if (!P.inv[id]) { log(`Sem ${ITEMS[id].name}.`, 'bad'); return; }
+  const I = ITEMS[id];
+  if (I.lvMin && P.lv < I.lvMin) { log(`${I.ic} <b>${I.name}</b> só pode ser usada a partir do <b>nível ${I.lvMin}</b>.`, 'bad'); Audio8.sfx('miss'); return; }
   P.inv[id]--; Audio8.sfx('heal');
-  if (id === 'red') { P.hp = Math.min(stats.maxHp(), P.hp + 60); floater(P.x, P.y + 2.4, P.z, '+60', 'heal'); }
+  if (I.rec === 'hp') { const v = Math.round(stats.maxHp() * I.pct); P.hp = Math.min(stats.maxHp(), P.hp + v); floater(P.x, P.y + 2.4, P.z, '+' + v, 'heal'); }
+  else if (I.rec === 'sp') { const v = Math.round(stats.maxSp() * I.pct); P.sp = Math.min(stats.maxSp(), P.sp + v); floater(P.x, P.y + 2.4, P.z, '+' + v + ' SP', 'sp'); }
+  else if (id === 'red') { P.hp = Math.min(stats.maxHp(), P.hp + 60); floater(P.x, P.y + 2.4, P.z, '+60', 'heal'); }
   else { const v = 40 + Math.round(stats.maxSp() * 0.08); P.sp = Math.min(stats.maxSp(), P.sp + v); floater(P.x, P.y + 2.4, P.z, '+' + v + ' SP', 'sp'); }
   buildHotbar();
 }
@@ -3128,6 +3132,7 @@ function talkBase(n) {
         { label: `🦋 Asa de Borboleta — 900 cr cada (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { qty('asa_borboleta', shop); return true; } },
         { label: `🧪 Poção Vermelha — quantidade…`, fn: () => { qty('red', shop); return true; } },
         { label: `💧 Poção Azul — quantidade…`, fn: () => { qty('blue', shop); return true; } },
+        { label: `❤️‍🩹 Poções maiores (Nv 40, 60 e 80)…`, fn: () => { const big = () => dialog(nm, `Poções para quem já foi longe. Curam uma parte da vida ou do SP <b>máximo</b>.<br><small>Dica: na 🎒 mochila, <b>10 poções</b> de um tamanho se <b>fundem</b> em 1 do tamanho seguinte. Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [...['red_m', 'blue_m', 'red_g', 'blue_g', 'red_x', 'blue_x'].map(id => ({ label: `${ITEMS[id].ic} ${ITEMS[id].name} (${Math.round(ITEMS[id].pct * 100)}% ${ITEMS[id].rec === 'hp' ? 'HP' : 'SP'}, Nv ${ITEMS[id].lvMin}+) — ${ITEMS[id].price.toLocaleString('pt-BR')} cr · tem ${P.inv[id] || 0}`, fn: () => { qty(id, big); return true; } })), { label: '← Voltar', fn: () => { shop(); return true; } }]); big(); return true; } },
         { label: `♻️ Resets (habilidades e atributos) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr`, fn: () => { const lj = () => dialog('♻️ Resets', `Todo mundo tem <b>${RESET_GRATIS} resets grátis</b> de habilidades e ${RESET_GRATIS} de atributos (botão ♻️ nas janelas). Depois disso, só com estes itens.<br><small>Grátis: 📜 ${resetGratisRestam('hab')} · 🔄 ${resetGratisRestam('atr')} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [
           { label: `📜 Pergaminho do Esquecimento (habilidades) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_hab || 0}`, fn: () => { buy('reset_hab', 1); lj(); return true; } },
           { label: `🔄 Pedra do Recomeço (atributos) — ${ITEMS.reset_atr.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_atr || 0}`, fn: () => { buy('reset_atr', 1); lj(); return true; } },
