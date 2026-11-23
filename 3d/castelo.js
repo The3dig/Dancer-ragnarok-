@@ -19,7 +19,7 @@ const Castelo = (() => {
   // cada dia uma brincadeira DIFERENTE (pedido do Rone: tinha repetida)
   const TIPOS = { 1: 'monstros', 2: 'chefe', 3: 'baus', 4: 'pvp', 5: 'bonecos' };
   const NOME = { monstros: '⚔️ Caçada no Saguão', chefe: '🐉 Chefe da Guilda', baus: '🎁 Baús Escondidos', pvp: '🗡️ Duelo da Guilda (PvP)', bonecos: '🎯 Desafio dos Bonecos' };
-  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio invade o saguão às 20h00, 20h10 e 20h20: a guilda inteira enfrenta o MESMO chefe junto. Quem ajudar a derrubar ganha 6 pontos, e o saque é dos grandes', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
+  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio (MVP da guilda) invade o saguão às 20h00, 20h10 e 20h20: a guilda inteira enfrenta o MESMO chefe. Quem ajudar ganha 6 pontos e sorteia o próprio saque: o Conjunto do Campeão Sombrio e a Carta do Campeão Sombrio só caem dele', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
     pvp: 'PvP entre a guilda dentro do castelo, em 3 rodadas de 5 minutos (20h00, 20h10 e 20h20). Cada derrubada vale 1 ponto; quem cai volta no saguão na hora, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
   const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   let forcado = null;   // só para teste: Castelo._forcar('baus')
@@ -232,7 +232,25 @@ const Castelo = (() => {
       const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `🏰 ${d0.name} <small>Nv ${L}</small>`;
     }
   }
-  function onKill(mob) { if (!mob.castelo) return; if (mob.chefeG) { ponto(6, '🐉'); banner('🐉 O CAMPEÃO SOMBRIO CAIU!'); log('🐉 A guilda derrubou o <b>Campeão Sombrio</b>! +6 pontos para quem ajudou.', 'gold'); return; } ponto(1, '⚔️'); if (mob.mimico) log('🎁 Você derrotou o mímico!', 'sys'); }
+  // 🐉 saque do Campeão Sombrio: cada um que ajudou sorteia o seu (peças do conjunto e a carta só caem dele)
+  const SAQUE_CHEFE = [['carta_campeao', 0.05], ['lamina_campeao', 0.04], ['elmo_campeao', 0.06], ['couraca_campeao', 0.05], ['manoplas_campeao', 0.06], ['grevas_campeao', 0.06], ['selo_forja', 0.3], ['nucleo_abismo', 0.35], ['frag_carta', 1], ['frag_cisma', 0.8]];
+  function saqueChefe() {
+    const ganhou = ['emblema_campeao']; P.inv.emblema_campeao = (P.inv.emblema_campeao || 0) + 1;   // 🎖️ todo mundo que ajudou ganha 1 emblema (troca com o Guarda Odair: não fica só na sorte)
+    for (const [id0, ch] of SAQUE_CHEFE) if (ITEMS[id0] && Math.random() < ch) { const id = id0 === 'carta_campeao' && typeof Vida !== 'undefined' && Vida.tierCarta ? Vida.tierCarta(id0) : id0; P.inv[id] = (P.inv[id] || 0) + 1; ganhou.push(id); }
+    for (const id of ganhou) { const I = ITEMS[id] || ITEMS[id.replace(/_t\d$/, '')]; if (!I) continue; const raro = /campeao/.test(id); log(`🐉 ${raro ? '🎉 ' : ''}Do Campeão Sombrio: <b>${I.ic} ${I.name}</b>!`, raro ? 'gold' : 'item'); if (raro) { banner(`🐉 ${I.name}`); Audio8.sfx('level'); } }
+    try { buildHotbar(); save(); } catch (e) { }
+  }
+  // 🎖️ Guarda Odair troca Emblemas do Campeão: a carta e as peças também saem por esforço, não só por sorte
+  const TROCA = [['carta_campeao', 40], ['lamina_campeao', 25], ['couraca_campeao', 20], ['elmo_campeao', 15], ['manoplas_campeao', 15], ['grevas_campeao', 15]];
+  function troca() {
+    const n = P.inv.emblema_campeao || 0;
+    dialog('⚔️ Guarda Odair', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 20h), quem ajudou ganha 1 🎖️ <b>Emblema do Campeão</b>. Junte e troque comigo.<br><small>Seus emblemas: <b>${n}</b></small>`,
+      [...TROCA.map(([id, c]) => ({ label: `${n >= c ? '🎖️' : '🔒'} ${ITEMS[id].ic} ${ITEMS[id].name} — ${c} emblemas`, fn: () => {
+        if ((P.inv.emblema_campeao || 0) < c) { Audio8.sfx('miss'); log(`🎖️ Faltam ${c - (P.inv.emblema_campeao || 0)} emblemas.`, 'bad'); return; }
+        P.inv.emblema_campeao -= c; P.inv[id] = (P.inv[id] || 0) + 1; Audio8.sfx('level'); banner(`🎖️ ${ITEMS[id].name}`); log(`🎖️ Você trocou ${c} emblemas por <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); try { buildHotbar(); save(); } catch (e) { } } })),
+      { label: 'Até mais' }]);
+  }
+  function onKill(mob) { if (!mob.castelo) return; if (mob.chefeG) { ponto(6, '🐉'); banner('🐉 O CAMPEÃO SOMBRIO CAIU!'); log('🐉 A guilda derrubou o <b>Campeão Sombrio</b>! +6 pontos para quem ajudou.', 'gold'); saqueChefe(); return; } ponto(1, '⚔️'); if (mob.mimico) log('🎁 Você derrotou o mímico!', 'sys'); }
   // prêmios por pontos: a cada 5 pontos um prêmio (até 6 prêmios por noite)
   const PREMIOS = [{ frag_carta: 3 }, { frag_cisma: 2 }, { frag_carta: 5, red_m: 3 }, { nucleo_abismo: 1 }, { frag_carta: 8, frag_cisma: 4 }, { selo_forja: 1, frag_carta: 10 }];
   function ponto(n, ic) {
@@ -294,7 +312,7 @@ const Castelo = (() => {
   function escalarChefe(o, L) {
     const d0 = o.d, kf = L / d0.lv;
     o.d = { ...d0, name: 'Campeão Sombrio', lv: L, hp: Math.round(30000 * Math.pow(L / 20, 1.7)), atk: Math.round(d0.atk * kf * 1.5), def: Math.round(d0.def * kf), xp: Math.round((typeof Tower !== 'undefined' ? Tower.xpCampo(L) : d0.xp) * 25), aggro: 30, respawn: 1e9, mini: true,
-      zeny: [L * 300, L * 600], drops: [['frag_carta', 1], ['frag_carta', 1], ['frag_cisma', 1], ['frag_cisma', 0.6], ['selo_forja', 0.25], ['nucleo_abismo', 0.3], ['red_m', 1]] };
+      zeny: [L * 300, L * 600], drops: [['frag_carta', 1], ['frag_cisma', 1], ['red_m', 1]] };   // o saque bom é sorteado para CADA um que ajudou (onKill)
     o.hp = o.maxHp = o.d.hp; o.castelo = true; o.chefeG = true; o.noRespawn = true; o.towerFloor = 'castelo'; o.model.g.scale.multiplyScalar(1.6);
     const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `🐉 Campeão Sombrio <small>Nv ${L}</small>`;
   }
@@ -383,7 +401,7 @@ const Castelo = (() => {
   function nearest() {
     if (!dentro()) return null;
     if (Math.hypot(P.x - bobo.x, P.z - bobo.z) < 2.6) return { label: '🃏 Jogar jokenpô com o Bobo', fn: () => jokenpo() };
-    for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
+    for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return n.nome === 'Guarda Odair' ? { label: '🎖️ Trocar emblemas com o Guarda Odair', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
     for (const b of baus) if (Math.hypot(P.x - b.x, P.z - b.z) < 2) return { label: '🎁 Abrir o baú', fn: () => abrirBau(b) };
     if (Math.hypot(P.x - QUADRO.x, P.z - QUADRO.z) < 2.6) return { label: '📜 Brincadeiras das 20h', fn: () => info(true) };
     return null;

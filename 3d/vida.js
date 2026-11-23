@@ -130,6 +130,12 @@ const Vida = (() => {
     botas_cidade: ['Botas do Caminho Invisível', '🥾', 'botas', 0, { def: 15, spd: 0.13, hp: 170 }, 3, 'cidade'],
     lamina_raiz: ['Lâmina de Raiz Negra', '🗡️', 'arma', 0, { pow: 78, crit: 0.09 }, 3],
     // Abismo do Cisma: dos Guardiões dos andares e do Verme Colossal
+    // 🐉 Campeão Sombrio (Chefe da Guilda, castelo): só ele dá estas peças (pedido do Rone)
+    lamina_campeao: ['Lâmina do Campeão Sombrio', '🗡️', 'arma', 0, { pow: 70, crit: 0.07, hp: 120 }, 4, 'campeao'],
+    elmo_campeao: ['Elmo do Campeão Sombrio', '🪖', 'capacete', 0, { def: 20, hp: 200, pow: 8 }, 4, 'campeao'],
+    couraca_campeao: ['Couraça do Campeão Sombrio', '🛡️', 'armadura', 0, { def: 36, hp: 380 }, 4, 'campeao'],
+    manoplas_campeao: ['Manoplas do Campeão Sombrio', '🧤', 'luvas', 0, { def: 9, pow: 20, crit: 0.03 }, 4, 'campeao'],
+    grevas_campeao: ['Grevas do Campeão Sombrio', '🥾', 'botas', 0, { def: 9, spd: 0.13, hp: 120 }, 4, 'campeao'],
     lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 125, crit: 0.1, spd: 0.06, hp: 250 }, 4],
     couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 100, hp: 1350, pow: 20 }, 4],
     anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 42, hp: 480, crit: 0.07, def: 24 }, 4],
@@ -167,6 +173,7 @@ const Vida = (() => {
     cidade: { name: 'Conjunto da Cidade Submersa', bonus: { pow: 42, def: 46, hp: 520, crit: 0.05 } },
     vale: { name: 'Conjunto do Vale dos Mortos', bonus: { pow: 34, def: 38, hp: 420, crit: 0.04 } },
     floresta: { name: 'Conjunto da Floresta Morta', bonus: { pow: 24, def: 28, hp: 300 } },
+    campeao: { name: 'Conjunto do Campeão Sombrio', bonus: { pow: 36, def: 34, hp: 420, crit: 0.06, spd: 0.04 } },
     // uma peça por amigo do Rone (desafios.js); bônus em níveis: 2, 4 e as 8 peças (o completo é muito mais forte)
     amigos: { name: 'Conjunto da Irmandade Eterna', pecas: 8, tiers: [[2, { pow: 15, def: 15, hp: 250 }], [4, { pow: 40, def: 35, hp: 600, crit: 0.05 }], [8, { pow: 120, def: 90, hp: 1800, crit: 0.15, spd: 0.15, sp: 300 }]] },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
@@ -280,12 +287,19 @@ const Vida = (() => {
       ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: SL[(h >>> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };
       D.drops.push(['carta_' + t, D.boss || D.mini ? 0.04 : 0.004]);
     } }
+  // 🃏 carta nova e exclusiva do Campeão Sombrio (só ele dá): forte em tudo, encaixa na armadura
+  ITEMS.carta_campeao = { name: 'Carta do Campeão Sombrio', ic: '🃏', kind: 'carta', mods: { pow: 14, def: 8, hp: 220, crit: 0.03 }, cslot: 'armadura', sell: 3000, price: 0, arte: '🐉' };
+  ITEMS.emblema_campeao = { name: 'Emblema do Campeão', ic: '🎖️', kind: 'mat', sell: 0, price: 0 };   // 1 por vitória sobre o Campeão Sombrio; troca com o Guarda Odair
   // ---------------- cartas em 4 níveis (ideia do Rone): Simples, Forte, Invocada e Suprema; cada uma bem mais rara que a anterior
   const TIER_C = [[2, 'Forte', 1.6], [3, 'Invocada', 2.4], [4, 'Suprema', 3.5]];
   for (const id of Object.keys(ITEMS).filter(k => ITEMS[k].kind === 'carta' && !/_t\d$/.test(k))) {
     const I = ITEMS[id];
     for (const [t, nome, f] of TIER_C) ITEMS[id + '_t' + t] = { ...I, name: `${I.name} ${nome}`, tier: t, mods: Object.fromEntries(Object.entries(I.mods).map(([k, v]) => [k, ['crit', 'spd'].includes(k) ? Math.round(v * f * 1000) / 1000 : Math.round(v * f)])), sell: I.sell * t * 2 };
   }
+  // ✨ efeito único da Carta do Campeão Sombrio (nenhuma outra carta faz): + dano em tudo, cresce com o nível da carta
+  const DANO_CAMPEAO = { carta_campeao: 0.10, carta_campeao_t2: 0.14, carta_campeao_t3: 0.18, carta_campeao_t4: 0.25 };
+  for (const [id, v] of Object.entries(DANO_CAMPEAO)) if (ITEMS[id]) { ITEMS[id].danoX = v; ITEMS[id].efeito = `+${Math.round(v * 100)}% de todo o dano (efeito único)`; }
+  function cartaBonus(k) { if (k !== 'dano') return 0; let v = 0; for (const sl in (P.cards || {})) { const c = P.cards[sl]; if (c && P.equip && P.equip[sl] && ITEMS[c] && ITEMS[c].danoX) v += ITEMS[c].danoX; } return v; }
   // quando uma carta cai, sorteia o nível: Simples 80% · Forte 15% · Invocada 4% · Suprema 1%
   function tierCarta(id) { const r = Math.random(); return r < 0.01 ? id + '_t4' : r < 0.05 ? id + '_t3' : r < 0.2 ? id + '_t2' : id; }
   // monstro sem desenho (os dos mapas novos são 3D): usa o ícone do material que ele solta
@@ -743,7 +757,7 @@ const Vida = (() => {
   const poBase = id => [2, 5, 12, 30, 80, 200][ITEMS[id].rar || 0];                        // cópias sem refino (desmontar todos)
   const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80, 200][I.rar || 0] + refOf(id) * 5; };
   function refazer() {
-    const pool = r => Object.keys(ITEMS).filter(k => { const I = ITEMS[k]; return I.kind === 'equip' && I.rar === r && !I.desafio && !I.preso && !['soberano', 'amigos'].includes(I.set) && !['lamina_verme', 'couraca_verme', 'anel_ninho'].includes(k); });
+    const pool = r => Object.keys(ITEMS).filter(k => { const I = ITEMS[k]; return I.kind === 'equip' && I.rar === r && !I.desafio && !I.preso && !['soberano', 'amigos', 'campeao'].includes(I.set) && !['lamina_verme', 'couraca_verme', 'anel_ninho'].includes(k); });
     const OP = [[1, 'rara', 40, 5000], [2, 'épica', 120, 20000], [3, 'lendária', 400, 60000]];
     const opts = OP.map(([r, nome, po, cr]) => ({ label: `🎲 Peça ${nome} sorteada — ${po} ⚙️ + ${cr.toLocaleString('pt-BR')} cr`, fn: () => {
       if ((P.inv.po_forja || 0) < po || P.zeny < cr) { log(`Falta material: precisa de ${po} ⚙️ Pó de Forja e ${cr.toLocaleString('pt-BR')} cr (você tem ${P.inv.po_forja || 0} ⚙️).`, 'bad'); return true; }
@@ -986,7 +1000,7 @@ const Vida = (() => {
         if (!ok.length) extra = `<br><small>Equipe ${I.cslot === 'arma' ? 'uma arma' : I.cslot === 'anel' ? 'um anel' : I.cslot === 'botas' ? 'botas' : I.cslot === 'luvas' ? 'luvas' : 'um ' + slotName(I.cslot).toLowerCase()} para encaixar esta carta.</small>`;
       }
       const txt = I.kind === 'equip' ? `${RARITY[I.rar].n} · ${slotName(I.slot)}${I.set ? ` · 🔗 ${SETS[I.set].name}` : ''} · vende por ${I.sell} cr${compareHtml(sel)}`
-        : I.kind === 'carta' ? `Carta de monstro · rara<p>${modTxt(I.mods)}<br>Encaixa em: <b>${slotName(I.cslot)}</b>${extra}<br><small>A carta vale enquanto houver uma peça no espaço.</small></p>`
+        : I.kind === 'carta' ? `Carta de monstro · rara<p>${modTxt(I.mods)}${I.efeito ? `<br>✨ <b style="color:#ffb640">${I.efeito}</b>` : ''}<br>Encaixa em: <b>${slotName(I.cslot)}</b>${extra}<br><small>A carta vale enquanto houver uma peça no espaço.</small></p>`
         : I.kind === 'montaria' ? `Montaria lendária<p>Montado: <b>+25% de velocidade</b>. Montado não luta: ao atacar ou usar habilidade, você desce sozinho. Toque em <b>Usar</b> (ou ponha no atalho) para montar e descer. Não entra nas masmorras, na Arena nem na Guerra.</p>` : I.heal ? `Comida<p>Cura ${Math.round(I.heal * 100)}% do HP</p>` : I.use ? `Poção<p>${I.rec ? `Recupera <b>${Math.round(I.pct * 100)}%</b> do ${I.rec === 'hp' ? 'HP' : 'SP'} máximo${I.lvMin ? ` · a partir do <b>Nv ${I.lvMin}</b>${P.lv < I.lvMin ? ' 🔒' : ''}` : ''}` : `Recupera ${sel === 'blue' ? 'SP' : 'HP'}`}${I.funde ? `<br><small>⚗️ 10 desta se fundem em 1 ${it(I.funde).name} (Nv ${it(I.funde).lvMin}+).</small>` : ''}</p>` : `${I.kind === 'semente' ? 'Semente: plante no Sítio' : I.kind === 'colheita' ? 'Produção do Sítio' : 'Material de monstro: o Ferreiro Doran usa para forjar'}<p><small>Vende por ${I.sell} cr</small></p>`;
       view = `<div class="iview"><div class="iv-art">${bigArt(I, sel)}</div><div class="iv-txt"><b class="iv-n" style="color:${I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#f0e6d0'}">${I.name}</b> <small>×${P.inv[sel]}</small><small>${txt}</small>
         <div class="ibtn">${btns.join('')}<button data-a="unsel">Fechar</button></div></div></div>`;
@@ -1441,5 +1455,5 @@ const Vida = (() => {
     opts.push({ label: 'Cancelar' });
     dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
   }
-  return { trocarCom, tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { cartaBonus, trocarCom, tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

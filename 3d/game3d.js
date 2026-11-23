@@ -1422,7 +1422,7 @@ function bmul(k) { let v = 1 + (['atk', 'matk', 'aspd', 'speed'].includes(k) && 
 function badd(k) { let v = ['def', 'crit', 'regen'].includes(k) && typeof pas === 'function' ? pas(k) : 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
-const gBon = k => (typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0) + (typeof Guerra !== 'undefined' && running ? Guerra.bonus(k) : 0) + (typeof Comodos !== 'undefined' && running ? Comodos.bonus(k) : 0);   // + 🏠 Descansado (conforto da casa)   // + a Fortaleza (guilda que venceu a guerra)
+const gBon = k => (typeof Vida !== 'undefined' && Vida.cartaBonus && running ? Vida.cartaBonus(k) : 0) + (typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0) + (typeof Guerra !== 'undefined' && running ? Guerra.bonus(k) : 0) + (typeof Comodos !== 'undefined' && running ? Comodos.bonus(k) : 0);   // + 🏠 Descansado (conforto da casa)   // + a Fortaleza (guilda que venceu a guerra)
 const stats = {
   atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
   matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
