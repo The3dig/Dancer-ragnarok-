@@ -41,19 +41,59 @@ const Eventos = (() => {
   const PREMIOS = [['zeny', 0], ['zeny', 0], ['frag_carta', 1], ['frag_cisma', 1], ['red', 3], ['blue', 2]];
   // só para quem está jogando: fora das cidades (lá ficava todo mundo parado ganhando prêmio), andando
   // no último meio minuto, e no máximo 15 estrelas por evento
-  let mexeuT = -99, ux = 0, uz = 0, estH = null, estN = 0;
+  let mexeuT = -99, ux = 0, uz = 0, estH = null, estN = 0, golpeT = 0;
   const MAX_EST = 15;
+  // estrela de 5 pontas desenhada (brilho por fora, miolo branco)
+  const TEX_EST = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.translate(64, 64);
+    const r = g.createRadialGradient(0, 0, 0, 0, 0, 64); r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(0.3, 'rgba(255,255,255,.25)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(-64, -64, 128, 128);
+    g.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * TAU - Math.PI / 2, d = i % 2 ? 15 : 40; g.lineTo(Math.cos(a) * d, Math.sin(a) * d); } g.closePath(); g.shadowColor = '#fff'; g.shadowBlur = 12; g.fillStyle = '#fff'; g.fill();
+    return new THREE.CanvasTexture(c); })();
+  const RARA = { cor: 0x9ad8ff, premios: [['nucleo_abismo', 1, 40], ['frag_carta', 4, 30], ['selo_forja', 1, 22], ['lagrima_soberano', 1, 8]] };
+  // uma estrela cai do céu (com rastro) até (x, z); ao bater no chão chama aoCair
+  function cairEstrela(x, z, cor, tam, aoCair) {
+    const gy = groundY(x, z), sx = x + rand(-9, 9), sy = gy + 26, sz = z + rand(-9, 9), dur = 1.1;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_EST, color: cor, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
+    sp.scale.setScalar(1.6 * tam); sp.position.set(sx, sy, sz); scene.add(sp); let t = 0, tr = 0;
+    // sombra/aviso no chão de onde vai cair
+    const alvo = new THREE.Mesh(new THREE.RingGeometry(0.6 * tam, 0.9 * tam, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: cor, transparent: true, opacity: 0.5, toneMapped: false, depthWrite: false })); alvo.position.set(x, gy + 0.06, z); scene.add(alvo);
+    const passo = () => {
+      if (!running) return;
+      t += 1 / 60; const k = Math.min(1, t / dur), e = k * k;
+      sp.position.set(sx + (x - sx) * e, sy + (gy + 0.6 - sy) * e, sz + (z - sz) * e); sp.material.rotation += 0.15; alvo.material.opacity = 0.3 + k * 0.5; alvo.scale.setScalar(1.4 - k * 0.6);
+      if ((tr -= 1) <= 0 && typeof VFX !== 'undefined') { tr = 1; VFX.particle(sp.position.clone(), cor, { map: VFX.T.spark, size: 0.7 * tam, speed: 0.4, life: 0.5, shrink: true }); if (Math.random() < 0.5) VFX.particle(sp.position.clone(), 0xffffff, { size: 0.35, speed: 1.2, life: 0.4 }); }
+      if (k < 1) { requestAnimationFrame(passo); return; }
+      scene.remove(sp); sp.material.dispose(); scene.remove(alvo); alvo.geometry.dispose(); alvo.material.dispose();
+      const p = new THREE.Vector3(x, gy + 0.6, z);
+      if (typeof VFX !== 'undefined') { VFX.flash(p, cor, 3.5 * tam, 0.35); VFX.wave(x, z, 2.2 * tam, cor, 0.6); for (let i = 0; i < 14; i++) VFX.particle(p, i % 2 ? cor : 0xffffff, { map: VFX.T.spark, size: 0.4, speed: 6, g: 9, life: 0.7, spin: true }); }
+      else { burst(p, cor, 24, 3, 1); ring(x, z, 1.4, cor, 0.6); }
+      Audio8.sfx('coin'); aoCair && aoCair(x, z);
+    };
+    requestAnimationFrame(passo);
+  }
   function estrelas(dt, e) {
     if (Math.hypot(P.x - ux, P.z - uz) > 1.5) { ux = P.x; uz = P.z; mexeuT = time; }
     if (estH !== e.h) { estH = e.h; estN = 0; }
-    if ((estT -= dt) > 0 || inTower(P.z) || P.dead) return; estT = 7;
-    const zn = zoneOf(P.x, P.z);
-    if ((ZONES[zn] && ZONES[zn].town) || zn === 'sitio' || zn === 'casa' || time - mexeuT > 30 || estN >= MAX_EST) return;
-    estN++;
+    if (inTower(P.z) || P.dead) return;
+    const zn = zoneOf(P.x, P.z), caca = !((ZONES[zn] && ZONES[zn].town) || zn === 'sitio' || zn === 'casa') && time - mexeuT <= 30;
+    // ☄️ estrela que cai em cima de um monstro perto de você (dano grande, conta como seu)
+    if (caca && (golpeT -= dt) <= 0) {
+      golpeT = 5;
+      const m = mobs.filter(m => !m.dead && !m.isPeer && !m.d.world && Math.hypot(m.x - P.x, m.z - P.z) < 16).sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z))[0];
+      if (m) cairEstrela(m.x, m.z, 0xffd860, 1.3, () => { if (m.dead || P.dead) return; const base = Math.max(stats.atk(), stats.matk()) * 4; for (const o of mobs.filter(o => !o.dead && !o.isPeer && !o.d.world && Math.hypot(o.x - m.x, o.z - m.z) < 3)) dmgMob(o, base, false, true, 0xffd860); });
+    }
+    if ((estT -= dt) > 0) return; estT = 7;
+    if (!caca || estN >= MAX_EST) return;
     const a = Math.random() * TAU, r = 4 + Math.random() * 10, x = P.x + Math.sin(a) * r, z = P.z + Math.cos(a) * r; if (blocked(x, z)) return;
+    estN++;
+    // 🌠 1 em 8 é uma estrela rara: maior, azul, com prêmio bom
+    if (Math.random() < 1 / 8) {
+      let s = Math.random() * 100, pr = RARA.premios[0]; for (const q of RARA.premios) { if (s < q[2]) { pr = q; break; } s -= q[2]; }
+      log('🌠 Uma <b>estrela rara</b> está caindo perto de você!', 'gold');
+      cairEstrela(x, z, RARA.cor, 2, () => { drops.push(makeDrop(pr[0], pr[1], x, z)); if (typeof VFX !== 'undefined') VFX.pillar(x, z, 0.8, 9, RARA.cor, 1.2); });
+      return;
+    }
     const [id, n] = PREMIOS[Math.floor(Math.random() * PREMIOS.length)];
-    drops.push(makeDrop(id, id === 'zeny' ? 100 * Math.max(1, P.lv) : n, x, z));
-    burst(new THREE.Vector3(x, groundY(x, z) + 6, z), 0xfff0a0, 24, 3, 1); ring(x, z, 1.4, 0xffe060, 0.6);
+    cairEstrela(x, z, 0xfff0a0, 1, () => drops.push(makeDrop(id, id === 'zeny' ? 100 * Math.max(1, P.lv) : n, x, z)));
   }
   // ---------------- mercador raro: o Mercador Orlo na praça de uma cidade
   const LOJA = [
@@ -80,7 +120,7 @@ const Eventos = (() => {
   function nearest() { return orlo && running && !inTower(P.z) && Math.hypot(P.x - orlo.x, P.z - orlo.z) < 3 ? { label: '🧳 Falar com o Mercador Orlo', fn: loja } : null; }
 
   const NOMES = { dourada: '🌟 Hora Dourada', invasao: '⚔️ Invasão', estrelas: '✨ Chuva de Estrelas', mercador: '🧳 Mercador Raro' };
-  const DESC = e => ({ dourada: '+50% de XP e de drop em todo o Reino!', invasao: `monstros atacam a <b>${e.cid.n}</b>! Defenda a praça: eles soltam fragmentos.`, estrelas: 'estrelas caem perto de quem está caçando fora das cidades (até 15 por pessoa): pegue-as!', mercador: `o <b>Mercador Orlo</b> está na praça de <b>${e.cid.n}</b> vendendo raridades.` })[e.tipo];
+  const DESC = e => ({ dourada: '+50% de XP e de drop em todo o Reino!', invasao: `monstros atacam a <b>${e.cid.n}</b>! Defenda a praça: eles soltam fragmentos.`, estrelas: 'estrelas caem perto de quem está caçando fora das cidades (até 15 por pessoa), algumas raras 🌠, e outras caem nos monstros: pegue-as!', mercador: `o <b>Mercador Orlo</b> está na praça de <b>${e.cid.n}</b> vendendo raridades.` })[e.tipo];
   function update(dt) {
     if (!running) return;
     const e = agora();
@@ -93,5 +133,5 @@ const Eventos = (() => {
   }
   // para o 🏰 e o ❓: o que está acontecendo e o próximo
   function resumo() { const e = agora(); return e.ativo ? `${NOMES[e.tipo]} agora (faltam ${mmss(e.falta)})` : `próximo evento às :${INI}${e.comecaEm > 0 ? ` (em ${mmss(e.comecaEm)})` : ' da próxima hora'}`; }
-  return { update, mult, nearest, resumo, agora };
+  return { update, mult, nearest, resumo, agora, _estrelas: estrelas, _cair: cairEstrela };
 })();
