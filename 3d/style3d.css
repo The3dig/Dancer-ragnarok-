@@ -723,3 +723,4 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #tutorial .tx { flex: none; background: rgba(255,255,255,.1); color: #d8c8f0; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 3px 8px; font: 700 11px 'Nunito', sans-serif; }
 .tut-brilho { animation: tutbrilho 1.1s ease-in-out infinite; }
 @keyframes tutbrilho { 50% { box-shadow: 0 0 0 4px #ffd860, 0 0 18px 6px rgba(255,216,96,.8); } }
+#dialog { z-index: 35; }   /* confirmações (ex.: resetar) sempre na frente das janelas (habilidades, atributos...) */

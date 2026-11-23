@@ -113,19 +113,21 @@ const Quests = (() => {
   const available = q => !S().act[q.id] && (q.repeat || !S().done[q.id]) && (!q.req || S().done[q.req]) && (!q.lv || P.lv >= q.lv);
   const npcByName = n => NPCS.find(o => o.name === n);
 
-  // contratos do Quadro de Caça: no máximo 6 por dia (somando os aceitos e os já entregues hoje)
-  const LIM_CACA = 6, hoje = () => new Date().toLocaleDateString('pt-BR');
-  function cacas() { const s = S(); if (!s.caca || s.caca.d !== hoje()) s.caca = { d: hoje(), n: 0 }; return s.caca; }
-  const cacasUsadas = () => cacas().n + Object.keys(S().act).filter(id => byId[id] && byId[id].type === 'caca').length;
+  // contratos do Quadro de Caça: 2 por dia EM CADA QUADRO (pedido do Rone: antes eram 6 somando todos, e quem
+  // gastava tudo em Solmira não tinha motivo para ir às outras cidades). Conta os aceitos e os já entregues hoje.
+  const LIM_CACA = 2, hoje = () => new Date().toLocaleDateString('pt-BR');
+  function cacas() { const s = S(); if (!s.caca || s.caca.d !== hoje() || !s.caca.b) s.caca = { d: hoje(), b: {} }; return s.caca; }
+  const cacasUsadas = city => (cacas().b[city] || 0) + Object.keys(S().act).filter(id => byId[id] && byId[id].type === 'caca' && byId[id].board === city).length;
+  const quadrosAbertos = () => Object.keys(BOARDS).filter(c => cacasUsadas(c) < LIM_CACA);
   function accept(q) {
-    if (q.type === 'caca' && cacasUsadas() >= LIM_CACA) { log(`📋 Você já pegou os <b>${LIM_CACA} contratos de caça de hoje</b>. O quadro abre de novo amanhã.`, 'bad'); Audio8.sfx('miss'); return; }
+    if (q.type === 'caca' && cacasUsadas(q.board) >= LIM_CACA) { const o = quadrosAbertos().map(c => CITY_N[c]); log(`📋 Você já pegou os <b>${LIM_CACA} contratos deste quadro hoje</b>.${o.length ? ` Os quadros de outras cidades ainda têm: ${o.join(', ')}.` : ' Todos os quadros abrem de novo amanhã.'}`, 'bad'); Audio8.sfx('miss'); return; }
     P.qGo = null;
     S().act[q.id] = { k: {} }; Audio8.sfx('buff');
     log(`${TYPE[q.type].dot} Missão aceita: <b style="color:${colorOf(q)}">${q.title}</b>`, 'gold'); save();
   }
   function finish(q) {
     for (const st of q.steps) if (st.item) P.inv[st.item] = Math.max(0, (P.inv[st.item] || 0) - st.n);
-    if (q.type === 'caca') cacas().n++;
+    if (q.type === 'caca') { const c = cacas(); c.b[q.board] = (c.b[q.board] || 0) + 1; }
     delete S().act[q.id]; S().done[q.id] = (S().done[q.id] || 0) + 1;
     const r = q.rw || {}; P.zeny += r.zeny || 0;
     const got = [];
@@ -164,13 +166,14 @@ const Quests = (() => {
     for (const q of qs) {
       if (S().act[q.id] && ready(q)) opts.push({ label: `✅ Receber: ${q.title}`, fn: () => { finish(q); setTimeout(() => boardTalk(city), 50); } });
       else if (S().act[q.id]) opts.push({ label: `⏳ ${q.title} (${prog(q, 0)}/${q.steps[0].n})`, fn: () => true });
-      else if (cacasUsadas() >= LIM_CACA) opts.push({ label: `🔒 ${q.title} — amanhã`, fn: () => true });
+      else if (cacasUsadas(city) >= LIM_CACA) opts.push({ label: `🔒 ${q.title} — amanhã (ou em outro quadro)`, fn: () => true });
       else opts.push({ label: `🟢 ${q.title} — ${rewardTxt(q)}`, fn: () => { accept(q); setTimeout(() => boardTalk(city), 50); } });
     }
     P.warps = P.warps || {}; P.warps[city] = 1;            // memória de viagem: só leva a cidades já visitadas
     opts.push({ label: '🧭 Viagem rápida', fn: () => { travel(city); return true; } });
     opts.push({ label: 'Fechar' });
-    dialog('📋 Quadro de Caça', `Contratos de caça da cidade. <b>Até ${LIM_CACA} por dia</b> (somando todos os quadros).<br><small>Hoje: <b>${cacasUsadas()} de ${LIM_CACA}</b>${cacasUsadas() >= LIM_CACA ? ' · o quadro abre de novo amanhã' : ''}</small>`, opts);
+    const u = cacasUsadas(city), outros = quadrosAbertos().filter(c => c !== city).map(c => CITY_N[c]);
+    dialog('📋 Quadro de Caça · ' + CITY_N[city], `Contratos de caça desta cidade. <b>Cada quadro dá ${LIM_CACA} contratos por dia</b>: para fazer mais, viaje e pegue nos quadros das <b>outras cidades</b>.<br><small>Aqui hoje: <b>${u} de ${LIM_CACA}</b>${u >= LIM_CACA ? ' · este quadro abre de novo amanhã' : ''}${outros.length ? `<br>Ainda com contratos hoje: ${outros.join(', ')}` : ''}</small>`, opts);
   }
   const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora', clareira: 'Clareira de Lira', praia: 'Praia de Cômodo', vigilia: 'Vigília do Vale', refugio: 'Refúgio Suspenso' };
   function travel(from) {
@@ -225,15 +228,14 @@ const Quests = (() => {
   function journal() {
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     // contratos de caça somem do diário quando o limite do dia já foi usado (antes apareciam e o quadro dizia "amanhã")
-    const cacaFechada = cacasUsadas() >= LIM_CACA;
-    const avail = Q.filter(q => q.type !== 'oculta' && available(q) && !(cacaFechada && q.type === 'caca'));
+    const avail = Q.filter(q => q.type !== 'oculta' && available(q) && !(q.type === 'caca' && cacasUsadas(q.board) >= LIM_CACA));
     const sv = S(); sv.vistas = sv.vistas || {}; const novo = new Set(novas().filter(q => !sv.vistas[q.id]).map(q => q.id)); for (const id of novo) sv.vistas[id] = 1;
     const done = Object.keys(S().done).length;
     const opts = [];
     for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; andar(); } });
     for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${novo.has(q.id) ? '🆕 ' : ''}${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = { ...g, qt: q.title, qc: colorOf(q) }; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; andar(); } }); }
     opts.push({ label: 'Fechar' });
-    dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).${cacaFechada ? `<br><small>🔒 Os ${LIM_CACA} contratos de caça de hoje já foram usados: voltam amanhã.</small>` : ''}<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
+    dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).<br><small>🟢 Caça: <b>${LIM_CACA} contratos por dia em cada quadro</b> (são ${Object.keys(BOARDS).length} cidades com quadro). Os quadros que já deram os ${LIM_CACA} de hoje somem da lista.</small><br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
   }
   // escolheu no diário: já sai andando sozinho até lá (antes só mudava a seta e ninguém ia)
   function andar() { if (typeof autoStart === 'function' && !inTower(P.z)) { if (AUTO.on) autoStop(''); autoStart(); } }
