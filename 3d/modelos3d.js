@@ -253,8 +253,69 @@ const Modelos3D = (() => {
     return (cache[t] = { parts, h: box.max.y - Math.min(0, box.min.y), minY: box.min.y, len: box.max.z - box.min.z });
   }
 
+  // ---------------- 🦀 caranguejo VIVO (pedido do Rone: o antigo era uma peça só e "andava pior que Roblox"):
+  // patas articuladas que andam em tripé alternado, pinças que abrem/fecham e beliscam, olhos em hastes que balançam
+  const CRAB = { caranguejo: { c1: 0xd8482a, c2: 0xf6b080, c3: 0xa8301c }, reiCaranguejo: { c1: 0x9a1a3a, c2: 0xe8907a, c3: 0x6a0a24, coroa: true } };
+  function crabMob(type, t, r) {
+    const o = CRAB[t], cas = lit(M(o.c1, { roughness: .45 })), bar = lit(M(o.c2, { roughness: .55 })), esc = lit(M(o.c3, { roughness: .5 })), preto = B(0x0a0a0a), branco = B(0xffffff);
+    const d = SPR_MOBS[type] || SPR_MOBS[t] || { h: 1.1 }, root = new THREE.Group(); r.g.add(root);
+    const body = new THREE.Group(); root.add(body);
+    // carapaça: domo achatado com borda, saliências e a barriga clara
+    addS(body, GEO.sph, cas, 0, .42, 0, .62, .26, .5); addS(body, GEO.sph, esc, 0, .36, 0, .66, .12, .54); addS(body, GEO.sph, bar, 0, .28, .02, .54, .14, .44);
+    for (const [x, z] of [[-.22, -.08], [.22, -.08], [0, -.22], [-.12, .14], [.12, .14]]) addS(body, GEO.sph, esc, x, .62, z, .08, .05, .08);
+    // olhos em hastes
+    const olhos = [];
+    for (const sx of [-1, 1]) { const h = new THREE.Group(); h.position.set(sx * .13, .56, .36); body.add(h); addS(h, GEO.cyl, bar, 0, .1, 0, .028, .2, .028); addS(h, GEO.sph, preto, 0, .22, 0, .065, .065, .065); addS(h, GEO.sph, branco, sx * .02, .24, .045, .018, .018, .018); olhos.push(h); }
+    // boca
+    addS(body, GEO.box, esc, 0, .36, .47, .18, .06, .04);
+    // patas: 3 de cada lado, coxa subindo e canela descendo até a ponta
+    const patas = [];
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) {
+      const hip = new THREE.Group(); hip.position.set(sx * .5, .34, -.2 + k * .2); body.add(hip);
+      const coxa = new THREE.Group(); coxa.rotation.z = sx * 0.42; hip.add(coxa); addS(coxa, GEO.cyl, cas, sx * .16, 0, 0, .036, .32, .036).rotation.z = Math.PI / 2;
+      const joelho = new THREE.Group(); joelho.position.set(sx * .34, 0, 0); joelho.rotation.z = -sx * 1.15; coxa.add(joelho);
+      addS(joelho, GEO.cyl, esc, sx * .13, 0, 0, .026, .27, .026).rotation.z = Math.PI / 2; const ponta = addS(joelho, GEO.cone, bar, sx * .3, 0, 0, .026, .08, .026); ponta.rotation.z = -sx * Math.PI / 2;
+      patas.push({ hip, sx, fase: ((k + (sx > 0 ? 1 : 0)) % 2) * Math.PI, baseY: (k - 1) * .18 * sx });
+    }
+    // pinças: braço, garra grande, dedo fixo e dedo que mexe
+    const pincas = [];
+    for (const sx of [-1, 1]) {
+      const ombro = new THREE.Group(); ombro.position.set(sx * .36, .4, .38); body.add(ombro);
+      addS(ombro, GEO.cyl, cas, sx * .08, .05, .14, .06, .3, .06).rotation.x = 1.1;
+      const mao = new THREE.Group(); mao.position.set(sx * .14, .14, .32); ombro.add(mao);
+      addS(mao, GEO.sph, cas, 0, 0, .06, .17, .13, .2);
+      const fixo = addS(mao, GEO.cone, esc, sx * -.05, -.02, .3, .05, .22, .05); fixo.rotation.x = Math.PI / 2;
+      const dedo = new THREE.Group(); dedo.position.set(sx * .06, .05, .18); mao.add(dedo); const dd = addS(dedo, GEO.cone, esc, 0, 0, .12, .045, .2, .045); dd.rotation.x = Math.PI / 2;
+      pincas.push({ ombro, dedo, sx });
+    }
+    if (o.coroa) for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; addS(body, GEO.cone, B(0xffd040), Math.cos(a) * .14, .74, Math.sin(a) * .11, .04, .13, .04); }
+    // tamanho pelo do sprite antigo
+    const bx = new THREE.Box3().setFromObject(root), hh = bx.max.y - Math.min(0, bx.min.y), H = d.h || 1.1, k = H / hh;
+    root.scale.setScalar(k); root.position.y = -Math.min(0, bx.min.y) * k;
+    const ph = Math.random() * 10, cast = !TOUCH || (MOBDEF[type] && MOBDEF[type].boss);
+    root.traverse(n => { if (n.isMesh) n.castShadow = cast; });
+    r.m3 = true; r.mats = []; r.h = H; r.body = root;
+    r.anim = (m, time) => {
+      const mv = m.moving, sw = m.swing || 0, v = mv ? 13 : 0;
+      for (const p of patas) {                                           // tripé alternado: metade levanta e passa para a frente enquanto a outra apoia
+        const s = Math.sin(time * v + p.fase), lev = mv ? Math.max(0, s) * 0.45 : 0;
+        p.hip.rotation.z = p.sx * lev; p.hip.rotation.y = p.baseY + (mv ? Math.cos(time * v + p.fase) * 0.32 * p.sx : Math.sin(time * 1.5 + ph + p.fase) * 0.03);
+      }
+      body.position.y = mv ? Math.abs(Math.sin(time * v)) * 0.03 : Math.sin(time * 1.8 + ph) * 0.01;
+      body.rotation.z = mv ? Math.sin(time * v * 0.5) * 0.05 : 0;
+      for (const c of pincas) {                                          // pinças: abrem e fecham sozinhas e dão o bote no ataque
+        const abre = 0.25 + Math.max(0, Math.sin(time * 3 + ph + c.sx)) * 0.35 + sw * 0.6;
+        c.dedo.rotation.y = c.sx * abre; c.ombro.rotation.x = -sw * 0.9 + Math.sin(time * 2 + ph) * 0.05; c.ombro.rotation.y = c.sx * (0.15 - sw * 0.25);
+      }
+      for (const e of olhos) e.rotation.z = Math.sin(time * 2.5 + ph + e.position.x * 10) * 0.18;
+      const hit = m.flash > 0 ? 1.1 : 1; root.scale.setScalar(k * hit);
+      body.position.z = sw * 0.25;
+    };
+    return r;
+  }
   // ---------------- um monstro no mundo
   function mob(type, r) {
+    if (CRAB[baseOf(type)]) return crabMob(type, baseOf(type), r);
     const t = baseOf(type), K = bake(t), d = SPR_MOBS[type] || SPR_MOBS[t] || { h: 1.5 };
     const H = (d.h || 1.5) * (SIDE.has(t) ? 0.85 : 1), k = SIDE.has(t) ? (d.h || 1.5) * 1.45 / K.len : H / K.h;
     const body = new THREE.Group(); body.scale.setScalar(k); body.position.y = -K.minY * k; r.g.add(body);
