@@ -8,6 +8,7 @@
 const Avisos = (() => {
   // novidades importantes, a mais nova no topo. Para avisar algo novo: põe aqui com um id novo.
   const NOVIDADES = [
+    { id: 'n117', data: '24/11', t: '⚔️ Portão novo da Arena', d: 'A entrada da <b>Arena de Solmira</b> (Mestre Brakus) virou um portal de coliseu de verdade: colunas com anéis de ouro, arco de pedra, espadas cruzadas no escudo, estandartes, braseiros acesos e a luz dourada dentro do arco.' },
     { id: 'n116', data: '24/11', t: '🔢 Atalhos melhores', d: 'Ao tocar em <b>📌 Pôr no atalho</b> (na mochila ou nas habilidades), agora você escolhe <b>em qual barra</b> vai: 1, 2 ou 3 (com quantos espaços livres cada uma tem). E no modo <b>✏️</b>, <b>segure um atalho e arraste</b> para o espaço que quiser: os dois trocam de lugar.' },
     { id: 'n115', data: '24/11', t: '🏆 Recordes com os 5 primeiros e botão AUTO', d: 'O 🏆 <b>Recordes</b> (☰ Mais) já mostra os <b>5 primeiros</b> de cada lugar, em tempo e em dano. No celular, a caça automática agora é o botão redondo <b>AUTO</b> ao lado do ataque (fica verde e pulsando enquanto caça; toque de novo para parar). E as setas que encolhem os quadros ficaram mais bonitas.' },
     { id: 'n114', data: '24/11', t: '🛡️ Novo amigo: Balhulk', d: 'O cavaleiro <b>Balhulk</b> chegou ao <b>Acampamento de Valdora</b> com uma aventura de <b>7 provas</b> (está na lista 🤝 Amigos). O que ele dá no final? Ninguém sabe. Ele só diz que é algo que <b>ninguém neste Reino tem</b>... Quem completar, descobre.' },
