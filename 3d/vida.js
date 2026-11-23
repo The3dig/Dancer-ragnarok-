@@ -421,6 +421,8 @@ const Vida = (() => {
   const postG = new THREE.CylinderGeometry(0.1, 0.12, 1.15, 8), pontaG = new THREE.ConeGeometry(0.1, 0.2, 8), railG = new THREE.CylinderGeometry(0.055, 0.06, 1, 7).rotateZ(Math.PI / 2);
   const fenceLine = (ax, az, bx, bz, gap) => {
     const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 1.6);
+    // a cerca agora segura o personagem (antes dava para atravessar): obstáculos ao longo dela, menos no portão
+    for (let d = 0; d <= len; d += 0.6) { const t = d / len; if (gap && Math.abs(t - 0.5) < 0.12) continue; addOb(ax + (bx - ax) * t, az + (bz - az) * t, 0.3); }
     for (let i = 0; i <= n; i++) {
       const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
       if (gap && Math.abs(t - 0.5) < 0.14) continue;

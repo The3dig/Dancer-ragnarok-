@@ -22,11 +22,13 @@ function salaServidor(url, aoMsg) {
   function conectar() {
     if (parado) return;
     const tk = typeof Nuvem !== 'undefined' && Nuvem.token ? (url.includes('?') ? '&' : '?') + 'token=' + Nuvem.token : '';
-    try { ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
+    let este; try { este = ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
+    const velha = () => ws !== este;                                   // uma conexão antiga minha (a internet caiu e o jogo já abriu outra): os avisos dela não valem
     ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) mandar(JSON.stringify({ t: 'p', s: pend })); };
     // os nomes de personagem são únicos: alguém com o meu nome é uma conexão velha minha (o fantasma de mim mesmo)
     const souEu = s => !!(s && typeof P !== 'undefined' && P.name && s.n === P.name);
     ws.onmessage = e => {
+      if (velha()) return;
       uso.in += (e.data.length || 0) + 4;
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
@@ -38,6 +40,7 @@ function salaServidor(url, aoMsg) {
       if (aoMsg) aoMsg(m);                                                      // monstros compartilhados e o resto
     };
     ws.onclose = async ev => {
+      if (velha()) return;
       const eraAberta = aberta;
       aberta = false; const left = [...peers.keys()].map(peer => ({ peer })); peers.clear(); me = null; emit([], left);
       if (aoMsg) aoMsg({ t: 'caiu' });
@@ -128,7 +131,11 @@ const Net = (() => {
     const h = msg || '🌐 Sem conexão com o Reino. Reconectando…<small>O jogo continua de onde parou assim que a internet voltar.</small>';
     if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
   }
-  function fora(msg) { foraMsg = msg; if (typeof Nuvem !== 'undefined') Nuvem.parar(); pausaTela(true, `🔌 ${esc(msg)}<small>Feche e abra o jogo para continuar aqui.</small>`); }
+  function fora(msg) {
+    foraMsg = msg; if (typeof Nuvem !== 'undefined') Nuvem.parar();
+    pausaTela(true, `🔌 ${esc(msg)}<small>Pode ser outra aba, o atalho da Tela de Início ou outro celular com o seu usuário.</small><button id="volta-aqui" class="volta-aqui">▶️ Continuar jogando aqui</button>`);
+    setTimeout(() => { const b = document.getElementById('volta-aqui'); if (b) b.addEventListener('pointerdown', e => { e.stopPropagation(); try { save(); } catch (er) { } location.reload(); }); }, 50);
+  }
   // ---------------- laço
   function update(dt) {
     if (!room) return;

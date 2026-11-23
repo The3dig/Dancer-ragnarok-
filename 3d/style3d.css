@@ -864,3 +864,4 @@ body.touch #t-auto span { font-size: 11px; }
 body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 14px; } body.touch #anuncio .an-ic { font-size: 40px; } body.touch #anuncio .an-tx b { font-size: 19px; }
 @keyframes anPulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @media (prefers-reduced-motion: reduce) { #anuncio .an-ic { animation: none; } #anuncio { transition: opacity .3s; } }
+#netpausa .volta-aqui { display: block; margin: 14px auto 0; padding: 12px 20px; border-radius: 14px; border: 1px solid #f2c86a; background: linear-gradient(180deg, #c08a2a, #7a4a10); color: #fff6d8; font: 800 15px 'Nunito', sans-serif; cursor: pointer; pointer-events: auto; }
