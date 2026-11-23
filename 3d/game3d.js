@@ -1650,14 +1650,15 @@ function killMob(m, o = {}) {
   drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
   const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1) * (1 + gBon('drop')) * (typeof Eventos !== 'undefined' ? Eventos.mult('drop') : 1);   // ⚡ Hora Dourada
   const bc = typeof Vida !== 'undefined' && Vida.bonusCarta ? Vida.bonusCarta(m.type) : 1;          // nível de caça do bestiário: carta um pouco mais fácil
-  const repartir = typeof Grupo !== 'undefined' && m.nid && Grupo.repartidor ? Grupo.repartidor(m) : null;   // 🎁 em grupo: um item para cada, na vez de cada um
+  const repartir = typeof Grupo !== 'undefined' && Grupo.repartidor && !m.d.alfa && !m.boneco ? Grupo.repartidor(m) : null;   // também nos monstros de evento (só do meu jogo)   // 🎁 em grupo: um item para cada, na vez de cada um
   for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul * (it.startsWith('carta_') ? bc : 1)) {
     const para = repartir ? repartir() : null;
     const id2 = it.startsWith('carta_') && typeof Vida !== 'undefined' && Vida.tierCarta ? Vida.tierCarta(it) : it;      // carta: Simples, Forte, Invocada ou Suprema
     if (para) Grupo.enviar(para, id2, 1, m.d.name); else drops.push(makeDrop(id2, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   }
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
-  const nGrupo = typeof Grupo !== 'undefined' && m.nid ? Grupo.quantosPerto(m) : 1;               // em grupo: XP dividido igual entre quem está perto
+  const nGrupo = typeof Grupo !== 'undefined' && !m.d.alfa ? Grupo.quantosPerto(m) : 1;
+  if (!m.nid && !m.d.alfa && !m.boneco && typeof Grupo !== 'undefined' && Grupo.avisarMorte) Grupo.avisarMorte(m);   // monstro só do meu jogo: avisa o grupo do mesmo mapa               // em grupo: XP dividido igual entre quem está perto
   const xp = Math.round(m.d.xp * mult * (nGrupo > 1 ? Grupo.parteXp(m) : (o.parte ?? 1)) * (1 + gBon('xp')) * (typeof Eventos !== 'undefined' ? Eventos.mult('xp') : 1));
   if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${nGrupo > 1 ? ` <small>(dividido no grupo entre ${nGrupo})</small>` : o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');

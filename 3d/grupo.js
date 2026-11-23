@@ -68,7 +68,30 @@ const Grupo = (() => {
   const esc = t => String(t || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])).slice(0, 40);
   const perto = r => Math.hypot(r.x - P.x, r.z - P.z) < PERTO;
   // vai na presença: o meu grupo e o convite que estou mandando
-  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); return { gd: pedido && t < pedido.ate ? { id: pedido.id, z: pedido.z, nome: pedido.nome, dif: pedido.dif, gp: gp() } : null, gr: resposta && t < resposta.ate ? { id: resposta.id, ok: resposta.ok } : null, gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
+  // 🎯 monstros que só existem no MEU jogo (invasão, caçada do castelo, eventos…): a morte vai para o grupo pela presença,
+  // e quem está no mesmo mapa ganha a parte do XP (ou a carona) e conta na missão, igual aos monstros compartilhados
+  let mortes = []; const mVistas = new Set();
+  function avisarMorte(m) { if (!gp() || !online()) return; mortes.push({ t: m.type, lv: m.d.lv, xp: m.d.xp, nm: m.d.name, x: +m.x.toFixed(1), z: +m.z.toFixed(1), k: Math.random().toString(36).slice(2, 8), at: Date.now() }); mortes = mortes.slice(-6); }
+  function receberMortes() {
+    if (P.dead) return;
+    for (const r of Net.peers()) {
+      if (!gp() || r.s.gp !== gp()) continue;
+      for (const e of (r.s.gm || [])) {
+        if (!e || mVistas.has(e.k) || Date.now() - e.at > 9000 || !MOBDEF[e.t]) continue; mVistas.add(e.k);
+        if (!juntos(e.x, e.z, P.x, P.z)) continue;
+        const w = peso(P.lv, r.s.lv), fake = { type: e.t, x: e.x, z: e.z, d: { ...MOBDEF[e.t], lv: e.lv, xp: e.xp, name: e.nm } };
+        let xp;
+        if (w > 0) { const n = 1 + pertoDe(fake, r.s.lv).length; xp = Math.round(e.xp * (n > 1 ? (1 + 0.1 * (n - 1)) / n : 1) * w * (1 + gBon('xp'))); log(`👥 ${esc(r.n)} derrotou <b>${esc(e.nm)}</b>: +${xp} XP <small>(grupo)</small>`, 'xp'); }
+        else if (P.lv < (r.s.lv || 1)) { const gap = Math.max(11, r.s.lv - P.lv), pct = Math.min(0.03, 0.004 + (gap - 10) * 0.0005); xp = Math.max(1, Math.round(Math.min(e.xp * 0.6, xpNeed(P.lv) * pct) * (1 + gBon('xp')))); log(`🍼 +${xp} XP de carona (${esc(r.n)} derrotou ${esc(e.nm)})`, 'xp'); }
+        else continue;
+        P.kills = (P.kills || 0) + 1;
+        try { if (typeof Quests !== 'undefined') Quests.onKill(fake); if (typeof Vida !== 'undefined') Vida.onKill(fake); const q = QUESTS[P.quest]; if (q && q.mob === e.t && P.qcount < q.n) P.qcount++; } catch (er) { }
+        gainXp(xp);
+      }
+    }
+    if (mVistas.size > 400) mVistas.clear();
+  }
+  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); mortes = mortes.filter(e => t - e.at < 9000); return { gm: mortes.length ? mortes : null, gd: pedido && t < pedido.ate ? { id: pedido.id, z: pedido.z, nome: pedido.nome, dif: pedido.dif, gp: gp() } : null, gr: resposta && t < resposta.ate ? { id: resposta.id, ok: resposta.ok } : null, gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
   // ---------------- divisão dos itens da caçada (como o "dividir itens" do Ragnarok)
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
   // anti-leech (como o Ragnarok): só divide com quem tem nível parecido.
@@ -179,7 +202,7 @@ const Grupo = (() => {
   // convites recebidos e quem entrou/saiu do grupo
   function update(dt) {
     if ((chkT -= dt) > 0 || !online()) return; chkT = 0.5;
-    checarPedido(); if (aberto) desenhar();
+    checarPedido(); receberMortes(); if (aberto) desenhar();
     // cura e proteção que um companheiro de grupo jogou perto de mim
     for (const r of Net.peers()) {
       if (r.s.gp !== gp() || !gp() || Math.hypot(r.x - P.x, r.z - P.z) > 15 || P.dead) continue;
@@ -289,5 +312,5 @@ const Grupo = (() => {
 
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { juntos, repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
+  return { avisarMorte, juntos, repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
 })();
