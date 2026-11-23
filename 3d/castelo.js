@@ -5,7 +5,7 @@
 //  - De segunda a sexta, das 20h às 20h30, acontece uma brincadeira no saguão (sábado e domingo às
 //    20h já tem o Kravenox e o Verme):
 //      seg: ⚔️ Caçada no Saguão (monstros saem das paredes; cada um vale ponto)
-//      ter: 🐉 Chefe da Guilda (um chefe para a guilda inteira, 3 vezes na noite)
+//      ter: 🐉 Chefe da Guilda (um chefe só para a guilda inteira; fica até 20h30)
 //    O Bobo da Corte joga jokenpô a qualquer hora (NPC, não é mais brincadeira: pedido do Rone)
 //      qua: 🎁 Baús Escondidos (baús pelo saguão; cuidado, alguns são mímicos!)
 //      qui: 🗡️ Duelo da Guilda (PvP em rodadas de 5 min; quem cai volta no saguão)
@@ -19,7 +19,7 @@ const Castelo = (() => {
   // cada dia uma brincadeira DIFERENTE (pedido do Rone: tinha repetida)
   const TIPOS = { 1: 'monstros', 2: 'chefe', 3: 'baus', 4: 'pvp', 5: 'bonecos' };
   const NOME = { monstros: '⚔️ Caçada no Saguão', chefe: '🐉 Chefe da Guilda', baus: '🎁 Baús Escondidos', pvp: '🗡️ Duelo da Guilda (PvP)', bonecos: '🎯 Desafio dos Bonecos' };
-  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio (MVP da guilda) invade o saguão às 20h00, 20h10 e 20h20: a guilda inteira enfrenta o MESMO chefe. Quem ajudar ganha 6 pontos e sorteia o próprio saque: o Conjunto do Campeão Sombrio e a Carta do Campeão Sombrio só caem dele', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
+  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio (MVP da guilda) invade o saguão às 20h e fica até 20h30 (um só por noite: se não cair, vai embora). A guilda inteira enfrenta o MESMO chefe. Quem ajudar ganha 6 pontos e sorteia o próprio saque: o Conjunto do Campeão Sombrio e a Carta do Campeão Sombrio só caem dele', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
     pvp: 'PvP entre a guilda dentro do castelo, em 3 rodadas de 5 minutos (20h00, 20h10 e 20h20). Cada derrubada vale 1 ponto; quem cai volta no saguão na hora, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
   const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   let forcado = null;   // só para teste: Castelo._forcar('baus')
@@ -235,7 +235,7 @@ const Castelo = (() => {
   // 🐉 saque do Campeão Sombrio: cada um que ajudou sorteia o seu (peças do conjunto e a carta só caem dele)
   const SAQUE_CHEFE = [['carta_campeao', 0.05], ['lamina_campeao', 0.04], ['elmo_campeao', 0.06], ['couraca_campeao', 0.05], ['manoplas_campeao', 0.06], ['grevas_campeao', 0.06], ['selo_forja', 0.3], ['nucleo_abismo', 0.35], ['frag_carta', 1], ['frag_cisma', 0.8]];
   function saqueChefe() {
-    const ganhou = ['emblema_campeao']; P.inv.emblema_campeao = (P.inv.emblema_campeao || 0) + 1;   // 🎖️ todo mundo que ajudou ganha 1 emblema (troca com o Capitão da Guarda de Auren: não fica só na sorte)
+    const ganhou = ['emblema_campeao', 'emblema_campeao', 'emblema_campeao']; P.inv.emblema_campeao = (P.inv.emblema_campeao || 0) + 3;   // 3 emblemas por vitória (um chefe só por semana)   // 🎖️ todo mundo que ajudou ganha 1 emblema (troca com o Capitão da Guarda de Auren: não fica só na sorte)
     for (const [id0, ch] of SAQUE_CHEFE) if (ITEMS[id0] && Math.random() < ch) { const id = id0 === 'carta_campeao' && typeof Vida !== 'undefined' && Vida.tierCarta ? Vida.tierCarta(id0) : id0; P.inv[id] = (P.inv[id] || 0) + 1; ganhou.push(id); }
     for (const id of ganhou) { const I = ITEMS[id] || ITEMS[id.replace(/_t\d$/, '')]; if (!I) continue; const raro = /campeao/.test(id); log(`🐉 ${raro ? '🎉 ' : ''}Do Campeão Sombrio: <b>${I.ic} ${I.name}</b>!`, raro ? 'gold' : 'item'); if (raro) { banner(`🐉 ${I.name}`); Audio8.sfx('level'); } }
     try { buildHotbar(); save(); } catch (e) { }
@@ -244,7 +244,7 @@ const Castelo = (() => {
   const TROCA = [['carta_campeao', 40], ['lamina_campeao', 25], ['couraca_campeao', 20], ['elmo_campeao', 15], ['manoplas_campeao', 15], ['grevas_campeao', 15]];
   function troca() {
     const n = P.inv.emblema_campeao || 0;
-    dialog('⚔️ Capitão da Guarda de Auren', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 20h), quem ajudou ganha 1 🎖️ <b>Emblema do Campeão</b>. Junte e troque comigo.<br><small>Seus emblemas: <b>${n}</b></small>`,
+    dialog('⚔️ Capitão da Guarda de Auren', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 20h), quem ajudou ganha 3 🎖️ <b>Emblemas do Campeão</b>. Junte e troque comigo.<br><small>Seus emblemas: <b>${n}</b></small>`,
       [...TROCA.map(([id, c]) => ({ label: `${n >= c ? '🎖️' : '🔒'} ${ITEMS[id].ic} ${ITEMS[id].name} — ${c} emblemas`, fn: () => {
         if ((P.inv.emblema_campeao || 0) < c) { Audio8.sfx('miss'); log(`🎖️ Faltam ${c - (P.inv.emblema_campeao || 0)} emblemas.`, 'bad'); return; }
         P.inv.emblema_campeao -= c; P.inv[id] = (P.inv[id] || 0) + 1; Audio8.sfx('level'); banner(`🎖️ ${ITEMS[id].name}`); log(`🎖️ Você trocou ${c} emblemas por <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); try { buildHotbar(); save(); } catch (e) { } } })),
@@ -307,7 +307,7 @@ const Castelo = (() => {
   // ---------------- 🐉 Chefe da Guilda (terça): o MESMO chefe para todos da guilda (vai para o servidor como dg:castelo:#<guilda>:...)
   // uma rodada a cada 10 min (20h00, 20h10, 20h20); quem derrubar não vê ele voltar na mesma rodada
   const ymd = () => { const d = new Date(); return '' + d.getFullYear() + (d.getMonth() + 1) + d.getDate(); };
-  const rodada = () => forcado ? 'T' + Math.floor(Date.now() / 600000) : 'r' + Math.floor(new Date().getMinutes() / 10);
+  const rodada = () => forcado ? 'T' + Math.floor(Date.now() / 600000) : 'd';                          // um só por noite (pedido do Rone): se não cair até 20h30, vai embora
   let chefeChk = '', chefeT = 0;
   function escalarChefe(o, L) {
     const d0 = o.d, kf = L / d0.lv;

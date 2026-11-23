@@ -446,7 +446,8 @@ export class Mundo {
     const mud = [];
     for (const [id, mob] of this.mobs) {
       if (mob.gp !== undefined) {                                         // masmorra em grupo: expira e só passa entre o grupo
-        if (agora - mob.criado > 20 * 60e3) { this.mobs.delete(id); this.todos({ t: "some", id }); continue; }
+        if (agora - mob.criado > (mob.id.endsWith(":chefe") ? 40 : 20) * 60e3) {   // o chefe do castelo dura a brincadeira toda (30 min)
+          this.mobs.delete(id); this.todos({ t: "some", id }); continue; }
         // "*..." = aberto para todos (Torre, Abismo e masmorras: o mundo é o mesmo, pedido do Rone); senão só o grupo
         const gp = String(mob.gp), doGrupo = gp.startsWith("*") ? gente : gp.startsWith("#") ? gente.filter((g) => String(g.gid) === gp.slice(1)) : gente.filter((g) => g.gp === mob.gp); if (!doGrupo.length) continue;   // "#<guilda>": só quem é da guilda (chefe do castelo)
         let b = null, bd = 1e9; for (const g of doGrupo) { const dd = Math.hypot(g.x - mob.x, g.z - mob.z); if (dd < bd) { bd = dd; b = g; } }
