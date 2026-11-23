@@ -1065,6 +1065,7 @@ const Vida = (() => {
     if (!list.length) { dialog('🤝 Trocar', 'Chegue perto de outro jogador (até 10 m) para trocar.'); return; }
     dialog('🤝 Trocar com…', 'Escolha o jogador:', [...list.map(r => ({ label: r.n, fn: () => { tr = { to: r.peer, id: Math.random().toString(36).slice(2, 8), give: {}, ok: false }; tradeWin(); return true; } })), { label: 'Cancelar' }]);
   }
+  function trocarCom(peer) { if (!online()) return soloMsg(); const r = peers.find(x => x.peer === peer); if (!r) return; if (!near(r, 10)) { log('🤝 Chegue mais perto (até 10 m) para trocar.', 'bad'); return; } tr = { to: r.peer, id: Math.random().toString(36).slice(2, 8), give: {}, ok: false }; tradeWin(); }
   function partnerOf() { return tr && peers.find(r => r.peer === tr.to); }
   function tradeWin() {
     const pr = partnerOf();
@@ -1438,5 +1439,5 @@ const Vida = (() => {
     opts.push({ label: 'Cancelar' });
     dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
   }
-  return { tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { trocarCom, tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

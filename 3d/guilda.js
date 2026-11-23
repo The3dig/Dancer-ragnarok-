@@ -176,5 +176,7 @@ const Guilda = (() => {
     if (typeof autoStop === 'function') autoStop(''); abrir(false);
   }
   function update(dt) { if ((pollT -= dt) > 0) return; pollT = 30; atualizar(); }      // convites e mudanças: a cada 30 s
-  return { info: () => st.guilda ? { emblema: st.guilda.emblema, sigla: st.guilda.sigla, nome: st.guilda.nome } : null, init, update, pres, aliado, minha, abrir, bonus, contribuir, hud, get sigla() { return st.guilda ? st.guilda.sigla : null; } };
+  async function convidarNome(n) { if (await acao('convidar', { alvo: n })) log(`📨 Convite da guilda enviado para <b>${esc(n)}</b>.`, 'sys'); else log('🛡️ ' + (msg || 'Não deu para convidar.'), 'bad'); }
+  const podeConvidar = () => st.cargo === 'lider' || st.cargo === 'oficial';
+  return { convidarNome, podeConvidar, info: () => st.guilda ? { emblema: st.guilda.emblema, sigla: st.guilda.sigla, nome: st.guilda.nome } : null, init, update, pres, aliado, minha, abrir, bonus, contribuir, hud, get sigla() { return st.guilda ? st.guilda.sigla : null; } };
 })();

@@ -92,7 +92,7 @@ const Net = (() => {
       if (!RACES[look.race]) look.race = 'humano';
       if (!CLASSES[look.cls]) look.cls = OLD_TO_HERO[look.cls] || 'kravenox';
       const L2 = buildAvatar(g, look);
-      const lab = document.createElement('div'); lab.className = 'alabel plabel'; $('labels').appendChild(lab);
+      const lab = document.createElement('div'); lab.className = 'alabel plabel'; lab.dataset.peer = p.peer; $('labels').appendChild(lab);   // tocar no nome abre o menu do jogador (jogadores.js)
       const bub = document.createElement('div'); bub.className = 'bubble hidden'; $('labels').appendChild(bub);
       r = { g, L: L2, look, lookKey, lab, bub, x: s.x, z: s.z, y: s.y || 0, f: s.f || 0, k: s.k || 0 };
       remotes.set(p.peer, r);
@@ -145,7 +145,7 @@ const Net = (() => {
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
-        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null, ...(typeof Montaria !== 'undefined' ? Montaria.pres() : {}),
+        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null, ...(typeof Jogadores !== 'undefined' ? Jogadores.pres() : {}), ...(typeof Montaria !== 'undefined' ? Montaria.pres() : {}),
         ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}), ...(typeof Verme !== 'undefined' ? Verme.pres() : {}), ...(typeof dgPres === 'function' ? dgPres() : {}),
       };
       const j = JSON.stringify(pres);

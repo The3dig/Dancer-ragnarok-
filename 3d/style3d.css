@@ -842,3 +842,8 @@ body.touch #t-auto span { font-size: 11px; }
 #guildwin .gw-mbb { display: flex; gap: 4px; } #guildwin .gw-mbb button { width: 32px; height: 30px; padding: 0; border-radius: 8px; }
 #guildwin .gw-vant > div { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; margin-bottom: 4px; background: rgba(255,255,255,.03); }
 #guildwin .gw-vant > div.on { background: rgba(93,224,122,.1); } #guildwin .gw-vant > div.off { opacity: .6; } #guildwin .gw-vant small { min-width: 36px; color: var(--gold); font-weight: 800; }
+/* 👤 menu do jogador (jogadores.js): o nome dos outros jogadores é tocável */
+.plabel[data-peer] { pointer-events: auto; cursor: pointer; }
+.dmg.emo { font-size: 34px !important; color: #fff !important; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+#dialog .dopts.emo-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } #dialog .dopts.emo-grade button { font-size: 24px; padding: 6px 0; }
+#dialog .dopts.emo-grade button:last-child { grid-column: 1 / -1; font-size: 14px; }
