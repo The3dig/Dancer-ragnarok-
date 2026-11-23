@@ -178,7 +178,7 @@ const Net = (() => {
       const sp = toScreen(r.x, r.g.position.y + 2.15, r.z);
       const near = Math.hypot(r.x - P.x, r.z - P.z) < 45;
       // o Sítio e a casa são só seus: ninguém aparece lá, e você não vê quem está no Sítio dele
-      const priv = typeof zoneOf === 'function' && (['sitio', 'casa'].includes(zoneOf(P.x, P.z)) || ['sitio', 'casa'].includes(zoneOf(r.x, r.z)));
+      const priv = typeof zoneOf === 'function' && (['sitio', 'casa'].includes(zoneOf(P.x, P.z)) || ['sitio', 'casa'].includes(zoneOf(r.x, r.z)) || ((zoneOf(P.x, P.z) === 'castelo' || zoneOf(r.x, r.z) === 'castelo') && !(typeof Guilda !== 'undefined' && Guilda.aliado(s))));   // no castelo, só a sua guilda
       r.g.visible = !priv; if (priv) { r.lab.style.display = 'none'; continue; }
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;

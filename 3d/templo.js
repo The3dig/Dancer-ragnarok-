@@ -393,7 +393,7 @@ const Templo = (() => {
     for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === 'eco' && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
     return null;
   }
-  function entrar(modo, dif) {
+  function entrar(modo, dif, aceito) {
     const doGrupo = modo === 'grupo' && corridaDoGrupo();
     if (!dif && doGrupo) dif = doGrupo.dif || 1;
     if (!dif && typeof escolherNivel === 'function') { setTimeout(() => escolherNivel('🏛️ Templo do Eco Selado', k => entrar(modo, k)), 40); return; }
@@ -408,6 +408,7 @@ const Templo = (() => {
       else {
         const M_ = typeof Grupo !== 'undefined' ? Grupo.membros() : [];
         if (!P.grupo || !M_.length || !Net.connected) { log('🏛️ Para ir em grupo, monte um grupo no 👥 (2 a 6 pessoas, todos on-line).', 'bad'); Audio8.sfx('miss'); return; }
+        if (!aceito && Grupo.pedirMasmorra) { Grupo.pedirMasmorra({ z: 'eco', nome: 'Templo do Eco Selado', dif, comecar: () => entrar(modo, dif, true) }); return; }   // todos do grupo precisam aceitar
         grupo = { id: `dg:eco:${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true };
       }
     }

@@ -105,7 +105,7 @@ function criarMasmorra(C) {
   function usadas() { const s = P.dgSemana; return s && s.w === semana() ? (s[C.zona] || 0) : 0; }
   const restam = () => C.limite ? Math.max(0, C.limite - usadas()) : 99;
   function gastar() { if (!P.dgSemana || P.dgSemana.w !== semana()) P.dgSemana = { w: semana() }; P.dgSemana[C.zona] = (P.dgSemana[C.zona] || 0) + 1; try { save(); } catch (e) { } }
-  function entrar(modo, dif) {
+  function entrar(modo, dif, aceito) {
     // escolhe o nível de dificuldade (quem entra na corrida do grupo usa o nível que o companheiro escolheu)
     const doGrupo = modo === 'grupo' && corridaDoGrupo();
     if (!dif && doGrupo) dif = doGrupo.dif || 1;
@@ -120,6 +120,7 @@ function criarMasmorra(C) {
       else {
         const M_ = typeof Grupo !== 'undefined' ? Grupo.membros() : [];
         if (!P.grupo || !M_.length || !Net.connected) { log(`${C.icone} Para ir em grupo, monte um grupo no 👥 (2 a 6 pessoas, todos on-line).`, 'bad'); Audio8.sfx('miss'); return; }
+        if (!aceito && Grupo.pedirMasmorra) { Grupo.pedirMasmorra({ z: C.zona, nome: C.nome, dif, comecar: () => entrar(modo, dif, true) }); return; }   // todos do grupo precisam aceitar
         grupo = { id: `dg:${C.zona}:${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true, fimMs: Date.now() + TEMPO * 1000 };
       }
     }

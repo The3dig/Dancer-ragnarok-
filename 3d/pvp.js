@@ -18,7 +18,7 @@ const PvP = (() => {
   const PINK = 60e3, RED = 5 * 60e3;
   const now = () => Date.now();
   const F = () => (P.flag = P.flag || { pink: 0, red: 0 });
-  const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco'].includes(zn); };   // masmorras também são seguras
+  const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco', 'castelo'].includes(zn); };   // masmorras também são seguras
   const guerra = (x, z) => inTower(z) && ['torre', 'topo', 'abismo', 'abfundo', 'arena', 'forte'].includes(zoneOf(x, z));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
   const state = () => F().red > now() ? 'r' : F().pink > now() ? 'p' : 'w';
   // cor do nome: vermelho forte no começo, clareando com o tempo; rosa no combate

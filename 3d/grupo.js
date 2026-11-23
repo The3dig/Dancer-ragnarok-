@@ -11,6 +11,47 @@
 'use strict';
 const Grupo = (() => {
   const MAX = 8, PERTO = 45;
+  // ---------------- masmorra em grupo com aceite (pedido do Rone): quem chama vira o líder; cada um do grupo
+  // responde; todos aceitaram → o líder entra e o grupo entra junto; alguém recusou ou não respondeu → ninguém entra
+  let pedido = null, resposta = null, pedidosVistos = new Set(), aguardando = null, pedT = 0;
+  function pedirMasmorra(o) {
+    const M = membros(); if (!M.length) { o.comecar(); return; }
+    pedido = { id: Math.random().toString(36).slice(2, 8), z: o.z, nome: o.nome, dif: o.dif || 1, comecar: o.comecar, ate: Date.now() + 30000, quem: M.map(r => ({ peer: r.peer, n: r.n })) };
+    Audio8.sfx('click'); log(`👥 Pedido enviado ao grupo: <b>${esc(o.nome)}</b> nível ${pedido.dif}. Esperando todos aceitarem (30 s)...`, 'sys'); pedT = 0; telaPedido();
+  }
+  const respDe = r => { const g = r && r.s && r.s.gr; return g && pedido && g.id === pedido.id ? g.ok : null; };
+  function telaPedido() {
+    if (!pedido) return;
+    const vivos = Net.peers(), linhas = pedido.quem.map(q => { const r = vivos.find(v => v.peer === q.peer); const ok = respDe(r); return `${ok === true ? '✅' : ok === false ? '❌' : r ? '⏳' : '📴'} <b>${esc(q.n)}</b>${ok === true ? ' aceitou' : ok === false ? ' recusou' : r ? ' ainda não respondeu' : ' saiu do jogo'}`; }).join('<br>');
+    const h = linhas + `<br><br><small>Tempo: ${Math.max(0, Math.ceil((pedido.ate - Date.now()) / 1000))} s</small>`;
+    if (pedT && dialogOpen && $('dialog').dataset.ped === h) return;
+    dialog(`👥 ${esc(pedido.nome)} · nível ${pedido.dif}`, `Só entra se <b>todo o grupo aceitar</b>.<br><br>${h}`, [{ label: 'Cancelar o pedido', fn: () => { log('👥 Você cancelou o pedido.', 'sys'); pedido = null; } }]);
+    $('dialog').dataset.ped = h; pedT = 1;
+  }
+  function checarPedido() {
+    if (pedido) {
+      const vivos = Net.peers(), rs = pedido.quem.map(q => { const r = vivos.find(v => v.peer === q.peer); return r ? respDe(r) : false; });
+      const recusou = pedido.quem.filter((q, i) => rs[i] === false);
+      if (recusou.length) { const nomes = recusou.map(q => q.n).join(', '); closeDialog(); log(`👥 <b>${esc(nomes)}</b> não ${recusou.length > 1 ? 'aceitaram' : 'aceitou'}. Ninguém entra.`, 'bad'); Audio8.sfx('miss'); pedido = null; pedT = 0; }
+      else if (rs.every(x => x === true)) { const c = pedido.comecar; pedido = null; pedT = 0; closeDialog(); log('👥 Todos aceitaram! Entrando...', 'gold'); c(); }
+      else if (Date.now() > pedido.ate) { closeDialog(); log('👥 Nem todos responderam a tempo. Ninguém entra.', 'bad'); Audio8.sfx('miss'); pedido = null; pedT = 0; }
+      else if (dialogOpen && $('dialog').dataset.ped) telaPedido();
+    }
+    // pedidos que chegaram para mim
+    for (const r of Net.peers()) {
+      const g = r.s && r.s.gd; if (!g || !gp() || g.gp !== gp() || pedidosVistos.has(g.id)) continue; pedidosVistos.add(g.id);
+      Audio8.sfx('buff');
+      const responder = ok => { resposta = { id: g.id, ok, ate: Date.now() + 40000 }; if (ok) { aguardando = { z: g.z, dif: g.dif, ate: Date.now() + 45000 }; log(`👥 Você aceitou. Quando todos aceitarem, você entra junto com <b>${esc(r.n)}</b>.`, 'gold'); } else log('👥 Você recusou o pedido.', 'sys'); };
+      dialog('👥 Masmorra em grupo', `<b>${esc(r.n)}</b> quer entrar em <b>${esc(g.nome)}</b> (nível ${g.dif}) com o grupo.<br><small>Só entram se todos aceitarem. Se você aceitar, entra sozinho junto quando o último aceitar.</small>`, [
+        { label: '✅ Aceitar', fn: () => responder(true) }, { label: '❌ Recusar', fn: () => responder(false) }]);
+    }
+    // aceitei: entro assim que a corrida do líder aparecer
+    if (aguardando) {
+      const D = typeof MASMORRAS !== 'undefined' && MASMORRAS[aguardando.z];
+      if (Date.now() > aguardando.ate) aguardando = null;
+      else if (D && D.corridaDoGrupo && D.corridaDoGrupo() && D.entrar) { const a = aguardando; aguardando = null; if (dialogOpen) closeDialog(); D.entrar('grupo', a.dif, true); }
+    }
+  }
   let convite = null, vistos = new Set(), nomesAntes = null, chkT = 0, envios = [], apoios = [], apoioVisto = new Set();
   const gp = () => P.grupo || null;
   const online = () => typeof Net !== 'undefined' && Net.connected && Net.me;
@@ -19,7 +60,7 @@ const Grupo = (() => {
   const esc = t => String(t || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])).slice(0, 40);
   const perto = r => Math.hypot(r.x - P.x, r.z - P.z) < PERTO;
   // vai na presença: o meu grupo e o convite que estou mandando
-  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); return { gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
+  function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); return { gd: pedido && t < pedido.ate ? { id: pedido.id, z: pedido.z, nome: pedido.nome, dif: pedido.dif, gp: gp() } : null, gr: resposta && t < resposta.ate ? { id: resposta.id, ok: resposta.ok } : null, gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
   // ---------------- divisão dos itens da caçada (como o "dividir itens" do Ragnarok)
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
   // anti-leech (como o Ragnarok): só divide com quem tem nível parecido.
@@ -66,20 +107,50 @@ const Grupo = (() => {
     if (!P.grupo) return; P.grupo = null; convite = null; nomesAntes = null;
     log('👥 Você saiu do grupo.', 'sys'); if (typeof save === 'function') save();
   }
+  // ---------------- painel do grupo (janela própria, pedido do Rone: o antigo era só uma lista)
+  let win = null, aberto = false, regras = false;
   function painel() {
     if (!online()) { dialog('👥 Grupo', 'O grupo funciona com os amigos on-line no mesmo mundo (precisa de internet).'); return; }
-    const M = membros(), fora = Net.peers().filter(r => r.n && (!gp() || r.s.gp !== gp()));
-    const lista = M.length ? M.map(r => `👤 <b>${r.n}</b> Nv ${r.s.lv || '?'} · ❤️ ${r.s.hp ?? '?'}% · ${perto(r) ? '<span style="color:#7dff6a">perto</span>' : Math.round(Math.hypot(r.x - P.x, r.z - P.z)) + ' m'}`).join('<br>') : '<i>Ninguém no grupo ainda.</i>';
-    const opts = [];
-    for (const r of fora.slice(0, 10)) opts.push({ label: `➕ Chamar ${r.n} (Nv ${r.s.lv || '?'})`, fn: () => { convidar(r); } });
-    for (const r of M) opts.push({ label: `🧭 Ir até ${r.n}`, fn: () => { P.qGo = { x: r.x, z: r.z, name: r.n }; log(`🧭 Indo até <b>${r.n}</b>.`, 'sys'); if (typeof autoStart === 'function') autoStart(); } });
-    if (gp()) opts.push({ label: '🚪 Sair do grupo', fn: () => { sair(); } });
-    opts.push({ label: 'Fechar' });
-    dialog('👥 Grupo', `${lista}<br><br><small>No grupo, quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> (com bônus de 10% por companheiro; só com quem tem nível parecido: até 10 níveis de diferença, parte inteira; mais de 20, nada) e o monstro <b>conta nas missões, desafios e aventuras dos amigos dos dois</b>. Os <b>itens são sorteados</b> entre quem está perto.</small>${fora.length ? '' : '<br><br><i>Não tem mais ninguém on-line agora para chamar.</i>'}`, opts);
+    if (aberto && win && !win.classList.contains('hidden')) { fechar(); return; }
+    if (dialogOpen) closeDialog();
+    if (!win) {
+      win = document.createElement('div'); win.id = 'grupowin'; win.className = 'win hidden'; $('hud').appendChild(win);
+      win.addEventListener('click', e => {
+        const t = e.target.closest('[data-a]'); if (!t) return; Audio8.sfx('click');
+        const a = t.dataset.a, v = t.dataset.v, r = Net.peers().find(x => x.peer === v);
+        if (a === 'x') { fechar(); return; }
+        if (a === 'chamar' && r) convidar(r);
+        if (a === 'ir' && r) { P.qGo = { x: r.x, z: r.z, name: r.n }; log(`🧭 Indo até <b>${esc(r.n)}</b>.`, 'sys'); if (typeof autoStart === 'function') autoStart(); fechar(); return; }
+        if (a === 'sair') sair();
+        if (a === 'regras') regras = !regras;
+        desenhar();
+      });
+    }
+    aberto = true; win.classList.remove('hidden'); desenhar();
+  }
+  function fechar() { aberto = false; if (win) win.classList.add('hidden'); }
+  const corV = hp => hp > 60 ? '#5ae07a' : hp > 30 ? '#ffd060' : '#ff5a5a';
+  function desenhar() {
+    if (!win || !aberto) return;
+    const M = membros(), fora = Net.peers().filter(r => r.n && (!gp() || r.s.gp !== gp())).sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z));
+    const cls = r => { try { const c = CLASSES[r.s.look && r.s.look.cls]; return c ? (c.name[r.s.look.gender] || c.name.f) : ''; } catch (e) { return ''; } };
+    const card = (nome, lv, classe, hp, dist, botoes, eu) => `<div class="gr-card${eu ? ' eu' : ''}"><div class="gr-av">${esc(nome).slice(0, 1).toUpperCase()}</div><div class="gr-info"><div><b>${esc(nome)}</b>${eu ? ' <small>(você)</small>' : ''} <span class="gr-lv">Nv ${lv || '?'}</span></div><small>${esc(classe)}${dist}</small><div class="gr-hp"><i style="width:${hp}%;background:${corV(hp)}"></i></div></div><div class="gr-bt">${botoes}</div></div>`;
+    const meuHp = Math.round(P.hp / stats.maxHp() * 100);
+    const eu = card(P.name, P.lv, className(P.cls, P.gender), meuHp, '', '', true);
+    const lista = M.map(r => { const hp = Math.max(0, Math.min(100, r.s.hp ?? 100)), d = Math.round(Math.hypot(r.x - P.x, r.z - P.z));
+      return card(r.n, r.s.lv, cls(r), r.s.st === 'd' ? 0 : hp, ` · ${r.s.st === 'd' ? '💀 caído' : perto(r) ? '<span class="gr-perto">perto</span>' : d + ' m'}`, `<button data-a="ir" data-v="${r.peer}" title="Ir até">🧭</button>`); }).join('');
+    const chamar = fora.slice(0, 12).map(r => `<div class="gr-fora"><span><b>${esc(r.n)}</b> <small>Nv ${r.s.lv || '?'} · ${esc(cls(r))}${r.s.gp ? ' · já tem grupo' : ''}</small></span><button data-a="chamar" data-v="${r.peer}">➕ Chamar</button></div>`).join('');
+    const h = `<div class="wt">👥 Grupo <small>${gp() ? `${M.length + 1} de ${MAX}` : 'sem grupo'}</small><span class="x" data-a="x">×</span></div><div class="gr-b">
+      <div class="gr-sec">⚔️ Companheiros</div>${eu}${lista || '<div class="gr-vazio">Ninguém no grupo ainda. Chame alguém aqui embaixo!</div>'}
+      <div class="gr-sec">📨 Chamar para o grupo</div>${chamar || '<div class="gr-vazio">Não tem mais ninguém on-line agora.</div>'}
+      <div class="gr-sec gr-reg" data-a="regras">📜 Como funciona o grupo ${regras ? '▲' : '▼'}</div>${regras ? `<div class="gr-txt">Quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> com +10% por companheiro (só com nível parecido: até 10 níveis de diferença, parte inteira; mais de 20, nada). O monstro conta nas <b>missões, desafios e aventuras</b> de todos, e os <b>itens são sorteados</b> entre quem está perto. Curas e proteções valem para o grupo perto (15 m). Nas masmorras em grupo, <b>todos precisam aceitar</b> para entrar.</div>` : ''}
+      ${gp() ? '<div class="gr-fim"><button data-a="sair" class="perigo">🚪 Sair do grupo</button></div>' : ''}</div>`;
+    if (win.dataset.h !== h) { win.innerHTML = h; win.dataset.h = h; }
   }
   // convites recebidos e quem entrou/saiu do grupo
   function update(dt) {
     if ((chkT -= dt) > 0 || !online()) return; chkT = 0.5;
+    checarPedido(); if (aberto) desenhar();
     // cura e proteção que um companheiro de grupo jogou perto de mim
     for (const r of Net.peers()) {
       if (r.s.gp !== gp() || !gp() || Math.hypot(r.x - P.x, r.z - P.z) > 15 || P.dead) continue;
@@ -189,5 +260,5 @@ const Grupo = (() => {
 
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
+  return { pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
 })();

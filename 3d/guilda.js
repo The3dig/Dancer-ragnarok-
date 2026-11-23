@@ -90,39 +90,58 @@ const Guilda = (() => {
         <button type="submit">🛡️ Criar guilda</button></form>
         <p class="gw-dica">Na guilda, ninguém ataca ninguém. Na <b>Torre do Cisma</b> o PvP é livre para quem não é da sua guilda.</p>`;
     } else {
+      // painel novo em abas (pedido do Rone: o antigo era uma lista comprida e simples)
       const lider = eu === 'lider', chefe = eu === 'lider' || eu === 'oficial';
-      h += `<div class="gw-topo"><span class="gw-e">${esc(g.emblema)}</span><div><b>[${esc(g.sigla)}] ${esc(g.nome)}</b><small>${g.membros.length} membro(s) · você é ${CARGO[eu] || eu}</small></div></div>`;
-      const nv = nivel(), xp = (g.xp || 0) + pendente, a0 = XPN[nv - 1] || 0, a1 = XPN[nv], b = bonus();
-      h += `<div class="gw-nivel"><b>Nível ${nv}</b>${a1 ? `<i><s style="width:${Math.min(100, (xp - a0) / (a1 - a0) * 100)}%"></s></i><small>${Math.floor(xp).toLocaleString('pt-BR')} / ${a1.toLocaleString('pt-BR')} XP</small>` : '<small>nível máximo!</small>'}</div>
-        <div class="gw-sec">🎁 Vantagens <small>(10% do XP de monstro dos membros vai para a guilda, sem tirar nada de vocês)</small></div>
-        <div class="gw-vant">${VANTAGENS.map(([n, t]) => `<div class="${nv >= n ? 'on' : 'off'}">${nv >= n ? '✅' : '🔒 Nv ' + n} ${t}</div>`).join('')}</div>
-        <div class="gw-agora">Agora: <b>+${Math.round(b.xp * 100)}% XP</b>${b.aura ? ` (${b.aura} membro(s) perto)` : ''} · +${Math.round(b.cr * 100)}% coroas${b.desc ? ' · 5% de desconto' : ''}${b.hp ? ` · +${b.hp * 100}% vida` : ''}${b.dano ? ` · +${b.dano * 100}% dano` : ''}${b.drop ? ' · +10% itens' : ''}</div>`;
-      h += `<div class="gw-sec">📌 Aviso da guilda</div>${chefe ? `<form class="gw-form gw-in" data-f="aviso"><input name="texto" maxlength="200" value="${esc(g.aviso)}" placeholder="Escreva um recado para todos"><button type="submit">Salvar</button></form>` : `<div class="gw-aviso">${esc(g.aviso) || '<i>sem aviso</i>'}</div>`}`;
-      h += `<div class="gw-sec">💬 Mensagem só para a guilda</div><form class="gw-form gw-in" data-f="chat"><input name="texto" maxlength="80" placeholder="Só os membros veem"><button type="submit">Enviar</button></form>`;
-      if (chefe) {
-        const perto = (typeof Net !== 'undefined' && Net.peers ? Net.peers() : []).filter(r => r.n && !(r.s && r.s.gid));
-        h += `<div class="gw-sec">➕ Convidar</div><form class="gw-form gw-in" data-f="convidar"><input name="alvo" maxlength="16" placeholder="Nome do personagem"><button type="submit">Convidar</button></form>`;
-        if (perto.length) h += `<div class="gw-perto">${perto.slice(0, 8).map(r => `<button data-a="convidar" data-v="${esc(r.n)}">+ ${esc(r.n)}</button>`).join('')}</div>`;
+      const nv = nivel(), xp = (g.xp || 0) + pendente, a0 = XPN[nv - 1] || 0, a1 = XPN[nv], b = bonus(), nOn = g.membros.filter(mb => mb.nome === String(P.name || '').toLowerCase() || on.has(mb.nome)).length;
+      h += `<div class="gw-banner"><div class="gw-escudo">${esc(g.emblema)}</div><div class="gw-tit"><b>${esc(g.nome)}</b><span class="gw-sig">[${esc(g.sigla)}]</span><small>Nível ${nv} · ${g.membros.length} membros · 🟢 ${nOn} on-line · você é ${CARGO[eu] || eu}</small>
+        <div class="gw-xp">${a1 ? `<i style="width:${Math.min(100, (xp - a0) / (a1 - a0) * 100)}%"></i>` : '<i style="width:100%"></i>'}</div><small>${a1 ? `${Math.floor(xp).toLocaleString('pt-BR')} / ${a1.toLocaleString('pt-BR')} XP para o nível ${nv + 1}` : 'nível máximo!'}</small></div></div>`;
+      const ABAS = [['castelo', '🏰', 'Castelo'], ['membros', '👥', 'Membros'], ['vant', '🎁', 'Vantagens'], ['mural', '📌', 'Mural'], ['gerir', '⚙️', 'Gerenciar']];
+      h += `<div class="gw-abas">${ABAS.map(([k, ic, nm]) => `<button data-a="aba" data-v="${k}" class="${aba === k ? 'on' : ''}"><span>${ic}</span>${nm}</button>`).join('')}</div>`;
+      if (aba === 'castelo') {
+        const ag = typeof Castelo !== 'undefined' ? Castelo.agora() : null;
+        h += `<div class="gw-card gw-cast"><div class="gw-cast-ic">🏰</div><div><b>Castelo da ${esc(g.nome)}</b><small>O saguão da guilda: só os membros entram e se veem lá dentro.</small></div><button data-a="castelo" class="gw-grande">Entrar no castelo</button></div>`;
+        if (typeof Castelo !== 'undefined') h += `<div class="gw-card${ag && ag.ativo ? ' gw-vivo' : ''}"><div class="gw-sec">🎪 Brincadeiras das 20h</div>${Castelo.info(false)}</div>`;
+        h += `<div class="gw-card"><div class="gw-sec">🏆 Guerra de Guildas</div><small>Domingo, das 18h às 19h, na Fortaleza das Bandeiras (Comandante Varek, em Solmira). A guilda que mais danificar o Coração ganha +10% de XP e drop na semana.</small></div>`;
       }
-      h += `<div class="gw-sec">👥 Membros</div>` + g.membros.map(mb => {
-        const sou = mb.nome === String(P.name || '').toLowerCase(), ol = sou || on.has(mb.nome);
-        let bt = '';
-        if (!sou && lider) bt += mb.cargo === 'membro' ? `<button data-a="cargo" data-v="${esc(mb.nome)}" data-c="oficial">⭐ Promover</button>` : `<button data-a="cargo" data-v="${esc(mb.nome)}" data-c="membro" class="sec">Rebaixar</button>`;
-        if (!sou && lider) bt += `<button data-a="cargo" data-v="${esc(mb.nome)}" data-c="lider" class="sec">👑 Passar liderança</button>`;
-        if (!sou && ol) bt += `<button data-a="ir" data-v="${esc(mb.nome)}" class="sec">🧭 Ir até (500 cr)</button>`;
-        if (!sou && (lider || (eu === 'oficial' && mb.cargo === 'membro'))) bt += `<button data-a="expulsar" data-v="${esc(mb.nome)}" class="perigo">Expulsar</button>`;
-        return `<div class="gw-row"><span><i class="gw-on${ol ? ' sim' : ''}"></i><b>${esc(mb.exibe || mb.nome)}</b> <small>${CARGO[mb.cargo]}</small></span><span>${bt}</span></div>`;
-      }).join('');
-      h += `<div class="gw-fim"><button data-a="sair" class="perigo">🚪 Sair da guilda</button>${lider ? '<button data-a="desfazer" class="perigo">💥 Desfazer a guilda</button>' : ''}</div>`;
+      if (aba === 'membros') {
+        const ord = [...g.membros].sort((x, y) => ({ lider: 0, oficial: 1, membro: 2 }[x.cargo] - { lider: 0, oficial: 1, membro: 2 }[y.cargo]) || (on.has(y.nome) - on.has(x.nome)));
+        h += ord.map(mb => {
+          const sou = mb.nome === String(P.name || '').toLowerCase(), ol = sou || on.has(mb.nome);
+          let bt = '';
+          if (!sou && ol) bt += `<button data-a="ir" data-v="${esc(mb.nome)}" title="Chamado: ir até (500 cr)">🧭</button>`;
+          if (!sou && lider) bt += mb.cargo === 'membro' ? `<button data-a="cargo" data-v="${esc(mb.nome)}" data-c="oficial" title="Promover a oficial">⭐</button>` : `<button data-a="cargo" data-v="${esc(mb.nome)}" data-c="membro" class="sec" title="Rebaixar">⬇️</button>`;
+          if (!sou && lider) bt += `<button data-a="cargo" data-v="${esc(mb.nome)}" data-c="lider" class="sec" title="Passar a liderança">👑</button>`;
+          if (!sou && (lider || (eu === 'oficial' && mb.cargo === 'membro'))) bt += `<button data-a="expulsar" data-v="${esc(mb.nome)}" class="perigo" title="Expulsar">✖</button>`;
+          return `<div class="gw-mb${ol ? ' on' : ''}${sou ? ' eu' : ''}"><div class="gw-av">${esc(String(mb.exibe || mb.nome)).slice(0, 1).toUpperCase()}<i></i></div><div class="gw-mbi"><b>${esc(mb.exibe || mb.nome)}</b><small>${CARGO[mb.cargo]}${ol ? ' · on-line' : ''}</small></div><div class="gw-mbb">${bt}</div></div>`;
+        }).join('');
+      }
+      if (aba === 'vant') {
+        h += `<div class="gw-card gw-agora">Agora: <b>+${Math.round(b.xp * 100)}% XP</b>${b.aura ? ` (${b.aura} membro(s) perto)` : ''} · +${Math.round(b.cr * 100)}% coroas${b.desc ? ' · 5% de desconto' : ''}${b.hp ? ` · +${b.hp * 100}% vida` : ''}${b.dano ? ` · +${b.dano * 100}% dano` : ''}${b.drop ? ` · +${b.drop * 100}% item` : ''}</div>
+          <small class="gw-dica">10% do XP de monstro dos membros (e os pontos das brincadeiras) vão para a guilda, sem tirar nada de vocês.</small>
+          <div class="gw-vant">${VANTAGENS.map(([n, t]) => `<div class="${nv >= n ? 'on' : 'off'}"><span>${nv >= n ? '✅' : '🔒'}</span><small>Nv ${n}</small><div>${t}</div></div>`).join('')}</div>`;
+      }
+      if (aba === 'mural') {
+        h += `<div class="gw-card gw-aviso"><div class="gw-sec">📌 Aviso da guilda</div>${chefe ? `<form class="gw-form gw-in" data-f="aviso"><input name="texto" maxlength="200" value="${esc(g.aviso)}" placeholder="Escreva um recado para todos"><button type="submit">Salvar</button></form>` : `<p>${esc(g.aviso) || '<i>Sem aviso.</i>'}</p>`}</div>
+          <div class="gw-card"><div class="gw-sec">💬 Mensagem só para a guilda</div><form class="gw-form gw-in" data-f="chat"><input name="texto" maxlength="80" placeholder="Só os membros veem"><button type="submit">Enviar</button></form></div>`;
+      }
+      if (aba === 'gerir') {
+        if (chefe) {
+          const perto = (typeof Net !== 'undefined' && Net.peers ? Net.peers() : []).filter(r => r.n && !(r.s && r.s.gid));
+          h += `<div class="gw-card"><div class="gw-sec">➕ Convidar</div><form class="gw-form gw-in" data-f="convidar"><input name="alvo" maxlength="16" placeholder="Nome do personagem"><button type="submit">Convidar</button></form>${perto.length ? `<div class="gw-perto">${perto.slice(0, 10).map(r => `<button data-a="convidar" data-v="${esc(r.n)}">+ ${esc(r.n)}</button>`).join('')}</div>` : ''}</div>`;
+        } else h += `<div class="gw-card"><small>Só o líder e os oficiais convidam e organizam a guilda.</small></div>`;
+        h += `<div class="gw-fim"><button data-a="sair" class="perigo">🚪 Sair da guilda</button>${lider ? '<button data-a="desfazer" class="perigo">💥 Desfazer a guilda</button>' : ''}</div>`;
+      }
     }
     h += '</div>';
     if (w.dataset.h !== h) { w.innerHTML = h; w.dataset.h = h; }
   }
-  let armado = '';
+  let armado = '', aba = 'castelo';
   async function clique(e) {
     const b = e.target.closest('[data-a]'); if (!b) return;
     const a = b.dataset.a, v = b.dataset.v;
     if (a === 'fechar') return abrir(false);
+    if (a === 'aba') { aba = v; msg = ''; return render(); }
+    if (a === 'castelo') { abrir(false); if (typeof Castelo !== 'undefined') Castelo.entrar(); return; }
     if (a === 'aceitar' || a === 'recusar') return acao(a, { guilda: +v });
     if (a === 'convidar') { if (await acao('convidar', { alvo: v })) { log(`📨 Convite enviado para <b>${esc(v)}</b>.`, 'sys'); } return; }
     if (a === 'cargo') return acao('cargo', { alvo: v, cargo: b.dataset.c });
@@ -157,5 +176,5 @@ const Guilda = (() => {
     if (typeof autoStop === 'function') autoStop(''); abrir(false);
   }
   function update(dt) { if ((pollT -= dt) > 0) return; pollT = 30; atualizar(); }      // convites e mudanças: a cada 30 s
-  return { init, update, pres, aliado, minha, abrir, bonus, contribuir, hud, get sigla() { return st.guilda ? st.guilda.sigla : null; } };
+  return { info: () => st.guilda ? { emblema: st.guilda.emblema, sigla: st.guilda.sigla, nome: st.guilda.nome } : null, init, update, pres, aliado, minha, abrir, bonus, contribuir, hud, get sigla() { return st.guilda ? st.guilda.sigla : null; } };
 })();
