@@ -79,9 +79,22 @@ const Casa = (() => {
   // porta da casa do Sítio (por fora): soleira acesa
   const sole = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffd890, transparent: true, opacity: 0.5, toneMapped: false })); sole.position.set(OUT_DOOR.x + 0.5, groundY(OUT_DOOR.x, OUT_DOOR.z) + 0.05, OUT_DOOR.z); scene.add(sole);
 
-  // ---------------- baú
-  // janela do baú: o que está guardado (esquerda) e a sua mochila (direita); toque num item para escolher quanto mover
-  let bsel = null;
+  // ---------------- baú (pedido do Rone: com as opções da mochila)
+  // abas por tipo, ícones desenhados, detalhes do item, guardar/pegar 1, 10, escolher a quantidade ou tudo,
+  // e guardar/pegar TUDO da aba de uma vez. Os dois lados (baú e mochila) usam a mesma aba.
+  const ABAS = [
+    ['tudo', '📦', 'Tudo', () => true],
+    ['equip', '⚔️', 'Equip.', I => I.kind === 'equip'],
+    ['mat', '🪨', 'Material', I => I.kind === 'mat'],
+    ['carta', '🃏', 'Cartas', I => I.kind === 'carta'],
+    ['uso', '🧪', 'Usáveis', I => !!(I.use || I.heal || I.spH)],
+    ['sitio', '🌾', 'Sítio', I => ['semente', 'colheita', 'racao', 'comida'].includes(I.kind)],
+  ];
+  let bsel = null, aba = 'tudo', qtd = 1;
+  const filtro = () => ABAS.find(t => t[0] === aba)[3];
+  const ordem = (a, b) => { const A = ITEMS[a], B = ITEMS[b], k = I => ({ equip: 0, carta: 1, mat: 3 })[I.kind] ?? 2; return k(A) - k(B) || (B.rar || 0) - (A.rar || 0) || A.name.localeCompare(B.name); };
+  const ico = id => typeof Icones !== 'undefined' ? Icones.html(id) : `<span>${it(id).ic}</span>`;
+  const preso = id => { const I = ITEMS[id]; return I && (I.preso || I.kind === 'montaria'); };    // peças presas e montaria ficam com você
   function bauWin() {
     let w = $('bauwin');
     if (!w) {
@@ -90,31 +103,45 @@ const Casa = (() => {
         const t = e.target.closest('[data-a]'); if (!t) return; Audio8.sfx('click');
         const a = t.dataset.a, v = t.dataset.v, b = S().bau;
         if (a === 'x') { w.classList.add('hidden'); tampa.rotation.x = 0; tampa.position.set(0, 0.95, 0); return; }
-        if (a === 'sel') bsel = bsel === v ? null : v;
-        const mv = (from, to, id, n) => { n = Math.min(n, from[id] || 0); if (n <= 0) return; from[id] -= n; to[id] = (to[id] || 0) + n; Audio8.sfx('pick'); };
-        if (bsel) { const [side, id] = bsel.split(':');
-          if (a === 'one') side === 'b' ? mv(b, P.inv, id, 1) : mv(P.inv, b, id, 1);
-          if (a === 'ten') side === 'b' ? mv(b, P.inv, id, 10) : mv(P.inv, b, id, 10);
-          if (a === 'all') side === 'b' ? mv(b, P.inv, id, b[id]) : mv(P.inv, b, id, P.inv[id]);
-          if ((side === 'b' ? b[id] : P.inv[id]) <= 0) bsel = null; }
-        if (a === 'loot') { for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id] && LOOT_KINDS.includes(ITEMS[id].kind)) mv(P.inv, b, id, P.inv[id]); bsel = null; }
+        if (a === 'aba') { aba = v; bsel = null; }
+        if (a === 'sel') { bsel = bsel === v ? null : v; qtd = 1; }
+        if (a === 'q') { const [side, id] = (bsel || ':').split(':'), max = side === 'b' ? b[id] || 0 : P.inv[id] || 0; qtd = Math.max(1, Math.min(max, qtd + (+v))); renderBau(); return; }
+        const mv = (from, to, id, n) => { n = Math.min(n, from[id] || 0); if (n <= 0) return 0; from[id] -= n; to[id] = (to[id] || 0) + n; return n; };
+        if (bsel && ['one', 'ten', 'qtd', 'all'].includes(a)) { const [side, id] = bsel.split(':'), from = side === 'b' ? b : P.inv, to = side === 'b' ? P.inv : b;
+          if (side === 'm' && preso(id)) { log(`🔒 <b>${it(id).name}</b> fica sempre com você.`, 'bad'); Audio8.sfx('miss'); return; }
+          const n = a === 'one' ? 1 : a === 'ten' ? 10 : a === 'qtd' ? qtd : from[id]; if (mv(from, to, id, n)) Audio8.sfx('pick');
+          if ((from[id] || 0) <= 0) bsel = null; else qtd = Math.min(qtd, from[id]); }
+        if (a === 'guardaraba' || a === 'pegaraba') { const f = filtro(), from = a === 'guardaraba' ? P.inv : b, to = a === 'guardaraba' ? b : P.inv; let n = 0;
+          for (const id of Object.keys(from)) if (from[id] > 0 && ITEMS[id] && f(ITEMS[id], id) && !(a === 'guardaraba' && preso(id))) n += mv(from, to, id, from[id]);
+          if (n) { Audio8.sfx('pick'); log(`📦 ${a === 'guardaraba' ? 'Guardou' : 'Pegou'} <b>${n.toLocaleString('pt-BR')}</b> itens da aba ${ABAS.find(t => t[0] === aba)[2]}.`, 'sys'); } bsel = null; }
+        if (a === 'loot') { let n = 0; for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id] && LOOT_KINDS.includes(ITEMS[id].kind) && !preso(id)) n += mv(P.inv, b, id, P.inv[id]); if (n) log(`📦 Guardou <b>${n.toLocaleString('pt-BR')}</b> itens da pilhagem.`, 'sys'); bsel = null; }
         buildHotbar(); save(); renderBau();
       });
     }
     return w;
   }
+  function detalhe(id) {
+    const I = it(id);
+    if (I.kind === 'equip') { const R = typeof Vida !== 'undefined' && Vida.RARITY ? Vida.RARITY[I.rar] : null; return `${R ? `<span style="color:${R.c}">${R.n}</span> · ` : ''}${(Vida.SLOTS && Vida.SLOTS[I.slot]) || I.slot || ''}`; }
+    return { carta: 'Carta de monstro', mat: 'Material', semente: 'Semente', colheita: 'Colheita do Sítio', comida: 'Comida', racao: 'Ração', montaria: 'Montaria' }[I.kind] || (I.use ? 'Usável' : '');
+  }
   function renderBau() {
-    const b = S().bau;
-    const cell = (side, id, n) => `<div class="icell${bsel === side + ':' + id ? ' sel' : ''}${ITEMS[id] && ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${side}:${id}" title="${it(id).name}"><span>${it(id).ic}</span><b>${n}</b></div>`;
-    const bi = Object.keys(b).filter(id => b[id] > 0 && ITEMS[id]), mi = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
-    let det = '<small>Toque num item para escolher quanto mover.</small>';
-    if (bsel) { const [side, id] = bsel.split(':'), n = side === 'b' ? b[id] : P.inv[id], verb = side === 'b' ? 'Pegar' : 'Guardar';
-      det = `<b>${it(id).ic} ${it(id).name}</b> ×${n}<div class="ibtn"><button data-a="one">${verb} 1</button>${n > 10 ? `<button data-a="ten">${verb} 10</button>` : ''}<button data-a="all">${verb} tudo</button></div>`; }
-    bauWin().innerHTML = `<div class="wt">📦 Baú da Casa<span class="x" data-a="x">×</span></div>
-      <div class="bau-b"><div class="bau-c"><h4>📦 No baú (${bi.length})</h4><div class="igrid">${bi.map(id => cell('b', id, b[id])).join('') || '<i class="empty">Vazio.</i>'}</div></div>
-      <div class="bau-c"><h4>🎒 Na mochila (${mi.length})</h4><div class="igrid">${mi.map(id => cell('m', id, P.inv[id])).join('') || '<i class="empty">Vazia.</i>'}</div></div></div>
-      <div class="idet">${det}</div><div class="ibtn foot"><button data-a="loot">⬇️ Guardar toda a pilhagem</button></div>
-      <div class="bau-n">O que está no baú não cai quando você morre.</div>`;
+    const b = S().bau, f = filtro();
+    const cell = (side, id, n) => `<div class="icell${bsel === side + ':' + id ? ' sel' : ''}${ITEMS[id].kind === 'equip' ? ' eq r' + ITEMS[id].rar : ''}" data-a="sel" data-v="${side}:${id}" title="${it(id).name}">${ico(id)}<b>${n > 999 ? Math.floor(n / 1000) + 'k' : n}</b></div>`;
+    const bi = Object.keys(b).filter(id => b[id] > 0 && ITEMS[id] && f(ITEMS[id], id)).sort(ordem), mi = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && f(ITEMS[id], id)).sort(ordem);
+    const todosB = Object.keys(b).filter(id => b[id] > 0 && ITEMS[id]), todosM = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id]);
+    const abas = `<div class="itabs">${ABAS.map(([k, ic, nm, ff]) => { const n = new Set([...todosB, ...todosM].filter(id => ff(ITEMS[id], id))).size; return `<div class="itab${aba === k ? ' on' : ''}" data-a="aba" data-v="${k}"><span>${ic}</span><small>${nm}</small>${k !== 'tudo' && n ? `<b>${n}</b>` : ''}</div>`; }).join('')}</div>`;
+    let det = '<small>Toque num item (no baú ou na mochila) para guardar ou pegar.</small>';
+    if (bsel) { const [side, id] = bsel.split(':'), n = side === 'b' ? b[id] || 0 : P.inv[id] || 0, verb = side === 'b' ? 'Pegar' : 'Guardar';
+      det = `<div class="bau-det">${ico(id)}<div><b>${it(id).name}</b> <small>×${n.toLocaleString('pt-BR')} ${side === 'b' ? 'no baú' : 'na mochila'}</small><br><small>${detalhe(id)}</small></div></div>
+        <div class="ibtn"><button data-a="one">${verb} 1</button>${n > 10 ? `<button data-a="ten">${verb} 10</button>` : ''}${n > 2 ? `<span class="bau-q"><button data-a="q" data-v="-10">−10</button><button data-a="q" data-v="-1">−</button><b>${qtd}</b><button data-a="q" data-v="1">+</button><button data-a="q" data-v="10">+10</button></span><button data-a="qtd">${verb} ${qtd}</button>` : ''}<button data-a="all">${verb} tudo</button></div>`; }
+    const nomeAba = ABAS.find(t => t[0] === aba)[2];
+    bauWin().innerHTML = `<div class="wt">📦 Baú da Casa<span class="x" data-a="x">×</span></div>${abas}
+      <div class="bau-b"><div class="bau-c"><h4>📦 No baú (${bi.length})</h4><div class="igrid">${bi.map(id => cell('b', id, b[id])).join('') || '<i class="empty">Nada aqui.</i>'}</div></div>
+      <div class="bau-c"><h4>🎒 Na mochila (${mi.length})</h4><div class="igrid">${mi.map(id => cell('m', id, P.inv[id])).join('') || '<i class="empty">Nada aqui.</i>'}</div></div></div>
+      <div class="idet">${det}</div>
+      <div class="ibtn foot"><button data-a="guardaraba">⬇️ Guardar tudo${aba === 'tudo' ? '' : ' de ' + nomeAba}</button><button data-a="pegaraba">⬆️ Pegar tudo${aba === 'tudo' ? '' : ' de ' + nomeAba}</button><button data-a="loot">⬇️ Guardar a pilhagem</button></div>
+      <div class="bau-n">O que está no baú não cai quando você morre. Peças presas e a montaria ficam sempre com você.</div>`;
   }
   function bauMenu() { bsel = null; renderBau(); bauWin().classList.remove('hidden'); tampa.rotation.x = -1.1; tampa.position.set(0, 1.25, -0.35); Audio8.sfx('pick'); }
   // ---------------- reformas
