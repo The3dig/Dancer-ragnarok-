@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 24/11
 
+- **⚔️ Masmorras com 5 níveis**: A **Mina da Forja**, a **Cripta das Cartas** e o **Templo do Eco Selado** agora têm **5 níveis de dificuldade**: **1 Aprendiz** (Nv 20+), **2 Veterano** (Nv 50+), **3 Mestre** (Nv 80+), **4 Lendário** (Nv 110+) e **5 Impossível** (Nv 150+). Quanto mais alto, mais fortes os monstros e **maior o saque** (até ×4,8). Nos 🏆 **Recordes** aparece o selo do nível (N1 a N5), e quem fez num nível mais alto fica na frente. E na 🤖 caça automática dá para escolher **até onde ele vai** (de 10 a 200 m).
 - **🎨 Ícones novos dos equipamentos**: Todos os equipamentos ganharam **ícones desenhados** no lugar dos emojis: espadas, arcos, cajados, garras, elmos, capuzes, coroas, armaduras, mantos, luvas, botas, anéis e colares, com metal brilhante, gemas e as cores do material de cada peça (névoa, cristal, sombra, ouro, raiz, osso, primordial...). A cor de fundo mostra a raridade.
 - **⚔️ Portão novo da Arena**: A entrada da **Arena de Solmira** (Mestre Brakus) virou um portal de coliseu de verdade: colunas com anéis de ouro, arco de pedra, espadas cruzadas no escudo, estandartes, braseiros acesos e a luz dourada dentro do arco.
 - **🔢 Atalhos melhores**: Ao tocar em **📌 Pôr no atalho** (na mochila ou nas habilidades), agora você escolhe **em qual barra** vai: 1, 2 ou 3 (com quantos espaços livres cada uma tem). E no modo **✏️**, **segure um atalho e arraste** para o espaço que quiser: os dois trocam de lugar.

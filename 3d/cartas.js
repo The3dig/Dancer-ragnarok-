@@ -24,7 +24,7 @@ const Cartas = (() => {
   
   // ---------------- a Cripta das Cartas (o mesmo molde da Mina da Forja)
   const Cripta = criarMasmorra({
-    zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 30, limite: 2,   // 2 por semana
+    zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 20, limite: 2,   // 2 por semana
     saida: { x: VIL.x - 10.5, z: VIL.z + 5 },                            // na frente da tenda da Cartomante, em Solmira
     chefeNome: 'Guardião das Cartas', chefeCurto: 'Guardião', txtOnda: 'saíram das cartas espalhadas',
     corPedra: new THREE.Color(0.42, 0.36, 0.55), corTeto: 0x120a1c, corSaida: 0xd8b8ff, corMapa: '#160e22', corTitulo: '#c89aff',
@@ -94,7 +94,7 @@ const Cartas = (() => {
       { label: '🃏 Montar carta de monstro', fn: () => { montar(); return true; } },
       { label: '💔 Quebrar cartas (viram 🧩 fragmentos)', fn: () => { quebrar(); return true; } },
       { label: '🏆 Ranking da Cripta', fn: () => { Ranking.mostrar('cripta', () => npc(eu)); return true; } },
-      { label: `🏛️ Cripta das Cartas: sozinho (nível 30+) · restam ${Cripta.restam()} de ${Cripta.limite} esta semana`, fn: () => { Cripta.entrar(); } },
+      { label: `🏛️ Cripta das Cartas: sozinho (5 níveis, do Nv 20 ao 150) · restam ${Cripta.restam()} de ${Cripta.limite} esta semana`, fn: () => { Cripta.entrar(); } },
       { label: Cripta.corridaDoGrupo() ? `👥 Entrar na Cripta com o seu grupo (${Cripta.corridaDoGrupo().nome} já começou)` : '👥 Cripta das Cartas em grupo (2 a 6: mais difícil, saque bem maior)', fn: () => { Cripta.entrar('grupo'); } },
       { label: 'Até mais' }]);
   }

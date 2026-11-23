@@ -9,7 +9,7 @@
 const AutoCaca = (() => {
   const RAIO = 30;                                                        // caça até 30 m do ponto onde começou
   let on = false, centro = null, potT = 0, skT = 0, mortes0 = 0, t0 = 0, win = null;
-  const cfg = () => (P.autoCfg = P.autoCfg || { bichos: [], skills: [], hp: 50, sp: 30, parar: 20 });
+  const cfg = () => { const c = (P.autoCfg = P.autoCfg || { bichos: [], skills: [], hp: 50, sp: 30, parar: 20 }); if (!c.raio) c.raio = RAIO; return c; };
   const ativas = () => SKILLS.map((s, i) => ({ s, i })).filter(({ s }) => s.type !== 'passiva' && (P.skillLv[s.id] || 0) > 0 && (typeof tierOk !== 'function' || tierOk(s)));
   // a melhor poção que você pode usar agora (a maior liberada para o seu nível)
   function pocao(tipo) {
@@ -32,6 +32,7 @@ const AutoCaca = (() => {
         if (a === 'bicho') { const k = C.bichos.indexOf(v); if (k >= 0) C.bichos.splice(k, 1); else C.bichos.push(v); }
         if (a === 'skill') { const k = C.skills.indexOf(v); if (k >= 0) C.skills.splice(k, 1); else C.skills.push(v); }
         if (a === 'hp' || a === 'sp' || a === 'parar') C[a] = Math.max(0, Math.min(90, C[a] + (+v)));
+        if (a === 'raio') C.raio = Math.max(10, Math.min(200, C.raio + (+v)));
         if (a === 'todos') C.bichos = Object.keys(pertoTipos());
         if (a === 'ir') { win.classList.add('hidden'); comecar(); return; }
         if (a === 'parar_ja') { parar('🤖 Caça automática parada.'); }
@@ -55,7 +56,9 @@ const AutoCaca = (() => {
       <div class="au-p">❤️ Tomar poção de vida abaixo de ${btn('hp', -10, '−', false)} <b>${C.hp}%</b> ${btn('hp', 10, '+', false)} <small>${hpP ? `usa ${ITEMS[hpP].ic} ${ITEMS[hpP].name} (${P.inv[hpP]})` : '⚠️ sem poção de vida!'}</small></div>
       <div class="au-p">💧 Tomar poção de SP abaixo de ${btn('sp', -10, '−', false)} <b>${C.sp}%</b> ${btn('sp', 10, '+', false)} <small>${spP ? `usa ${ITEMS[spP].ic} ${ITEMS[spP].name} (${P.inv[spP]})` : 'sem poção de SP'}</small></div>
       <div class="au-p">🛑 Parar se a vida ficar abaixo de ${btn('parar', -5, '−', false)} <b>${C.parar}%</b> ${btn('parar', 5, '+', false)} <small>sem poção de vida</small></div>
-      <p class="au-dica"><small>Ele caça até ${RAIO} m de onde você começar e se defende de quem atacar. Mexa o personagem para parar. A cura de habilidade (se marcada) é usada quando a vida cai.</small></p>
+      <h4>4. Até onde ele vai</h4>
+      <div class="au-p">📏 Caçar até ${btn('raio', -10, '−', false)} <b>${C.raio} m</b> ${btn('raio', 10, '+', false)} de onde você começar <small>(perto: fica no lugar · longe: anda pelo mapa)</small></div>
+      <p class="au-dica"><small>Ele caça até ${C.raio} m de onde você começar e se defende de quem atacar. Mexa o personagem para parar. A cura de habilidade (se marcada) é usada quando a vida cai.</small></p>
       ${on ? '' : btn('ir', '', '▶️ Começar a caçar aqui', false)}</div>`;
   }
 
@@ -83,7 +86,7 @@ const AutoCaca = (() => {
     for (const m of mobs) {
       if (m.dead || m.isPeer || m.d.world) continue;
       const dP = Math.hypot(m.x - P.x, m.z - P.z), dC = Math.hypot(m.x - centro.x, m.z - centro.z);
-      const ameaca = m.state === 'chase' && dP < 6, quero = C.bichos.includes(m.type) && dC < RAIO;
+      const ameaca = m.state === 'chase' && dP < 6, quero = C.bichos.includes(m.type) && dC < C.raio;
       if (!ameaca && !quero) continue;
       const sc = dP - (ameaca ? 100 : 0); if (sc < bd) { bd = sc; best = m; }
     }

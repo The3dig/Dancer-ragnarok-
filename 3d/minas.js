@@ -8,6 +8,20 @@
 //  - Cripta das Cartas (Cartomante Zaíra, cartas.js): 🧩 Fragmentos Arcanos e, raramente, uma Carta Arcana.
 // =====================================================================
 'use strict';
+// ---------------- níveis de dificuldade das masmorras (compartilhado: Mina, Cripta e Templo)
+// lv = nível mínimo do personagem; mob = nível dos monstros; saque = multiplicador dos drops e do baú
+const DIFS = [
+  { n: 1, lv: 20, mob: 20, saque: 1, nome: 'Aprendiz' },
+  { n: 2, lv: 50, mob: 50, saque: 1.6, nome: 'Veterano' },
+  { n: 3, lv: 80, mob: 80, saque: 2.4, nome: 'Mestre' },
+  { n: 4, lv: 110, mob: 110, saque: 3.4, nome: 'Lendário' },
+  { n: 5, lv: 150, mob: 150, saque: 4.8, nome: 'Impossível' },
+];
+function escolherNivel(titulo, fn) {
+  dialog(`${titulo} · escolha o nível`, 'Quanto mais alto o nível, mais fortes os monstros e <b>maior o saque</b>. O 🏆 recorde mostra em que nível você fez (nível mais alto fica na frente).', [
+    ...DIFS.map(d => ({ label: `${P.lv >= d.lv ? '⚔️' : '🔒'} Nível ${d.n} · ${d.nome} — Nv ${d.lv}+ · saque ×${d.saque}`, fn: () => { if (P.lv < d.lv) { log(`🔒 O nível ${d.n} é para o nível ${d.lv} em diante.`, 'bad'); Audio8.sfx('miss'); return true; } fn(d.n); } })),
+    { label: 'Cancelar' }]);
+}
 function criarMasmorra(C) {
   const M = C.lugar, R = M.r, ONDAS = C.ondas, TEMPO = C.tempo;
   const ENTRADA = { x: M.x, z: M.z + R - 6.5 };                        // chegada: bem longe do arco da saída (antes caía em cima dele e já saía)
@@ -31,14 +45,17 @@ function criarMasmorra(C) {
   // ---------------- monstros: do seu nível, das espécies dos mapas perto desse nível
   const BASE = () => Object.keys(MOBDEF).filter(t => { const d = MOBDEF[t]; return !d.boss && !d.mini && !d.world && !d.alfa && !d.field && d.drops && t !== 'fungolino'; });
   function escolher(L) { return BASE().map(t => [t, Math.abs(MOBDEF[t].lv - L)]).sort((a, b) => a[1] - b[1]).slice(0, 4).map(x => x[0]); }
-  const nivel = () => Math.max(10, Math.min(100, P.lv));
+  // ---------------- 5 níveis de dificuldade (pedido do Rone): o nível dos monstros é o do nível escolhido,
+  // e o saque cresce junto. Vale para a Mina e a Cripta (e o Templo tem os mesmos níveis).
+  const nivel = () => run && run.dif ? DIFS[run.dif - 1].mob : Math.max(10, Math.min(100, P.lv));
   // grupo de n pessoas: vida x(1 + 0,8 por pessoa a mais) e x1,3; ataque x1,35; chefe ainda x1,5; XP e saque multiplicados
   const fatorVida = n => n > 1 ? (1 + 0.8 * (n - 1)) * 1.3 : 1;
+  function multNivel(l) { const k = run && run.dif ? DIFS[run.dif - 1].saque : 1; if (k <= 1) return l; const out = []; for (const [id, ch] of l) { let c = ch * k; while (c >= 1) { out.push([id, 1]); c -= 1; } if (c > 0.01) out.push([id, c]); } return out; }
   function multDrops(l, n) { if (n <= 1) return l; const k = 1.6 * n, out = []; for (const [id, ch] of l) { let c = ch * k; while (c >= 1) { out.push([id, 1]); c -= 1; } if (c > 0.01) out.push([id, c]); } return out; }
   function escalar(m, L, chefe, n = 1) {
     const d0 = m.d, kf = L / d0.lv, xp = typeof Tower !== 'undefined' && Tower.xpCampo ? Tower.xpCampo(L) : d0.xp;
     m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.6) * (chefe ? 14 : 1) * fatorVida(n) * (chefe && n > 1 ? 1.5 : 1)), atk: Math.round(d0.atk * kf * (chefe ? 1.4 : 1) * (n > 1 ? 1.35 : 1)), def: Math.round(d0.def * kf), xp: Math.round(xp * (chefe ? 6 : 0.7) * (n > 1 ? 1.3 * n : 1)),
-      zeny: [Math.round(d0.zeny[0] * kf), Math.round(d0.zeny[1] * kf)], aggro: 30, respawn: 1e9, drops: multDrops(C.drops(chefe), n) };
+      zeny: [Math.round(d0.zeny[0] * kf), Math.round(d0.zeny[1] * kf)], aggro: 30, respawn: 1e9, drops: multNivel(multDrops(C.drops(chefe), n)) };
     if (chefe) { m.d.name = C.chefeNome; m.d.mini = true; m.model.g.scale.multiplyScalar(1.6); }
     m.hp = m.maxHp = m.d.hp; m.towerFloor = C.zona; m.noRespawn = true; m.masm = C.zona;
     const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${m.d.name} <small>Nv ${L}</small>`;
@@ -88,7 +105,12 @@ function criarMasmorra(C) {
   function usadas() { const s = P.dgSemana; return s && s.w === semana() ? (s[C.zona] || 0) : 0; }
   const restam = () => C.limite ? Math.max(0, C.limite - usadas()) : 99;
   function gastar() { if (!P.dgSemana || P.dgSemana.w !== semana()) P.dgSemana = { w: semana() }; P.dgSemana[C.zona] = (P.dgSemana[C.zona] || 0) + 1; try { save(); } catch (e) { } }
-  function entrar(modo) {
+  function entrar(modo, dif) {
+    // escolhe o nível de dificuldade (quem entra na corrida do grupo usa o nível que o companheiro escolheu)
+    const doGrupo = modo === 'grupo' && corridaDoGrupo();
+    if (!dif && doGrupo) dif = doGrupo.dif || 1;
+    if (!dif) { setTimeout(() => escolherNivel(C.icone + ' ' + C.nome, k => entrar(modo, k)), 40); return; }
+    if (P.lv < DIFS[dif - 1].lv) { log(`${C.icone} O <b>nível ${dif}</b> da ${C.nome} é para o nível ${DIFS[dif - 1].lv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
     if (C.minLv && P.lv < C.minLv) { log(`${C.icone} A <b>${C.nome}</b> é para o nível ${C.minLv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
     if (!restam()) { log(`${C.icone} Você já entrou <b>${C.limite} vezes</b> na <b>${C.nome}</b> esta semana. Ela abre de novo na <b>segunda-feira</b>.`, 'bad'); Audio8.sfx('miss'); return; }
     let grupo = null;
@@ -105,10 +127,10 @@ function criarMasmorra(C) {
     limpar();
     P.x = ENTRADA.x; P.z = ENTRADA.z; P.y = M.y; P.face = Math.PI; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.dist = Math.min(camS.dist || 9, 11);
     P.protT = time + 3; Audio8.sfx('warp'); leaveT = 1.5; saidaArmada = false;
-    if (typeof Ranking !== 'undefined') Ranking.comecar(C.zona);
+    if (typeof Ranking !== 'undefined') Ranking.comecar(C.zona, dif);
     gastar(); if (C.limite) log(`${C.icone} Entradas na ${C.nome} esta semana: <b>${usadas()} de ${C.limite}</b>.`, 'sys');
-    run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo };
-    banner(`${C.icone} ${C.nome.toUpperCase()}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
+    run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo, dif };
+    banner(`${C.icone} ${C.nome.toUpperCase()} · NÍVEL ${dif}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
     if (grupo) log(grupo.host ? `👥 <b>Corrida em grupo (${grupo.n} pessoas):</b> monstros mais fortes e em maior número, saque bem maior. Seus companheiros entram falando com o mesmo NPC.` : `👥 Você entrou na corrida do grupo de <b>${grupo.de}</b>.`, 'gold');
     hud(true);
   }
@@ -160,7 +182,7 @@ function criarMasmorra(C) {
     mg.font = '11px sans-serif'; mg.fillStyle = '#c8b8a8'; mg.fillText(run && run.acabou ? 'limpa' : run && run.chefe ? C.chefeCurto : run ? `onda ${Math.max(1, run.onda + 1)} de ${ONDAS.length}` : '', W / 2, H / 2 + 22); mg.textAlign = 'left';
   }
   // o que vai na presença de quem começou a corrida em grupo (os companheiros leem)
-  function pres() { const G = run && run.grupo; return G && G.host ? { id: G.id, z: C.zona, n: G.n, fim: Math.round(Date.now() + (run.fim - time) * 1000), onda: run.onda, chefe: run.chefe, acabou: run.acabou } : null; }
+  function pres() { const G = run && run.grupo; return G && G.host ? { id: G.id, z: C.zona, n: G.n, dif: run.dif, fim: Math.round(Date.now() + (run.fim - time) * 1000), onda: run.onda, chefe: run.chefe, acabou: run.acabou } : null; }
   const api = { update, minimap, entrar, sair, criarRemoto, pres, corridaDoGrupo, restam, limite: C.limite, saida: C.saida, get correndo() { return !!(run && !run.acabou); } };
   MASMORRAS[C.zona] = api;
   return api;

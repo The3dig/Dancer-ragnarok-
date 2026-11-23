@@ -10,18 +10,20 @@ const Ranking = (() => {
   const fmt = s => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return h ? `${h}h ${String(m).padStart(2, '0')}min` : `${m}:${String(ss).padStart(2, '0')}`; };
   const num = n => Math.round(n).toLocaleString('pt-BR');
 
-  function comecar(cat) { corrida = { cat, t0: Date.now(), dano: 0 }; }
+  const DG = ['minas', 'cripta', 'templo'];
+  const selo = (cat, o) => DG.includes(cat) && o.nivel ? ` <span class="rk-nv n${o.nivel}">N${o.nivel}</span>` : '';
+  function comecar(cat, nivel) { corrida = { cat, t0: Date.now(), dano: 0, nivel: nivel || 1 }; }
   function dano(v) { if (corrida && v > 0) corrida.dano += v; }
   function cancelar(cat) { if (corrida && (!cat || corrida.cat === cat)) corrida = null; }
   const atual = () => corrida;
   async function terminar(cat) {
     if (!corrida || corrida.cat !== cat) return;
     if (typeof Tarefas !== 'undefined') Tarefas.evento('masmorra');
-    const tempo = (Date.now() - corrida.t0) / 1000, d = corrida.dano; corrida = null;
-    log(`🏆 <b>${NOMES[cat]}</b> concluída em <b>${fmt(tempo)}</b>, com <b>${num(d)}</b> de dano.`, 'gold');
+    const tempo = (Date.now() - corrida.t0) / 1000, d = corrida.dano, nv = corrida.nivel || 1; corrida = null;
+    log(`🏆 <b>${NOMES[cat]}</b>${DG.includes(cat) ? ` (nível ${nv})` : ''} concluída em <b>${fmt(tempo)}</b>, com <b>${num(d)}</b> de dano.`, 'gold');
     if (typeof Nuvem === 'undefined' || !Nuvem.logado) return;
     try {
-      const r = await Nuvem.api('POST', '/conta/ranking/' + cat, { nome: P.name, vaga: typeof Contas !== 'undefined' ? Contas.slot : 0, tempo, dano: d });
+      const r = await Nuvem.api('POST', '/conta/ranking/' + cat, { nome: P.name, vaga: typeof Contas !== 'undefined' ? Contas.slot : 0, tempo, dano: d, nivel: nv });
       const pt = (r.tempo || []).findIndex(o => o.nome === P.name), pd = (r.dano || []).findIndex(o => o.nome === P.name);
       if (pt >= 0 || pd >= 0) log(`🏆 Você está no ranking: ${pt >= 0 ? `<b>${pt + 1}º em tempo</b>` : ''}${pt >= 0 && pd >= 0 ? ' e ' : ''}${pd >= 0 ? `<b>${pd + 1}º em dano</b>` : ''}!`, 'gold');
     } catch (e) { }
@@ -29,7 +31,7 @@ const Ranking = (() => {
   async function mostrar(cat, voltar) {
     let r = null;
     try { r = await Nuvem.api('GET', '/conta/ranking/' + cat); } catch (e) { }
-    const lista = (l, f) => l && l.length ? l.map((o, i) => `${['🥇', '🥈', '🥉'][i] || `<b>${i + 1}º</b>`} ${o.nome} — <b>${f(o)}</b>`).join('<br>') : '<small>Ninguém ainda. Seja o primeiro!</small>';
+    const lista = (l, f) => l && l.length ? l.map((o, i) => `${['🥇', '🥈', '🥉'][i] || `<b>${i + 1}º</b>`} ${o.nome}${selo(cat, o)} — <b>${f(o)}</b>`).join('<br>') : '<small>Ninguém ainda. Seja o primeiro!</small>';
     const txt = r ? `<div class="rk"><div><b>⏱️ Mais rápidos</b><br>${lista(r.tempo, o => fmt(o.tempo))}</div><div><b>💥 Mais dano</b><br>${lista(r.dano, o => num(o.dano))}</div></div>` : 'Não deu para buscar o ranking agora (sem internet?).';
     dialog(`🏆 Ranking: ${NOMES[cat]}`, txt, [...(voltar ? [{ label: '← Voltar', fn: () => { voltar(); return true; } }] : []), { label: 'Fechar' }]);
   }
@@ -52,21 +54,21 @@ const Ranking = (() => {
   // 🏆 Recordes: já mostra os 5 primeiros de cada lugar (tempo e dano); tocar num lugar mostra os 10
   async function recordes() {
     const med = i => ['🥇', '🥈', '🥉'][i] || `<b>${i + 1}º</b>`;
-    const top = (l, f) => l && l.length ? l.slice(0, 5).map((o, i) => `${med(i)} ${o.nome} <b>${f(o)}</b>`).join('<br>') : '<small>ninguém ainda</small>';
+    const top = (l, f, cat) => l && l.length ? l.slice(0, 5).map((o, i) => `${med(i)} ${o.nome}${selo(cat, o)} <b>${f(o)}</b>`).join('<br>') : '<small>ninguém ainda</small>';
     dialog('🏆 Recordes', '<small>Buscando os recordes…</small>', [{ label: 'Fechar' }]);
     const rs = await Promise.all(ORDEM.map(c => Nuvem.api('GET', '/conta/ranking/' + c).catch(() => null)));
     if (!dialogOpen) return;                                             // fechou enquanto buscava
-    const blocos = ORDEM.map((c, k) => { const r = rs[k]; return `<div class="rk-bloco"><b class="rk-t">${NOMES[c]}</b>${r ? `<div class="rk"><div><small>⏱️ Mais rápidos</small><br>${top(r.tempo, o => fmt(o.tempo))}</div><div><small>💥 Mais dano</small><br>${top(r.dano, o => num(o.dano))}</div></div>` : '<small>sem conexão</small>'}</div>`; }).join('');
-    dialog('🏆 Recordes', `<small>Os 5 primeiros de cada lugar. Toque num lugar para ver os 10.</small>${blocos}`, [
+    const blocos = ORDEM.map((c, k) => { const r = rs[k]; return `<div class="rk-bloco"><b class="rk-t">${NOMES[c]}</b>${r ? `<div class="rk"><div><small>⏱️ Mais rápidos</small><br>${top(r.tempo, o => fmt(o.tempo), c)}</div><div><small>💥 Mais dano</small><br>${top(r.dano, o => num(o.dano), c)}</div></div>` : '<small>sem conexão</small>'}</div>`; }).join('');
+    dialog('🏆 Recordes', `<small>Os 5 primeiros de cada lugar. Nas masmorras, o selo <b>N1 a N5</b> é o nível de dificuldade: quem fez num nível mais alto fica na frente. Toque num lugar para ver os 10.</small>${blocos}`, [
       ...ORDEM.map(c => ({ label: NOMES[c], fn: () => { mostrar(c, recordes); return true; } })), { label: '⚔️ Arena (vitórias da temporada)', fn: () => { if (typeof Arena !== 'undefined') Arena.ranking(recordes); return true; } }, { label: 'Fechar' }]);
   }
   const npcPos = id => { const n = NPCS.find(o => o.id === id); return n ? { x: n.x, z: n.z + 2.5 } : null; };
   const MASM = () => {
     const sem = (m, lim) => m && m.restam ? `restam <b>${m.restam()} de ${lim}</b> esta semana` : '';
     return [
-      { cat: 'templo', ic: '🏛️', quem: 'Estudiosa Ilka', nome: 'Templo do Eco Selado', onde: 'Estudiosa Ilka, ao sul da praça de Solmira', nivel: '30+', sem: sem(MASMORRAS.eco, 3), txt: 'Armadilhas e enigmas em 6 salas e o Guardião do Eco. Baú de ouro, prata ou bronze pelo tempo e pelas quedas. Sozinho ou em grupo.', pos: () => npcPos('templo') },
-      { cat: 'cripta', ic: '🃏', quem: 'Cartomante Zaíra', nome: 'Cripta das Cartas', onde: 'Cartomante Zaíra, na tenda roxa a oeste da praça de Solmira', nivel: '30+', sem: sem(MASMORRAS.cripta, 2), txt: '3 ondas e o Guardião das Cartas em 8 minutos. 🧩 Fragmentos Arcanos e, raramente, uma Carta Arcana. Sozinho ou em grupo.', pos: () => npcPos('cartas') },
-      { cat: 'minas', ic: '⛏️', quem: 'Ferreiro Doran', nome: 'Mina da Forja', onde: 'Ferreiro Doran, perto da praça de Solmira', nivel: 'qualquer', sem: sem(MASMORRAS.minas, 5), txt: '3 ondas e o Capataz em 8 minutos. 🔶 Minério, 🔷 Têmpera e 🔰 Selo da Forja para o refino. Sozinho ou em grupo.', pos: () => npcPos('smith') },
+      { cat: 'templo', ic: '🏛️', quem: 'Estudiosa Ilka', nome: 'Templo do Eco Selado', onde: 'Estudiosa Ilka, ao sul da praça de Solmira', nivel: '20+ · 5 níveis', sem: sem(MASMORRAS.eco, 3), txt: 'Armadilhas e enigmas em 6 salas e o Guardião do Eco. Baú de ouro, prata ou bronze pelo tempo e pelas quedas. Sozinho ou em grupo.', pos: () => npcPos('templo') },
+      { cat: 'cripta', ic: '🃏', quem: 'Cartomante Zaíra', nome: 'Cripta das Cartas', onde: 'Cartomante Zaíra, na tenda roxa a oeste da praça de Solmira', nivel: '20+ · 5 níveis', sem: sem(MASMORRAS.cripta, 2), txt: '3 ondas e o Guardião das Cartas em 8 minutos. 🧩 Fragmentos Arcanos e, raramente, uma Carta Arcana. Sozinho ou em grupo.', pos: () => npcPos('cartas') },
+      { cat: 'minas', ic: '⛏️', quem: 'Ferreiro Doran', nome: 'Mina da Forja', onde: 'Ferreiro Doran, perto da praça de Solmira', nivel: '20+ · 5 níveis', sem: sem(MASMORRAS.minas, 5), txt: '3 ondas e o Capataz em 8 minutos. 🔶 Minério, 🔷 Têmpera e 🔰 Selo da Forja para o refino. Sozinho ou em grupo.', pos: () => npcPos('smith') },
       { cat: 'torre', ic: '🗼', quem: 'a porta da Torre', nome: 'Torre do Cisma', onde: 'na Cidadela do Cisma (extremo leste)', nivel: '18 a 58', sem: 'sem limite', txt: '30 andares subindo, com guardiões a cada 5. No topo, o Kravenox acorda aos sábados, às 20h. 🔺 Fragmentos do Cisma para o Despertar.', pos: () => typeof Tower !== 'undefined' && Tower.door ? { x: Tower.door.x, z: Tower.door.z + 5 } : null },
       { cat: 'arena', ic: '⚔️', quem: 'Mestre Brakus', nome: 'Arena de Solmira', onde: 'Mestre Brakus, a leste da praça de Solmira', nivel: '15+', sem: 'sem limite', txt: 'PvP livre num coliseu, sem penalidade (morrer não tira XP nem itens). Cada vitória conta no placar da temporada (um mês).', pos: () => npcPos('arena') },
       { cat: 'forte', ic: '🏰', quem: 'Comandante Varek', nome: 'Guerra de Guildas', onde: 'Comandante Varek, ao sul da praça de Solmira', nivel: 'membro de guilda', sem: 'domingo, 18h às 19h', txt: 'A Fortaleza das Bandeiras: a guilda que causar mais dano no Coração da Fortaleza domina a semana inteira (+10% de XP e de drop para os membros).', pos: () => npcPos('guerra') },

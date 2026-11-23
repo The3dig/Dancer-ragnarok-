@@ -173,7 +173,7 @@ const Templo = (() => {
   }
   function errar3(sala) {
     log('💢 Ordem errada! As alavancas voltaram e criaturas saíram das paredes.', 'bad'); run.quedas++;
-    const L = Math.max(10, Math.min(100, P.lv)), tipos = Object.keys(MOBDEF).filter(t => { const d = MOBDEF[t]; return !d.boss && !d.mini && !d.alfa && !d.field && !d.world && d.drops; }).sort((a, b) => Math.abs(MOBDEF[a].lv - L) - Math.abs(MOBDEF[b].lv - L)).slice(0, 3);
+    const L = nivel(), tipos = Object.keys(MOBDEF).filter(t => { const d = MOBDEF[t]; return !d.boss && !d.mini && !d.alfa && !d.field && !d.world && d.drops; }).sort((a, b) => Math.abs(MOBDEF[a].lv - L) - Math.abs(MOBDEF[b].lv - L)).slice(0, 3);
     for (let k = 0; k < 3; k++) { const m = spawnMob(tipos[k % tipos.length], null, { x: sala.S.x + rand(-4, 4), z: sala.S.z + rand(-2, 2) }); m.templo = true; m.noRespawn = true; m.towerFloor = 'templo'; m.state = 'chase'; }
     reiniciar3(sala);                                                     // a ordem continua a mesma: quem errou aprendeu algo
   }
@@ -298,7 +298,7 @@ const Templo = (() => {
     const tampa = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.3, 1.1), ouroM); tampa.position.y = 1.05; sala.bau.add(tampa); sala.tampa = tampa;
   }
   function preparar6(sala) { for (const p of sala.pil) { p.aceso = 0; p.t = 0; } sala.guardiao = null; sala.vulnAte = 0; sala.bauAberto = false; sala.bau.visible = false; sala.armT = 3; }
-  const nivel = () => Math.max(10, Math.min(100, P.lv));
+  const nivel = () => run && run.dif && typeof DIFS !== 'undefined' ? DIFS[run.dif - 1].mob : Math.max(10, Math.min(100, P.lv));   // nível de dificuldade escolhido (1 a 5)
   function escalarGuardiao(m, L, n) {
     const d0 = m.d, kf = L / d0.lv;
     m.d = { ...d0, name: 'Guardião do Eco', lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.6) * 30 * (n > 1 ? (1 + 0.8 * (n - 1)) * 1.3 : 1)), atk: Math.round(d0.atk * kf * 1.5), def: Math.round(d0.def * kf), xp: Math.round((typeof Tower !== 'undefined' && Tower.xpCampo ? Tower.xpCampo(L) : d0.xp) * 20), zeny: [Math.round(d0.zeny[0] * kf * 5), Math.round(d0.zeny[1] * kf * 5)], aggro: 40, respawn: 1e9, mini: true, drops: [['red', 1], ['blue', 1]] };
@@ -360,7 +360,7 @@ const Templo = (() => {
     const T = (Date.now() - run.t0) / 1000, Q = run.quedas, n = run.grupo ? run.grupo.n : 1;
     const nota = T < 600 && Q <= 3 ? 'ouro' : T < 1080 && Q <= 8 ? 'prata' : 'bronze';
     const R = { ouro: { frag_cisma: 14, frag_carta: 20, nucleo_abismo: 3, selo_forja: 1, cr: 70000 }, prata: { frag_cisma: 8, frag_carta: 12, nucleo_abismo: 1, cr: 40000 }, bronze: { frag_cisma: 4, frag_carta: 6, cr: 20000 } }[nota];
-    const mult = n > 1 ? 1.5 : 1, partes = [];
+    const mult = (n > 1 ? 1.5 : 1) * (run.dif && typeof DIFS !== 'undefined' ? DIFS[run.dif - 1].saque : 1), partes = [];
     for (const [k, v] of Object.entries(R)) { const q = Math.round(v * mult); if (k === 'cr') { P.zeny += q; partes.push(`${q.toLocaleString('pt-BR')} cr`); } else { P.inv[k] = (P.inv[k] || 0) + q; partes.push(`${q} ${ITEMS[k].ic} ${ITEMS[k].name}`); } }
     const xp = Math.round((typeof Tower !== 'undefined' && Tower.xpCampo ? Tower.xpCampo(nivel()) : 1000) * 25 * mult); gainXp(xp);
     if (nota === 'ouro' && P.title !== 'Decifrador do Eco' && !P.ecoOuro) { P.ecoOuro = 1; P.title = 'Decifrador do Eco'; $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`; log('🏅 Título novo: <b>« Decifrador do Eco »</b>!', 'gold'); }
@@ -393,8 +393,13 @@ const Templo = (() => {
     for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === 'eco' && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
     return null;
   }
-  function entrar(modo) {
-    if (P.lv < 30) { log('🏛️ O Templo do Eco Selado é para o nível 30 em diante.', 'bad'); Audio8.sfx('miss'); return; }
+  function entrar(modo, dif) {
+    const doGrupo = modo === 'grupo' && corridaDoGrupo();
+    if (!dif && doGrupo) dif = doGrupo.dif || 1;
+    if (!dif && typeof escolherNivel === 'function') { setTimeout(() => escolherNivel('🏛️ Templo do Eco Selado', k => entrar(modo, k)), 40); return; }
+    dif = dif || 1;
+    if (typeof DIFS !== 'undefined' && P.lv < DIFS[dif - 1].lv) { log(`🏛️ O <b>nível ${dif}</b> do Templo é para o nível ${DIFS[dif - 1].lv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
+    if (P.lv < 20) { log('🏛️ O Templo do Eco Selado é para o nível 20 em diante.', 'bad'); Audio8.sfx('miss'); return; }
     if (!restam()) { log(`🏛️ Você já entrou <b>${LIMITE} vezes</b> no Templo esta semana. Ele abre de novo na <b>segunda-feira</b>.`, 'bad'); Audio8.sfx('miss'); return; }
     let grupo = null;
     if (modo === 'grupo') {
@@ -408,14 +413,14 @@ const Templo = (() => {
     }
     if (typeof autoStop === 'function') autoStop('');
     if (!P.dgSemana || P.dgSemana.w !== semana()) P.dgSemana = { w: semana() }; P.dgSemana.templo = (P.dgSemana.templo || 0) + 1;
-    run = { sala: 0, t0: Date.now(), quedas: 0, grupo, acabou: false };
+    run = { sala: 0, t0: Date.now(), quedas: 0, grupo, acabou: false, dif };
     prepararTudo(grupo ? hashStr(grupo.id) : (Math.random() * 1e9) | 0);
     // as 5 primeiras salas vêm em ordem sorteada (o Guardião é sempre o último): não dá para decorar o templo
     const rnd = sorteador((grupo ? hashStr(grupo.id) : (Math.random() * 1e9) | 0) ^ 0x5bd1e995);
     run.ordem = [0, 1, 2, 3, 4].sort(() => rnd() - 0.5).concat(5); run.passo = 0;
     for (const L of salas[1].laminas) L.vel = 0.8 + rnd() * 0.5;   // e as lâminas mudam de velocidade
     irPara(0);
-    if (typeof Ranking !== 'undefined') Ranking.comecar('templo');
+    if (typeof Ranking !== 'undefined') Ranking.comecar('templo', dif);
     banner('🏛️ TEMPLO DO ECO SELADO'); Audio8.sfx('warp');
     log(`🏛️ <b>Templo do Eco Selado</b>${grupo ? ' (em grupo)' : ''}: 6 salas de armadilhas e enigmas. Não há pressa de desabar, mas o <b>tempo</b> e as <b>quedas</b> contam para o baú e para o 🏆 ranking. Entradas esta semana: <b>${usadas()} de ${LIMITE}</b>.`, 'gold');
     try { save(); } catch (e) { }
@@ -461,7 +466,7 @@ const Templo = (() => {
     mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; if (run) { mg.fillText(`Sala ${run.passo + 1}/6`, W / 2, H / 2 - 4); mg.fillText(`⏱️ ${Ranking.fmt((Date.now() - run.t0) / 1000)} · 💢 ${run.quedas}`, W / 2, H / 2 + 14); }
     mg.textAlign = 'left';
   }
-  function pres() { return run && run.grupo && run.grupo.host ? { id: run.grupo.id, z: 'eco', n: run.grupo.n, fim: run.t0 + 30 * 60e3, onda: run.passo, chefe: run.sala === 5, acabou: run.acabou } : null; }
+  function pres() { return run && run.grupo && run.grupo.host ? { id: run.grupo.id, z: 'eco', n: run.grupo.n, fim: run.t0 + 30 * 60e3, onda: run.passo, chefe: run.sala === 5, acabou: run.acabou, dif: run.dif } : null; }
 
   // ---------------- a Estudiosa Ilka e a entrada da ruína em Solmira
   {
