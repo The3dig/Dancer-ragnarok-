@@ -13,7 +13,7 @@ const Grupo = (() => {
   const MAX = 8, PERTO = 45;
   // ---------------- masmorra em grupo com aceite (pedido do Rone): quem chama vira o líder; cada um do grupo
   // responde; todos aceitaram → o líder entra e o grupo entra junto; alguém recusou ou não respondeu → ninguém entra
-  let pedido = null, resposta = null, pedidosVistos = new Set(), aguardando = null, pedT = 0;
+  let pedido = null, resposta = null, pedidosVistos = new Set(), aguardando = null, pedT = 0, recebido = null;
   function pedirMasmorra(o) {
     const M = membros(); if (!M.length) { o.comecar(); return; }
     pedido = { id: Math.random().toString(36).slice(2, 8), z: o.z, nome: o.nome, dif: o.dif || 1, comecar: o.comecar, ate: Date.now() + 30000, quem: M.map(r => ({ peer: r.peer, n: r.n })) };
@@ -40,16 +40,24 @@ const Grupo = (() => {
     // pedidos que chegaram para mim
     for (const r of Net.peers()) {
       const g = r.s && r.s.gd; if (!g || !gp() || g.gp !== gp() || pedidosVistos.has(g.id)) continue; pedidosVistos.add(g.id);
-      Audio8.sfx('buff');
-      const responder = ok => { resposta = { id: g.id, ok, ate: Date.now() + 40000 }; if (ok) { aguardando = { z: g.z, dif: g.dif, ate: Date.now() + 45000 }; log(`👥 Você aceitou. Quando todos aceitarem, você entra junto com <b>${esc(r.n)}</b>.`, 'gold'); } else log('👥 Você recusou o pedido.', 'sys'); };
-      dialog('👥 Masmorra em grupo', `<b>${esc(r.n)}</b> quer entrar em <b>${esc(g.nome)}</b> (nível ${g.dif}) com o grupo.<br><small>Só entram se todos aceitarem. Se você aceitar, entra sozinho junto quando o último aceitar.</small>`, [
-        { label: '✅ Aceitar', fn: () => responder(true) }, { label: '❌ Recusar', fn: () => responder(false) }]);
+      Audio8.sfx('buff'); recebido = { g, r, ate: Date.now() + 30000 }; perguntar();
     }
+    // se outra janela tapou a pergunta e ainda não respondi, ela volta quando a outra fechar
+    if (recebido && (Date.now() > recebido.ate || !Net.peers().some(x => x.s && x.s.gd && x.s.gd.id === recebido.g.id))) recebido = null;
+    if (recebido && !dialogOpen) perguntar();
     // aceitei: entro assim que a corrida do líder aparecer
     if (aguardando) {
       const D = typeof MASMORRAS !== 'undefined' && MASMORRAS[aguardando.z];
       if (Date.now() > aguardando.ate) aguardando = null;
       else if (D && D.corridaDoGrupo && D.corridaDoGrupo() && D.entrar) { const a = aguardando; aguardando = null; if (dialogOpen) closeDialog(); D.entrar('grupo', a.dif, true); }
+    }
+  }
+  function perguntar() {
+    if (!recebido) return; const { g, r } = recebido;
+    {
+      const responder = ok => { recebido = null; resposta = { id: g.id, ok, ate: Date.now() + 40000 }; if (ok) { aguardando = { z: g.z, dif: g.dif, ate: Date.now() + 45000 }; log(`👥 Você aceitou. Quando todos aceitarem, você entra junto com <b>${esc(r.n)}</b>.`, 'gold'); } else log('👥 Você recusou o pedido.', 'sys'); };
+      dialog('👥 Masmorra em grupo', `<b>${esc(r.n)}</b> quer entrar em <b>${esc(g.nome)}</b> (nível ${g.dif}) com o grupo.<br><small>Só entram se todos aceitarem. Se você aceitar, entra sozinho junto quando o último aceitar.</small>`, [
+        { label: '✅ Aceitar', fn: () => responder(true) }, { label: '❌ Recusar', fn: () => responder(false) }]);
     }
   }
   let convite = null, vistos = new Set(), nomesAntes = null, chkT = 0, envios = [], apoios = [], apoioVisto = new Set();
