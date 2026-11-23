@@ -709,3 +709,7 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #invwin .clist button { text-align: left; background: var(--glass2); color: var(--txt); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; font-weight: 700; cursor: pointer; }
 #invwin .clist button small { color: #c8c0d0; font-weight: 600; }
 #invwin .clist button em { font-style: normal; font-weight: 600; font-size: 12px; color: #9fe0a0; }
+
+/* 🏆 ranking: duas colunas (tempo e dano) */
+#dialog .rk { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+#dialog .rk > div { flex: 1 1 200px; line-height: 1.55; }

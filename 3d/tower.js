@@ -486,6 +486,15 @@ const Tower = (() => {
     dialog('🕳️ Abismo do Cisma', 'A Torre sobe para o céu; o Abismo desce para dentro da terra. São <b>30 andares</b> (monstros nível 60 a 100) até o <b>Fundo</b>, o ninho do <b>Verme Colossal</b>.<br>Por onde você quer começar a descida?', opts);
   }
   function enter(i, fromAbove) {
+    // 🏆 ranking: Torre do 1º andar ao topo, Abismo do 1º andar ao Fundo (começar do meio, pelo ponto de retorno, não conta)
+    if (typeof Ranking !== 'undefined') {
+      if (i < 0 || i === 99) Ranking.cancelar();
+      else if (cur < 0 && i === 0) Ranking.comecar('torre');
+      else if (cur < 0 && i === 100) Ranking.comecar('abismo');
+      else if (cur < 0) Ranking.cancelar();
+      else if (i === TOP) Ranking.terminar('torre');
+      else if (i === AB_FUNDO) Ranking.terminar('abismo');
+    }
     clearFloorMobs();
     if (i === 99) {                                                    // sai do Abismo pela Cratera
       cur = -1; unbuild(); P.x = LAIR.x; P.z = LAIR.z + 7; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; crateraArmada = false; blackout();

@@ -730,6 +730,7 @@ const Vida = (() => {
       { label: '✨ Despertar equipamento (★1 a ★10)', fn: () => { despertar(); return true; } },
       { label: `⛏️ Mina da Forja: sozinho · restam ${typeof Minas !== 'undefined' ? Minas.restam() : 0} de 5 esta semana`, fn: () => { if (typeof Minas !== 'undefined') Minas.entrar(); } },
       { label: typeof Minas !== 'undefined' && Minas.corridaDoGrupo() ? `👥 Descer à Mina com o seu grupo (${Minas.corridaDoGrupo().nome} já começou)` : '👥 Mina da Forja em grupo (2 a 6: mais difícil, saque bem maior)', fn: () => { if (typeof Minas !== 'undefined') Minas.entrar('grupo'); } },
+      { label: '🏆 Ranking da Mina da Forja', fn: () => { Ranking.mostrar('minas', () => smith(eu)); return true; } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
       { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },
       { label: 'Até mais' }]);

@@ -105,6 +105,7 @@ function criarMasmorra(C) {
     limpar();
     P.x = ENTRADA.x; P.z = ENTRADA.z; P.y = M.y; P.face = Math.PI; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.dist = Math.min(camS.dist || 9, 11);
     P.protT = time + 3; Audio8.sfx('warp'); leaveT = 1.5; saidaArmada = false;
+    if (typeof Ranking !== 'undefined') Ranking.comecar(C.zona);
     gastar(); if (C.limite) log(`${C.icone} Entradas na ${C.nome} esta semana: <b>${usadas()} de ${C.limite}</b>.`, 'sys');
     run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo };
     banner(`${C.icone} ${C.nome.toUpperCase()}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
@@ -113,6 +114,7 @@ function criarMasmorra(C) {
   }
   function fimGrupo() { if (run && run.grupo && run.grupo.host && Net.connected) Net.send({ t: 'dgfim', pref: run.grupo.id + ':' }); }
   function sair(msg) {
+    if (typeof Ranking !== 'undefined') Ranking.cancelar(C.zona);
     fimGrupo(); limpar(); run = null; hud(false);
     P.x = C.saida.x; P.z = C.saida.z; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; Audio8.sfx('warp'); leaveT = 1.5;
     if (msg) log(msg, 'sys');
@@ -133,14 +135,14 @@ function criarMasmorra(C) {
     if (G && !G.host) {                                                // companheiro: segue o relógio e as ondas de quem começou
       const h = corridaDoGrupo();
       if (h && h.id === G.id) { run.onda = h.onda; run.chefe = h.chefe; run.fim = time + (h.fim - Date.now()) / 1000; G.vistoT = time; }
-      else if (time - (G.vistoT || time) > 8 || (!h && !G.vistoT)) { run.acabou = true; G.host = null; log('👥 A corrida do grupo acabou (quem começou saiu ou a masmorra foi limpa). Saia pelo arco de luz.', 'sys'); }
+      else if (time - (G.vistoT || time) > 8 || (!h && !G.vistoT)) { if (run.chefe && vivos().length === 0 && typeof Ranking !== 'undefined') Ranking.terminar(C.zona); run.acabou = true; G.host = null; log('👥 A corrida do grupo acabou (quem começou saiu ou a masmorra foi limpa). Saia pelo arco de luz.', 'sys'); }
     }
     const falta = run.fim - time, v = vivos().length;
     hudEl.innerHTML = run.acabou ? `${C.icone} ${C.nome}: limpa · saia pelo arco de luz` : `${C.icone} ${run.chefe ? C.chefeCurto : 'Onda ' + Math.max(1, run.onda + 1) + '/' + ONDAS.length} · 👾 ${v} · <b class="${falta < 60 ? 'pouco' : ''}">⏳ ${mmss(falta)}</b>`;
     if (!run.acabou && falta <= 0 && !P.dead) { Audio8.sfx('boom'); sair(C.msgDesabou); return; }
     if (G && !G.host) { /* as ondas vêm do jogo de quem começou */ }
     else if (!run.acabou && !P.dead && v === 0 && (run.espera -= dt) <= 0) {
-      if (run.chefe) { run.acabou = true; fimGrupo(); Audio8.sfx('level'); banner(`${C.nome.toUpperCase()}: LIMPA!`); log(C.msgLimpa, 'gold'); }
+      if (run.chefe) { run.acabou = true; fimGrupo(); if (typeof Ranking !== 'undefined') Ranking.terminar(C.zona); Audio8.sfx('level'); banner(`${C.nome.toUpperCase()}: LIMPA!`); log(C.msgLimpa, 'gold'); }
       else if (run.onda + 1 < ONDAS.length) { run.onda++; onda(run.onda); run.espera = 2.5; }
       else { run.chefe = true; chefe(); run.espera = 2.5; }
     }

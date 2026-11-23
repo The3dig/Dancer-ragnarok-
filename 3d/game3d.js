@@ -396,13 +396,17 @@ const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
 const MINA = { i: 'mina', mina: true, zona: 'minas', x: 720, z: TZ, y: 0, r: 24 };           // Mina da Forja (minas.js): caverna dos materiais de refino, fora do mapa
 const CRIPTA = { i: 'cripta', mina: true, zona: 'cripta', x: 800, z: TZ, y: 0, r: 24 };       // Cripta das Cartas (cartas.js): fragmentos e Cartas Arcanas, fora do mapa
-const MASMORRAS = {};                                                                           // masmorras "escape" (minas.js) registradas pela zona
+const MASMORRAS = {};
+// Templo do Eco Selado (templo.js): 6 salas retangulares em fila, fora do mapa (uma de cada vez é desenhada)
+const TEMPLO = Array.from({ length: 6 }, (_, i) => ({ i: 'templo' + i, mina: true, templo: true, zona: 'templo', sala: i, x: 900 + i * 50, z: TZ, y: 0, r: 17 }));                                                                           // masmorras "escape" (minas.js) registradas pela zona
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
   if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
   if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA;
   if (Math.hypot(x - MINA.x, z - MINA.z) < MINA.r + 6) return MINA;
-  if (Math.hypot(x - CRIPTA.x, z - CRIPTA.z) < CRIPTA.r + 6) return CRIPTA; return null;
+  if (Math.hypot(x - CRIPTA.x, z - CRIPTA.z) < CRIPTA.r + 6) return CRIPTA;
+  for (const S of TEMPLO) if (Math.abs(x - S.x) < 20 && Math.abs(z - S.z) < 20) return S;
+  return null;
 }
 // altura nas escadarias laterais (rampa suave sob os degraus)
 function stairRise(f, x, z) { const r = rampa(f, x, z); return !r ? 0 : r.tipo === 'sobe' ? r.p * STAIR_H : -r.p * STAIR_H; }
@@ -629,7 +633,7 @@ function addOb(x, z, r) {
     }
 }
 function blocked(x, z, r = 0.45) {
-  if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
+  if (inTower(z)) { const f = floorAt(x, z); if (f && f.templo && typeof Templo !== 'undefined') return Templo.bloqueia(f, x, z, r); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (z < -300 && x > 1000) { if (!CID_OUT || CID_OUT(x, z, r)) return true; }
   else if (z < -300 && x > 650) { if (!VALE_OUT || VALE_OUT(x, z, r)) return true; }
   else if (z < -300 && x > 250) { if (typeof Floresta === 'undefined' || Floresta.out(x, z, r)) return true; }
@@ -1232,6 +1236,7 @@ const NPCS = [
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
+  { id: 'templo', name: 'Estudiosa Ilka', x: VIL.x, z: VIL.z - 14.5, look: [0x4a6a8a, 0x2a2a3a, 'cap'] },   // na frente da entrada do Templo (templo.js)
   { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 13.5, z: VIL.z + 5, look: [0x5a2a7a, 0x1a1030, 'veil'] },   // na frente da tenda dela (cartas.js)
   { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 2, z: VIL.z + 13, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
   { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 20, z: OAS.z - 12, look: [0xb5651d, 0x1a1a1a, 'veil'] },
@@ -1280,7 +1285,7 @@ const NPCS = [
   { id: 'desafio', dsf: 'urakin', name: 'Urakin Star', x: CREF.x - 2, z: CREF.z - 10, look: [0x2a3a6a, 0xfff0a0, 'cap'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Cartomante Zaíra': 'refugiada', 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho', 'Ludivicki': 'aldeao', 'Imperium': 'estranho' };
+const NPC_SPR = { 'Estudiosa Ilka': 'bibliotecario', 'Cartomante Zaíra': 'refugiada', 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho', 'Ludivicki': 'aldeao', 'Imperium': 'estranho' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1338,7 +1343,7 @@ function npcMark(n) {
   if (n.beam) { n.beam.visible = n.ring.visible = live; if (live) { const c = new THREE.Color(k.split(':')[1]); n.beam.material.color.copy(c); n.ring.material.color.copy(c); } }
 }
 // o que cada NPC de serviço faz, em cima da cabeça (ideia do Ludi): 🧪 consumíveis e equipamentos, ❤️ cura, ⚒️ ferreiro, 🧭 viagem
-const PAPEL = { cartas: '🃏', shop: '🧪', healer: '❤️', smith: '⚒️', warp: '🧭', pescador: '🎣' };
+const PAPEL = { templo: '🏛️', cartas: '🃏', shop: '🧪', healer: '❤️', smith: '⚒️', warp: '🧭', pescador: '🎣' };
 function iconeSprite(em) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
   x.fillStyle = 'rgba(16,10,24,.78)'; x.beginPath(); x.arc(48, 48, 44, 0, TAU); x.fill(); x.lineWidth = 5; x.strokeStyle = '#f2c86a'; x.stroke();
@@ -1573,6 +1578,7 @@ function dmgMob(m, base, crit, magic, color) {
   if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.addDmg(dmg);
   if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
   if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
+  if (typeof Ranking !== 'undefined') Ranking.dano(dmg);                // 🏆 dano da corrida (masmorras, Templo, Torre, Abismo)
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
   const rb = pas('roubo'); if (rb > 0 && !P.dead) P.hp = Math.min(stats.maxHp(), P.hp + dmg * rb);      // passiva de roubo de vida
   Audio8.sfx(crit ? 'crit' : 'hit');
@@ -2070,6 +2076,7 @@ const ZONES = {
   casa: { name: 'Sua Casa', music: 'semNome' },
   minas: { name: 'Mina da Forja', music: 'masmorra' },
   cripta: { name: 'Cripta das Cartas', music: 'masmorra' },
+  templo: { name: 'Templo do Eco Selado', music: 'masmorra' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
   acampamento: { name: 'Acampamento de Valdora', music: 'despedida', town: true },
   estrada: { name: 'Estrada de Valdora', music: 'guerra' },
@@ -2242,7 +2249,7 @@ function updatePlayer(dt) {
   // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
   if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> Falar com ${nearNpc.name}` : TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> ${nearUse.label}` : TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -2570,7 +2577,7 @@ const BigMap = (() => {
   let open = false, base = null, box = null, cv = null, g = null, view = null, vm = null;   // vm: lugar aberto no mapa (null = onde a pessoa está)   // view: null = reino inteiro; senão a cidade aberta
   const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma ↓ Abismo'], [RUIN, 'Ruínas'], [VGATE_R, 'Passagem do Norte ↑']];
   const CITIES = [{ c: VIL, z: 'solmira', n: 'Vila de Solmira', R: 32 }, { c: OAS, z: 'kharum', n: 'Oásis de Kharum', R: 36 }, { c: CIT, z: 'cidadela', n: 'Cidadela do Cisma', R: 34 }, { c: FARM, z: 'sitio', n: 'Sítio de Solmira', R: 24 }];
-  const ICON = { cartas: '🃏', master: '📘', healer: '✚', shop: '🛒', guard: '🛡️', watch: '👁️', elder: '🧓', farm: '🌾', smith: '⚒️', warp: '🧭' };
+  const ICON = { templo: '🏛️', cartas: '🃏', master: '📘', healer: '✚', shop: '🛒', guard: '🛡️', watch: '👁️', elder: '🧓', farm: '🌾', smith: '⚒️', warp: '🧭' };
   function build() {
     if (base) return;
     const W = WX * 2, H = WZ * 2; base = document.createElement('canvas'); base.width = W; base.height = H;
@@ -3130,6 +3137,7 @@ function talkBase(n) {
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
     case 'smith': Vida.smith(eu); break;
     case 'cartas': if (typeof Cartas !== 'undefined') Cartas.npc(eu); break;
+    case 'templo': if (typeof Templo !== 'undefined') Templo.npc(eu); break;
     case 'desafio': if (typeof Desafios !== 'undefined') Desafios.talk(n); break;
     case 'warp': if (typeof Quests !== 'undefined') Quests.warp(n.city); break;
     default: if (n.hidden) dialog(nm, 'Obrigado por ter vindo até aqui.'); break;
@@ -3394,7 +3402,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   SPAWNS.forEach((s, si) => { for (let i = 0; i < s.n; i++) { const m = spawnMob(s.type, s.area, s.at); m.nid = si + '-' + i; } });
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof Grupo !== 'undefined') Grupo.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Ranking !== 'undefined' && !Ranking.iniciado) { Ranking.iniciado = true; Ranking.init(); } if (typeof Cos !== 'undefined') Cos.init(); if (typeof Grupo !== 'undefined') Grupo.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   if (!TOUCH) log('🖱️ <b>No PC:</b> clique no chão para andar, clique no monstro para atacar até ele cair, arraste para girar a câmera. <b>H</b> mostra todas as teclas.', 'sys');

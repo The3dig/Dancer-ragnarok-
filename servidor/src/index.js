@@ -95,6 +95,8 @@ export class Contas {
       CREATE TABLE IF NOT EXISTS convites (nome TEXT, guilda INTEGER, de TEXT, quando INTEGER, PRIMARY KEY (nome, guilda));`);
     try { this.sql.exec("ALTER TABLE guildas ADD COLUMN xp INTEGER DEFAULT 0"); } catch (e) { }      // XP da guilda (nível 1 a 10)
     this.sql.exec("CREATE TABLE IF NOT EXISTS kvx (semana TEXT PRIMARY KEY, por TEXT, quando INTEGER)");   // quem derrubou o Kravenox em cada semana
+    // ranking das masmorras, da Torre e da Cratera: o melhor tempo (menor) e o maior dano de cada personagem
+    this.sql.exec("CREATE TABLE IF NOT EXISTS ranking (cat TEXT, usuario TEXT, vaga INTEGER, nome TEXT, tempo REAL, dano INTEGER, quando INTEGER, PRIMARY KEY (cat, usuario, vaga))");
   }
   um(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
   quem(req) {
@@ -258,6 +260,22 @@ export class Contas {
         }
         const m = this.um("SELECT por, quando FROM kvx WHERE semana = ?", k.semana);
         return json({ ...k, morto: m });
+      }
+      if (p[0] === "ranking") {                                      // 🏆 ranking: tempo e dano por lugar
+        const RANK_CATS = ["minas", "cripta", "templo", "torre", "abismo"], cat = String(p[1] || "");
+        if (!RANK_CATS.includes(cat)) return json({ erro: "ranking desconhecido" }, 400);
+        if (req.method === "POST") {
+          const b = await corpo(), nome = String(b.nome || "").trim().slice(0, 16), vaga = Number(b.vaga) || 0;
+          const tempo = Number(b.tempo), dano = Math.round(Number(b.dano) || 0);
+          const dono = this.um("SELECT usuario FROM nomes WHERE nome = ? AND usuario = ? AND vaga = ?", nome.toLowerCase(), usuario, vaga);
+          if (!dono) return json({ erro: "personagem não é desta conta" }, 403);
+          if (!(tempo >= 20 && tempo <= 6 * 3600) || !(dano >= 0 && dano <= 5e8)) return json({ erro: "valores inválidos" }, 400);
+          this.sql.exec("INSERT INTO ranking (cat, usuario, vaga, nome, tempo, dano, quando) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (cat, usuario, vaga) DO UPDATE SET nome = excluded.nome, tempo = MIN(ranking.tempo, excluded.tempo), dano = MAX(ranking.dano, excluded.dano), quando = excluded.quando",
+            cat, usuario, vaga, nome, tempo, dano, Date.now());
+        }
+        const porTempo = this.sql.exec("SELECT nome, tempo FROM ranking WHERE cat = ? ORDER BY tempo ASC LIMIT 10", cat).toArray();
+        const porDano = this.sql.exec("SELECT nome, dano FROM ranking WHERE cat = ? AND dano > 0 ORDER BY dano DESC LIMIT 10", cat).toArray();
+        return json({ cat, tempo: porTempo, dano: porDano });
       }
       if (p[0] === "nome" && req.method === "POST") {                // reserva o nome do personagem (único no mundo)
         const b = await corpo(), nome = String(b.nome || "").trim().replace(/\s+/g, " ").slice(0, 16), low = nome.toLowerCase(), vaga = Number(b.vaga) || 0;
