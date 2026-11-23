@@ -112,7 +112,7 @@ const SpriteKit = (() => {
     a.spr.center.set(0.5, st.dead ? 0.15 : 0);
     a.spr.position.y = y;
     if (st.gy !== undefined) a.shadow.position.y = st.gy + 0.03;
-    a.shadow.visible = !st.dead && a.opt.shadow !== false;
+    a.shadow.visible = !st.dead && a.opt.shadow !== false && !(st.jump > 1);   // montado: a sombra é a da montaria
     // cor: luz da região, golpe recebido, sono
     a.tint.copy(light);
     if (st.sleeping) a.tint.multiplyScalar(0.35);

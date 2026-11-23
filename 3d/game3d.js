@@ -1290,6 +1290,7 @@ const NPCS = [
   { id: 'desafio', dsf: 'ivanna', name: 'Caçadora Ivanna', x: VIL.x + 12, z: VIL.z + 2, look: [0x4a6a2a, 0x6a3a1a, 'cap'] },
   { id: 'desafio', dsf: 'zahir', name: 'Rivas', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
   { id: 'desafio', dsf: 'imperium', name: 'Imperio', x: CIT.x - 10, z: CIT.z + 12, look: [0x5a1a6a, 0xffcf40, 'helm'] },   // amigo do Rone
+  { id: 'desafio', dsf: 'balhulk', name: 'Balhulk', x: VCAMP.x - 6, z: VCAMP.z + 9, look: [0x24408e, 0xd9a63a, 'helm'] },   // amigo do Rone (cavaleiro de crítico)
   { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
   { id: 'desafio', dsf: 'skye', name: 'Skye', x: VCAMP.x - 8, z: VCAMP.z - 7, look: [0x2a1a2a, 0x1a1a1a, 'veil'] },   // amiga do Rone (Milena), assassina
   { id: 'desafio', dsf: 'temmer', name: 'Michel Temmer', x: FCLAR.x - 9, z: FCLAR.z - 1, look: [0x6a3a2a, 0x2a1a1a, 'cap'] },   // amigo do Rone (Diogo)
@@ -1297,7 +1298,7 @@ const NPCS = [
   { id: 'desafio', dsf: 'urakin', name: 'Urakin Star', x: CREF.x - 2, z: CREF.z - 10, look: [0x2a3a6a, 0xfff0a0, 'cap'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Comandante Varek': 'aldeao', 'Mestre Brakus': 'estranho', 'Estudiosa Ilka': 'bibliotecario', 'Cartomante Zaíra': 'refugiada', 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho', 'Ludivicki': 'aldeao', 'Imperio': 'estranho' };
+const NPC_SPR = { 'Comandante Varek': 'aldeao', 'Mestre Brakus': 'estranho', 'Estudiosa Ilka': 'bibliotecario', 'Cartomante Zaíra': 'refugiada', 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho', 'Ludivicki': 'aldeao', 'Imperio': 'estranho', 'Balhulk': 'aldeao' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
@@ -1420,7 +1421,7 @@ const stats = {
   maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp')) * (1 + pas('hp'))),
   maxSp: () => Math.round(((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')) * (1 + pas('sp'))),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
-  speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')),
+  speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')) * (typeof Montaria !== 'undefined' ? Montaria.mult() : 1),
   flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003 + pas('flee')),
   crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit') + gearB('crit')),
 };
@@ -1843,6 +1844,7 @@ function nearestMob(r, cone = true) {
 function handPos() { const v = new THREE.Vector3(); (L.orb || L.handR).getWorldPosition(v); return v; }
 function attack() {
   if (P.dead || dialogOpen || P.atkCd > 0) return;
+  if (P.montado && typeof Montaria !== 'undefined') Montaria.descer();          // montado não luta: desce e ataca
   // atacar não para a caminhada até a missão: dá para ir andando e batendo (só para com vida baixa)
   const c = CLS();
   P.atkCd = stats.aspd(); P.attackAnim = 1; P.sit = false; P.atkSeq = (P.atkSeq || 0) + 1;
@@ -1896,6 +1898,7 @@ function nearestN(r, n) {
 function useSkill(i) {
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
+  if (P.montado && typeof Montaria !== 'undefined' && SKILLS[i].type !== 'passiva') Montaria.descer();
   if (SKILLS[i].type === 'passiva') { log(`${SKILLS[i].icon} <b>${SKILLS[i].name}</b> é passiva: já vale sozinha, não precisa usar.`, 'sys'); return; }
   const L = P.skillLv[SKILLS[i].id] || 0;
   if (!L) { log(`${SKILLS[i].name} ainda não foi aprendida. Use a árvore de habilidades (${TOUCH ? '📜' : 'K'}).`, 'bad'); return; }
@@ -2444,7 +2447,9 @@ function animateLyra(dt) {
 
 function animateSprite(dt) {
   lyra.position.set(P.x, P.y, P.z); lyra.rotation.y = P.face;
-  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, dourado: typeof Cos !== 'undefined' && Cos.nivelIrmandade ? Cos.nivelIrmandade() : 0, traje: typeof Trajes !== 'undefined' ? Trajes.cor() : 0, trajeK: typeof Trajes !== 'undefined' ? Trajes.forca() : 0, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
+  const mont = !!P.montado && typeof Montaria !== 'undefined';
+  if (mont) Montaria.update(dt); else if (typeof Montaria !== 'undefined') Montaria.update(dt);
+  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround && !mont, jump: mont ? Montaria.SELA : 0, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit || mont, dourado: typeof Cos !== 'undefined' && Cos.nivelIrmandade ? Cos.nivelIrmandade() : 0, traje: typeof Trajes !== 'undefined' ? Trajes.cor() : 0, trajeK: typeof Trajes !== 'undefined' ? Trajes.forca() : 0, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
   lyra.visible = true;
 }
 function animateModel(dt) {

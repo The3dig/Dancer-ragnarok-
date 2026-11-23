@@ -954,7 +954,7 @@ const Vida = (() => {
       if (I.kind === 'equip' && !I.preso && !I.desafio && P.inv[sel] > 1) btns.push(`<button data-a="desmontartodos" data-v="${sel}">⚒️ Desmontar todos (${(poBase(sel) * P.inv[sel]).toLocaleString('pt-BR')} ⚙️)</button>`);
       if (I.sell > 0 && I.use !== 'pot') btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
       if (I.sell > 0 && P.inv[sel] > 1 && I.use !== 'pot') btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
-      btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
+      if (I.kind !== 'montaria') btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
       if (I.funde && P.inv[sel] >= 10) { const N = it(I.funde); btns.push(`<button data-a="fundir" data-v="${sel}">⚗️ Fundir 10 → 1 ${N.ic} ${N.name}</button>`); if (P.inv[sel] >= 20) btns.push(`<button data-a="fundirtodas" data-v="${sel}">⚗️ Fundir todas (${Math.floor(P.inv[sel] / 10) * 10} → ${Math.floor(P.inv[sel] / 10)})</button>`); }
       if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = ensureBar().includes('i:' + sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
       let extra = '';
@@ -965,7 +965,7 @@ const Vida = (() => {
       }
       const txt = I.kind === 'equip' ? `${RARITY[I.rar].n} · ${slotName(I.slot)}${I.set ? ` · 🔗 ${SETS[I.set].name}` : ''} · vende por ${I.sell} cr${compareHtml(sel)}`
         : I.kind === 'carta' ? `Carta de monstro · rara<p>${modTxt(I.mods)}<br>Encaixa em: <b>${slotName(I.cslot)}</b>${extra}<br><small>A carta vale enquanto houver uma peça no espaço.</small></p>`
-        : I.heal ? `Comida<p>Cura ${Math.round(I.heal * 100)}% do HP</p>` : I.use ? `Poção<p>${I.rec ? `Recupera <b>${Math.round(I.pct * 100)}%</b> do ${I.rec === 'hp' ? 'HP' : 'SP'} máximo${I.lvMin ? ` · a partir do <b>Nv ${I.lvMin}</b>${P.lv < I.lvMin ? ' 🔒' : ''}` : ''}` : `Recupera ${sel === 'blue' ? 'SP' : 'HP'}`}${I.funde ? `<br><small>⚗️ 10 desta se fundem em 1 ${it(I.funde).name} (Nv ${it(I.funde).lvMin}+).</small>` : ''}</p>` : `${I.kind === 'semente' ? 'Semente: plante no Sítio' : I.kind === 'colheita' ? 'Produção do Sítio' : 'Material de monstro: o Ferreiro Doran usa para forjar'}<p><small>Vende por ${I.sell} cr</small></p>`;
+        : I.kind === 'montaria' ? `Montaria lendária<p>Montado: <b>+25% de velocidade</b>. Montado não luta: ao atacar ou usar habilidade, você desce sozinho. Toque em <b>Usar</b> (ou ponha no atalho) para montar e descer. Não entra nas masmorras, na Arena nem na Guerra.</p>` : I.heal ? `Comida<p>Cura ${Math.round(I.heal * 100)}% do HP</p>` : I.use ? `Poção<p>${I.rec ? `Recupera <b>${Math.round(I.pct * 100)}%</b> do ${I.rec === 'hp' ? 'HP' : 'SP'} máximo${I.lvMin ? ` · a partir do <b>Nv ${I.lvMin}</b>${P.lv < I.lvMin ? ' 🔒' : ''}` : ''}` : `Recupera ${sel === 'blue' ? 'SP' : 'HP'}`}${I.funde ? `<br><small>⚗️ 10 desta se fundem em 1 ${it(I.funde).name} (Nv ${it(I.funde).lvMin}+).</small>` : ''}</p>` : `${I.kind === 'semente' ? 'Semente: plante no Sítio' : I.kind === 'colheita' ? 'Produção do Sítio' : 'Material de monstro: o Ferreiro Doran usa para forjar'}<p><small>Vende por ${I.sell} cr</small></p>`;
       view = `<div class="iview"><div class="iv-art">${bigArt(I, sel)}</div><div class="iv-txt"><b class="iv-n" style="color:${I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#f0e6d0'}">${I.name}</b> <small>×${P.inv[sel]}</small><small>${txt}</small>
         <div class="ibtn">${btns.join('')}<button data-a="unsel">Fechar</button></div></div></div>`;
     }
@@ -1020,6 +1020,7 @@ const Vida = (() => {
   }
   function use(id) {
     if (ITEMS[id].use === 'pot') return usePotion(id);
+    if (ITEMS[id].use === 'montaria' && typeof Montaria !== 'undefined') { Montaria.alternar(); if (typeof buildHotbar === 'function') buildHotbar(); return; }
     if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
     if (ITEMS[id].use === 'isca') { closeInv(); if (typeof Mascotes !== 'undefined') Mascotes.capturar(id); return; }
     if (ITEMS[id].use === 'reset') { closeInv(); return pedirReset(ITEMS[id].alvo, true); }

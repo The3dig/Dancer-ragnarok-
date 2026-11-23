@@ -145,7 +145,7 @@ const Net = (() => {
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
-        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null,
+        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null, ...(typeof Montaria !== 'undefined' ? Montaria.pres() : {}),
         ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}), ...(typeof Verme !== 'undefined' ? Verme.pres() : {}), ...(typeof dgPres === 'function' ? dgPres() : {}),
       };
       const j = JSON.stringify(pres);
@@ -162,7 +162,8 @@ const Net = (() => {
       if (r.L.sprite) {
         if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.3; }
         r.atkT = Math.max(0, (r.atkT || 0) - dt);
-        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's', dourado: s.ir | 0, traje: s.tj || 0 });
+        const mt = typeof Montaria !== 'undefined' && Montaria.remoto(r, s, moving || s.st === 'm', dt);
+        r.L.sprite.update(dt, { face: r.f, moving: !mt && (moving || s.st === 'm' || s.st === 'r'), jump: mt ? Montaria.SELA : 0, atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's' || mt, dourado: s.ir | 0, traje: s.tj || 0 });
       } else if (r.L.model) {
         const C = CLASSES[r.look.cls] || CLASSES.dancarina;
         let anim = s.st === 'd' ? 'Death' : s.st === 'r' ? 'Roll' : (moving || s.st === 'm') ? 'Run' : s.st === 's' ? 'Interact' : (C.ranged || C.weapon === 'ribbon' ? 'Idle' : 'Idle_Sword');

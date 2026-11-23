@@ -77,6 +77,8 @@ const Desafios = (() => {
     ['aura', 'imperial', 'Majestade do Imperio', '👑', { c: [0xffcf40, 0x8a2aff] }],
     ['rastro', 'coroas', 'Rastro Imperial', '👑', { c: [0xffd860, 0xa040ff], spark: true }],
     ['titulo', 'amigo_imperium', '« Amigo do Imperio »', '👑', {}],
+    ['aura', 'balhulk', 'Galope Celeste', '🐦', { c: [0x9ae0ff, 0xffd060] }],
+    ['titulo', 'amigo_balhulk', '« Amigo do Balhulk »', '🐦', {}],
     ['aura', 'lyra', 'Cristal de Lyra', '💠', { c: [0xffc860, 0x9a5aff] }],
     ['titulo', 'fundo', '« Quem Viu o Fundo »', '🌌', {}],
   ];
@@ -184,6 +186,16 @@ const Desafios = (() => {
       { id: 'im6', req: 'im5', t: '6. As fronteiras do império', pede: { m: { guardaOssos: 300, primeiroGuardiao: 5 } }, da: { cr: 100000, v: [['rastro', 'coroas']] } },
       { id: 'im7', req: 'im6', t: '7. O Anel Imperial', pede: { m: { sombraFonte: 3, guardiaoBranco: 10 }, p: { kvx: 2000 } }, da: { e: ['anel_imperium'], v: [['aura', 'imperial'], ['titulo', 'amigo_imperium']], cr: 170000 } },
     ] },
+    // aventura do Balhulk (cavaleiro de crítico): o prêmio final é SEGREDO (pedido do Rone: quem fizer descobre)
+    balhulk: { nome: 'Balhulk', fala: 'Cavaleiro não espera a batalha: vai até ela, montado, antes de todo mundo. Sete provas. No fim, eu te dou algo que ninguém neste Reino tem. O que é? Faça e descubra.', lista: [
+      { id: 'bh1', t: '1. O juramento do cavaleiro', pede: { m: { sentinelaMuralha: 300, carrasco: 3 } }, da: { cr: 20000, it: { blue: 20 } } },
+      { id: 'bh2', req: 'bh1', t: '2. Aço para a lança', pede: { i: { aco_valdora: 10, brasao: 60 } }, da: { cr: 40000, it: { red_m: 20 } } },
+      { id: 'bh3', req: 'bh2', t: '3. A carga pela Torre', pede: { p: { torre: 30 }, g: { guardiao: 30 } }, da: { cr: 60000, it: { fragmento_dourado: 2 } } },
+      { id: 'bh4', req: 'bh3', t: '4. Sem recuar um passo', pede: { m: { guardaOssos: 400, larvaAntiga: 400 } }, da: { cr: 80000, it: { blue_m: 20 } } },
+      { id: 'bh5', req: 'bh4', t: '5. Os grandes guardiões', pede: { m: { primeiroGuardiao: 8, guardiaoBranco: 15 } }, da: { cr: 100000, it: { fragmento_dourado: 3 } } },
+      { id: 'bh6', req: 'bh5', t: '6. O ninho no fundo', pede: { m: { sombraFonte: 5 }, g: { campo: 20 } }, da: { cr: 120000, it: { nucleo_abismo: 3 } } },
+      { id: 'bh7', req: 'bh6', t: '7. O segredo do Balhulk', segredo: true, pede: { p: { kvx: 2500 }, g: { alfa: 30 } }, da: { it: { valtrion: 1 }, v: [['aura', 'balhulk'], ['titulo', 'amigo_balhulk']], cr: 200000 } },
+    ] },
     oren: { nome: 'Vidente Oren', fala: 'Eu caí da ponte há tanto tempo que esqueci de que lado fica o céu. Mas vejo o que ninguém vê. Mostre que você também consegue.', lista: [
       { id: 'd18', t: 'Silêncio no Vazio', pede: { m: { raizSuspensa: 300, cristalVivo: 300, ecoCidade: 300, sentinelaSubmersa: 300, larvaAbismo: 300 } }, da: { e: ['capa_suspensa'] } },
       { id: 'd19', t: 'Quem Viu o Fundo', pede: { m: { sombraFonte: 5 } }, da: { v: [['aura', 'lyra'], ['titulo', 'fundo']] } },
@@ -234,7 +246,7 @@ const Desafios = (() => {
     return L;
   }
   const pronto = d => linhas(d).every(l => l.tem >= l.n);
-  const premioTxt = d => [...(d.da.cr ? [`<b style="color:#ffcf40">💰 ${d.da.cr.toLocaleString('pt-BR')} cr</b>`] : []), ...Object.entries(d.da.it || {}).map(([id, n]) => `${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id} ×${n}`),...(d.da.e || []).map(id => `<b style="color:${ITEMS[id].rar === 4 ? '#ff4a4a' : '#ffb640'}">${ITEMS[id].ic} ${ITEMS[id].name}</b> <small>(${ITEMS[id].rar === 4 ? 'MÍTICO' : 'lendário'}: ${Object.entries(ITEMS[id].mods).map(([k, v]) => `${{ pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' }[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(', ')})</small>`),
+  const premioTxt = d => d.segredo && !S().feito[d.id] ? '❔ <b>Segredo.</b> Ninguém sabe o que é até completar. <small>(Dizem que quem viu não esqueceu mais.)</small>' : [...(d.da.cr ? [`<b style="color:#ffcf40">💰 ${d.da.cr.toLocaleString('pt-BR')} cr</b>`] : []), ...Object.entries(d.da.it || {}).map(([id, n]) => `${ITEMS[id] ? ITEMS[id].ic + ' ' + ITEMS[id].name : id} ×${n}`),...(d.da.e || []).map(id => `<b style="color:${ITEMS[id].rar === 4 ? '#ff4a4a' : '#ffb640'}">${ITEMS[id].ic} ${ITEMS[id].name}</b> <small>(${ITEMS[id].rar === 4 ? 'MÍTICO' : 'lendário'}: ${Object.entries(ITEMS[id].mods).map(([k, v]) => `${{ pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' }[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(', ')})</small>`),
     ...(d.da.v || []).map(([c, k]) => `<b>${visNome(c, k)}</b> <small>(${{ aura: 'aura', rastro: 'rastro', pet: 'mascote', titulo: 'título', cor: 'cor' }[c]})</small>`)].join('<br>');
 
   // ---------------- conversa
@@ -275,6 +287,10 @@ const Desafios = (() => {
     for (const [c, k] of d.da.v || []) if (typeof Cos !== 'undefined') Cos.ganhar(c, k);
     s.feito[d.id] = Date.now(); if (P.dsfFoco && P.dsfFoco.id === d.id) P.dsfFoco = null;
     banner('🏆 DESAFIO CONCLUÍDO 🏆'); Audio8.sfx('level');
+    if (d.segredo && d.da.it && d.da.it.valtrion && typeof Montaria !== 'undefined') setTimeout(() => {   // a revelação do segredo do Balhulk
+      banner('🐦 VALTRION, A AVE DE GUERRA'); Montaria.subir();
+      dialog('🐦 O segredo do Balhulk', 'Do céu desce uma ave de guerra coberta de ouro, com plumas de luz na cauda e cristais na crista. O Balhulk sorri: <i>“Ela escolheu você. Agora ninguém chega antes de você em lugar nenhum.”</i><br><br><b>Valtrion, a Ave de Guerra</b> é sua: montado você corre <b>25% mais rápido</b>. Para lutar você desce sozinho. Ela fica na 🎒 mochila: toque em <b>Usar</b> ou ponha no atalho para montar e descer.', [{ label: 'Montar e partir!' }]);
+    }, 1200);
     burst(new THREE.Vector3(P.x, P.y + 1.2, P.z), 0xffcf40, 60, 6, 1.2);
     log(`🏆 Desafio <b>${d.t}</b> concluído! Você ganhou:<br>${premioTxt(d)}<br><small>Visuais: 🛍️ Loja de Visuais. Equipamento: 🎒 mochila.</small>`, 'gold');
     save();
@@ -289,7 +305,7 @@ const Desafios = (() => {
   function abrirFoco() { const F = P.dsfFoco; if (!F) return; const d = TODOS.find(q => q.id === F.id); if (!d) return; const id = Object.keys(MESTRES).find(k => MESTRES[k].lista.some(q => q.id === d.id)); const a = AMIGOS.find(x => x[0] === id); Audio8.sfx('click'); ver({ dsf: id, remoto: true, npcNome: a ? a[1] : MESTRES[id].nome }, d); }
   // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
   // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
-  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso'], ['ludivicki', 'Ludivicki', '🧤', 'Vila de Solmira'], ['imperium', 'Imperio', '👑', 'Cidadela do Cisma']];
+  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso'], ['ludivicki', 'Ludivicki', '🧤', 'Vila de Solmira'], ['imperium', 'Imperio', '👑', 'Cidadela do Cisma'], ['balhulk', 'Balhulk', '🛡️', 'Acampamento de Valdora']];
   function sagaInfo(id) {
     const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
     const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);
