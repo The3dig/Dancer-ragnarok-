@@ -170,7 +170,7 @@ const Casa = (() => {
   }
   function sair() { portaArmada = false; P.x = OUT_DOOR.x + 2.6; P.z = OUT_DOOR.z; P.y = groundY(P.x, P.z); P.face = Math.PI / 2; camS.yaw = -Math.PI / 2; Audio8.sfx('warp'); leaveT = 1; }
   function update(dt) {
-    g.visible = inTower(P.z) && zoneOf(P.x, P.z) === 'casa';            // fora da casa ela some (as luzes dela pesavam no mapa todo)
+    g.visible = inTower(P.z) && zoneOf(P.x, P.z) === 'casa' && Math.hypot(P.x - C.x, P.z - C.z) < 14;   // nos cômodos novos a sala some            // fora da casa ela some (as luzes dela pesavam no mapa todo)
     leaveT -= dt; sole.material.opacity = 0.35 + Math.sin(time * 3) * 0.15;
     if (objs.lareira) { const f = objs.lareira.userData.fire; f.scale.set(1.05 + Math.sin(time * 13) * 0.08, 1.25 + Math.sin(time * 9) * 0.15, 1); objs.lareira.userData.light.intensity = 1.2 + Math.sin(time * 11) * 0.25; }
     if (objs.trofeu) objs.trofeu.userData.spin.rotation.y += dt * 1.5;

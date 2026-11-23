@@ -393,7 +393,8 @@ function rampa(f, x, z) {
 // ponto da escadaria: p de 0 (embaixo/no chão) a 1 (no fim), na faixa do meio
 function pontoRampa(f, tipo, p) { const th = (tipo === 'sobe' ? RAMPA.sobe : RAMPA.desce) + p * RAMPA.volta, r = f.r - RAMPA.larg / 2 - 0.2; return { x: f.x + Math.sin(th) * r, z: f.z + Math.cos(th) * r, th }; }
 const inTower = z => z > 300;
-const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
+const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };
+const CASA_SALAS = Array.from({ length: 8 }, (_, k) => ({ i: 'casa' + (k + 1), casa: true, sala: k + 1, x: 520 - 30 * (k + 1), z: TZ, y: 0, r: 8 }));   // cômodos da casa (comodos.js), a oeste da sala            // interior da casa do Sítio (fora do mapa, como a Torre)
 const MINA = { i: 'mina', mina: true, zona: 'minas', x: 720, z: TZ, y: 0, r: 24 };           // Mina da Forja (minas.js): caverna dos materiais de refino, fora do mapa
 const CRIPTA = { i: 'cripta', mina: true, zona: 'cripta', x: 800, z: TZ, y: 0, r: 24 };       // Cripta das Cartas (cartas.js): fragmentos e Cartas Arcanas, fora do mapa
 const MASMORRAS = {};
@@ -405,6 +406,7 @@ function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
   if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
   if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA;
+  if (Math.abs(z - TZ) < 20 && x < 500 && x > 250) for (const R of CASA_SALAS) if (Math.hypot(x - R.x, z - R.z) < R.r + 6) return R;
   if (Math.hypot(x - MINA.x, z - MINA.z) < MINA.r + 6) return MINA;
   if (Math.hypot(x - CRIPTA.x, z - CRIPTA.z) < CRIPTA.r + 6) return CRIPTA;
   for (const S of TEMPLO) if (Math.abs(x - S.x) < 20 && Math.abs(z - S.z) < 20) return S;
@@ -1413,7 +1415,7 @@ function bmul(k) { let v = 1 + (['atk', 'matk', 'aspd', 'speed'].includes(k) && 
 function badd(k) { let v = ['def', 'crit', 'regen'].includes(k) && typeof pas === 'function' ? pas(k) : 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
-const gBon = k => (typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0) + (typeof Guerra !== 'undefined' && running ? Guerra.bonus(k) : 0);   // + a Fortaleza (guilda que venceu a guerra)
+const gBon = k => (typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0) + (typeof Guerra !== 'undefined' && running ? Guerra.bonus(k) : 0) + (typeof Comodos !== 'undefined' && running ? Comodos.bonus(k) : 0);   // + 🏠 Descansado (conforto da casa)   // + a Fortaleza (guilda que venceu a guerra)
 const stats = {
   atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
   matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
@@ -2276,7 +2278,7 @@ function updatePlayer(dt) {
   // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
   if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Eventos !== 'undefined' && Eventos.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Eventos !== 'undefined' && Eventos.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Comodos !== 'undefined' && Comodos.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> Falar com ${nearNpc.name}` : TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> ${nearUse.label}` : TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -3561,7 +3563,7 @@ function loop(now) {
   if (running && typeof Net !== 'undefined' && Net.pausa) {      // sem conexão: o mundo para (o jogo é todo on-line)
     Net.update(dt); sky.position.copy(camera.position); draw();
   } else if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

@@ -325,7 +325,11 @@ const Vida = (() => {
     ovelha: { name: 'Ovelha', price: 220, prod: 'la', min: 8, n: [1, 2], h: 1.3 },
     vaca: { name: 'Vaca', price: 420, prod: 'leite', min: 10, n: [2, 3], h: 1.85 },
   };
-  const MAX_ANIMALS = 8;
+  // 🌾 níveis da horta e do curral (pedido do Rone: "aumentar a qualidade da horta e do curral").
+  // Cada nível: cresce/produz 12% mais rápido e rende +1 por colheita; o curral ainda ganha +2 vagas.
+  const NIV_SITIO = [[0, {}], [20000, { gosma: 40, raiz: 40 }], [60000, { casca: 60, cristal: 40 }], [150000, { fibra: 80, seiva: 60 }], [350000, { membrana: 80, osso_raiz: 80 }], [800000, { placa_antiga: 100, estilhaco_vivo: 80 }]];
+  const nivH = () => st.horta || 0, nivC = () => st.curral || 0;
+  const MAX_ANIMALS_BASE = 8; let MAX_ANIMALS = 8;
   let st = { plots: Array(8).fill(null), animals: [], stall: null, pend: [] };
   function useSlot(n) {      // cada vaga de personagem tem o próprio Sítio
     SAVE = 'reino-vida-v1-' + n;
@@ -549,6 +553,8 @@ const Vida = (() => {
   const ICONS = {};
   const icon = t => (ICONS[t] = ICONS[t] || iconSprite(t)).clone();
   const live = [];   // animais no mundo
+  // jeito de andar: velocidade, passada, ritmo do passo e altura do pulinho, e como abaixa a cabeça para comer
+  const ANDAR = { galinha: { vel: 1.5, passo: 3, freq: 16, amp: 0.16, bica: 9, cabeca: 0.5 }, ovelha: { vel: 0.75, passo: 4, freq: 8, amp: 0.09, bica: 2.2, cabeca: 0.25 }, vaca: { vel: 0.6, passo: 5, freq: 6, amp: 0.05, bica: 1.6, cabeca: 0.2 } };
   function spawnAnimal(a) {
     const A = ANIMALS[a.k], g = new THREE.Group(); scene.add(g);
     const act = SpriteKit.actor({ kind: 'one', img: 'a_' + a.k }, { h: A.h, faceRight: true });
@@ -560,8 +566,8 @@ const Vida = (() => {
 
   // ---------------------------------------------------------------- estado
   const now = () => Date.now();
-  const cropLeft = p => p ? Math.max(0, p.t + CROPS[p.c].min * MIN - now()) : 0;
-  const prodLeft = a => a.fed ? Math.max(0, a.fed + ANIMALS[a.k].min * MIN - now()) : Infinity;
+  const cropLeft = p => p ? Math.max(0, p.t + CROPS[p.c].min * MIN * (1 - 0.12 * nivH()) - now()) : 0;
+  const prodLeft = a => a.fed ? Math.max(0, a.fed + ANIMALS[a.k].min * MIN * (1 - 0.12 * nivC()) - now()) : Infinity;
   const fmtT = ms => { const s = Math.ceil(ms / 1000); return s >= 60 ? `${Math.ceil(s / 60)} min` : `${s}s`; };
 
   function plant(i, crop) {
@@ -579,7 +585,7 @@ const Vida = (() => {
   }
   function harvest(i) {
     const p = st.plots[i]; if (!p || cropLeft(p) > 0) return;
-    const C = CROPS[p.c], n = irand(C.n[0], C.n[1]); add(p.c, n); st.plots[i] = null; save();
+    const C = CROPS[p.c], n = irand(C.n[0], C.n[1]) + nivH(); add(p.c, n); st.plots[i] = null; save();
     Audio8.sfx('coin'); floater(PLOTS[i].x, groundY(PLOTS[i].x, PLOTS[i].z) + 1.5, PLOTS[i].z, `+${n} ${it(p.c).ic}`, 'zeny');
     log(`Colheu ${n}× <b>${it(p.c).name}</b>.`, 'item');
     if (Math.random() < 0.3) { add(C.seed, 1); log(`🌱 Sobrou uma <b>${it(C.seed).name}</b>.`, 'item'); }
@@ -593,7 +599,7 @@ const Vida = (() => {
   }
   function collect(o) {
     if (prodLeft(o.a) > 0) return;
-    const n = irand(o.A.n[0], o.A.n[1]); add(o.A.prod, n); o.a.fed = 0; save(); Audio8.sfx('coin');
+    const n = irand(o.A.n[0], o.A.n[1]) + nivC(); add(o.A.prod, n); o.a.fed = 0; save(); Audio8.sfx('coin');
     floater(o.x, groundY(o.x, o.z) + 1.6, o.z, `+${n} ${it(o.A.prod).ic}`, 'zeny');
     log(`Recolheu ${n}× <b>${it(o.A.prod).name}</b>.`, 'item');
   }
@@ -633,13 +639,27 @@ const Vida = (() => {
       { label: '🍳 Fazer receitas', fn: () => { recipes(); return true; } },
       { label: (o => o.done ? '📦 Encomenda do dia (entregue ✅)' : `📦 Encomenda do dia: ${o.n} ${it(o.id).ic} ${it(o.id).name}`)(order()), fn: () => { orderMenu(); return true; } },
       { label: '💰 Vender colheita', fn: () => { sellAll(['colheita']); menu(); return true; } },
+      { label: `⬆️ Melhorar a horta (nível ${nivH()} de 5) e o curral (nível ${nivC()} de 5)`, fn: () => { melhorar(); return true; } },
       { label: 'Tchau' }]);
+    const melhorar = () => {
+      const op = (nome, ic, k, efeito) => { const n = (st[k] || 0) + 1; if (n > 5) return { label: `✅ ${ic} ${nome} no nível máximo (5)`, fn: () => { melhorar(); return true; } };
+        const [cr, mat] = NIV_SITIO[n], ok = P.zeny >= cr && Object.entries(mat).every(([id, q]) => (P.inv[id] || 0) >= q);
+        return { label: `${ok ? '⬆️' : '▫️'} ${ic} ${nome} → nível ${n}: ${cr.toLocaleString('pt-BR')} cr + ${Object.entries(mat).map(([id, q]) => `${q} ${it(id).ic}`).join(' + ')}`, fn: () => {
+          if (!ok) { log(`Falta: ${P.zeny < cr ? 'coroas' : ''} ${Object.entries(mat).filter(([id, q]) => (P.inv[id] || 0) < q).map(([id, q]) => `${q - (P.inv[id] || 0)} ${it(id).name}`).join(', ')}`, 'bad'); Audio8.sfx('miss'); melhorar(); return true; }
+          P.zeny -= cr; for (const [id, q] of Object.entries(mat)) P.inv[id] -= q; st[k] = n; save(); Audio8.sfx('level'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x7dff6a, 24, 3, 0.8);
+          log(`🌾 ${nome} no <b>nível ${n}</b>: ${efeito(n)}.`, 'gold'); melhorar(); return true; } }; };
+      dialog('⬆️ Melhorar o Sítio', `Cada nível deixa tudo <b>12% mais rápido</b> e rende <b>+1</b> em cada colheita. O curral ainda ganha <b>+2 vagas</b> para animais.<br><small>Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [
+        op('Horta', '🥕', 'horta', n => `plantas crescem ${n * 12}% mais rápido e cada colheita rende +${n}`),
+        op('Curral', '🐄', 'curral', n => `animais produzem ${n * 12}% mais rápido, +${n} por produção e ${MAX_ANIMALS_BASE + 2 * n} vagas`),
+        { label: '← Voltar', fn: () => { menu(); return true; } }]);
+    };
     const seeds = () => dialog('Sementes e ração', `<small>Coroas: <b>${P.zeny} cr</b></small>`, [
       ...['s_trigo', 's_cenoura', 's_flor'].map(id => ({ label: `${it(id).name} ×5 — ${it(id).price * 5} cr (tem ${P.inv[id] || 0})`, fn: () => { buyIt(id, 5, it(id).price); seeds(); return true; } })),
       { label: `🌾 Ração ×10 — ${it('racao').price * 10} cr (tem ${P.inv.racao || 0})`, fn: () => { buyIt('racao', 10, it('racao').price); seeds(); return true; } },
       { label: '← Voltar', fn: () => { menu(); return true; } }]);
     const animals = () => dialog('Comprar animais', `Cada animal, alimentado, produz sozinho. <small>Coroas: <b>${P.zeny} cr</b></small>`, [
       ...Object.entries(ANIMALS).map(([k, A]) => ({ label: `${A.name} — ${A.price} cr (dá ${it(A.prod).ic} ${it(A.prod).name})`, fn: () => {
+        MAX_ANIMALS = MAX_ANIMALS_BASE + 2 * nivC();
         if (st.animals.length >= MAX_ANIMALS) { log('O curral está cheio.', 'bad'); }
         else if (P.zeny >= A.price) { P.zeny -= A.price; const a = { k, fed: 0 }; st.animals.push(a); spawnAnimal(a); save(); Audio8.sfx('coin'); log(`Comprou uma <b>${A.name}</b>. Ela está no curral.`, 'gold'); }
         else { log('Coroas insuficientes!', 'bad'); }
@@ -1340,12 +1360,27 @@ const Vida = (() => {
     }
     for (const o of live) {
       o.g.visible = nearFarm; if (!nearFarm) continue;
-      o.t -= dt;
-      if (o.t <= 0) { o.t = rand(2, 6); o.tx = rand(PEN.x0 + 1.2, PEN.x1 - 1.2); o.tz = rand(PEN.z0 + 1.2, PEN.z1 - 1.2); }
-      const dx = o.tx - o.x, dz = o.tz - o.z, d = Math.hypot(dx, dz), moving = d > 0.2;
-      if (moving) { const sp = 0.9 * dt; o.x += dx / d * Math.min(sp, d); o.z += dz / d * Math.min(sp, d); o.face = Math.atan2(dx, dz); }
+      // jeito de cada bicho (pedido do Rone: andavam "duros"): anda, pasta/cisca ou fica parado;
+      // acelera, freia perto do destino, vira devagar e não encosta nos outros
+      const J = ANDAR[o.a.k] || ANDAR.ovelha;
+      o.t -= dt; o.v = o.v || 0;
+      if (o.t <= 0) {
+        const r = Math.random();
+        if (r < 0.5) { o.est = 'anda'; const a2 = rand(0, TAU), dd = rand(1.5, J.passo); o.tx = Math.max(PEN.x0 + 1.2, Math.min(PEN.x1 - 1.2, o.x + Math.sin(a2) * dd)); o.tz = Math.max(PEN.z0 + 1.2, Math.min(PEN.z1 - 1.2, o.z + Math.cos(a2) * dd)); o.t = 8; }
+        else if (r < 0.85) { o.est = 'pasta'; o.tx = o.x; o.tz = o.z; o.t = rand(2.5, 6); }
+        else { o.est = 'parado'; o.tx = o.x; o.tz = o.z; o.t = rand(1.5, 3.5); }
+      }
+      const dx = o.tx - o.x, dz = o.tz - o.z, d = Math.hypot(dx, dz);
+      const alvoV = o.est === 'anda' && d > 0.15 ? J.vel * Math.min(1, d / 0.8) : 0;
+      o.v += (alvoV - o.v) * Math.min(1, dt * 3);
+      if (o.est === 'anda' && d <= 0.15) { o.est = 'pasta'; o.t = rand(1.5, 4); }
+      if (d > 0.05 && o.v > 0.02) { const fa = Math.atan2(dx, dz); let df = ((fa - o.face + Math.PI) % TAU + TAU) % TAU - Math.PI; o.face += df * Math.min(1, dt * 4);
+        o.x += Math.sin(o.face) * o.v * dt; o.z += Math.cos(o.face) * o.v * dt; }
+      for (const q of live) if (q !== o) { const sx = o.x - q.x, sz = o.z - q.z, sd = Math.hypot(sx, sz), min = (o.A.h + q.A.h) * 0.45; if (sd > 0.01 && sd < min) { o.x += sx / sd * (min - sd) * dt * 2; o.z += sz / sd * (min - sd) * dt * 2; } }
+      o.x = Math.max(PEN.x0 + 0.8, Math.min(PEN.x1 - 0.8, o.x)); o.z = Math.max(PEN.z0 + 0.8, Math.min(PEN.z1 - 0.8, o.z));
       o.g.position.set(o.x, groundY(o.x, o.z), o.z);
-      o.act.update(dt, { face: o.face, moving });
+      const bica = o.est === 'pasta' ? Math.max(0, Math.sin(time * J.bica + o.x)) * J.cabeca : 0;          // abaixa a cabeça para comer / ciscar
+      o.act.update(dt, { face: o.face, moving: o.v > 0.12, freq: J.freq, amp: J.amp * Math.min(1, o.v / J.vel + 0.2), atk: bica });
       const want = !o.a.fed ? '🍽️' : prodLeft(o.a) <= 0 ? it(o.A.prod).ic : '';
       if (want !== o.markT) { if (o.mark) o.g.remove(o.mark); o.mark = want ? icon(want) : null; if (o.mark) { o.mark.position.y = o.A.h + 0.5; o.g.add(o.mark); } o.markT = want; }
       if (o.mark) o.mark.position.y = o.A.h + 0.5 + Math.sin(time * 3) * 0.08;
