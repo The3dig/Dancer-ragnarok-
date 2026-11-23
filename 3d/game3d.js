@@ -157,7 +157,7 @@ function watchFps(dt) {
 const AUTO = { on: false, t: 0, side: 1, chk: 0, cx: 0, cz: 0, hp: 0, tg: null, tgT: 0 };
 function autoStart() {
   if (!questTarget()) { log('Essa missão não tem um lugar para ir agora.', 'sys'); return; }
-  Object.assign(AUTO, { on: true, chk: 0, cx: P.x, cz: P.z, hp: P.hp, tgT: 0 }); document.body.classList.add('walking');
+  Object.assign(AUTO, { on: true, chk: 0, cx: P.x, cz: P.z, hp: P.hp, tgT: 0, fuga: null, stuck: 0 }); document.body.classList.add('walking');
   log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
 }
 function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.classList.remove('walking'); if (msg) log(msg, 'sys'); $('quest').dataset.h = ''; }
@@ -183,14 +183,19 @@ function autoDir(dt) {
   let a = Math.atan2(dx, dz);
   // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
   const free = ang => !blocked(P.x + Math.sin(ang) * 1.3, P.z + Math.cos(ang) * 1.3) && !blocked(P.x + Math.sin(ang) * 0.6, P.z + Math.cos(ang) * 0.6);
-  if (!free(a)) {
-    let ok = false;
-    for (const k of [1, 2, 3, 4, 5]) for (const s of [AUTO.side, -AUTO.side]) { const b = a + s * k * 0.45; if (!ok && free(b)) { a = b; ok = true; AUTO.side = s; } }
+  // obstáculo grande (tenda, casa): contorna pelo mesmo lado até ver o alvo livre de novo (antes desviava pouco e ficava
+  // indo e voltando na frente da tenda da Zaíra seguindo o Ludi)
+  if (AUTO.fuga && AUTO.fuga.t > 0 && free(AUTO.fuga.a)) { AUTO.fuga.t -= dt; a = AUTO.fuga.a; }
+  else if (!free(a)) {
+    let ok = false; const lado = AUTO.side || 1;
+    for (const k of [1, 2, 3, 4, 5, 6, 7]) for (const s of [lado, -lado]) { const b = a + s * k * 0.42; if (!ok && free(b)) { a = b; ok = true; AUTO.side = s; } }
     if (!ok) a += Math.PI;
+    else if (Math.abs(a - Math.atan2(dx, dz)) > 0.8) AUTO.fuga = { a, t: 0.5 };              // desvio grande: segue nele meio segundo
   }
-  if ((AUTO.chk += dt) > 2.5) {                                    // preso: tenta o outro lado; se não sair, desiste
+  if ((AUTO.chk += dt) > 2) {                                      // preso: foge para o lado e tenta pelo outro; se não sair, desiste
     const moved = Math.hypot(P.x - AUTO.cx, P.z - AUTO.cz);
-    if (moved < 0.8) { AUTO.side = -AUTO.side; AUTO.stuck = (AUTO.stuck || 0) + 1; if (AUTO.stuck > 3) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
+    if (moved < 0.8) { AUTO.side = -(AUTO.side || 1); AUTO.stuck = (AUTO.stuck || 0) + 1; AUTO.fuga = { a: Math.atan2(dx, dz) + AUTO.side * (1.3 + AUTO.stuck * 0.3), t: 1.2 };
+      if (AUTO.stuck > 5) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
     else AUTO.stuck = 0;
     AUTO.chk = 0; AUTO.cx = P.x; AUTO.cz = P.z;
   }
