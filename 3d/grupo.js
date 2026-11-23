@@ -91,6 +91,7 @@ const Grupo = (() => {
     }
     if (mVistas.size > 400) mVistas.clear();
   }
+  setInterval(() => { try { if (typeof running !== 'undefined' && running && online()) receberMortes(); } catch (e) { } }, 700);
   function pres() { const t = Date.now(); envios = envios.filter(e => t - e.at < 20000); mortes = mortes.filter(e => t - e.at < 9000); return { gm: mortes.length ? mortes : null, gd: pedido && t < pedido.ate ? { id: pedido.id, z: pedido.z, nome: pedido.nome, dif: pedido.dif, gp: gp() } : null, gr: resposta && t < resposta.ate ? { id: resposta.id, ok: resposta.ok } : null, gp: gp(), gc: convite && t < convite.ate ? { to: convite.to, gp: convite.gp, id: convite.id } : null, gi: envios.length ? envios.slice(-12).map(({ to, id, n, k, de }) => ({ to, id, n, k, de })) : null, ga: (apoios = apoios.filter(a => t - a.at < 6000)).length ? apoios.map(({ at, ...a }) => a) : null }; }
   // ---------------- divisão dos itens da caçada (como o "dividir itens" do Ragnarok)
   // quem mata sorteia cada item entre quem é do grupo e está perto do monstro (inclusive ele mesmo)
@@ -202,7 +203,7 @@ const Grupo = (() => {
   // convites recebidos e quem entrou/saiu do grupo
   function update(dt) {
     if ((chkT -= dt) > 0 || !online()) return; chkT = 0.5;
-    checarPedido(); receberMortes(); if (aberto) desenhar();
+    checarPedido(); if (aberto) desenhar();
     // cura e proteção que um companheiro de grupo jogou perto de mim
     for (const r of Net.peers()) {
       if (r.s.gp !== gp() || !gp() || Math.hypot(r.x - P.x, r.z - P.z) > 15 || P.dead) continue;
