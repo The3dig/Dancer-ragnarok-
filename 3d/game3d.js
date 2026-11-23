@@ -2916,12 +2916,22 @@ function breakCast() { if (P.wingT > 0) { P.wingT = 0; log('🦋 A conjuração 
 const BAR_N = 8, BAR_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 let barEdit = false;
 function ensureBar() {
-  if (Array.isArray(P.bar) && P.bar.length === BAR_N) return P.bar;
-  // barra antiga (12 espaços): guarda os 8 primeiros atalhos que estavam ocupados
-  const velha = Array.isArray(P.bar) ? P.bar.filter(Boolean) : null;
-  const l = velha && velha.length ? velha : SKILLS.filter(s => tierOk(s) && s.type !== 'passiva').map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
-  P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
+  if (!(Array.isArray(P.bar) && P.bar.length === BAR_N)) {
+    // barra antiga (12 espaços): guarda os 8 primeiros atalhos que estavam ocupados
+    const velha = Array.isArray(P.bar) ? P.bar.filter(Boolean) : null;
+    const l = velha && velha.length ? velha : SKILLS.filter(s => tierOk(s) && s.type !== 'passiva').map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
+    P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
+  }
+  // 3 barras de atalho (pedido do Rone: ex. habilidades na 1, consumíveis na 2). P.bar é sempre a barra que está à mostra.
+  if (!Array.isArray(P.bars) || P.bars.length !== 3) { P.bars = [P.bar, Array(BAR_N).fill(null), Array(BAR_N).fill(null)]; P.barIdx = 0; }
+  const i = P.barIdx || 0; if (P.bars[i] !== P.bar) P.bars[i] = P.bar;
   return P.bar;
+}
+function trocarBarra() {
+  ensureBar(); P.barIdx = ((P.barIdx || 0) + 1) % 3;
+  if (!(Array.isArray(P.bars[P.barIdx]) && P.bars[P.barIdx].length === BAR_N)) P.bars[P.barIdx] = Array(BAR_N).fill(null);
+  P.bar = P.bars[P.barIdx]; Audio8.sfx('click'); buildHotbar();
+  if (!P.bar.some(Boolean)) log(`🔢 Barra <b>${P.barIdx + 1}</b> está vazia: toque em ✏️ e escolha o que fica em cada espaço.`, 'sys');
 }
 // põe (ou tira) uma habilidade/item no 1º espaço livre — usado pela mochila e pela árvore de habilidades
 function barToggle(e) {
@@ -2967,6 +2977,8 @@ function buildHotbar() {
   const ed = document.createElement('div'); ed.className = 'slot hbedit' + (barEdit ? ' on' : ''); ed.title = 'Editar atalhos'; ed.innerHTML = '<span class="ic">✏️</span>';
   tapOn(ed, () => { barEdit = !barEdit; Audio8.sfx('click'); if (barEdit) log('✏️ Toque num espaço da barra para escolher a habilidade ou o item. Toque em ✏️ de novo para terminar.', 'sys'); buildHotbar(); });
   hb.appendChild(ed);
+  const nb = document.createElement('div'); nb.className = 'slot hbnum'; nb.title = 'Trocar de barra (são 3)'; nb.innerHTML = `<span class="ic">${(P.barIdx || 0) + 1}</span><span class="k">barra</span>`;
+  tapOn(nb, trocarBarra); hb.appendChild(nb);
 }
 function renderStats() {
   const w = $('statwin');
