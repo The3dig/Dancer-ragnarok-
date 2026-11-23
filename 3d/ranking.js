@@ -66,7 +66,7 @@ const Ranking = (() => {
   };
   function masmorras() {
     const L = MASM();
-    dialog('🏰 Masmorras', 'Todas as masmorras do Reino. Toque numa para ver como funciona, ir até lá ou ver o ranking.', [
+    dialog('🏰 Masmorras', `Todas as masmorras do Reino. Toque numa para ver como funciona, ir até lá ou ver o ranking.${typeof Eventos !== 'undefined' ? `<br><small>⚡ Eventos: ${Eventos.resumo()}</small>` : ''}`, [
       ...L.map(m => ({ label: `${m.ic} ${m.nome} · nível ${m.nivel}${m.sem && m.sem !== 'sem limite' ? ' · ' + m.sem.replace(/<\/?b>/g, '') : ''}`, fn: () => { detalhe(m); return true; } })), { label: 'Fechar' }]);
   }
   function detalhe(m) {

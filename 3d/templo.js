@@ -48,7 +48,7 @@ const Templo = (() => {
     const porta = box(3.6, 4, 0.4, pedraP, 0, 2, PORTA - 0.1);
     const portal = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.8), new THREE.MeshBasicMaterial({ color: 0xa0e0ff, transparent: true, opacity: 0, toneMapped: false, side: THREE.DoubleSide })); portal.position.set(0, 1.9, PORTA - 0.6); g.add(portal);
     // nome da sala na parede da entrada
-    const placa = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.1), texto([`${S.sala + 1}. ${NOMES[S.sala]}`], 512, 128)); placa.position.set(0, 5.45, -HL + 0.05); placa.scale.set(0.85, 0.8, 1); g.add(placa);   // acima da porta, de frente para quem entra
+    const placa = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.1), texto([NOMES[S.sala]], 512, 128)); placa.position.set(0, 5.45, -HL + 0.05); placa.scale.set(0.85, 0.8, 1); g.add(placa);   // acima da porta, de frente para quem entra
     const luz = new THREE.PointLight(0xffe0b0, 1.2, 40); luz.position.set(0, 5, 0); g.add(luz);
     return { S, g, box, porta, portal, aberta: false, obs: [] };
   }
@@ -106,7 +106,7 @@ const Templo = (() => {
   }
   function tick2(sala, lx, lz) {
     for (const L of sala.laminas) {
-      const a = Math.sin(time * L.w + L.ph) * 1.05; L.piv.rotation.z = a; const bx = Math.sin(a) * 4.6;
+      const a = Math.sin(time * L.w * (L.vel || 1) + L.ph) * 1.05; L.piv.rotation.z = a; const bx = Math.sin(a) * 4.6;
       if (Math.abs(lz - L.z) < 0.7 && Math.abs(lx - bx) < 1.15 && !(P.dashT > 0) && !(P.protT && time < P.protT)) { cair('A lâmina te acertou!', 0.2); return; }
     }
     if (lz < -9.5) abrir(sala, '🚪 Você passou pelo <b>Corredor das Lâminas</b>!');
@@ -369,16 +369,20 @@ const Templo = (() => {
     if (!P.dgSemana || P.dgSemana.w !== semana()) P.dgSemana = { w: semana() }; P.dgSemana.templo = (P.dgSemana.templo || 0) + 1;
     run = { sala: 0, t0: Date.now(), quedas: 0, grupo, acabou: false };
     prepararTudo(grupo ? hashStr(grupo.id) : (Math.random() * 1e9) | 0);
+    // as 5 primeiras salas vêm em ordem sorteada (o Guardião é sempre o último): não dá para decorar o templo
+    const rnd = sorteador((grupo ? hashStr(grupo.id) : (Math.random() * 1e9) | 0) ^ 0x5bd1e995);
+    run.ordem = [0, 1, 2, 3, 4].sort(() => rnd() - 0.5).concat(5); run.passo = 0;
+    for (const L of salas[1].laminas) L.vel = 0.8 + rnd() * 0.5;   // e as lâminas mudam de velocidade
     irPara(0);
     if (typeof Ranking !== 'undefined') Ranking.comecar('templo');
     banner('🏛️ TEMPLO DO ECO SELADO'); Audio8.sfx('warp');
     log(`🏛️ <b>Templo do Eco Selado</b>${grupo ? ' (em grupo)' : ''}: 6 salas de armadilhas e enigmas. Não há pressa de desabar, mas o <b>tempo</b> e as <b>quedas</b> contam para o baú e para o 🏆 ranking. Entradas esta semana: <b>${usadas()} de ${LIMITE}</b>.`, 'gold');
     try { save(); } catch (e) { }
   }
-  function irPara(i) {
-    const S = TEMPLO[i]; run.sala = i;
+  function irPara(passo) {
+    const i = run.ordem ? run.ordem[passo] : passo, S = TEMPLO[i]; run.sala = i; run.passo = passo;
     P.x = S.x; P.z = S.z + ENTRA; P.y = 0; P.face = Math.PI; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = 0; camS.dist = Math.min(camS.dist || 9, 11); P.protT = time + 1.5;
-    log(`🏛️ Sala ${i + 1} de 6: <b>${NOMES[i]}</b>.`, 'sys');
+    log(`🏛️ Sala ${passo + 1} de 6: <b>${NOMES[i]}</b>.`, 'sys');
   }
   function sair(msg) {
     if (run && run.grupo && run.grupo.host && Net.connected) Net.send({ t: 'dgfim', pref: run.grupo.id + ':' });
@@ -406,17 +410,17 @@ const Templo = (() => {
     if (!P.dead) TICK[sl](s, lx, lz, dt);
     // atravessou o portal: próxima sala (ou, na última, volta para Solmira)
     if (s.aberta && lz < PORTA + 0.2 && !P.dead) {
-      if (sl < 5) irPara(sl + 1);
+      if (sl !== 5) irPara(run.passo + 1);
       else sair(run.acabou ? '🏛️ Você saiu do Templo do Eco Selado. Até a próxima!' : '');
     }
   }
   function minimap(mg) {
     const W = mg.canvas.width, H = mg.canvas.height; mg.fillStyle = '#1a1612'; mg.fillRect(0, 0, W, H); mg.textAlign = 'center';
     mg.fillStyle = '#ffd860'; mg.font = 'bold 12px Georgia'; mg.fillText('🏛️ Templo do Eco', W / 2, H / 2 - 22);
-    mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; if (run) { mg.fillText(`Sala ${run.sala + 1}/6`, W / 2, H / 2 - 4); mg.fillText(`⏱️ ${Ranking.fmt((Date.now() - run.t0) / 1000)} · 💢 ${run.quedas}`, W / 2, H / 2 + 14); }
+    mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; if (run) { mg.fillText(`Sala ${run.passo + 1}/6`, W / 2, H / 2 - 4); mg.fillText(`⏱️ ${Ranking.fmt((Date.now() - run.t0) / 1000)} · 💢 ${run.quedas}`, W / 2, H / 2 + 14); }
     mg.textAlign = 'left';
   }
-  function pres() { return run && run.grupo && run.grupo.host ? { id: run.grupo.id, z: 'eco', n: run.grupo.n, fim: run.t0 + 30 * 60e3, onda: run.sala, chefe: run.sala === 5, acabou: run.acabou } : null; }
+  function pres() { return run && run.grupo && run.grupo.host ? { id: run.grupo.id, z: 'eco', n: run.grupo.n, fim: run.t0 + 30 * 60e3, onda: run.passo, chefe: run.sala === 5, acabou: run.acabou } : null; }
 
   // ---------------- a Estudiosa Ilka e a entrada da ruína em Solmira
   {
