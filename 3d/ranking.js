@@ -51,7 +51,7 @@ const Ranking = (() => {
   const ORDEM = ['templo', 'cripta', 'minas', 'torre', 'abismo'];
   function recordes() {
     dialog('🏆 Recordes', 'Os mais rápidos e os que deram mais dano em cada lugar. Toque num para ver os 10 primeiros.', [
-      ...ORDEM.map(c => ({ label: NOMES[c], fn: () => { mostrar(c, recordes); return true; } })), { label: 'Fechar' }]);
+      ...ORDEM.map(c => ({ label: NOMES[c], fn: () => { mostrar(c, recordes); return true; } })), { label: '⚔️ Arena (vitórias da temporada)', fn: () => { if (typeof Arena !== 'undefined') Arena.ranking(recordes); return true; } }, { label: 'Fechar' }]);
   }
   const npcPos = id => { const n = NPCS.find(o => o.id === id); return n ? { x: n.x, z: n.z + 2.5 } : null; };
   const MASM = () => {

@@ -216,7 +216,7 @@ const Templo = (() => {
   function montar5(sala) {
     const fosso = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, 18.4).rotateX(-Math.PI / 2), escuro); fosso.position.set(0, 0.02, 0.6); sala.g.add(fosso);
     sala.pedras = [];
-    for (let r = 0; r < 8; r++) for (let c = 0; c < 3; c++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 1.8), new THREE.MeshLambertMaterial({ color: 0x7a7266, emissive: 0x000000 })); m.position.set(P5.cols[c], 0.15, P5.rows[r]); sala.g.add(m); sala.pedras.push({ r, c, m, caiu: false, pisouT: 0 }); }
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 3; c++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.3, 2.0), new THREE.MeshLambertMaterial({ color: 0x7a7266, emissive: 0x000000 })); m.position.set(P5.cols[c], 0.15, P5.rows[r]); sala.g.add(m); sala.pedras.push({ r, c, m, caiu: false, pisouT: 0 }); }
     const dica = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.2), texto(['As runas mostram as pedras firmes'], 640, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function preparar5(sala, rnd) {
@@ -233,10 +233,14 @@ const Templo = (() => {
       if (p.caiu && p.m.visible) { p.m.position.y -= dt * 6; if (p.m.position.y < -6) p.m.visible = false; }
       if (p.pisouT && !p.caiu && time - p.pisouT > 1.6) { p.caiu = true; Audio8.sfx('hit'); }
     }
-    if (lz < 9.4 && lz > -7.9) {
-      const sob = sala.pedras.find(p => !p.caiu && Math.abs(lx - P5.cols[p.c]) < 0.95 && Math.abs(lz - P5.rows[p.r]) < 0.95);
+    // as pedras ficam encostadas (sem vão entre elas nem entre a borda e a 1ª fileira: antes, andando, sempre se caía no vão)
+    if (lz < 9.05 && lz > -7.75) {
+      // de pé numa pedra firme (mesmo passando pela quina de outra): tudo bem; a falsa só derruba quem pisa de verdade nela (no meio)
+      const cobre = sala.pedras.filter(p => !p.caiu && Math.abs(lx - P5.cols[p.c]) < 1.5 && Math.abs(lz - P5.rows[p.r]) < 1.06);
+      const firme = cobre.find(p => sala.firmes.has(p.r + ',' + p.c)), falsa = cobre.find(p => !sala.firmes.has(p.r + ',' + p.c) && Math.abs(lx - P5.cols[p.c]) < 1.0 && Math.abs(lz - P5.rows[p.r]) < 0.7);
+      const sob = firme && !falsa ? firme : falsa || firme || cobre[0];
       if (!sob) { cair('Você caiu no abismo!', 0.15); return; }
-      if (!sala.firmes.has(sob.r + ',' + sob.c)) { sob.caiu = true; cair('Era uma pedra falsa! Ela desabou com você.', 0.15); return; }
+      if (!sala.firmes.has(sob.r + ',' + sob.c)) { if (sob !== falsa) return; sob.caiu = true; cair('Era uma pedra falsa! Ela desabou com você.', 0.15); return; }
       if (!sob.pisouT) sob.pisouT = time;
     }
     if (lz < -8.4) abrir(sala, '🚪 Você atravessou <b>A Ponte que Desaba</b>!');

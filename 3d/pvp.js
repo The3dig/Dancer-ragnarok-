@@ -18,8 +18,8 @@ const PvP = (() => {
   const PINK = 60e3, RED = 5 * 60e3;
   const now = () => Date.now();
   const F = () => (P.flag = P.flag || { pink: 0, red: 0 });
-  const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || zn === 'sitio' || zn === 'casa'; };
-  const guerra = (x, z) => inTower(z) && zoneOf(x, z) !== 'casa';             // Torre do Cisma: PvP livre
+  const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco'].includes(zn); };   // masmorras também são seguras
+  const guerra = (x, z) => inTower(z) && ['torre', 'topo', 'abismo', 'abfundo', 'arena'].includes(zoneOf(x, z));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
   const state = () => F().red > now() ? 'r' : F().pink > now() ? 'p' : 'w';
   // cor do nome: vermelho forte no começo, clareando com o tempo; rosa no combate
   function color(fl, left) {
@@ -88,7 +88,8 @@ const PvP = (() => {
           F().red = now() + RED; F().pink = 0; P.pkCount = (P.pkCount || 0) + 1;
           banner('☠️ VOCÊ VIROU PK!'); Audio8.sfx('boom');
           log(`☠️ Você matou <b>${r.n}</b>, que não estava em combate. Seu nome ficou <b style="color:#ff4040">vermelho por 5 minutos</b>. Se morrer assim, derruba <b>todos os itens</b>.`, 'bad');
-        } else log(`⚔️ Você derrotou <b>${r.n}</b>${guerra(P.x, P.z) ? ' na Torre (zona de guerra, sem penalidade)' : ' em combate (sem penalidade)'}.`, 'gold');
+        } else if (zoneOf(P.x, P.z) === 'arena' && typeof Arena !== 'undefined') Arena.vitoria(r.n);
+        else log(`⚔️ Você derrotou <b>${r.n}</b>${guerra(P.x, P.z) ? ' na Torre (zona de guerra, sem penalidade)' : ' em combate (sem penalidade)'}.`, 'gold');
       }
       // aviso de PK no território
       const pkUntil = s.fl === 'r' ? (s.pk || 0) : 0;
@@ -130,6 +131,7 @@ const PvP = (() => {
   function diedTo(r, s) {
     killedBy = { by: r.peer, n: ++seq, fl: state() };
     log(`💀 Você foi derrotado por <b>${r.n}</b>.`, 'bad');
+    if (typeof Arena !== 'undefined' && inTower(P.z) && zoneOf(P.x, P.z) === 'arena') { Arena.morreu(); P.pvpDeath = true; return; }   // ⚔️ na arena ninguém perde nada (nem o PK)
     if (state() === 'r') {                                         // PK morto: derruba tudo
       const items = {};
       for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id]) { items[id] = P.inv[id]; P.inv[id] = 0; }

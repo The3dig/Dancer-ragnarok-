@@ -263,13 +263,14 @@ export class Contas {
       }
       if (p[0] === "ranking") {                                      // 🏆 ranking: tempo e dano por lugar
         const RANK_CATS = ["minas", "cripta", "templo", "torre", "abismo"], cat = String(p[1] || "");
-        if (!RANK_CATS.includes(cat)) return json({ erro: "ranking desconhecido" }, 400);
+        const arena = /^arena\d{6}$/.test(cat);                       // ⚔️ Arena: vitórias da temporada (um mês) vão no campo "dano"
+        if (!RANK_CATS.includes(cat) && !arena) return json({ erro: "ranking desconhecido" }, 400);
         if (req.method === "POST") {
           const b = await corpo(), nome = String(b.nome || "").trim().slice(0, 16), vaga = Number(b.vaga) || 0;
           const tempo = Number(b.tempo), dano = Math.round(Number(b.dano) || 0);
           const dono = this.um("SELECT usuario FROM nomes WHERE nome = ? AND usuario = ? AND vaga = ?", nome.toLowerCase(), usuario, vaga);
           if (!dono) return json({ erro: "personagem não é desta conta" }, 403);
-          if (!(tempo >= 20 && tempo <= 6 * 3600) || !(dano >= 0 && dano <= 5e8)) return json({ erro: "valores inválidos" }, 400);
+          if (!((tempo >= 20 && tempo <= 6 * 3600) || (arena && tempo === 999999)) || !(dano >= 0 && dano <= 5e8)) return json({ erro: "valores inválidos" }, 400);
           this.sql.exec("INSERT INTO ranking (cat, usuario, vaga, nome, tempo, dano, quando) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (cat, usuario, vaga) DO UPDATE SET nome = excluded.nome, tempo = MIN(ranking.tempo, excluded.tempo), dano = MAX(ranking.dano, excluded.dano), quando = excluded.quando",
             cat, usuario, vaga, nome, tempo, dano, Date.now());
         }
