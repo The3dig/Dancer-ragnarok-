@@ -149,13 +149,16 @@ const Casa = (() => {
     const opts = Object.entries(MOVEIS).map(([k, [nome, ic, preco, need]]) => {
       if (S().mov[k]) return { label: `✅ ${ic} ${nome} — já está na casa`, fn: () => { reformas(); return true; } };
       const txt = Object.entries(need).map(([id, n]) => `${n} ${it(id).ic}`).join(' + ');
-      const ok = P.zeny >= preco && Object.entries(need).every(([id, n]) => (P.inv[id] || 0) >= n);
+      const CM = typeof Comodos !== 'undefined' && Comodos.qtd;                          // 📦 conta a mochila e o baú da casa
+      const tem = id => CM ? Comodos.qtd(id) : (P.inv[id] || 0);
+      const ok = P.zeny >= preco && Object.entries(need).every(([id, n]) => tem(id) >= n);
       return { label: `${ok ? '🔨' : '▫️'} ${ic} ${nome} — ${preco} cr + ${txt}`, fn: () => {
-        if (!ok) { const falta = Object.entries(need).filter(([id, n]) => (P.inv[id] || 0) < n).map(([id, n]) => `${n - (P.inv[id] || 0)} ${it(id).name}`); log(falta.length ? `Falta: ${falta.join(', ')}.` : 'Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); reformas(); return true; }
-        P.zeny -= preco; for (const [id, n] of Object.entries(need)) P.inv[id] -= n;
+        if (!ok) { const falta = Object.entries(need).filter(([id, n]) => tem(id) < n).map(([id, n]) => `${n - tem(id)} ${it(id).name}`); log(falta.length ? `Falta: ${falta.join(', ')}.` : 'Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); reformas(); return true; }
+        P.zeny -= preco; if (CM) Comodos.tirarMat(need); else for (const [id, n] of Object.entries(need)) P.inv[id] -= n;
         S().mov[k] = 1; furnish(); if (typeof Comodos !== 'undefined') Comodos.completos(); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffd060, 24, 3, 0.7);
         log(`🏠 <b>${nome}</b> foi colocado na sua casa!`, 'gold'); save(); reformas(); return true; } };
     });
+    if (typeof Comodos !== 'undefined' && Comodos.optPref) { opts.push(Comodos.optPref(reformas)); opts.push({ label: '📖 Livro dos Móveis', fn: () => { Comodos.livro(); return true; } }); }
     opts.push({ label: 'Fechar' });
     const n = Object.keys(S().mov).length;
     dialog('🔨 Reformas da Casa', `Mobilie a casa aos poucos com coroas e o que você junta nas caçadas e no Sítio.<br><small>Móveis: ${n}/${Object.keys(MOVEIS).length} · Coroas: <b>${P.zeny} cr</b></small>`, opts);
@@ -186,5 +189,5 @@ const Casa = (() => {
     if (Math.hypot(P.x - BANC.x, P.z - BANC.z) < 2.6) return { label: '🔨 Reformas da casa', fn: () => reformas() };
     return null;
   }
-  return { update, nearest, entrar, sair, furnish, door: OUT_DOOR };
+  return { update, nearest, entrar, sair, furnish, door: OUT_DOOR, MOVEIS };
 })();

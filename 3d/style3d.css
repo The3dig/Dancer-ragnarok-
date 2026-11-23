@@ -872,3 +872,15 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 #chatbox.teclado .chat-linha { flex: 0 0 auto; }
 #chatbox.teclado input { padding: 6px 10px; }
 #chatbox.teclado #chat-canal, #chatbox.teclado #chat-item, #chatbox.teclado #chat-x, #chatbox.teclado #chat-send { padding: 0 8px !important; font-size: 12px; }
+
+/* 📖 Livro dos Móveis */
+.lm-top { margin-bottom: 6px; }
+.lm { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; margin-bottom: 6px; }
+.lm-l { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 5px 7px; background: rgba(255,255,255,.03); }
+.lm-l.feita { border-color: #f2c86a; background: linear-gradient(90deg, rgba(242,200,106,.16), rgba(242,200,106,.04)); }
+.lm-t { font-size: 13px; margin-bottom: 4px; } .lm-l.feita .lm-t { color: #ffe3a0; }
+.lm-g { display: flex; flex-wrap: wrap; gap: 4px; }
+.lm-c { position: relative; display: flex; flex-direction: column; align-items: center; width: 64px; padding: 3px 2px; border-radius: 8px; background: rgba(0,0,0,.3); opacity: .45; filter: grayscale(1); }
+.lm-c i { position: absolute; top: 1px; right: 3px; font-style: normal; font-size: 11px; color: #8affb0; }
+.lm-c.tem { opacity: 1; filter: none; background: rgba(242,200,106,.12); }
+.lm-c b { font-size: 20px; line-height: 1.1; } .lm-c small { font-size: 9px; text-align: center; line-height: 1.1; }

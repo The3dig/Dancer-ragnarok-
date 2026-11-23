@@ -27,12 +27,14 @@ const Jogadores = (() => {
   }
   // 🚫 lugares que não dá para seguir (Torre, Abismo, masmorras, casa, castelo, arena: ficam "fora do mapa")
   function fechado(r) {
-    if (!inTower(r.z)) return null;
+    const NOMES = { reino: 'no Reino de Solmira', valdora: 'em Valdora', floresta: 'na Floresta Morta', vale: 'no Vale dos Mortos', cidade: 'na Cidade', praia: 'na Praia' };
+    if (!inTower(r.z) && !inTower(P.z)) { const a = mapaDe(P.x, P.z), b = mapaDe(r.x, r.z); return a === b ? null : `em outro mapa (${NOMES[b] || b})`; }
+    if (!inTower(r.z)) return `em outro mapa (${NOMES[mapaDe(r.x, r.z)] || 'lá fora'})`;
     if (inTower(P.z) && Math.hypot(r.x - P.x, r.z - P.z) < 40 && zoneOf(r.x, r.z) === zoneOf(P.x, P.z)) return null;   // estão no mesmo lugar: dá para seguir
     const z = zoneOf(r.x, r.z);
     return z === 'abismo' || z === 'abfundo' ? 'no Abismo' : z === 'casa' ? 'dentro de uma casa' : z === 'castelo' ? 'no castelo da guilda' : z === 'torre' || z === 'topo' ? 'na Torre do Cisma' : 'numa masmorra';
   }
-  function naoDa(r, lugar) { const t = `🚫 <b>${esc(r.n)}</b> está ${lugar}: esse mapa não dá para seguir.`; log(t, 'bad'); Audio8.sfx('miss'); if (typeof banner === 'function') banner('🚫 ESSE MAPA NÃO DÁ PARA SEGUIR'); }
+  function naoDa(r, lugar) { const t = `🚫 <b>${esc(r.n)}</b> está ${lugar}: esse mapa não dá para seguir.`; P.qGo = null; if (typeof autoStop === 'function') autoStop(''); log(t, 'bad'); Audio8.sfx('miss'); if (typeof banner === 'function') banner('🚫 ESSE MAPA NÃO DÁ PARA SEGUIR'); }
   function perfil(peer) {
     const r = achar(peer); if (!r) return; const s = r.s || {};
     const linhas = [`⭐ Nível <b>${s.lv || '?'}</b>`, `⚔️ Classe: <b>${esc(classe(s))}</b>`, s.gt ? `🛡️ Guilda: <b>[${esc(s.gt)}]</b>` : '🛡️ Sem guilda', s.title ? `🏅 Título: <b>« ${esc(s.title)} »</b>` : '', P.grupo && s.gp === P.grupo ? '👥 Está no seu grupo' : '', s.mt ? '🐦 Montado na Valtrion!' : ''].filter(Boolean);

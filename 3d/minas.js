@@ -87,7 +87,7 @@ function criarMasmorra(C) {
   function limpar() { for (const m of mobs.filter(m => m.masm === C.zona)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => m.masm !== C.zona); }
   // monstro do grupo que nasceu no jogo de outro companheiro (chega pelo servidor)
   function criarRemoto(o) {
-    const p = o.id.split(':'); if (p[1] !== C.zona || p[2] !== P.grupo) return null;
+    const p = o.id.split(':'); if (p[1] !== C.zona || !(run && run.grupo && o.id.startsWith(run.grupo.id + ':'))) return null;   // só os da corrida em que estou
     const m = spawnMob(o.type, null, { x: o.x, z: o.z }); escalar(m, +p[4], p[6] === '1', +p[5]);
     m.nid = o.id; m.dg = p.slice(0, 4).join(':'); m.dono = o.dono; m.nx = o.x; m.nz = o.z; m.hp = Math.min(m.maxHp, o.hp ?? m.maxHp);
     return m;
@@ -95,9 +95,11 @@ function criarMasmorra(C) {
 
   // ---------------- entrar e sair
   // corrida do grupo que um companheiro começou (lida da presença dele)
+  // 🌍 qualquer corrida aberta nesta masmorra (de qualquer jogador, com grupo ou sem: "o mundo é o mesmo", pedido do Rone)
   function corridaDoGrupo() {
-    if (!P.grupo || typeof Grupo === 'undefined') return null;
-    for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === C.zona && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
+    if (typeof Net === 'undefined' || !Net.connected || !Net.peers) return null;
+    for (const r of Net.peers()) { const g = r.s && r.s.dg; if (!g || g.z !== C.zona || g.acabou || !(g.fim > Date.now() + 15000)) continue; const gp = String(g.id).split(':')[2] || '';
+      if (gp.startsWith('*') || (P.grupo && gp === P.grupo)) return { ...g, nome: r.n }; }
     return null;
   }
   // limite por semana (a semana vira na segunda-feira): cada entrada conta, sozinho ou em grupo
@@ -107,21 +109,22 @@ function criarMasmorra(C) {
   function gastar() { if (!P.dgSemana || P.dgSemana.w !== semana()) P.dgSemana = { w: semana() }; P.dgSemana[C.zona] = (P.dgSemana[C.zona] || 0) + 1; try { save(); } catch (e) { } }
   function entrar(modo, dif, aceito) {
     // escolhe o nível de dificuldade (quem entra na corrida do grupo usa o nível que o companheiro escolheu)
-    const doGrupo = modo === 'grupo' && corridaDoGrupo();
-    if (!dif && doGrupo) dif = doGrupo.dif || 1;
+    const doGrupo = corridaDoGrupo();
+    if (doGrupo) dif = doGrupo.dif || 1;
     if (!dif) { setTimeout(() => escolherNivel(C.icone + ' ' + C.nome, k => entrar(modo, k)), 40); return; }
-    if (P.lv < DIFS[dif - 1].lv) { log(`${C.icone} O <b>nível ${dif}</b> da ${C.nome} é para o nível ${DIFS[dif - 1].lv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
+    if (P.lv < DIFS[dif - 1].lv) { log(doGrupo ? `${C.icone} <b>${doGrupo.nome}</b> está lá dentro no <b>nível ${dif}</b>, que é para o nível ${DIFS[dif - 1].lv} em diante. Espere a corrida acabar (todos veem os mesmos monstros).` : `${C.icone} O <b>nível ${dif}</b> da ${C.nome} é para o nível ${DIFS[dif - 1].lv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
     if (C.minLv && P.lv < C.minLv) { log(`${C.icone} A <b>${C.nome}</b> é para o nível ${C.minLv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
     if (!restam()) { log(`${C.icone} Você já entrou <b>${C.limite} vezes</b> na <b>${C.nome}</b> esta semana. Ela abre de novo na <b>segunda-feira</b>.`, 'bad'); Audio8.sfx('miss'); return; }
     let grupo = null;
-    if (modo === 'grupo') {
-      const outra = corridaDoGrupo();
-      if (outra) grupo = { id: outra.id, n: outra.n, host: false, fimMs: outra.fim, de: outra.nome };
-      else {
+    const outra = doGrupo;
+    if (outra) grupo = { id: outra.id, n: outra.n, host: false, fimMs: outra.fim, de: outra.nome };   // entra na corrida que já está lá dentro
+    else if (modo !== 'grupo' && typeof Net !== 'undefined' && Net.connected) grupo = { id: `dg:${C.zona}:*${String(Net.me || 'x').slice(0, 8)}:${Date.now().toString(36)}`, n: 1, host: true, fimMs: Date.now() + TEMPO * 1000, aberta: true };
+    else if (modo === 'grupo') {
+      {
         const M_ = typeof Grupo !== 'undefined' ? Grupo.membros() : [];
         if (!P.grupo || !M_.length || !Net.connected) { log(`${C.icone} Para ir em grupo, monte um grupo no 👥 (2 a 6 pessoas, todos on-line).`, 'bad'); Audio8.sfx('miss'); return; }
         if (!aceito && Grupo.pedirMasmorra) { Grupo.pedirMasmorra({ z: C.zona, nome: C.nome, dif, comecar: () => entrar(modo, dif, true) }); return; }   // todos do grupo precisam aceitar
-        grupo = { id: `dg:${C.zona}:${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true, fimMs: Date.now() + TEMPO * 1000 };
+        grupo = { id: `dg:${C.zona}:*${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true, fimMs: Date.now() + TEMPO * 1000 };
       }
     }
     if (typeof autoStop === 'function') autoStop('');
@@ -132,7 +135,8 @@ function criarMasmorra(C) {
     gastar(); if (C.limite) log(`${C.icone} Entradas na ${C.nome} esta semana: <b>${usadas()} de ${C.limite}</b>.`, 'sys');
     run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo, dif };
     banner(`${C.icone} ${C.nome.toUpperCase()} · NÍVEL ${dif}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
-    if (grupo) log(grupo.host ? `👥 <b>Corrida em grupo (${grupo.n} pessoas):</b> monstros mais fortes e em maior número, saque bem maior. Seus companheiros entram falando com o mesmo NPC.` : `👥 Você entrou na corrida do grupo de <b>${grupo.de}</b>.`, 'gold');
+    if (grupo && !grupo.host && typeof Net !== 'undefined') Net.send({ t: 'dgver', pref: grupo.id + ':' });   // pede os monstros que já estão lá dentro
+    if (grupo && !grupo.aberta) log(grupo.host ? `👥 <b>Corrida em grupo (${grupo.n} pessoas):</b> monstros mais fortes e em maior número, saque bem maior. Seus companheiros entram falando com o mesmo NPC.` : `🌍 Você entrou na corrida de <b>${grupo.de}</b>: todos aqui dentro veem e enfrentam os mesmos monstros.`, 'gold');
     hud(true);
   }
   function fimGrupo() { if (run && run.grupo && run.grupo.host && Net.connected) Net.send({ t: 'dgfim', pref: run.grupo.id + ':' }); }

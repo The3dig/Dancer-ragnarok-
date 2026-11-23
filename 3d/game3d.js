@@ -1623,10 +1623,17 @@ function killMob(m, o = {}) {
   else if (m.model.m3) corpses.push({ g: m.model.g, m3: m.model.body, t: 1.0 });
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
-  if (o.leech) {                                                        // 🍼 carona do grupo: só XP (sem missão, item nem bestiário), no máximo 0,8% de um nível por bicho
-    const xp = Math.max(1, Math.round(Math.min(m.d.xp * 0.6, xpNeed(P.lv) * 0.008) * (1 + gBon('xp'))));
-    if (!P.leechAviso2) { P.leechAviso2 = 1; log('🍼 <b>Carona no grupo:</b> quando alguém bem mais forte do seu grupo mata perto de você, você ganha um pouco de XP (até 0,8% de um nível por bicho). Missões e itens só valem caçando você mesmo!', 'gold'); }
-    log(`🍼 +${xp} XP de carona${o.de ? ` (${o.de} derrotou ${m.d.name})` : ''}`, 'xp'); gainXp(xp); return;
+  if (o.leech) {                                                        // 🍼 carona do grupo (leech): proporcional à diferença de nível
+    // quanto mais abaixo de quem matou, mais rápido sobe (para encostar), mas sem virar elevador:
+    // 11 níveis abaixo: até 0,45% de um nível por bicho · 20 abaixo: 0,9% · 40 abaixo: 1,9% · 60+ abaixo: 2,9% (teto 3%)
+    const gap = Math.max(11, (o.lvK || P.lv + 11) - P.lv), pct = Math.min(0.03, 0.004 + (gap - 10) * 0.0005);
+    const xp = Math.max(1, Math.round(Math.min(m.d.xp * 0.6, xpNeed(P.lv) * pct) * (1 + gBon('xp'))));
+    if (!P.leechAviso3) { P.leechAviso3 = 1; log('🍼 <b>Carona no grupo:</b> quando alguém bem mais forte do seu grupo mata <b>perto</b> de você, você ganha XP: quanto maior a diferença de nível, mais você ganha. E o bicho <b>conta nas suas missões</b> e no bestiário, mas só se você estiver lá junto, no mapa. Itens e coroas só para quem mata.', 'gold'); }
+    log(`🍼 +${xp} XP de carona${o.de ? ` (${o.de} derrotou ${m.d.name})` : ''}`, 'xp');
+    P.kills = (P.kills || 0) + 1; if (typeof Tarefas !== 'undefined') Tarefas.evento('mata');
+    if (typeof Vida !== 'undefined') Vida.onKill(m); if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m);
+    const q = QUESTS[P.quest]; if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
+    gainXp(xp); return;
   }
   if (!o.ajuda || o.ajuda >= 0.25 || o.grupo) { P.kills = (P.kills || 0) + 1; if (typeof Trajes !== 'undefined') Trajes.kill(); }
   if (m.castelo && typeof Castelo !== 'undefined') Castelo.onKill(m);

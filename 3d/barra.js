@@ -6,7 +6,7 @@
 // =====================================================================
 'use strict';
 const Barra = (() => {
-  const GAVETA = ['btn-auto', 'btn-stat', 'btn-best', 'btn-sit', 'btn-music', 'btn-recordes', 'btn-shop', 'btn-guild', 'btn-help', 'btn-vr'];
+  const GAVETA = ['btn-auto', 'btn-stat', 'btn-best', 'btn-sit', 'btn-music', 'btn-recordes', 'btn-shop', 'btn-guild', 'btn-help', 'btn-vr', 'btn-moveis'];
   let painel = null;
   const nome = b => (b.title || '').replace(/\s*\([^)]*\)\s*$/, '');
   function arrumar() {

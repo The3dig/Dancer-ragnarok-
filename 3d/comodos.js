@@ -148,8 +148,22 @@ const Comodos = (() => {
   }
 
   // ---------------- conversa: Mestre de Obras
-  const podeMat = mat => Object.entries(mat).every(([id, n]) => (P.inv[id] || 0) >= n);
-  const matTxt = mat => Object.entries(mat).map(([id, n]) => `${(P.inv[id] || 0) >= n ? '✅' : '▫️'} ${n} ${it(id).ic} ${it(id).name} <small>(tem ${(P.inv[id] || 0).toLocaleString('pt-BR')})</small>`).join('<br>');
+  // 📦 entregas usam a mochila E o baú da casa (pedido do Rone): mostra quanto tem em cada um, separado,
+  // e você escolhe de onde sai primeiro
+  const naMochila = id => P.inv[id] || 0, noBau = id => (S().bau || {})[id] || 0, qtd = id => naMochila(id) + noBau(id);
+  const podeMat = mat => Object.entries(mat).every(([id, n]) => qtd(id) >= n);
+  const fmt = n => n.toLocaleString('pt-BR');
+  const matTxt = mat => Object.entries(mat).map(([id, n]) => `${qtd(id) >= n ? '✅' : '▫️'} ${n} ${it(id).ic} ${it(id).name} <small>· 🎒 ${fmt(naMochila(id))} · 📦 ${fmt(noBau(id))}</small>`).join('<br>');
+  const pref = () => S().pref === 'bau' ? 'bau' : 'mochila';
+  function tirarMat(mat) {
+    const b = (S().bau = S().bau || {});
+    for (const [id, n] of Object.entries(mat)) {
+      let falta = n;
+      const de = pref() === 'bau' ? [b, P.inv] : [P.inv, b];
+      for (const o of de) { const t = Math.min(falta, o[id] || 0); o[id] = (o[id] || 0) - t; falta -= t; if (o === b && !b[id]) delete b[id]; }
+    }
+  }
+  const optPref = volta => ({ label: `🔁 Tirar primeiro do: ${pref() === 'bau' ? '📦 Baú da casa' : '🎒 Mochila'} (tocar para trocar)`, fn: () => { S().pref = pref() === 'bau' ? 'mochila' : 'bau'; Audio8.sfx('click'); volta(); return true; } });
   function obras() {
     const k = SALAS.findIndex(s => !S().salas[s.id]);
     const feitos = SALAS.filter(s => S().salas[s.id]).length;
@@ -158,9 +172,11 @@ const Comodos = (() => {
     dialog('🏗️ Mestre de Obras Tibério', `Quer uma casa maior? Eu construo, cômodo por cômodo, do lado oeste da sala. Cada um tem <b>5 móveis</b> próprios, e móvel é conforto: quem sai de uma casa confortável caça melhor.<br><br>Próximo cômodo (${feitos + 1} de ${SALAS.length}): <b>${s.ic} ${s.nome}</b><br>💰 ${s.cr.toLocaleString('pt-BR')} cr <small>(tem ${P.zeny.toLocaleString('pt-BR')})</small><br>${matTxt(s.mat)}`, [
       { label: ok ? `🏗️ Construir ${s.nome}` : `🔒 Falta material ou coroas`, fn: () => {
         if (!ok) { Audio8.sfx('miss'); obras(); return true; }
-        P.zeny -= s.cr; for (const [id, n] of Object.entries(s.mat)) P.inv[id] -= n; S().salas[s.id] = 1;
+        P.zeny -= s.cr; tirarMat(s.mat); S().salas[s.id] = 1;
         montarSala(ROOMS[k]); if (k === 0) montarPortaCasa(); Audio8.sfx('anvil'); banner(`🏗️ ${s.nome.toUpperCase()}`);
         log(`🏗️ <b>${s.nome}</b> construído! A porta fica no ${k === 0 ? '<b>lado oeste da sala</b> da casa' : 'lado oeste do cômodo anterior'}. Fale com a <b>Governanta Clara</b> lá dentro para ver os móveis.`, 'gold'); try { save(); } catch (e) { } return; } },
+      optPref(obras),
+      { label: '📖 Livro dos Móveis', fn: () => { livro(); return true; } },
       { label: '📜 Ver todos os cômodos', fn: () => { dialog('🏗️ Os cômodos', SALAS.map((x, i) => `${S().salas[x.id] ? '✅' : i === k ? '➡️' : '▫️'} ${x.ic} <b>${x.nome}</b> — ${x.cr.toLocaleString('pt-BR')} cr`).join('<br>'), [{ label: '← Voltar', fn: () => { obras(); return true; } }]); return true; } },
       { label: 'Até mais' }]);
   }
@@ -173,6 +189,7 @@ const Comodos = (() => {
     const fala = !salas.length ? 'A casa ainda é só esta sala. O <b>Mestre de Obras Tibério</b>, lá fora, constrói cômodos novos. Cada cômodo tem móveis lindos!' : podem.length ? `Já dá para fazer: <b>${podem.slice(0, 4).join(', ')}</b>${podem.length > 4 ? ` e mais ${podem.length - 4}` : ''}!` : 'Ainda falta material para os próximos móveis. Caçando bastante a gente chega lá!';
     dialog('🧹 Governanta Clara', `Bem-vindo de volta! Eu cuido de tudo por aqui. ${fala}<br><br>🏠 <b>Conforto: ${cf} / ${CONF_MAX}</b><br><small>Ao sair de casa você fica <b>1 hora Descansado</b>: +${pct(b.xp)} de XP, +${pct(b.drop)} de drop e +${pct(b.cr)} de coroas. Mais móveis, mais conforto.</small>`, [
       ...salas.map(R => ({ label: `${R.ic} Móveis: ${R.nome} (${MOVEIS[R.id].filter(m => S().mob[m.id]).length}/5)`, fn: () => { moveis(R); return true; } })),
+      { label: '📖 Livro dos Móveis', fn: () => { livro(); return true; } },
       { label: 'Obrigado, Clara' }]);
   }
   function moveis(R) {
@@ -182,8 +199,9 @@ const Comodos = (() => {
           if (feito) { moveis(R); return true; }
           dialog(`${m.ic} ${m.nome}`, `+${m.conf} de conforto<br>💰 ${m.cr.toLocaleString('pt-BR')} cr<br>${matTxt(m.mat)}`, [
             { label: ok ? '🔨 Fazer' : '🔒 Falta material ou coroas', fn: () => { if (!ok) { Audio8.sfx('miss'); moveis(R); return true; }
-              P.zeny -= m.cr; for (const [id, n] of Object.entries(m.mat)) P.inv[id] -= n; S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil');
+              P.zeny -= m.cr; tirarMat(m.mat); S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil');
               log(`🏠 <b>${m.nome}</b> está na ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } completos(); moveis(R); return true; } },
+            optPref(() => moveis(R)),
             { label: '← Voltar', fn: () => { moveis(R); return true; } }]);
           return true; } }; }),
       { label: '← Voltar', fn: () => { governanta(); return true; } }]);
@@ -203,6 +221,22 @@ const Comodos = (() => {
     x.strokeStyle = '#5a3a10'; x.lineWidth = 6; x.strokeRect(5, 5, 246, 118); x.fillStyle = '#3a2208'; x.font = 'bold 20px Georgia'; x.textAlign = 'center'; x.fillText('★ CÔMODO COMPLETO ★', 128, 48); x.font = 'bold 24px Georgia'; x.fillText(R.nome, 128, 90);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.9), new THREE.MeshPhongMaterial({ map: t, shininess: 90, emissive: 0x2a1800 })); m.position.set(-3.2, 2.4, -H + 0.3); R.g.add(m); R.placa = m;
   }
+  // ---------------- 📖 Livro dos Móveis (pedido do Rone: "a gente tem mania de colecionador")
+  // cada linha é um cômodo; linha completa = ★, +1 ponto de atributo e placa dourada
+  function livro() {
+    const c = S(), ok = c.ok || {}, sala = typeof Casa !== 'undefined' && Casa.MOVEIS ? Casa.MOVEIS : {};
+    const cel = (ic, nome, tem) => `<span class="lm-c ${tem ? 'tem' : ''}" title="${nome}"><b>${ic}</b><small>${nome}</small>${tem ? '<i>✔</i>' : ''}</span>`;
+    const linha = (ic, nome, itens, feita, trancada) => `<div class="lm-l ${feita ? 'feita' : ''}"><div class="lm-t">${feita ? '★' : trancada ? '🔒' : '☆'} ${ic} <b>${nome}</b> <small>${trancada ? 'cômodo ainda não construído' : `${itens.filter(x => x[2]).length}/${itens.length}${feita ? ' · +1 ponto ganho' : ''}`}</small></div><div class="lm-g">${itens.map(x => cel(...x)).join('')}</div></div>`;
+    const salaIt = Object.values(sala).map(([nome, ic], i) => [ic, nome, !!(c.mov || {})[Object.keys(sala)[i]]]);
+    let total = salaIt.filter(x => x[2]).length, max = salaIt.length;
+    const linhas = [linha('🏠', 'Sala da casa', salaIt, !!ok.sala, false)];
+    for (const R of ROOMS) { const its = MOVEIS[R.id].map(m => [m.ic, m.nome, !!c.mob[m.id]]); total += its.filter(x => x[2]).length; max += its.length; linhas.push(linha(R.ic, R.nome, its, !!ok[R.id], !c.salas[R.id])); }
+    const pts = Object.keys(ok).length;
+    dialog('📖 Livro dos Móveis', `<div class="lm-top">Móveis: <b>${total} / ${max}</b> · Linhas completas: <b>${pts} / ${ROOMS.length + 1}</b> · Pontos de atributo ganhos: <b>+${pts}</b></div><div class="lm">${linhas.join('')}</div><small>Complete uma linha (todos os móveis do cômodo) para ganhar <b>+1 ponto de atributo</b> e a placa dourada. Os que você ainda não tem aparecem apagados.</small>`, [{ label: 'Fechar' }]);
+  }
+  // botão no ☰ Mais
+  function botaoLivro() { const m = $('menu'); if (!m || $('btn-moveis')) return; const b = document.createElement('button'); b.id = 'btn-moveis'; b.title = 'Livro dos Móveis'; b.textContent = '📖'; b.style.display = 'none'; b.onclick = () => { Audio8.sfx('click'); livro(); }; m.appendChild(b); }
+  setInterval(botaoLivro, 2000);
   // ---------------- laço
   let dentroAntes = false;
   let iniciou = false;
@@ -247,5 +281,5 @@ const Comodos = (() => {
     return null;
   }
   function init() { for (const R of ROOMS) if (S().salas[R.id]) montarSala(R); if (tem(0)) montarPortaCasa(); completos(); if (P.larAte > Date.now() && typeof addBuff === 'function') addBuff('lar', Math.round((P.larAte - Date.now()) / 1000), {}, '🏠'); }
-  return { update, nearest, bonus, conforto, init, completos, SALAS, MOVEIS };
+  return { update, nearest, bonus, conforto, init, completos, livro, qtd, podeMat, tirarMat, matTxt, optPref, SALAS, MOVEIS };
 })();

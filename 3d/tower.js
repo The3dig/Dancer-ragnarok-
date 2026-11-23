@@ -420,8 +420,8 @@ const Tower = (() => {
   const GUARD = { 4: 'Guardião do Portão', 9: 'Carcereiro do Cisma', 14: 'Guardião das Brasas', 19: 'Arauto do Soberano', 24: 'Guardião do Gelo Vazio', 29: 'Mão de Kravenox' };
   const RESPAWN = 90;                          // segundos até o andar se encher de novo
   let cur = -1, clearedAt = {}, leaveT = 0, lastCount = -1, portaArmada = true, crateraArmada = true;
-  function clearFloorMobs(tudo = true) {                          // trocando de andar em grupo, os bichos do grupo continuam (o companheiro pode estar lá)
-    const sai = m => m.towerFloor !== undefined && (tudo || !(m.dg && String(m.dg).startsWith('dg:torre:')));
+  function clearFloorMobs() {                                       // os compartilhados continuam no servidor: quem voltar pede de novo
+    const sai = m => m.towerFloor !== undefined;
     for (const m of mobs.filter(sai)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
     mobs = mobs.filter(m => !sai(m));
   }
@@ -439,11 +439,11 @@ const Tower = (() => {
     m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.7) * 1.4 * k), atk: Math.round(d0.atk * kf * 1.2 * Math.sqrt(k)), def: Math.round(d0.def * kf), xp: xpCampo(L), zeny: [Math.round(d0.zeny[0] * kf * k), Math.round(d0.zeny[1] * kf * 1.3 * k)], aggro: Math.max(d0.aggro, 18) };
     m.hp = m.maxHp = m.d.hp; const sm = m.lab.querySelector('small'); if (sm) sm.textContent = 'Nv ' + L;
   }
-  // ---------------- 👥 Torre em grupo (pedido do Rone: "a ideia era o Ludi ajudar a matar pro Imperio subir")
-  // Em grupo, os monstros do andar vão para o servidor com um nome igual para todos (dg:torre:<grupo>:<andar>-<tempo>:<n>):
-  // todo mundo do grupo vê e bate nos MESMOS bichos, o andar abre junto e a carona de XP funciona aqui também.
-  const emGrupo = () => !!(P.grupo && typeof Net !== 'undefined' && Net.connected && typeof Grupo !== 'undefined' && Grupo.membros().length);
-  const grupoLimpou = i => typeof Grupo !== 'undefined' && Grupo.membros().some(r => r.s && r.s.tw && Array.isArray(r.s.tw.ok) && r.s.tw.ok.includes(i));
+  // ---------------- 🌍 Torre e Abismo compartilhados (pedido do Rone: "o mundo é o mesmo", "é feito pra jogar junto")
+  // Os monstros do andar vão para o servidor com um nome igual para todos (dg:torre:*:<andar>-<tempo>:<n>): todo mundo
+  // que está no mesmo andar vê e bate nos MESMOS bichos, com grupo ou sem. Quem chega pede ao servidor os que já estão lá.
+  const online = () => typeof Net !== 'undefined' && Net.connected && typeof Partilha !== 'undefined';
+  let espera = 0;                                                    // esperando o servidor dizer quem já está no andar
   function criarUm(i, k, x, z) {                                     // k = posição na onda, ou 'g' para o Guardião
     const f = FL(i), kk = i >= 100 ? i - 100 : i;
     if (k !== 'g') {
@@ -474,30 +474,34 @@ const Tower = (() => {
     if (guardOf(i)) { const pg = pontoRampa(f, avanca(f), 0); out.push({ k: 'g', x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 }); }
     return out;
   }
-  function spawnFloor(i, renasce) {
-    if (i === TOP || i === AB_FUNDO || (clearedAt[i] && time - clearedAt[i] < RESPAWN)) return;
-    if (emGrupo()) {
-      if (mobs.some(m => m.towerFloor === i && m.dg && !m.dead)) { clearedAt[i] = 0; return; }        // o grupo já está lutando aqui: entra na mesma luta
-      if (!renasce && grupoLimpou(i)) { opened[i] = true; log('👥 Seu grupo já limpou este andar: a escadaria está aberta.', 'sys'); return; }
-      const pref = `dg:torre:${P.grupo}:${i}-${Math.floor(Date.now() / 120000).toString(36)}`, ja = new Set(mobs.map(m => m.nid)), novos = [];
-      for (const L of lugares(i)) {
-        const id = `${pref}:${L.k}`; if (ja.has(id)) continue;          // um companheiro criou no mesmo instante: o servidor fica com um só
-        const m = criarUm(i, L.k, L.x, L.z); if (!m) continue; m.nid = id; m.dg = pref; m.dono = Net.me; m.nx = m.x; m.nz = m.z; novos.push(m);
-      }
-      for (let j = 0; j < novos.length; j += 100) Net.send({ t: 'semente+', l: novos.slice(j, j + 100).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: 3600, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
-    } else for (const L of lugares(i)) criarUm(i, L.k, L.x, L.z);
-    clearedAt[i] = 0;
+  function criarOnda(i) {
+    if (!online()) { for (const L of lugares(i)) criarUm(i, L.k, L.x, L.z); return; }
+    const pref = `dg:torre:*:${i}-${Math.floor(Date.now() / 120000).toString(36)}`, ja = new Set(mobs.map(m => m.nid)), novos = [];
+    for (const L of lugares(i)) {
+      const id = `${pref}:${L.k}`; if (ja.has(id)) continue;            // outro jogador criou no mesmo instante: o servidor fica com um só
+      const m = criarUm(i, L.k, L.x, L.z); if (!m) continue; m.nid = id; m.dg = pref; m.dono = Net.me; m.nx = m.x; m.nz = m.z; novos.push(m);
+    }
+    for (let j = 0; j < novos.length; j += 100) Net.send({ t: 'semente+', l: novos.slice(j, j + 100).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: 3600, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
   }
-  // monstro do andar que nasceu no jogo de um companheiro do grupo (chega pelo servidor)
+  const vivosNo = i => mobs.some(m => m.towerFloor === i && !m.dead);
+  function spawnFloor(i, renasce) {
+    if (i === TOP || i === AB_FUNDO) return;
+    const recente = clearedAt[i] && time - clearedAt[i] < RESPAWN;
+    if (!online()) { if (recente) return; criarOnda(i); clearedAt[i] = 0; return; }
+    // pergunta ao servidor quem já está no andar; se ninguém (e o andar não foi limpo agorinha), cria a onda para todos
+    Net.send({ t: 'dgver', pref: `dg:torre:*:${i}-` }); espera = time + 2; const ii = i;
+    setTimeout(() => { if (cur !== ii) return; espera = 0; if (vivosNo(ii)) { clearedAt[ii] = 0; return; } if (recente && !renasce) return; criarOnda(ii); clearedAt[ii] = 0; }, 1300);
+  }
+  // monstro do andar que nasceu no jogo de outro jogador (chega pelo servidor): só cria se eu estou nesse andar
   function criarRemoto(o) {
-    const p = String(o.id).split(':'); if (p[1] !== 'torre' || p[2] !== P.grupo) return null;
-    const i = parseInt(p[3], 10), k = p[4] === 'g' ? 'g' : +p[4]; if (!(i >= 0) || !FL(i)) return null;
+    const p = String(o.id).split(':'); if (p[1] !== 'torre') return null;
+    const i = parseInt(p[3], 10), k = p[4] === 'g' ? 'g' : +p[4]; if (!(i >= 0) || !FL(i) || i !== cur) return null;
     const m = criarUm(i, k, o.x, o.z); if (!m) return null;
     m.nid = o.id; m.dg = p.slice(0, 4).join(':'); m.dono = o.dono; m.nx = o.x; m.nz = o.z; m.hp = Math.min(m.maxHp, o.hp ?? m.maxHp);
     return m;
   }
   // presença: em que andar estou e quais o grupo já pode atravessar
-  const pres = () => emGrupo() && cur >= 0 ? { tw: { f: cur, ok: Object.keys(opened).filter(k => opened[k]).map(Number).slice(-40) } } : {};
+  const pres = () => ({});
   const fade = (() => { const d = document.createElement('div'); d.id = 'tfade'; document.body.appendChild(d); return d; })();
   function blackout() { fade.style.transition = 'none'; fade.style.opacity = 1; void fade.offsetWidth; fade.style.transition = 'opacity .6s'; requestAnimationFrame(() => requestAnimationFrame(() => { fade.style.opacity = 0; })); }
   // ponto de retorno: depois de vencer o chefe do 10º/20º andar, a entrada deixa começar do 11º/21º
@@ -529,7 +533,7 @@ const Tower = (() => {
       else if (i === TOP) Ranking.terminar('torre');
       else if (i === AB_FUNDO) Ranking.terminar('abismo');
     }
-    clearFloorMobs(i < 0 || i === 99);
+    clearFloorMobs();
     if (i === 99) {                                                    // sai do Abismo pela Cratera
       cur = -1; unbuild(); P.x = LAIR.x; P.z = LAIR.z + 7; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; crateraArmada = false; blackout();
       log('Você subiu de volta para a <b>Cratera do Cisma</b>.', 'sys'); return;
@@ -612,7 +616,7 @@ const Tower = (() => {
     animFloor(dt);
     // escadaria norte: abre quando o andar está limpo e fica aberta
     const left = mobs.filter(m => m.towerFloor === cur).length;
-    if (cur !== TOP && cur !== AB_FUNDO) {
+    if (cur !== TOP && cur !== AB_FUNDO && time >= espera) {
       if (left === 0 && !clearedAt[cur]) clearedAt[cur] = time;
       if (left === 0 && clearedAt[cur] && time - clearedAt[cur] > RESPAWN && Math.hypot(P.x - f.x, P.z - f.z) < f.r) { spawnFloor(cur, true); log('👁️ Mais criaturas da Essência surgiram neste andar.', 'bad'); }
       if (left === 0 && !opened[cur]) { opened[cur] = true; Audio8.sfx('level'); log(f.ab ? `✨ Andar limpo! A escadaria para o <b>${cur + 1 === AB_FUNDO ? 'Fundo' : (cur - 98) + 'º andar'}</b> do Abismo se abriu (a que desce pelo vão).` : `✨ Andar limpo! A escadaria para o <b>${cur + 1 === TOP ? 'topo' : (cur + 2) + 'º andar'}</b> se abriu (a que sobe pela parede).`, 'gold'); }

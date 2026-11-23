@@ -412,6 +412,12 @@ export class Mundo {
         if (mob.gp !== undefined) this.mobs.delete(mob.id);                // masmorra: não renasce, sai da lista
 
       } else this.todos({ t: "hp", id: mob.id, hp: mob.hp, by: d.peer });
+    } else if (m.t === "dgver" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 8) {
+      // quem chegou agora na Torre/masmorra pede os monstros que já estão lá (de outros jogadores)
+      if (d.dgverT && agora - d.dgverT < 500) return; d.dgverT = agora; try { ws.serializeAttachment(d); } catch (e) {}
+      const l = []; for (const [id, mob] of this.mobs) if (id.startsWith(m.pref) && mob.vivo) l.push({ id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono });
+      for (let i = 0; i < l.length; i += 120) this.enviar(ws, { t: "dgl", l: l.slice(i, i + 120) });
+      if (!l.length) this.enviar(ws, { t: "dgl", l: [], pref: m.pref });
     } else if (m.t === "dgfim" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 6) {
       // a corrida da masmorra em grupo acabou: tira os monstros que sobraram
       const fora = []; for (const id of this.mobs.keys()) if (id.startsWith(m.pref)) fora.push(id);
@@ -440,8 +446,9 @@ export class Mundo {
     const mud = [];
     for (const [id, mob] of this.mobs) {
       if (mob.gp !== undefined) {                                         // masmorra em grupo: expira e só passa entre o grupo
-        if (agora - mob.criado > 20 * 60e3) { this.mobs.delete(id); continue; }
-        const doGrupo = gente.filter((g) => g.gp === mob.gp); if (!doGrupo.length) continue;
+        if (agora - mob.criado > 20 * 60e3) { this.mobs.delete(id); this.todos({ t: "some", id }); continue; }
+        // "*..." = aberto para todos (Torre, Abismo e masmorras: o mundo é o mesmo, pedido do Rone); senão só o grupo
+        const doGrupo = String(mob.gp).startsWith("*") ? gente : gente.filter((g) => g.gp === mob.gp); if (!doGrupo.length) continue;
         let b = null, bd = 1e9; for (const g of doGrupo) { const dd = Math.hypot(g.x - mob.x, g.z - mob.z); if (dd < bd) { bd = dd; b = g; } }
         if (!doGrupo.some((g) => g.peer === mob.dono) || (b.peer !== mob.dono && bd + 8 < Math.hypot((doGrupo.find((g) => g.peer === mob.dono) || b).x - mob.x, (doGrupo.find((g) => g.peer === mob.dono) || b).z - mob.z))) { mob.dono = b.peer; mud.push([mob.id, b.peer]); }
         continue;
