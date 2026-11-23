@@ -1324,15 +1324,26 @@ const Vida = (() => {
     sel = sel || w.dataset.sel || types[0]; w.dataset.sel = sel;
     const seen = P.bestiary || {}, d = MOBDEF[sel];
     const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : `<span style="font-size:30px">${iconeMob(t)}</span>`); };
-    const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}${seen[t] ? ` · ⚔️ ${seen[t].toLocaleString('pt-BR')} · ★${nivelCaca(t).lv}` : ''}</small></span></div>`).join('');
+    const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}" data-nome="${seen[t] ? MOBDEF[t].name.toLowerCase() : ''}" data-lv="${MOBDEF[t].lv}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}${seen[t] ? ` · ⚔️ ${seen[t].toLocaleString('pt-BR')} · ★${nivelCaca(t).lv}` : ''}</small></span></div>`).join('');
     const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.01 ? 2 : ch < 0.1 ? 1 : 0).replace('.', ',') + '%'}</em></div>`; }).join('');
     w.innerHTML = `<div class="wt">📖 Bestiário <button class="lr-btn" data-b="regioes">📚 Regiões</button> <small>· ${Object.keys(seen).length}/${types.length} conhecidos · ⚔️ ${Object.values(seen).reduce((a, b) => a + b, 0).toLocaleString('pt-BR')} abatidos</small><button class="x" data-b="x">×</button></div>
-      <div class="bb"><div class="blist">${list}</div>
+      <div class="bb"><div class="bcol"><input class="b-busca" placeholder="🔎 nome ou nível (ex.: 40 ou 30-50)" value="${(bestBusca || '').replace(/"/g, '')}" autocomplete="off"><div class="blist">${list}</div></div>
       <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${regiao(sel)}</small><br>${(() => { const c = nivelCaca(sel), pc = c.prox ? Math.floor((c.n - c.ant) / (c.prox - c.ant) * 100) : 100, cd = ITEMS['carta_' + sel];
         return `<small>⚔️ Abatidos: <b>${c.n.toLocaleString('pt-BR')}</b> · Nível de caça <b>${c.lv}/10</b>${c.prox ? ` (próximo: ${c.prox.toLocaleString('pt-BR')})` : ' ✅'}</small><div style="height:6px;background:#2a2036;border-radius:3px;margin:3px 0"><div style="width:${pc}%;height:6px;background:#ffb640;border-radius:3px"></div></div><small>${cd ? `🃏 No nível 10: <b>${cd.name}</b>${(P.bestCard || {})[sel] ? ' (já recebida ✅)' : ''} · cada nível deixa ela +10% mais fácil de cair` : ''}</small>`; })()}</div></div><div class="bdl">${drops}</div>`
         : `<div class="bh">${img(sel)}<div><b>???</b><br><small>Nv ${d.lv} · ${regiao(sel)}</small></div></div><p class="bq">Derrote um para registrar o que ele solta.</p>`}</div></div>`;
-    w.classList.remove('hidden');
+    w.classList.remove('hidden'); filtrarBest(w);
   }
+  // 🔎 busca no bestiário por nome ou por nível (pedido do Rone): "larva", "40" (39 a 41) ou "30-50"
+  let bestBusca = '';
+  function filtrarBest(w) {
+    const q = bestBusca.trim().toLowerCase(), fx = q.match(/^(\d+)\s*-\s*(\d+)$/), n1 = q.match(/^\d+$/);
+    for (const el of w.querySelectorAll('.bl')) {
+      const lv = +el.dataset.lv, nome = el.dataset.nome || '';
+      const ok = !q || (fx ? lv >= +fx[1] && lv <= +fx[2] : n1 ? Math.abs(lv - +q) <= 2 : nome.includes(q));
+      el.style.display = ok ? '' : 'none';
+    }
+  }
+  document.addEventListener('input', e => { if (!e.target.classList || !e.target.classList.contains('b-busca')) return; bestBusca = e.target.value; const w = $('bestwin'); if (w) filtrarBest(w); });
   function onKill(m) {
     P.bestiary = P.bestiary || {}; const antes = nivelCaca(m.type).lv; P.bestiary[m.type] = (P.bestiary[m.type] || 0) + 1;
     try { checarRegiao(m.type); } catch (e) { }

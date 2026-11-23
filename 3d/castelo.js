@@ -20,7 +20,7 @@ const Castelo = (() => {
   const TIPOS = { 1: 'monstros', 2: 'chefe', 3: 'baus', 4: 'pvp', 5: 'bonecos' };
   const NOME = { monstros: '⚔️ Caçada no Saguão', chefe: '🐉 Chefe da Guilda', baus: '🎁 Baús Escondidos', pvp: '🗡️ Duelo da Guilda (PvP)', bonecos: '🎯 Desafio dos Bonecos' };
   const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio (MVP da guilda) invade o saguão às 20h e fica até 20h30 (um só por noite: se não cair, vai embora). A guilda inteira enfrenta o MESMO chefe. Quem ajudar ganha 6 pontos e sorteia as peças do Conjunto do Campeão Sombrio; e a Carta do Campeão Sombrio é UMA só por vitória, sorteada entre quem bateu', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
-    pvp: 'PvP entre a guilda dentro do castelo, em 3 rodadas de 5 minutos (20h00, 20h10 e 20h20). Cada derrubada vale 1 ponto; quem cai volta no saguão na hora, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
+    pvp: 'PvP entre a guilda dentro do castelo com TODOS IGUAIS (nível 100, mesmos atributos, sem equipamento, todas as habilidades no máximo). 3 rodadas (20h00, 20h10 e 20h20): 2 minutos para arrumar a barra e as poções, depois 5 de luta. Cada derrubada vale 1 ponto; quem cai volta no saguão, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
   const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   let forcado = null;   // só para teste: Castelo._forcar('baus')
   function agora() { if (forcado) return { tipo: forcado, ativo: true, falta: 0, resta: 30, dia: new Date().toLocaleDateString('pt-BR') }; const d = new Date(), min = d.getHours() * 60 + d.getMinutes(), tipo = TIPOS[d.getDay()] || null; return { tipo, ativo: !!tipo && min >= INI && min < INI + DUR, falta: (INI - min), resta: INI + DUR - min, dia: d.toLocaleDateString('pt-BR') }; }
@@ -389,7 +389,29 @@ const Castelo = (() => {
     if ((dpsT -= dt) <= 0) { dpsT = 0.5; for (const o of bonecos) { const dps = Math.round(o.janela.reduce((s2, [, v]) => s2 + v, 0) / 5), sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `${o.titulo} <small>${dps ? dps.toLocaleString('pt-BR') + ' de dano/s' : 'bata em mim!'}</small>`; } }
   }
   // ---------------- 🗡️ Duelo da Guilda: PvP dentro do castelo em rodadas de 5 minutos (20h00, 20h10, 20h20)
-  function pvpAtivo() { const a = agora(); if (!a.ativo || a.tipo !== 'pvp' || !dentro()) return false; if (forcado) return true; const min = new Date().getMinutes(); return min % 10 < 5; }
+  // rodada de 10 min: 2 de preparação (sem PvP) + 5 de luta + 3 de intervalo (20h00, 20h10, 20h20)
+  let faseTeste = null;
+  function fase() { const a = agora(); if (!a.ativo || a.tipo !== 'pvp') return null; if (forcado) return faseTeste || 'luta'; const m = new Date().getMinutes() % 10; return m < 2 ? 'prep' : m < 7 ? 'luta' : 'pausa'; }
+  function pvpAtivo() { return dentro() && fase() === 'luta'; }
+  // ⚖️ no Duelo todo mundo fica IGUAL (pedido do Rone): nível 100, os mesmos atributos (o principal da classe mais alto),
+  // sem equipamento nem carta e com TODAS as habilidades no máximo. A barra de atalhos do duelo é separada e fica guardada.
+  // O personagem de verdade nunca é salvo assim (save() usa P._duelo).
+  const DUELO_K = ['lv', 'str', 'agi', 'vit', 'int', 'dex', 'luk', 'equip', 'cards', 'skillLv', 'tier', 'statPts', 'skillPts', 'bar', 'bars', 'barIdx'];
+  function igualar() {
+    if (P._duelo) return; const o = {}; for (const k of DUELO_K) o[k] = P[k]; o.hp = P.hp; o.sp = P.sp; P._duelo = o;
+    const c = CLS(), prin = c.magic ? 'int' : c.dmg === 'dex' ? 'dex' : 'str';
+    Object.assign(P, { lv: 100, str: 40, agi: 50, vit: 70, int: 40, dex: 50, luk: 25, equip: {}, cards: {}, tier: 2, statPts: 0, skillPts: 0 }); P[prin] = 110;
+    P.skillLv = {}; for (const sk of SKILLS) P.skillLv[sk.id] = SK_MAX;
+    P.bars = Array.isArray(P.dueloBars) && P.dueloBars.length === 3 ? P.dueloBars : [Array(BAR_N).fill(null), Array(BAR_N).fill(null), Array(BAR_N).fill(null)]; P.barIdx = 0; P.bar = P.bars[0];
+    P.hp = stats.maxHp(); P.sp = stats.maxSp();
+    try { buildHotbar(); } catch (e) { }
+    banner('⚖️ DUELO: TODOS IGUAIS'); log('⚖️ <b>Duelo da Guilda:</b> aqui todo mundo fica <b>igual</b>: nível 100, os mesmos atributos, <b>sem equipamento</b> e com <b>todas as habilidades no máximo</b>. Use a preparação para pôr as habilidades na barra (✏️) e separar as poções. Ao sair, tudo volta ao normal.', 'gold');
+  }
+  function restaurar() {
+    if (!P._duelo) return; P.dueloBars = P.bars; const o = P._duelo; delete P._duelo;
+    for (const k of DUELO_K) P[k] = o[k]; P.hp = Math.min(o.hp, stats.maxHp()); P.sp = Math.min(o.sp, stats.maxSp());
+    try { buildHotbar(); save(); } catch (e) { } log('⚖️ Seu personagem voltou ao normal.', 'sys');
+  }
   function pvpKill(nome) { ponto(1, '🗡️'); log(`🗡️ Você derrubou <b>${nome}</b> no Duelo da Guilda! +1 ponto.`, 'gold'); }
   const volta = () => ({ x: C.x + rand(-6, 6), z: C.z + rand(-2, 5) });
   let rodadaAvisada = '';
@@ -400,9 +422,13 @@ const Castelo = (() => {
     const a = agora(), e = typeof Guilda !== 'undefined' && Guilda.minha();
     // avisos para a guilda (em qualquer lugar do mapa)
     if (e && a.tipo && running) { const k = a.dia + (a.ativo ? 'on' : a.falta <= 5 && a.falta > 0 ? 'pre' : ''); if (k !== avisou && (a.ativo || (a.falta <= 5 && a.falta > 0))) { avisou = k; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '🏰', cor: a.ativo ? 'verde' : 'ouro', tag: a.ativo ? 'BRINCADEIRA DA GUILDA · ATÉ 20H30' : 'EM ' + a.falta + ' MINUTOS · GUILDA', titulo: NOME[a.tipo], sub: DESC[a.tipo], botao: 'Ir ao castelo', acao: () => entrar(), seg: 10 }); log(a.ativo ? `🏰 <b>Brincadeira da guilda começou: ${NOME[a.tipo]}!</b> ${DESC[a.tipo]}. Entre pelo 🛡️ Guilda → Castelo (até 20h30).` : `🏰 Em ${a.falta} min, no castelo da guilda: <b>${NOME[a.tipo]}</b>.`, 'gold'); Audio8.sfx('buff'); } }
-    if (!den) { if (baus.length || vivos().length) limpar(); if (bonecos.length) tirarBonecos(); return; }
+    if (!den) { if (baus.length || vivos().length) limpar(); if (bonecos.length) tirarBonecos(); if (P._duelo) restaurar(); return; }
     bonecosTick(dt);
-    if (a.ativo && a.tipo === 'pvp') { const k = a.dia + (pvpAtivo() ? 'on' + Math.floor(new Date().getMinutes() / 10) : 'off' + Math.floor(new Date().getMinutes() / 10)); if (k !== rodadaAvisada) { rodadaAvisada = k; if (pvpAtivo()) { banner('🗡️ DUELO DA GUILDA: VALENDO!'); Audio8.sfx('boom'); log('🗡️ <b>Rodada de PvP valendo por 5 minutos!</b> Todo mundo da guilda aqui dentro pode se atacar. Quem cai volta no saguão, sem perder nada.', 'gold'); } else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa daqui a pouco (20h10 e 20h20).', 'sys'); } } }
+    { const f = den ? fase() : null; if (f === 'prep' || f === 'luta') igualar(); else if (P._duelo) restaurar();
+      if (f) { const k = a.dia + f + Math.floor(new Date().getMinutes() / 10); if (k !== rodadaAvisada) { rodadaAvisada = k;
+        if (f === 'prep') { banner('⚖️ PREPARAÇÃO: 2 MINUTOS'); Audio8.sfx('buff'); log('⚖️ <b>Preparação (2 minutos):</b> arrume as habilidades na barra e as poções. Depois a luta vale por 5 minutos.', 'gold'); }
+        else if (f === 'luta') { banner('🗡️ DUELO DA GUILDA: VALENDO!'); Audio8.sfx('boom'); log('🗡️ <b>Valendo por 5 minutos!</b> Todo mundo da guilda aqui dentro pode se atacar. Quem cai volta no saguão, sem perder nada.', 'gold'); }
+        else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa às 20h10 / 20h20 (com 2 minutos de preparação).', 'sys'); } } } }
     estandarte(); quadro(); paredesNaFrente();
     for (const v of velas) v.material.opacity = 0.75 + Math.sin(time * 9 + v.position.x * 3) * 0.2;
     if (g.userData.globo) g.userData.globo.rotation.y += dt * 0.3;
@@ -444,5 +470,5 @@ const Castelo = (() => {
     return txt;
   }
   if (typeof MASMORRAS !== 'undefined') MASMORRAS.castelo = { criarRemoto, update: () => { }, minimap: (mg) => { const W = mg.canvas.width, H = mg.canvas.height; mg.fillStyle = '#2a2014'; mg.fillRect(0, 0, W, H); mg.textAlign = 'center'; mg.fillStyle = '#ffd860'; mg.font = 'bold 13px Georgia'; mg.fillText('🏰 Castelo', W / 2, H / 2 - 6); mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; mg.fillText(`pontos hoje: ${E().pts}`, W / 2, H / 2 + 12); mg.textAlign = 'left'; }, pres: () => null, saida: { x: VIL.x, z: VIL.z + 4 } };
-  return { entrar, sair, update, nearest, onKill, info, agora, NOME, camFora, pvpAtivo, pvpKill, volta, _forcar: t => { forcado = t; } };
+  return { entrar, sair, update, nearest, onKill, info, agora, NOME, camFora, pvpAtivo, pvpKill, volta, igualar, restaurar, _forcar: t => { forcado = t; }, _fase: f => { faseTeste = f; } };
 })();

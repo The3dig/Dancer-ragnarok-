@@ -165,7 +165,7 @@ const Net = (() => {
       const moving = Math.hypot(r.tx - r.x, r.tz - r.z) > 0.05;
       r.x += (r.tx - r.x) * k; r.z += (r.tz - r.z) * k; r.y += (r.ty - r.y) * k;
       let df = ((r.tf - r.f + Math.PI) % TAU + TAU) % TAU - Math.PI; r.f += df * k;
-      r.g.position.set(r.x, Math.max(r.y, groundY(r.x, r.z)), r.z); r.g.rotation.y = r.f;
+      r.g.position.set(r.x, Math.max(r.y, typeof pisoY === 'function' ? pisoY(r.x, r.z) : groundY(r.x, r.z)), r.z); r.g.rotation.y = r.f;
       if (r.L.sprite) {
         if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.3; }
         r.atkT = Math.max(0, (r.atkT || 0) - dt);
@@ -231,7 +231,7 @@ const Net = (() => {
     else b.classList.add('hidden');
   }
   // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
-  function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
+  function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {}, g: r.g })); }
   return { peers, get me() { return myPeer; },
     init, update, kvxOthers, fbOthers, perto, say, tickMyBubble, fora, jaConectou: false,
     on(t, f) { handlers[t] = f; }, economia, get uso() { return room && room.uso ? room.uso : { in: 0, out: 0, t0: Date.now() }; }, send(o) { return !!(room && room.send && room.send(o)); },

@@ -67,14 +67,14 @@ const Partilha = (() => {
         if (Math.hypot(mb.x - x, mb.z - z) > 25) { mb.x = x; mb.z = z; }          // longe demais: pula direto
       }
     });
-    Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.hp > 1) mb.morrendo = 0; if (m.by && m.by !== me()) mb.flash = 0.08; } });
+    Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.hp > 1) mb.morrendo = 0; if (m.by && m.by !== me()) { mb.flash = 0.08; mb.lastHit = time; if (mb.state !== 'chase') mb.state = 'chase'; } } });   // apanhou de outro jogador: o chefe sabe que está em luta
     Net.on('morre', m => {
       if (String(m.id).startsWith('dg:forte:') && typeof Guerra !== 'undefined') Guerra.coracaoCaiu(m);   // 🏰 o Coração da Fortaleza caiu
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
       mb.danoPor = m.dano || {};                                        // quem bateu (o castelo sorteia a carta do Campeão entre eles)
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
-      const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO ? Grupo.parteDoMatador(mb, m.by) : null;
+      const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && (Grupo.juntos ? Grupo.juntos(mb.x, mb.z, P.x, P.z) : Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO) ? Grupo.parteDoMatador(mb, m.by) : null;
       const grupo = gq && gq.parte > 0;
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
       else if (grupo) killMob(mb, { ajuda: gq.parte, grupo: true, n: gq.n, w: gq.w });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
@@ -103,7 +103,7 @@ const Partilha = (() => {
     const l = [];
     for (const m of mobs) {
       if (!m.nid || !meu(m)) continue;
-      const st = (m.moving ? 1 : 0) | ((m.swing || 0) > 0.5 ? 2 : 0) | (m.stun > 0 ? 4 : 0) | (m.evade ? 8 : 0);   // 8 = chefe voltando para casa (imune)
+      const st = (m.moving ? 1 : 0) | ((m.swing || 0) > 0.5 ? 2 : 0) | (m.stun > 0 ? 4 : 0);
       const k = m.x.toFixed(1) + ',' + m.z.toFixed(1) + ',' + st + ',' + m.face.toFixed(1);
       if (m.envK === k) continue; m.envK = k;
       l.push([m.nid, +m.x.toFixed(2), +m.z.toFixed(2), +m.face.toFixed(2), st]);
@@ -116,7 +116,7 @@ const Partilha = (() => {
     const dx = m.nx - m.x, dz = m.nz - m.z, d = Math.hypot(dx, dz), k = Math.min(1, dt * 7);
     m.x += dx * k; m.z += dz * k; m.moving = d > 0.05 || ((m.netSt || 0) & 1) === 1;
     if (((m.netSt || 0) & 2) && (m.swing || 0) < 0.2) m.swing = 1;
-    m.stun = ((m.netSt || 0) & 4) ? 0.1 : 0; m.evade = ((m.netSt || 0) & 8) === 8;
+    m.stun = ((m.netSt || 0) & 4) ? 0.1 : 0;
   }
   return { dgMortos, init, update, dano, cura, mover, meu };
 })();

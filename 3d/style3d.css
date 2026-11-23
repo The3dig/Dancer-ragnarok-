@@ -908,3 +908,14 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 .sk-conf span { flex: 1; min-width: 140px; }
 .sk-conf button { padding: 6px 10px; border-radius: 9px; font-weight: 800; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; }
 .sk-conf button[data-skvolta] { background: rgba(255,255,255,.08); color: #ece6f6; border-color: rgba(255,255,255,.2); }
+
+/* 🔎 busca do bestiário */
+#bestwin .bcol { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
+#bestwin .b-busca { width: 100%; box-sizing: border-box; padding: 6px 9px; border-radius: 9px; border: 1px solid rgba(242,200,106,.4); background: rgba(16,12,26,.9); color: #f0e8dc; font: 600 14px 'Nunito', sans-serif; }
+#bestwin .bcol { width: 42%; } #bestwin .bcol .blist { width: 100%; flex: 1; min-height: 0; }
+
+/* 👥 retrato no quadro do grupo */
+.gr-card[data-a="menu"] { cursor: pointer; }
+.gr-av img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; border-radius: inherit; }
+.gr-todos { margin-left: 6px; padding: 2px 8px; border-radius: 8px; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; font-weight: 800; font-size: 11px; }
+#grupowin .gr-av { width: 54px; height: 54px; overflow: hidden; }

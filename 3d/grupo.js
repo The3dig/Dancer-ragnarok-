@@ -76,7 +76,13 @@ const Grupo = (() => {
   // pedido do Rone (o Imperio e o Balhulk começaram agora): até 10 níveis de diferença divide normal; mais que isso,
   // quem está abaixo pega CARONA (leech): ganha um pouco de XP sem tirar nada de quem matou (ver killMob, o.leech)
   const peso = (a, b) => { const g = Math.abs((a || 1) - (b || 1)); return g <= 10 ? 1 : 0; };
-  const pertoDe = (m, ref) => membros().filter(r => r.s.st !== 'd' && Math.hypot(r.x - m.x, r.z - m.z) < PERTO && peso(ref, r.s.lv) > 0);
+  // "junto" = no MESMO MAPA (pedido do Rone: estávamos os três no deserto e eles não ganhavam nada); na Torre, no mesmo andar
+  function juntos(ax, az, bx, bz) {
+    if (inTower(az) !== inTower(bz)) return false;
+    if (inTower(az)) { const fa = floorAt(ax, az), fb = floorAt(bx, bz); return !!fa && !!fb && fa.i === fb.i; }
+    return zoneOf(ax, az) === zoneOf(bx, bz) || Math.hypot(ax - bx, az - bz) < PERTO;
+  }
+  const pertoDe = (m, ref) => membros().filter(r => r.s.st !== 'd' && juntos(r.x, r.z, m.x, m.z) && peso(ref, r.s.lv) > 0);
   // quem mata sorteia cada item entre quem é do grupo, está perto e tem nível parecido (inclusive ele mesmo)
   // ---------------- suporte: cura e proteção valem para o grupo perto (até 15 m)
   // (Lyra, Thornox, Erya, Mãe e as outras curas/proteções; o Modo Fúria e buffs com lado ruim ficam só para quem usou)
@@ -137,6 +143,8 @@ const Grupo = (() => {
         const t = e.target.closest('[data-a]'); if (!t) return; Audio8.sfx('click');
         const a = t.dataset.a, v = t.dataset.v, r = Net.peers().find(x => x.peer === v);
         if (a === 'x') { fechar(); return; }
+        if (a === 'menu' && r && typeof Jogadores !== 'undefined' && !e.target.closest('button')) { fechar(); Jogadores.menu(r.peer); return; }
+        if (a === 'todos' && typeof Jogadores !== 'undefined') { Jogadores.chamarSeguir(membros().map(x => x.peer)); return; }
         if (a === 'chamar' && r) convidar(r);
         if (a === 'ir' && r && typeof Jogadores !== 'undefined' && Jogadores.fechado(r)) { Jogadores.naoDa(r, Jogadores.fechado(r)); return; }
         if (a === 'ir' && r) { P.qGo = { x: r.x, z: r.z, name: r.n }; log(`🧭 Indo até <b>${esc(r.n)}</b>.`, 'sys'); if (typeof autoStart === 'function') autoStart(); fechar(); return; }
@@ -153,16 +161,18 @@ const Grupo = (() => {
     if (!win || !aberto) return;
     const M = membros(), fora = Net.peers().filter(r => r.n && (!gp() || r.s.gp !== gp())).sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z));
     const cls = r => { try { const c = CLASSES[r.s.look && r.s.look.cls]; return c ? (c.name[r.s.look.gender] || c.name.f) : ''; } catch (e) { return ''; } };
-    const card = (nome, lv, classe, hp, dist, botoes, eu) => `<div class="gr-card${eu ? ' eu' : ''}"><div class="gr-av">${esc(nome).slice(0, 1).toUpperCase()}</div><div class="gr-info"><div><b>${esc(nome)}</b>${eu ? ' <small>(você)</small>' : ''} <span class="gr-lv">Nv ${lv || '?'}</span></div><small>${esc(classe)}${dist}</small><div class="gr-hp"><i style="width:${hp}%;background:${corV(hp)}"></i></div></div><div class="gr-bt">${botoes}</div></div>`;
+    // retrato do personagem como ele é (a classe e o visual dele); tocar no quadro abre o menu (trocar, seguir, fazer seguir...)
+    const rosto = look => { try { const c = CLASSES[look && look.cls]; return c && window.SPR && SPR[c.portrait] ? `<img src="data:image/png;base64,${SPR[c.portrait]}">` : ''; } catch (e) { return ''; } };
+    const card = (nome, lv, classe, hp, dist, botoes, eu, look, peer) => `<div class="gr-card${eu ? ' eu' : ''}"${peer ? ` data-a="menu" data-v="${peer}"` : ''}><div class="gr-av">${rosto(look) || esc(nome).slice(0, 1).toUpperCase()}</div><div class="gr-info"><div><b>${esc(nome)}</b>${eu ? ' <small>(você)</small>' : ''} <span class="gr-lv">Nv ${lv || '?'}</span></div><small>${esc(classe)}${dist}</small><div class="gr-hp"><i style="width:${hp}%;background:${corV(hp)}"></i></div></div><div class="gr-bt">${botoes}</div></div>`;
     const meuHp = Math.round(P.hp / stats.maxHp() * 100);
-    const eu = card(P.name, P.lv, className(P.cls, P.gender), meuHp, '', '', true);
+    const eu = card(P.name, P.lv, className(P.cls, P.gender), meuHp, '', '', true, { cls: P.cls, gender: P.gender });
     const lista = M.map(r => { const hp = Math.max(0, Math.min(100, r.s.hp ?? 100)), d = Math.round(Math.hypot(r.x - P.x, r.z - P.z));
-      return card(r.n, r.s.lv, cls(r), r.s.st === 'd' ? 0 : hp, ` · ${r.s.st === 'd' ? '💀 caído' : perto(r) ? '<span class="gr-perto">perto</span>' : d + ' m'}`, `<button data-a="ir" data-v="${r.peer}" title="Ir até">🧭</button>`); }).join('');
+      return card(r.n, r.s.lv, cls(r), r.s.st === 'd' ? 0 : hp, ` · ${r.s.st === 'd' ? '💀 caído' : perto(r) ? '<span class="gr-perto">perto</span>' : d + ' m'}`, `<button data-a="ir" data-v="${r.peer}" title="Ir até">🧭</button>`, false, r.s.look, r.peer); }).join('');
     const chamar = fora.slice(0, 12).map(r => `<div class="gr-fora"><span><b>${esc(r.n)}</b> <small>Nv ${r.s.lv || '?'} · ${esc(cls(r))}${r.s.gp ? ' · já tem grupo' : ''}</small></span><button data-a="chamar" data-v="${r.peer}">➕ Chamar</button></div>`).join('');
     const h = `<div class="wt">👥 Grupo <small>${gp() ? `${M.length + 1} de ${MAX}` : 'sem grupo'}</small><span class="x" data-a="x">×</span></div><div class="gr-b">
-      <div class="gr-sec">⚔️ Companheiros</div>${eu}${lista || '<div class="gr-vazio">Ninguém no grupo ainda. Chame alguém aqui embaixo!</div>'}
+      <div class="gr-sec">⚔️ Companheiros <small>(toque no quadro para trocar, seguir…)</small>${M.length ? ' <button data-a="todos" class="gr-todos">📢 Todos me sigam</button>' : ''}</div>${eu}${lista || '<div class="gr-vazio">Ninguém no grupo ainda. Chame alguém aqui embaixo!</div>'}
       <div class="gr-sec">📨 Chamar para o grupo</div>${chamar || '<div class="gr-vazio">Não tem mais ninguém on-line agora.</div>'}
-      <div class="gr-sec gr-reg" data-a="regras">📜 Como funciona o grupo ${regras ? '▲' : '▼'}</div>${regras ? `<div class="gr-txt">Quando um de vocês mata um monstro e o outro está perto (até ${PERTO} m), <b>o XP é dividido</b> com +10% por companheiro, entre quem tem nível parecido (até 10 níveis de diferença). Quem está <b>mais de 10 níveis abaixo</b> pega <b>carona</b>: ganha um pouco de XP (até 0,8% de um nível por bicho) sem tirar nada de quem matou, mas a carona não conta para missões nem itens. O monstro conta nas <b>missões, desafios e aventuras</b> de todos, e os <b>itens são sorteados</b> entre quem está perto. Curas e proteções valem para o grupo perto (15 m). Nas masmorras em grupo, <b>todos precisam aceitar</b> para entrar.</div>` : ''}
+      <div class="gr-sec gr-reg" data-a="regras">📜 Como funciona o grupo ${regras ? '▲' : '▼'}</div>${regras ? `<div class="gr-txt">Quando um de vocês mata um monstro e o outro está no <b>mesmo mapa</b>, <b>o XP é dividido</b> com +10% por companheiro, entre quem tem nível parecido (até 10 níveis de diferença). Quem está <b>mais de 10 níveis abaixo</b> pega <b>carona</b>: ganha um pouco de XP (até 0,8% de um nível por bicho) sem tirar nada de quem matou, mas a carona não conta para missões nem itens. O monstro conta nas <b>missões, desafios e aventuras</b> de todos, e os <b>itens são sorteados</b> entre quem está perto. Curas e proteções valem para o grupo perto (15 m). Nas masmorras em grupo, <b>todos precisam aceitar</b> para entrar.</div>` : ''}
       ${gp() ? '<div class="gr-fim"><button data-a="sair" class="perigo">🚪 Sair do grupo</button></div>' : ''}</div>`;
     if (win.dataset.h !== h) { win.innerHTML = h; win.dataset.h = h; }
   }
@@ -279,5 +289,5 @@ const Grupo = (() => {
 
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
+  return { juntos, repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
 })();

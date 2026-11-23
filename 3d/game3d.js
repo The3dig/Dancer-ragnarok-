@@ -177,7 +177,7 @@ function autoDir(dt) {
   const T = AUTO.tg;
   if (!T) { autoStop('🚶 Objetivo concluído.'); return null; }
   // levar um golpe não para mais a caminhada; só para se a vida ficar baixa (aí é hora de lutar ou tomar poção)
-  if (P.hp < stats.maxHp() * 0.5) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }
+  if (P.hp < stats.maxHp() * 0.3) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }   // (era 50%: parava demais no meio da missão)
   const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
   if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
   let a = Math.atan2(dx, dz);
@@ -474,6 +474,8 @@ function height(x, z) {
 const BRIDGES = [-58, 0, 56];   // pontes sobre o rio (z)
 const onBridge = (x, z) => Math.abs(x - riverX(z)) < 6 && BRIDGES.some(bz => Math.abs(z - bz) < 2.6);
 const groundY = (x, z) => inTower(z) ? towerY(x, z) : onBridge(x, z) ? Math.max(0.35, height(x, z)) : height(x, z);
+// altura para os PÉS de quem está de pé: o ponto mais alto embaixo do corpo (no desnível o personagem afundava no morro)
+const pisoY = (x, z) => { const c = groundY(x, z); if (inTower(z)) return c; let m = c; for (const [dx, dz] of [[0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]]) m = Math.max(m, groundY(x + dx, z + dz)); return Math.min(m, c + 0.6); };
 const nearWater = (x, z) => Math.abs(x - riverX(z)) < 5 || Math.hypot(x - OAS.x, z - OAS.z) < 9.5;
 function towerY(x, z) { const f = floorAt(x, z) || FLOORS[0]; return f.y + stairRise(f, x, z); }
 const isWater = (x, z) => z > -300 && !inTower(z) && !onBridge(x, z) && nearWater(x, z) && height(x, z) < -0.45;
@@ -1587,7 +1589,6 @@ function applyRhythm(r) {
 
 // ---------------------------------------------------------------- combate
 function dmgMob(m, base, crit, magic, color) {
-  if (m.evade) { if ((m.imuneT || 0) < time) { m.imuneT = time + 0.6; floater(m.x, groundY(m.x, m.z) + (m.model.h || 2) + 0.4, m.z, 'IMUNE', 'miss'); } return 0; }   // chefe voltando para casa
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
   if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
@@ -2282,7 +2283,7 @@ function updatePlayer(dt) {
   const nx = P.x + vx * dt, nz = P.z + vz * dt;
   if (!blocked(nx, P.z)) P.x = nx;
   if (!blocked(P.x, nz)) P.z = nz;
-  const gy = groundY(P.x, P.z);
+  const gy = pisoY(P.x, P.z);
   P.vy -= 20 * dt; P.y += P.vy * dt;
   if (P.y <= gy) { P.y = gy; P.vy = 0; P.onGround = true; } else P.onGround = P.y - gy < 0.05;
   if (Object.keys(P.buffs).length && Math.random() < 0.2) burst(new THREE.Vector3(P.x, P.y + rand(0.3, 1.5), P.z), CLS().colors.accent, 1, 0.8, 0.5);
@@ -2381,12 +2382,13 @@ function updateMob(m, dt) {
   else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
-    if (m.state !== 'chase' && m.state !== 'return' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';   // voltando para casa não se distrai
+    if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
       // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
       // Também não se cura se acabou de apanhar (antes o chefe que saltava longe voltava a encher a vida a cada golpe).
-      if (P.dead || (m.towerFloor === undefined && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
+      const brigando = (m.d.boss || m.d.field || m.d.mini) && time - (m.lastHit || -99) < 10;   // chefe apanhando não volta para casa: vem atrás de quem bate
+      if (P.dead || (m.towerFloor === undefined && !brigando && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
         m.face = Math.atan2(P.x - m.x, P.z - m.z);
@@ -2398,14 +2400,9 @@ function updateMob(m, dt) {
       }
     } else if (m.state === 'return') {
       m.retT = (m.retT || 0) + dt;
-      // chefe voltando para casa fica IMUNE e se cura (antes parava no limite e quem batia de longe matava "de boa": bug do Rivas no deserto)
-      const chefe = m.d.boss || m.d.field || m.d.mini; m.evade = !!chefe;
-      if (chefe) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.08 * dt); if (m.nid && typeof Partilha !== 'undefined' && (m.curaT = (m.curaT || 0) - dt) <= 0) { m.curaT = 0.5; Partilha.cura(m); } }
-      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 8) {                                   // chegou (ou travou no caminho: volta direto para casa)
-        if (m.retT > 8) { m.x = m.tx = m.sx; m.z = m.tz = m.sz; }
-        m.state = 'idle'; m.retT = 0; m.evade = false; if (chefe) { m.hp = m.maxHp; if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); }
-      }
-      else stepMob(m, m.sx, m.sz, m.d.speed * 2.2, dt);
+      // preso no caminho de volta: volta direto para casa (antes ficava parado no limite e apanhava de longe sem reagir)
+      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 8) { if (m.retT > 8) { m.x = m.tx = m.sx; m.z = m.tz = m.sz; } m.state = 'idle'; m.retT = 0; }
+      else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
     } else {
       m.timer -= dt;
       if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; }
@@ -2416,7 +2413,7 @@ function updateMob(m, dt) {
   const far = Math.hypot(m.x - P.x, m.z - P.z) > (m.d.boss ? (TOUCH ? 90 : 140) : (TOUCH ? 48 : 70));
   g.visible = !far;
   if (far) return;
-  g.position.set(m.x, groundY(m.x, m.z), m.z);
+  g.position.set(m.x, pisoY(m.x, m.z), m.z);
   let df = ((m.face - g.rotation.y + Math.PI) % TAU + TAU) % TAU - Math.PI;
   g.rotation.y += df * Math.min(1, dt * 8);
   if (m.stun <= 0 || m.model.spr) m.model.anim(m, time); else g.rotation.z = Math.sin(time * 8) * 0.1;
@@ -3528,8 +3525,9 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
+  const keep = ['dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const src = P._duelo ? { ...P, ...P._duelo } : P;   // ⚖️ no Duelo da Guilda salva o personagem de verdade, não o igualado
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, src[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
 setInterval(save, 8000); addEventListener('beforeunload', save);
