@@ -61,6 +61,8 @@ const Ranking = (() => {
       { cat: 'cripta', ic: '🃏', quem: 'Cartomante Zaíra', nome: 'Cripta das Cartas', onde: 'Cartomante Zaíra, na tenda roxa a oeste da praça de Solmira', nivel: '30+', sem: sem(MASMORRAS.cripta, 2), txt: '3 ondas e o Guardião das Cartas em 8 minutos. 🧩 Fragmentos Arcanos e, raramente, uma Carta Arcana. Sozinho ou em grupo.', pos: () => npcPos('cartas') },
       { cat: 'minas', ic: '⛏️', quem: 'Ferreiro Doran', nome: 'Mina da Forja', onde: 'Ferreiro Doran, perto da praça de Solmira', nivel: 'qualquer', sem: sem(MASMORRAS.minas, 5), txt: '3 ondas e o Capataz em 8 minutos. 🔶 Minério, 🔷 Têmpera e 🔰 Selo da Forja para o refino. Sozinho ou em grupo.', pos: () => npcPos('smith') },
       { cat: 'torre', ic: '🗼', quem: 'a porta da Torre', nome: 'Torre do Cisma', onde: 'na Cidadela do Cisma (extremo leste)', nivel: '18 a 58', sem: 'sem limite', txt: '30 andares subindo, com guardiões a cada 5. No topo, o Kravenox acorda aos sábados, às 20h. 🔺 Fragmentos do Cisma para o Despertar.', pos: () => typeof Tower !== 'undefined' && Tower.door ? { x: Tower.door.x, z: Tower.door.z + 5 } : null },
+      { cat: 'arena', ic: '⚔️', quem: 'Mestre Brakus', nome: 'Arena de Solmira', onde: 'Mestre Brakus, a leste da praça de Solmira', nivel: '15+', sem: 'sem limite', txt: 'PvP livre num coliseu, sem penalidade (morrer não tira XP nem itens). Cada vitória conta no placar da temporada (um mês).', pos: () => npcPos('arena') },
+      { cat: 'forte', ic: '🏰', quem: 'Comandante Varek', nome: 'Guerra de Guildas', onde: 'Comandante Varek, ao sul da praça de Solmira', nivel: 'membro de guilda', sem: 'domingo, 18h às 19h', txt: 'A Fortaleza das Bandeiras: a guilda que causar mais dano no Coração da Fortaleza domina a semana inteira (+10% de XP e de drop para os membros).', pos: () => npcPos('guerra') },
       { cat: 'abismo', ic: '🕳️', quem: 'a boca da Cratera', nome: 'Abismo do Cisma', onde: 'na Cratera do Cisma, perto de Solmira', nivel: '58+', sem: 'sem limite', txt: '30 andares descendo, bem mais perigosos que a Torre. No Fundo, o Verme Colossal acorda de 15 em 15 dias. 🌑 Núcleos do Abismo.', pos: () => typeof LAIR !== 'undefined' ? { x: LAIR.x, z: LAIR.z + 8 } : null },
     ];
   };
@@ -72,7 +74,7 @@ const Ranking = (() => {
   function detalhe(m) {
     dialog(`${m.ic} ${m.nome}`, `${m.txt}<br><small>📍 ${m.onde} · nível ${m.nivel}${m.sem ? ' · ' + m.sem : ''}</small>`, [
       { label: '🧭 Ir até lá', fn: () => { const p = m.pos(); if (!p) return; P.qGo = { x: p.x, z: p.z, name: m.quem, qt: m.nome, qc: '#ffd860' }; $('quest').dataset.h = ''; log(`🧭 A seta leva até a <b>${m.nome}</b> (${m.onde}).`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) { if (AUTO.on) autoStop(''); autoStart(); } } },
-      { label: '🏆 Ranking', fn: () => { mostrar(m.cat, () => detalhe(m)); return true; } },
+      ...(m.cat === 'forte' ? [] : [{ label: m.cat === 'arena' ? '🏆 Placar da temporada' : '🏆 Ranking', fn: () => { if (m.cat === 'arena') { if (typeof Arena !== 'undefined') Arena.ranking(() => detalhe(m)); } else mostrar(m.cat, () => detalhe(m)); return true; } }]),
       { label: '← Voltar', fn: () => { masmorras(); return true; } }]);
   }
   function botoes() {

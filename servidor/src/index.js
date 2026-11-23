@@ -96,6 +96,7 @@ export class Contas {
     try { this.sql.exec("ALTER TABLE guildas ADD COLUMN xp INTEGER DEFAULT 0"); } catch (e) { }      // XP da guilda (nível 1 a 10)
     this.sql.exec("CREATE TABLE IF NOT EXISTS kvx (semana TEXT PRIMARY KEY, por TEXT, quando INTEGER)");   // quem derrubou o Kravenox em cada semana
     // ranking das masmorras, da Torre e da Cratera: o melhor tempo (menor) e o maior dano de cada personagem
+    this.sql.exec("CREATE TABLE IF NOT EXISTS guerra (semana TEXT PRIMARY KEY, gid TEXT, sigla TEXT, quando INTEGER)");   // 🏰 guilda que venceu cada Guerra de Guildas
     this.sql.exec("CREATE TABLE IF NOT EXISTS ranking (cat TEXT, usuario TEXT, vaga INTEGER, nome TEXT, tempo REAL, dano INTEGER, quando INTEGER, PRIMARY KEY (cat, usuario, vaga))");
   }
   um(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
@@ -260,6 +261,14 @@ export class Contas {
         }
         const m = this.um("SELECT por, quando FROM kvx WHERE semana = ?", k.semana);
         return json({ ...k, morto: m });
+      }
+      if (p[0] === "guerra") {                                       // 🏰 quem domina a Fortaleza (a última guerra vencida)
+        if (req.method === "POST") {
+          const b = await corpo(), semana = String(b.semana || "").slice(0, 12), gid = String(b.gid || "").slice(0, 20), sigla = String(b.sigla || "?").slice(0, 6);
+          if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(semana) && gid) this.sql.exec("INSERT OR IGNORE INTO guerra (semana, gid, sigla, quando) VALUES (?, ?, ?, ?)", semana, gid, sigla, Date.now());
+        }
+        const u = this.um("SELECT semana, gid, sigla, quando FROM guerra ORDER BY quando DESC LIMIT 1");
+        return json(u || {});
       }
       if (p[0] === "ranking") {                                      // 🏆 ranking: tempo e dano por lugar
         const RANK_CATS = ["minas", "cripta", "templo", "torre", "abismo"], cat = String(p[1] || "");

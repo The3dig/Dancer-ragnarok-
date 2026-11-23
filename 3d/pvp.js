@@ -19,7 +19,7 @@ const PvP = (() => {
   const now = () => Date.now();
   const F = () => (P.flag = P.flag || { pink: 0, red: 0 });
   const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco'].includes(zn); };   // masmorras também são seguras
-  const guerra = (x, z) => inTower(z) && ['torre', 'topo', 'abismo', 'abfundo', 'arena'].includes(zoneOf(x, z));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
+  const guerra = (x, z) => inTower(z) && ['torre', 'topo', 'abismo', 'abfundo', 'arena', 'forte'].includes(zoneOf(x, z));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
   const state = () => F().red > now() ? 'r' : F().pink > now() ? 'p' : 'w';
   // cor do nome: vermelho forte no começo, clareando com o tempo; rosa no combate
   function color(fl, left) {
@@ -131,7 +131,8 @@ const PvP = (() => {
   function diedTo(r, s) {
     killedBy = { by: r.peer, n: ++seq, fl: state() };
     log(`💀 Você foi derrotado por <b>${r.n}</b>.`, 'bad');
-    if (typeof Arena !== 'undefined' && inTower(P.z) && zoneOf(P.x, P.z) === 'arena') { Arena.morreu(); P.pvpDeath = true; return; }   // ⚔️ na arena ninguém perde nada (nem o PK)
+    if (typeof Arena !== 'undefined' && inTower(P.z) && zoneOf(P.x, P.z) === 'arena') { Arena.morreu(); P.pvpDeath = true; return; }
+    if (inTower(P.z) && zoneOf(P.x, P.z) === 'forte') { P.pvpDeath = true; return; }   // 🏰 na guerra também não se perde nada   // ⚔️ na arena ninguém perde nada (nem o PK)
     if (state() === 'r') {                                         // PK morto: derruba tudo
       const items = {};
       for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id]) { items[id] = P.inv[id]; P.inv[id] = 0; }

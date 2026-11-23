@@ -68,6 +68,7 @@ const Partilha = (() => {
     });
     Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.hp > 1) mb.morrendo = 0; if (m.by && m.by !== me()) mb.flash = 0.08; } });
     Net.on('morre', m => {
+      if (String(m.id).startsWith('dg:forte:') && typeof Guerra !== 'undefined') Guerra.coracaoCaiu(m);   // 🏰 o Coração da Fortaleza caiu
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
