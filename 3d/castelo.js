@@ -4,18 +4,23 @@
 //    próprios membros lá dentro (os estandartes têm o emblema e a sigla da sua guilda).
 //  - De segunda a sexta, das 20h às 20h30, acontece uma brincadeira no saguão (sábado e domingo às
 //    20h já tem o Kravenox e o Verme):
-//      seg e qui: ⚔️ Caçada no Saguão (monstros saem das paredes; cada um vale ponto)
-//      ter e sex: ✊ Jokenpô com o Bobo da Corte (ganhe partidas seguidas)
-//      qua:       🎁 Baús Escondidos (baús pelo saguão; cuidado, alguns são mímicos!)
+//      seg: ⚔️ Caçada no Saguão (monstros saem das paredes; cada um vale ponto)
+//      ter: 🐉 Chefe da Guilda (um chefe para a guilda inteira, 3 vezes na noite)
+//    O Bobo da Corte joga jokenpô a qualquer hora (NPC, não é mais brincadeira: pedido do Rone)
+//      qua: 🎁 Baús Escondidos (baús pelo saguão; cuidado, alguns são mímicos!)
+//      qui: 🗡️ Duelo da Guilda (PvP em rodadas de 5 min; quem cai volta no saguão)
+//      sex: 🎯 Desafio dos Bonecos (dano nos bonecos de treino vira ponto)
 //    Os pontos dão prêmios e também viram XP para a guilda.
 // =====================================================================
 'use strict';
 const Castelo = (() => {
   const C = CASTELO, R = C.r, INI = 20 * 60, DUR = 30;               // 20:00 às 20:30 (minutos do dia)
   ZONES.castelo = { name: 'Castelo da Guilda', music: 'fortaleza' };
-  const TIPOS = { 1: 'monstros', 2: 'jokenpo', 3: 'baus', 4: 'monstros', 5: 'jokenpo' };
-  const NOME = { monstros: '⚔️ Caçada no Saguão', jokenpo: '✊ Jokenpô com o Bobo da Corte', baus: '🎁 Baús Escondidos' };
-  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', jokenpo: 'desafie o Bobo da Corte no jokenpô: cada vitória vale 1 ponto, 3 seguidas valem bônus', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)' };
+  // cada dia uma brincadeira DIFERENTE (pedido do Rone: tinha repetida)
+  const TIPOS = { 1: 'monstros', 2: 'chefe', 3: 'baus', 4: 'pvp', 5: 'bonecos' };
+  const NOME = { monstros: '⚔️ Caçada no Saguão', chefe: '🐉 Chefe da Guilda', baus: '🎁 Baús Escondidos', pvp: '🗡️ Duelo da Guilda (PvP)', bonecos: '🎯 Desafio dos Bonecos' };
+  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio invade o saguão às 20h00, 20h10 e 20h20: a guilda inteira enfrenta o MESMO chefe junto. Quem ajudar a derrubar ganha 6 pontos, e o saque é dos grandes', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
+    pvp: 'PvP entre a guilda dentro do castelo, em 3 rodadas de 5 minutos (20h00, 20h10 e 20h20). Cada derrubada vale 1 ponto; quem cai volta no saguão na hora, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
   const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   let forcado = null;   // só para teste: Castelo._forcar('baus')
   function agora() { if (forcado) return { tipo: forcado, ativo: true, falta: 0, resta: 30, dia: new Date().toLocaleDateString('pt-BR') }; const d = new Date(), min = d.getHours() * 60 + d.getMinutes(), tipo = TIPOS[d.getDay()] || null; return { tipo, ativo: !!tipo && min >= INI && min < INI + DUR, falta: (INI - min), resta: INI + DUR - min, dia: d.toLocaleDateString('pt-BR') }; }
@@ -82,8 +87,9 @@ const Castelo = (() => {
   }
   // arcos de pedra nas portas
   for (const [eixo, pos, c, larg] of PORTAS) { const a = new THREE.Mesh(new THREE.TorusGeometry(larg / 2 + 0.2, 0.32, 8, 20, Math.PI), PM('pedra.jpg', [2, 1], new THREE.Color(0.6, 0.55, 0.5))); if (eixo === 'x') { a.position.set(pos, 3.6, c); a.rotation.y = Math.PI / 2; } else a.position.set(c, 3.6, pos); g.add(a); }
+  { const fora = new THREE.Mesh(new THREE.PlaneGeometry(90, 90).rotateX(-Math.PI / 2), L(0x241c16)); fora.position.y = -0.02; g.add(fora); }   // fora das salas: chão escuro (antes aparecia o vazio preto)
   // ----- SAGUÃO: colunas, tapete até o trono, trono, mesa de guerra, lustres, vitrais e tapeçarias
-  for (const x of [-7.5, 7.5]) for (const z of [-5, 0, 5]) { cil(0.55, 0.62, 5.6, PM('pedra.jpg', [1, 3], new THREE.Color(0.75, 0.7, 0.65)), x, 2.8, z); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 0.2, z); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 5.6, z); const an = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.06, 8, 20).rotateX(Math.PI / 2), ouro); an.position.set(x, 1.1, z); g.add(an); ob(x, z, 0.8); }
+  for (const x of [-7.5, 7.5]) for (const z of [-5, 0, 5]) { paredes.push(cil(0.55, 0.62, 5.6, PM('pedra.jpg', [1, 3], new THREE.Color(0.75, 0.7, 0.65)), x, 2.8, z)); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 0.2, z); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 5.6, z); const an = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.06, 8, 20).rotateX(Math.PI / 2), ouro); an.position.set(x, 1.1, z); g.add(an); ob(x, z, 0.8); }
   tapete(3.2, 26, 0, 3, tapeteT('#7a0e1c', '#d9a63a', '#b8862a'));
   box(7, 0.3, 3.4, PM('pedra.jpg', [2, 1], new THREE.Color(0.6, 0.55, 0.5)), 0, 0.15, -7.2); box(5, 0.3, 2.4, PM('pedra.jpg', [2, 1], new THREE.Color(0.66, 0.6, 0.55)), 0, 0.45, -7.4);
   { const tr = new THREE.Group(); tr.position.set(0, 0.6, -7.7); g.add(tr); box(1.7, 0.6, 1.3, ouro, 0, 0.3, 0, tr); box(1.4, 0.2, 1.1, L(0x7a0e1c), 0, 0.68, 0.05, tr); box(1.7, 2.8, 0.25, ouro, 0, 1.9, -0.55, tr); box(1.3, 2.2, 0.05, L(0x7a0e1c), 0, 1.9, -0.41, tr); for (const s2 of [-1, 1]) { box(0.22, 0.55, 1.2, ouro, 0.82 * s2, 0.95, 0, tr); const p = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), ouro); p.position.set(0.82 * s2, 3.4, -0.55); tr.add(p); } ob(0, -7.6, 1.4); }
@@ -179,10 +185,19 @@ const Castelo = (() => {
   const bobo = { g: new THREE.Group(), act: null, x: C.x - 3.5, z: C.z - 5.5 }; bobo.g.position.set(bobo.x, 0, bobo.z); scene.add(bobo.g); bobo.g.visible = false; addOb(bobo.x, bobo.z, 0.6);
   // paredes que tapam a câmera ficam quase transparentes
   const _ray = new THREE.Ray(), _cam = new THREE.Vector3(), _alvo = new THREE.Vector3(), _bx = new THREE.Box3(), _hit = new THREE.Vector3();
+  // (antes as paredes ficavam meio transparentes e o castelo parecia bugado; agora a câmera não sai da sala,
+  // ver camFora; se mesmo assim uma parede tapar, ela some inteira em vez de ficar "fantasma")
   function paredesNaFrente() {
     if (typeof camera === 'undefined') return; camera.getWorldPosition(_cam); _alvo.set(P.x, P.y + 1.2, P.z);
     const dist = _cam.distanceTo(_alvo); _ray.origin.copy(_cam); _ray.direction.subVectors(_alvo, _cam).normalize();
-    for (const w of paredes) { _bx.setFromObject(w); const hit = _ray.intersectBox(_bx, _hit); const tapa = hit && _cam.distanceTo(_hit) < dist - 0.3; const alvo = tapa ? 0.18 : 1; w.material.opacity += (alvo - w.material.opacity) * 0.25; w.material.depthWrite = w.material.opacity > 0.9; }
+    for (const w of paredes) { _bx.setFromObject(w); const hit = _ray.intersectBox(_bx, _hit); const tapa = hit && _cam.distanceTo(_hit) < dist - 0.3; w.visible = !tapa; w.material.opacity = 1; w.material.depthWrite = true; }
+  }
+  // a câmera fica dentro da sala onde você está e abaixo do teto (usada no updateCamera)
+  function salaDe(lx, lz, m) { for (const r of Object.values(SALAS)) if (lx > r[0] - m && lx < r[1] + m && lz > r[2] - m && lz < r[3] + m) return r; return null; }
+  function camFora(x, z, y) {
+    if (!dentro()) return false; if (y > 5.3) return true;
+    const r = salaDe(P.x - C.x, P.z - C.z, 0.2); if (!r) return false;
+    const lx = x - C.x, lz = z - C.z; return !(lx > r[0] + 0.5 && lx < r[1] - 0.5 && lz > r[2] + 0.5 && lz < r[3] - 0.5);
   }
   // ---------------- entrar e sair
   function entrar() {
@@ -217,7 +232,7 @@ const Castelo = (() => {
       const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `🏰 ${d0.name} <small>Nv ${L}</small>`;
     }
   }
-  function onKill(mob) { if (!mob.castelo) return; ponto(1, '⚔️'); if (mob.mimico) log('🎁 Você derrotou o mímico!', 'sys'); }
+  function onKill(mob) { if (!mob.castelo) return; if (mob.chefeG) { ponto(6, '🐉'); banner('🐉 O CAMPEÃO SOMBRIO CAIU!'); log('🐉 A guilda derrubou o <b>Campeão Sombrio</b>! +6 pontos para quem ajudou.', 'gold'); return; } ponto(1, '⚔️'); if (mob.mimico) log('🎁 Você derrotou o mímico!', 'sys'); }
   // prêmios por pontos: a cada 5 pontos um prêmio (até 6 prêmios por noite)
   const PREMIOS = [{ frag_carta: 3 }, { frag_cisma: 2 }, { frag_carta: 5, red_m: 3 }, { nucleo_abismo: 1 }, { frag_carta: 8, frag_cisma: 4 }, { selo_forja: 1, frag_carta: 10 }];
   function ponto(n, ic) {
@@ -232,18 +247,18 @@ const Castelo = (() => {
   }
   // jokenpô com o Bobo
   const JK = [['pedra', '✊'], ['papel', '✋'], ['tesoura', '✌️']], MAX_JK = 20;
+  // 🃏 jokenpô com o Bobo: NPC, joga a qualquer hora (até 20 partidas por dia); vitória dá coroas, 3 seguidas dão um fragmento
   function jokenpo() {
-    const e = E(), a = agora();
-    if (!a.ativo || a.tipo !== 'jokenpo') { dialog('🃏 Bobo da Corte Pipo', `Hihi! Eu só jogo jokenpô nas noites de <b>terça e sexta, às 20h</b>. Volte na hora da brincadeira!`, [{ label: 'Até lá' }]); return; }
-    if (e.jk >= MAX_JK) { dialog('🃏 Bobo da Corte Pipo', `Chega por hoje, você já jogou ${MAX_JK} vezes! Hihi. Pontos: <b>${e.pts}</b>.`, [{ label: 'Tchau' }]); return; }
-    dialog('🃏 Bobo da Corte Pipo', `Pedra, papel ou tesoura? Cada vitória vale <b>1 ponto</b>; <b>3 seguidas</b> valem +2 de bônus.<br><small>Partidas hoje: ${e.jk}/${MAX_JK} · vitórias seguidas: ${e.seq} · pontos: ${e.pts}</small>`,
+    const e = E();
+    if (e.jk >= MAX_JK) { dialog('🃏 Bobo da Corte Pipo', `Chega por hoje, você já jogou ${MAX_JK} vezes! Hihi. Volte amanhã.`, [{ label: 'Tchau' }]); return; }
+    dialog('🃏 Bobo da Corte Pipo', `Hihi! Pedra, papel ou tesoura? Ganhou, leva coroas; <b>3 vitórias seguidas</b> valem um 🧩 fragmento de carta.<br><small>Partidas hoje: ${e.jk}/${MAX_JK} · vitórias seguidas: ${e.seq}</small>`,
       [...JK.map(([n, ic], i) => ({ label: `${ic} ${n[0].toUpperCase() + n.slice(1)}`, fn: () => { jogar(i); return true; } })), { label: 'Parar' }]);
   }
   function jogar(i) {
     const e = E(), b = Math.floor(Math.random() * 3), r = (i - b + 3) % 3; e.jk++;
     let t = `Você: ${JK[i][1]} · Pipo: ${JK[b][1]} → `;
     if (r === 0) { t += '<b>empate</b>!'; Audio8.sfx('click'); }
-    else if (r === 1) { e.seq++; t += '<b>você ganhou!</b>'; ponto(1, '✊'); if (e.seq % 3 === 0) { t += ' <b>3 seguidas: +2!</b>'; ponto(2, '🔥'); } }
+    else if (r === 1) { e.seq++; const cr = 15 * Math.max(10, P.lv); P.zeny += cr; t += `<b>você ganhou!</b> +${cr.toLocaleString('pt-BR')} cr`; Audio8.sfx('coin'); if (e.seq % 3 === 0) { t += ' · <b>3 seguidas: +1 🧩</b>'; P.inv.frag_carta = (P.inv.frag_carta || 0) + 1; } }
     else { e.seq = 0; t += 'o <b>Pipo ganhou</b>. Hihi!'; Audio8.sfx('miss'); }
     log('🃏 ' + t, 'sys'); try { save(); } catch (er) { }
     setTimeout(jokenpo, 30);
@@ -271,6 +286,65 @@ const Castelo = (() => {
     }
     Audio8.sfx('coin'); burst(new THREE.Vector3(b.x, 0.8, b.z), 0xffd060, 20, 3, 0.8); ponto(2, '🎁');
   }
+  // ---------------- 🐉 Chefe da Guilda (terça): o MESMO chefe para todos da guilda (vai para o servidor como dg:castelo:#<guilda>:...)
+  // uma rodada a cada 10 min (20h00, 20h10, 20h20); quem derrubar não vê ele voltar na mesma rodada
+  const ymd = () => { const d = new Date(); return '' + d.getFullYear() + (d.getMonth() + 1) + d.getDate(); };
+  const rodada = () => forcado ? 'T' + Math.floor(Date.now() / 600000) : 'r' + Math.floor(new Date().getMinutes() / 10);
+  let chefeChk = '', chefeT = 0;
+  function escalarChefe(o, L) {
+    const d0 = o.d, kf = L / d0.lv;
+    o.d = { ...d0, name: 'Campeão Sombrio', lv: L, hp: Math.round(30000 * Math.pow(L / 20, 1.7)), atk: Math.round(d0.atk * kf * 1.5), def: Math.round(d0.def * kf), xp: Math.round((typeof Tower !== 'undefined' ? Tower.xpCampo(L) : d0.xp) * 25), aggro: 30, respawn: 1e9, mini: true,
+      zeny: [L * 300, L * 600], drops: [['frag_carta', 1], ['frag_carta', 1], ['frag_cisma', 1], ['frag_cisma', 0.6], ['selo_forja', 0.25], ['nucleo_abismo', 0.3], ['red_m', 1]] };
+    o.hp = o.maxHp = o.d.hp; o.castelo = true; o.chefeG = true; o.noRespawn = true; o.towerFloor = 'castelo'; o.model.g.scale.multiplyScalar(1.6);
+    const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `🐉 Campeão Sombrio <small>Nv ${L}</small>`;
+  }
+  function criarRemoto(o) {
+    const p = String(o.id).split(':'); if (p[1] !== 'castelo' || typeof Guilda === 'undefined' || p[2] !== '#' + Guilda.minha() || !dentro()) return null;
+    const m = spawnMob(o.type, null, { x: o.x, z: o.z }); escalarChefe(m, +p[4]); m.nid = o.id; m.dg = p.slice(0, 4).join(':'); m.dono = o.dono; m.nx = o.x; m.nz = o.z; m.hp = Math.min(m.maxHp, o.hp ?? m.maxHp); return m;
+  }
+  function chefeTick() {
+    if (typeof Net === 'undefined' || !Net.connected || typeof Guilda === 'undefined' || !Guilda.minha()) return;
+    const pref = `dg:castelo:#${Guilda.minha()}:${ymd()}${rodada()}`;
+    if (chefeChk === pref) return;
+    if (!chefeT) { Net.send({ t: 'dgver', pref: pref + ':' }); chefeT = time + 1.5; return; }
+    if (time < chefeT) return;
+    chefeChk = pref; chefeT = 0;
+    if (mobs.some(m => m.chefeG && m.nid && m.nid.startsWith(pref)) || [...Partilha.dgMortos].some(id => id.startsWith(pref))) return;   // já está aqui, ou já caiu nesta rodada
+    const L = Math.max(20, Math.min(150, P.lv)), id = `${pref}:${L}:chefe`, m = spawnMob('guardiao', null, { x: C.x, z: C.z - 3 }); escalarChefe(m, L);
+    m.nid = id; m.dg = pref; m.dono = Net.me; m.nx = m.x; m.nz = m.z;
+    Net.send({ t: 'semente+', l: [{ id, type: m.type, max: m.maxHp, hp: m.hp, resp: 3600, x: +m.x.toFixed(2), z: +m.z.toFixed(2) }] });
+    banner('🐉 O CAMPEÃO SOMBRIO INVADIU O CASTELO!'); Audio8.sfx('boom'); log('🐉 <b>O Campeão Sombrio</b> invadiu o saguão! A guilda inteira enfrenta o <b>mesmo</b> chefe: chame todo mundo!', 'bad');
+  }
+  // ---------------- 🎯 bonecos de treino do arsenal (pedido do Rone): dá para bater, mostram o dano, nunca caem
+  const BONECOS = [[-22.4, -5], [-22.4, -1.6], [-22.4, 1.6], [-22.4, 5]];
+  let bonecos = [], dpsT = 0;
+  function criarBonecos() {
+    if (bonecos.length) return;
+    const t = BASE()[0]; if (!t) return;
+    for (const [bx, bz] of BONECOS) {
+      const o = spawnMob(t, null, { x: C.x + bx, z: C.z + bz }); o.model.g.visible = false;
+      o.d = { ...o.d, name: 'Boneco de Treino', lv: P.lv, hp: 1e9, atk: 0, def: 0, xp: 0, zeny: [0, 0], aggro: 0, speed: 0, respawn: 1e9, drops: [] }; o.hp = o.maxHp = 1e9;
+      o.boneco = true; o.noRespawn = true; o.bx = o.x; o.bz = o.z; o.dano = 0; o.janela = [];
+      const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = '🎯 Boneco de Treino';
+      bonecos.push(o);
+    }
+  }
+  function tirarBonecos() { for (const o of bonecos) { o.dead = true; scene.remove(o.model.g); o.lab.remove(); } mobs = mobs.filter(o => !o.boneco); bonecos = []; }
+  function bonecosTick(dt) {
+    criarBonecos(); const a = agora();
+    for (const o of bonecos) {
+      o.x = o.bx; o.z = o.bz; o.state = 'idle'; o.stun = 0;
+      const perdeu = o.maxHp - o.hp; if (perdeu > 0) { o.dano += perdeu; o.janela.push([time, perdeu]); o.hp = o.maxHp;
+        if (a.ativo && a.tipo === 'bonecos') { const e = E(); e.bon = (e.bon || 0) + perdeu; const passo = Math.max(500, P.lv * 120); while ((e.bonP || 0) < 12 && e.bon >= ((e.bonP || 0) + 1) * passo) { e.bonP = (e.bonP || 0) + 1; ponto(1, '🎯'); } } }
+      o.janela = o.janela.filter(([t2]) => time - t2 < 5);
+    }
+    if ((dpsT -= dt) <= 0) { dpsT = 0.5; for (const o of bonecos) { const dps = Math.round(o.janela.reduce((s2, [, v]) => s2 + v, 0) / 5), sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `🎯 Boneco de Treino <small>${dps ? dps.toLocaleString('pt-BR') + ' de dano/s' : 'bata em mim!'}</small>`; } }
+  }
+  // ---------------- 🗡️ Duelo da Guilda: PvP dentro do castelo em rodadas de 5 minutos (20h00, 20h10, 20h20)
+  function pvpAtivo() { const a = agora(); if (!a.ativo || a.tipo !== 'pvp' || !dentro()) return false; if (forcado) return true; const min = new Date().getMinutes(); return min % 10 < 5; }
+  function pvpKill(nome) { ponto(1, '🗡️'); log(`🗡️ Você derrubou <b>${nome}</b> no Duelo da Guilda! +1 ponto.`, 'gold'); }
+  const volta = () => ({ x: C.x + rand(-6, 6), z: C.z + rand(-2, 5) });
+  let rodadaAvisada = '';
   // ---------------- laço
   let avisou = '';
   function update(dt) {
@@ -278,7 +352,9 @@ const Castelo = (() => {
     const a = agora(), e = typeof Guilda !== 'undefined' && Guilda.minha();
     // avisos para a guilda (em qualquer lugar do mapa)
     if (e && a.tipo && running) { const k = a.dia + (a.ativo ? 'on' : a.falta <= 5 && a.falta > 0 ? 'pre' : ''); if (k !== avisou && (a.ativo || (a.falta <= 5 && a.falta > 0))) { avisou = k; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '🏰', cor: a.ativo ? 'verde' : 'ouro', tag: a.ativo ? 'BRINCADEIRA DA GUILDA · ATÉ 20H30' : 'EM ' + a.falta + ' MINUTOS · GUILDA', titulo: NOME[a.tipo], sub: DESC[a.tipo], botao: 'Ir ao castelo', acao: () => entrar(), seg: 10 }); log(a.ativo ? `🏰 <b>Brincadeira da guilda começou: ${NOME[a.tipo]}!</b> ${DESC[a.tipo]}. Entre pelo 🛡️ Guilda → Castelo (até 20h30).` : `🏰 Em ${a.falta} min, no castelo da guilda: <b>${NOME[a.tipo]}</b>.`, 'gold'); Audio8.sfx('buff'); } }
-    if (!den) { if (baus.length || vivos().length) limpar(); return; }
+    if (!den) { if (baus.length || vivos().length) limpar(); if (bonecos.length) tirarBonecos(); return; }
+    bonecosTick(dt);
+    if (a.ativo && a.tipo === 'pvp') { const k = a.dia + (pvpAtivo() ? 'on' + Math.floor(new Date().getMinutes() / 10) : 'off' + Math.floor(new Date().getMinutes() / 10)); if (k !== rodadaAvisada) { rodadaAvisada = k; if (pvpAtivo()) { banner('🗡️ DUELO DA GUILDA: VALENDO!'); Audio8.sfx('boom'); log('🗡️ <b>Rodada de PvP valendo por 5 minutos!</b> Todo mundo da guilda aqui dentro pode se atacar. Quem cai volta no saguão, sem perder nada.', 'gold'); } else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa daqui a pouco (20h10 e 20h20).', 'sys'); } } }
     estandarte(); quadro(); paredesNaFrente();
     for (const v of velas) v.material.opacity = 0.75 + Math.sin(time * 9 + v.position.x * 3) * 0.2;
     if (g.userData.globo) g.userData.globo.rotation.y += dt * 0.3;
@@ -298,6 +374,7 @@ const Castelo = (() => {
     if (!bobo.act && typeof SpriteKit !== 'undefined' && SpriteKit.ready) { bobo.act = SpriteKit.actor({ kind: 'dir', base: 's_menino' }); bobo.g.add(bobo.act.root); const ch = typeof iconeSprite === 'function' ? iconeSprite('🃏') : null; if (ch) { ch.position.y = 2.4; bobo.g.add(ch); } }
     if (bobo.act) bobo.act.update(dt, { face: Math.atan2(P.x - bobo.x, P.z - bobo.z), moving: false });
     if (a.ativo && a.tipo === 'monstros') caçada(dt);
+    if (a.ativo && a.tipo === 'chefe') chefeTick();
     if (a.ativo && a.tipo === 'baus') espalharBaus(); else if (baus.length) { for (const b of baus) scene.remove(b.g); baus = []; }
     if (!a.ativo && vivos().length) for (const o of vivos()) { o.dead = true; scene.remove(o.model.g); o.lab.remove(); }
     // portal de saída
@@ -317,6 +394,6 @@ const Castelo = (() => {
     if (dlg) dialog('🏰 Brincadeiras da Guilda', txt, [{ label: 'Fechar' }]);
     return txt;
   }
-  if (typeof MASMORRAS !== 'undefined') MASMORRAS.castelo = { update: () => { }, minimap: (mg) => { const W = mg.canvas.width, H = mg.canvas.height; mg.fillStyle = '#2a2014'; mg.fillRect(0, 0, W, H); mg.textAlign = 'center'; mg.fillStyle = '#ffd860'; mg.font = 'bold 13px Georgia'; mg.fillText('🏰 Castelo', W / 2, H / 2 - 6); mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; mg.fillText(`pontos hoje: ${E().pts}`, W / 2, H / 2 + 12); mg.textAlign = 'left'; }, pres: () => null, saida: { x: VIL.x, z: VIL.z + 4 } };
-  return { entrar, sair, update, nearest, onKill, info, agora, NOME, _forcar: t => { forcado = t; } };
+  if (typeof MASMORRAS !== 'undefined') MASMORRAS.castelo = { criarRemoto, update: () => { }, minimap: (mg) => { const W = mg.canvas.width, H = mg.canvas.height; mg.fillStyle = '#2a2014'; mg.fillRect(0, 0, W, H); mg.textAlign = 'center'; mg.fillStyle = '#ffd860'; mg.font = 'bold 13px Georgia'; mg.fillText('🏰 Castelo', W / 2, H / 2 - 6); mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; mg.fillText(`pontos hoje: ${E().pts}`, W / 2, H / 2 + 12); mg.textAlign = 'left'; }, pres: () => null, saida: { x: VIL.x, z: VIL.z + 4 } };
+  return { entrar, sair, update, nearest, onKill, info, agora, NOME, camFora, pvpAtivo, pvpKill, volta, _forcar: t => { forcado = t; } };
 })();

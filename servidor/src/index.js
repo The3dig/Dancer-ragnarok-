@@ -409,13 +409,13 @@ export class Mundo {
         mob.hp = 0; mob.vivo = false; mob.volta = agora + mob.resp * 1000;
         this.todos({ t: "morre", id: mob.id, by: d.peer, dano: mob.dano });
         mob.dano = {};
-        if (mob.gp !== undefined) this.mobs.delete(mob.id);                // masmorra: não renasce, sai da lista
+        if (mob.gp !== undefined && !mob.id.endsWith(":chefe")) this.mobs.delete(mob.id);   // o chefe do castelo fica como "morto" até expirar (não renasce na mesma rodada)                // masmorra: não renasce, sai da lista
 
       } else this.todos({ t: "hp", id: mob.id, hp: mob.hp, by: d.peer });
     } else if (m.t === "dgver" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 8) {
       // quem chegou agora na Torre/masmorra pede os monstros que já estão lá (de outros jogadores)
       if (d.dgverT && agora - d.dgverT < 500) return; d.dgverT = agora; try { ws.serializeAttachment(d); } catch (e) {}
-      const l = []; for (const [id, mob] of this.mobs) if (id.startsWith(m.pref) && mob.vivo) l.push({ id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono });
+      const l = []; for (const [id, mob] of this.mobs) if (id.startsWith(m.pref) && (mob.vivo || id.endsWith(":chefe"))) l.push({ id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: !!mob.vivo, dono: mob.dono });
       for (let i = 0; i < l.length; i += 120) this.enviar(ws, { t: "dgl", l: l.slice(i, i + 120) });
       if (!l.length) this.enviar(ws, { t: "dgl", l: [], pref: m.pref });
     } else if (m.t === "dgfim" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 6) {
@@ -439,7 +439,7 @@ export class Mundo {
 
   tique(agora) {
     const gente = [];
-    for (const ws of this.vivos()) { const d = this.dados(ws); if (d.peer && d.s && typeof d.s.x === "number" && d.s.st !== "d") gente.push({ peer: d.peer, x: d.s.x, z: d.s.z, gp: d.s.gp || null }); }
+    for (const ws of this.vivos()) { const d = this.dados(ws); if (d.peer && d.s && typeof d.s.x === "number" && d.s.st !== "d") gente.push({ peer: d.peer, x: d.s.x, z: d.s.z, gp: d.s.gp || null, gid: d.s.gid || null }); }
     const todosPeers = new Set(this.vivos().map((ws) => this.dados(ws).peer));
     if (!gente.length) return;
     const perto = (x, z) => { let b = null, bd = 1e9; for (const g of gente) { const dd = Math.hypot(g.x - x, g.z - z); if (dd < bd) { bd = dd; b = g; } } return [b, bd]; };
@@ -448,7 +448,7 @@ export class Mundo {
       if (mob.gp !== undefined) {                                         // masmorra em grupo: expira e só passa entre o grupo
         if (agora - mob.criado > 20 * 60e3) { this.mobs.delete(id); this.todos({ t: "some", id }); continue; }
         // "*..." = aberto para todos (Torre, Abismo e masmorras: o mundo é o mesmo, pedido do Rone); senão só o grupo
-        const doGrupo = String(mob.gp).startsWith("*") ? gente : gente.filter((g) => g.gp === mob.gp); if (!doGrupo.length) continue;
+        const gp = String(mob.gp), doGrupo = gp.startsWith("*") ? gente : gp.startsWith("#") ? gente.filter((g) => String(g.gid) === gp.slice(1)) : gente.filter((g) => g.gp === mob.gp); if (!doGrupo.length) continue;   // "#<guilda>": só quem é da guilda (chefe do castelo)
         let b = null, bd = 1e9; for (const g of doGrupo) { const dd = Math.hypot(g.x - mob.x, g.z - mob.z); if (dd < bd) { bd = dd; b = g; } }
         if (!doGrupo.some((g) => g.peer === mob.dono) || (b.peer !== mob.dono && bd + 8 < Math.hypot((doGrupo.find((g) => g.peer === mob.dono) || b).x - mob.x, (doGrupo.find((g) => g.peer === mob.dono) || b).z - mob.z))) { mob.dono = b.peer; mud.push([mob.id, b.peer]); }
         continue;

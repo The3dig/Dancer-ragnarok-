@@ -18,8 +18,9 @@ const PvP = (() => {
   const PINK = 60e3, RED = 5 * 60e3;
   const now = () => Date.now();
   const F = () => (P.flag = P.flag || { pink: 0, red: 0 });
-  const safe = (x, z) => { const zn = zoneOf(x, z); return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco', 'castelo'].includes(zn); };   // masmorras também são seguras
-  const guerra = (x, z) => inTower(z) && ['torre', 'topo', 'abismo', 'abfundo', 'arena', 'forte'].includes(zoneOf(x, z));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
+  const duelo = () => typeof Castelo !== 'undefined' && Castelo.pvpAtivo && Castelo.pvpAtivo();      // 🗡️ Duelo da Guilda (quinta às 20h, no castelo)
+  const safe = (x, z) => { const zn = zoneOf(x, z); if (zn === 'castelo' && duelo()) return false; return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco', 'castelo'].includes(zn); };   // masmorras também são seguras
+  const guerra = (x, z) => inTower(z) && (['torre', 'topo', 'abismo', 'abfundo', 'arena', 'forte'].includes(zoneOf(x, z)) || (zoneOf(x, z) === 'castelo' && duelo()));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
   const state = () => F().red > now() ? 'r' : F().pink > now() ? 'p' : 'w';
   // cor do nome: vermelho forte no começo, clareando com o tempo; rosa no combate
   function color(fl, left) {
@@ -43,7 +44,7 @@ const PvP = (() => {
     const out = [];
     for (const r of Net.peers()) {
       if (!r.s || r.s.st === 'd' || typeof r.x !== 'number' || safe(r.x, r.z)) continue;
-      if (typeof Guilda !== 'undefined' && Guilda.aliado(r.s)) continue;    // a própria guilda nunca
+      if (typeof Guilda !== 'undefined' && Guilda.aliado(r.s) && !duelo()) continue;    // a própria guilda nunca (só no Duelo da Guilda)
       const fl = r.s.fl || 'w';
       if (fl === 'w' && !P.pvpOn && !guerra(P.x, P.z)) continue;           // branco só com o modo PvP ligado (na Torre, sempre)
       if (Math.hypot(r.x - P.x, r.z - P.z) > range) continue;
@@ -89,6 +90,7 @@ const PvP = (() => {
           banner('☠️ VOCÊ VIROU PK!'); Audio8.sfx('boom');
           log(`☠️ Você matou <b>${r.n}</b>, que não estava em combate. Seu nome ficou <b style="color:#ff4040">vermelho por 5 minutos</b>. Se morrer assim, derruba <b>todos os itens</b>.`, 'bad');
         } else if (zoneOf(P.x, P.z) === 'arena' && typeof Arena !== 'undefined') Arena.vitoria(r.n);
+        else if (zoneOf(P.x, P.z) === 'castelo' && duelo()) Castelo.pvpKill(r.n);
         else log(`⚔️ Você derrotou <b>${r.n}</b>${guerra(P.x, P.z) ? ' na Torre (zona de guerra, sem penalidade)' : ' em combate (sem penalidade)'}.`, 'gold');
       }
       // aviso de PK no território
@@ -132,7 +134,8 @@ const PvP = (() => {
     killedBy = { by: r.peer, n: ++seq, fl: state() };
     log(`💀 Você foi derrotado por <b>${r.n}</b>.`, 'bad');
     if (typeof Arena !== 'undefined' && inTower(P.z) && zoneOf(P.x, P.z) === 'arena') { Arena.morreu(); P.pvpDeath = true; return; }
-    if (inTower(P.z) && zoneOf(P.x, P.z) === 'forte') { P.pvpDeath = true; return; }   // 🏰 na guerra também não se perde nada   // ⚔️ na arena ninguém perde nada (nem o PK)
+    if (inTower(P.z) && zoneOf(P.x, P.z) === 'forte') { P.pvpDeath = true; return; }
+    if (inTower(P.z) && zoneOf(P.x, P.z) === 'castelo') { P.pvpDeath = true; P.voltaCastelo = true; P.deadT = 2; log('🗡️ Você caiu no Duelo da Guilda. Volta no saguão em 2 segundos, sem perder nada.', 'sys'); return; }   // 🏰 na guerra também não se perde nada   // ⚔️ na arena ninguém perde nada (nem o PK)
     if (state() === 'r') {                                         // PK morto: derruba tudo
       const items = {};
       for (const id of Object.keys(P.inv)) if (P.inv[id] > 0 && ITEMS[id]) { items[id] = P.inv[id]; P.inv[id] = 0; }

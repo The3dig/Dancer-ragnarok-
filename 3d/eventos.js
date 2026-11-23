@@ -9,14 +9,15 @@
 // =====================================================================
 'use strict';
 const Eventos = (() => {
-  const INI = 30, DUR = 20;                                               // minutos
+  const INI = 30, DUR = 20, DURT = { estrelas: 5 };                                               // minutos
   const hash = n => { let h = (n * 2654435761) >>> 0; h ^= h >>> 15; h = Math.imul(h, 2246822519) >>> 0; return (h ^ (h >>> 13)) >>> 0; };
   const TIPOS = ['dourada', 'invasao', 'estrelas', 'mercador'];
   const CIDADES = () => [{ c: VIL, z: 'solmira', n: 'Vila de Solmira' }, { c: OAS, z: 'kharum', n: 'Oásis de Kharum' }, { c: CIT, z: 'cidadela', n: 'Cidadela do Cisma' }];
   const hora = () => Math.floor(Date.now() / 3600e3);
   function agora() {
     const h = hora(), min = (Date.now() % 3600e3) / 60e3, tipo = TIPOS[hash(h) % TIPOS.length], cid = CIDADES()[hash(h * 7 + 1) % 3];
-    return { h, tipo, cid, ativo: min >= INI && min < INI + DUR, falta: (INI + DUR - min) * 60, comecaEm: (INI - min) * 60 };
+    const dur = DURT[tipo] || DUR;                                        // a chuva de estrelas é curta: 5 min (pedido do Rone: 20 era muito)
+    return { h, tipo, cid, dur, ativo: min >= INI && min < INI + dur, falta: (INI + dur - min) * 60, comecaEm: (INI - min) * 60 };
   }
   let ultimo = null, avisou = null, invT = 0, estT = 0, orlo = null, comprou = {};
   const mmss = s => `${Math.floor(s / 60)} min`;
@@ -125,7 +126,7 @@ const Eventos = (() => {
     if (!running) return;
     const e = agora();
     if (!e.ativo && e.comecaEm > 0 && e.comecaEm < 120 && avisou !== e.h) { avisou = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: 'EM 2 MINUTOS', titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, '') }); log(`⚡ Em <b>2 minutos</b>: ${NOMES[e.tipo]} — ${DESC(e)}`, 'gold'); }
-    if (e.ativo && ultimo !== e.h) { ultimo = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: 'EVENTO SURPRESA · 20 MIN', titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, ''), cor: 'verde' }); Audio8.sfx('level'); log(`⚡ <b>Evento:</b> ${NOMES[e.tipo]} por ${DUR} minutos — ${DESC(e)}`, 'gold'); }
+    if (e.ativo && ultimo !== e.h) { ultimo = e.h; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '⚡', tag: `EVENTO SURPRESA · ${e.dur} MIN`, titulo: NOMES[e.tipo], sub: DESC(e).replace(/<[^>]+>/g, ''), cor: 'verde' }); Audio8.sfx('level'); log(`⚡ <b>Evento:</b> ${NOMES[e.tipo]} por ${DUR} minutos — ${DESC(e)}`, 'gold'); }
     if (!e.ativo) { if (orlo) tirarOrlo(); if (ultimo === e.h && e.falta < 0) { ultimo = -e.h; log(`⚡ ${NOMES[e.tipo]} acabou. O próximo evento é às :${INI} da próxima hora.`, 'sys'); for (const m of mobs.filter(m => m.invasor)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => !m.invasor); } return; }
     if (e.tipo === 'invasao') invasao(e, dt);
     else if (e.tipo === 'estrelas') estrelas(dt, e);

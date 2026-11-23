@@ -1587,6 +1587,7 @@ function applyRhythm(r) {
 
 // ---------------------------------------------------------------- combate
 function dmgMob(m, base, crit, magic, color) {
+  if (m.evade) { if ((m.imuneT || 0) < time) { m.imuneT = time + 0.6; floater(m.x, groundY(m.x, m.z) + (m.model.h || 2) + 0.4, m.z, 'IMUNE', 'miss'); } return 0; }   // chefe voltando para casa
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
   if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
@@ -2216,7 +2217,7 @@ function updatePlayer(dt) {
     P.deadT -= dt;
     if (P.deadT <= 0) {
       P.dead = false; P.hp = Math.round(stats.maxHp() * 0.5); P.sp = Math.round(stats.maxSp() * 0.5);
-      const h = P.voltaArena && typeof Arena !== 'undefined' ? Arena.volta() : homePos();
+      const h = P.voltaCastelo && typeof Castelo !== 'undefined' ? Castelo.volta() : P.voltaArena && typeof Arena !== 'undefined' ? Arena.volta() : homePos(); if (P.voltaCastelo) { P.voltaCastelo = false; P.hp = stats.maxHp(); P.sp = stats.maxSp(); }
       P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z);
     }
     return;
@@ -2379,7 +2380,7 @@ function updateMob(m, dt) {
   else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
-    if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
+    if (m.state !== 'chase' && m.state !== 'return' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';   // voltando para casa não se distrai
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
       // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
@@ -2396,8 +2397,14 @@ function updateMob(m, dt) {
       }
     } else if (m.state === 'return') {
       m.retT = (m.retT || 0) + dt;
-      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 12) { m.state = 'idle'; m.retT = 0; }     // preso no caminho: desiste de voltar
-      else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
+      // chefe voltando para casa fica IMUNE e se cura (antes parava no limite e quem batia de longe matava "de boa": bug do Rivas no deserto)
+      const chefe = m.d.boss || m.d.field || m.d.mini; m.evade = !!chefe;
+      if (chefe) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.08 * dt); if (m.nid && typeof Partilha !== 'undefined' && (m.curaT = (m.curaT || 0) - dt) <= 0) { m.curaT = 0.5; Partilha.cura(m); } }
+      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 8) {                                   // chegou (ou travou no caminho: volta direto para casa)
+        if (m.retT > 8) { m.x = m.tx = m.sx; m.z = m.tz = m.sz; }
+        m.state = 'idle'; m.retT = 0; m.evade = false; if (chefe) { m.hp = m.maxHp; if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); }
+      }
+      else stepMob(m, m.sx, m.sz, m.d.speed * 2.2, dt);
     } else {
       m.timer -= dt;
       if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; }
@@ -2516,7 +2523,8 @@ function updateCamera(dt) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
     if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
-    if (inTower(camS.z)) { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
+    if (inTower(camS.z)) { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }
+    if (typeof Castelo !== 'undefined' && Castelo.camFora(x, z, y)) { want = Math.max(1.6, camS.dist * (k - 1) / 16); break; }   // 🏰 dentro do castelo a câmera não atravessa parede nem teto   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
   }
   camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 20 : 2.5)));
   const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
@@ -3322,7 +3330,19 @@ addEventListener('pointerup', e => {
   const d = drag; drag = null;
   // PC: clique rápido (sem arrastar) = clicar no mundo, como no Ragnarok. Arrastar continua girando a câmera.
   if (d.mouse && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 7 && performance.now() - d.t0 < 450) cliqueMundo(e.clientX, e.clientY);
+  // celular: toque rápido em cima de outro jogador (no boneco ou no nome) abre o menu dele (convidar para grupo/guilda, seguir...)
+  else if (!d.mouse && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 14 && performance.now() - d.t0 < 400) { const pr = jogadorNoToque(e.clientX, e.clientY); if (pr && typeof Jogadores !== 'undefined') { Audio8.sfx('click'); Jogadores.menu(pr); } }
 });
+// outro jogador debaixo do dedo/cursor (o corpo ou o nome em cima da cabeça)
+function jogadorNoToque(cx, cy) {
+  if (typeof Net === 'undefined' || !Net.peers || dialogOpen) return null;
+  let best = null, bd = 48;
+  for (const r of Net.peers()) {
+    if (!r.n || typeof r.x !== 'number') continue; const y0 = (r.s && r.s.y) || groundY(r.x, r.z);
+    for (const h of [0.9, 2.3]) { const sp = toScreen(r.x, y0 + h, r.z); if (!sp.vis) continue; const dd = Math.hypot(sp.x - cx, sp.y - cy); if (dd < bd) { bd = dd; best = r.peer; } }
+  }
+  return best;
+}
 // o que está debaixo do mouse: monstro (o mais perto do cursor na tela) ou NPC
 function soMouse(cx, cy) {
   let best = null, bd = 46;
@@ -3333,6 +3353,7 @@ function soMouse(cx, cy) {
 const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _pt = new THREE.Vector3();
 function cliqueMundo(cx, cy) {
   if (P.dead || dialogOpen) return;
+  { const pr = jogadorNoToque(cx, cy); if (pr && typeof Jogadores !== 'undefined') { Jogadores.menu(pr); return; } }   // clicou em outro jogador: menu dele
   const alvo = soMouse(cx, cy);
   if (alvo && alvo.tipo === 'mob') { if (AUTO.on) autoStop(''); P.caca = alvo.o; P.face = Math.atan2(alvo.o.x - P.x, alvo.o.z - P.z); return; }        // clicou no monstro: vai até ele e ataca até cair
   if (alvo && alvo.tipo === 'npc') { const n = alvo.o; P.caca = null; if (Math.hypot(n.x - P.x, n.z - P.z) < 3.2) talk(n); else { P.qGo = { x: n.x, z: n.z, name: n.name }; P.falarCom = n; if (typeof autoStart === 'function') autoStart(); } return; }
@@ -3492,7 +3513,7 @@ function ajustarChat() {
   const cb = $('chatbox'), vv = window.visualViewport;
   const aberto = !cb.classList.contains('hidden') && document.activeElement === $('chat-in') && vv && vv.height < innerHeight * 0.8;
   cb.classList.toggle('teclado', !!aberto);
-  if (aberto) { cb.style.top = (vv.offsetTop + 4) + 'px'; cb.style.height = Math.max(90, vv.height - 8) + 'px'; const h = $('chat-hist'); h.scrollTop = h.scrollHeight; }
+  if (aberto) { cb.style.top = (vv.offsetTop + 4) + 'px'; cb.style.height = Math.max(90, Math.min(vv.height - 8, 320)) + 'px'; const h = $('chat-hist'); h.scrollTop = h.scrollHeight; }
   else { cb.style.top = ''; cb.style.height = ''; }
 }
 if (window.visualViewport) { visualViewport.addEventListener('resize', ajustarChat); visualViewport.addEventListener('scroll', ajustarChat); }

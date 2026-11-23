@@ -868,7 +868,7 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 
 /* 💬 chat com o teclado aberto: ocupa só o espaço que sobra acima do teclado, conversa em cima e caixa de texto embaixo */
 #chatbox.teclado { position: fixed; bottom: auto !important; left: calc(6px + env(safe-area-inset-left)); right: calc(6px + env(safe-area-inset-right)); width: auto; transform: none; gap: 4px; z-index: 90; }
-#chatbox.teclado #chat-hist { flex: 1 1 auto; min-height: 0; max-height: none !important; padding: 4px 8px; font-size: 12px; }
+#chatbox.teclado #chat-hist { flex: 1 1 auto; min-height: 0; max-height: none !important; padding: 4px 8px; font-size: 12px; background: rgba(10,8,18,.5); text-shadow: 0 1px 2px #000; }
 #chatbox.teclado .chat-linha { flex: 0 0 auto; }
 #chatbox.teclado input { padding: 6px 10px; }
 #chatbox.teclado #chat-canal, #chatbox.teclado #chat-item, #chatbox.teclado #chat-x, #chatbox.teclado #chat-send { padding: 0 8px !important; font-size: 12px; }
