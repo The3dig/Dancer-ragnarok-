@@ -214,6 +214,7 @@ const VFX = (() => {
     const e = elem(s), c = s.color, r = s.r || 4, x = P.x, z = P.z;
     wave(x, z, r, c, 0.55); setTimeout(() => wave(x, z, r * 0.7, 0xffffff, 0.4), 80);
     flash(me(1), c, 3, 0.3);
+    if (ESP_NOVA[s.id]) { ESP_NOVA[s.id](s, x, z); return; }
     if (e === 'vento' || /redemoinho|giratório|tempestade/i.test(s.name)) {
       const m = new THREE.Mesh(G.tornado, mat(T.beam, c)); m.position.set(x, groundY(x, z), z);
       add(m, 0.8, (k, dt) => { m.position.set(P.x, P.y, P.z); m.rotation.y += dt * 14; const w = r * 0.45 * Math.min(1, k * 4); m.scale.set(w, 3.2 * Math.min(1, k * 3), w); m.material.opacity = (1 - k) * 0.42; m.material.map.offset.y -= dt * 3; });
@@ -254,9 +255,91 @@ const VFX = (() => {
     add(m, 0.45, (k, dt) => { m.position.set(sx + (x - sx) * k, sy + (gy + 0.3 - sy) * k * k, sz + (z - sz) * k); m.rotation.x += dt * 8; m.rotation.z += dt * 6; if (Math.random() < 0.6) particle(m.position, 0xffa050, { size: 0.5, speed: 0.4, life: 0.3 }); },
       () => { m.material.dispose(); wave(x, z, 2.2 * size, 0xd0a070, 0.4); puff(new THREE.Vector3(x, gy + 0.3, z), 0x9a8a78, 8, { map: T.smoke, size: 1.2, grow: 1.5, speed: 4, op: 0.5 }); flash(new THREE.Vector3(x, gy + 0.5, z), 0xffb060, 2, 0.2); });
   }
+
+  // =================================================================
+  //  ✨ Efeitos próprios das magias de área dos heróis (pedido do Rone: várias só desenhavam
+  //  um círculo de runas no chão). Cada uma ganha uma cena em 3D com a cara do herói.
+  // =================================================================
+  // esfera do Vazio: uma bola negra que cresce, puxa tudo para dentro e implode num clarão
+  function orbeVazio(x, y, z, r, cor = 0x9a50ff, life = 0.9) {
+    const g = new THREE.Group(); g.position.set(x, y, z);
+    const nucleo = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0x050008, transparent: true, depthWrite: false, fog: false })); g.add(nucleo);
+    const aura = new THREE.Sprite(smat(T.glow, cor)); g.add(aura);
+    const anel = new THREE.Mesh(G.plane, mat(T.wave, cor)); anel.rotation.x = 0.35; g.add(anel);
+    add(g, life, (k, dt) => {
+      const cr = k < 0.75 ? Math.sin(k / 0.75 * Math.PI / 2) : 1 - (k - 0.75) / 0.25;
+      nucleo.scale.setScalar(Math.max(0.01, r * 0.45 * cr)); aura.scale.setScalar(r * 2.2 * cr + 0.2); anel.scale.set(r * 2.4 * cr, 1, r * 2.4 * cr); anel.rotation.z += dt * 3;
+      aura.material.opacity = 0.9 * (1 - k * 0.5);
+      if (Math.random() < 0.8) { const a = rand(0, TAU), d = r * 1.6, h = rand(-0.5, 1.5); particle(new THREE.Vector3(x + Math.cos(a) * d, y + h, z + Math.sin(a) * d), cor, { v: new THREE.Vector3(-Math.cos(a) * d * 2.2, -h * 2, -Math.sin(a) * d * 2.2), drag: 0, life: 0.45, size: 0.3, shrink: true }); }
+    }, () => { nucleo.geometry.dispose(); g.traverse(o => { if (o.material) o.material.dispose(); }); const p = new THREE.Vector3(x, y, z); flash(p, 0xd8b0ff, r * 1.6, 0.35); flash(p, 0xffffff, r, 0.2); wave(x, z, r * 1.3, cor, 0.5); puff(p, 0x2a0040, 10, { map: T.smoke, size: 1.4, grow: 1.6, speed: 5, op: 0.6 }); });
+  }
+  // correntes: elos de luz que saem do chão em volta e prendem o centro
+  function correntes(x, z, r, cor, n = 7, deChao = true) {
+    const gy = groundY(x, z), c0 = new THREE.Vector3(x, gy + 1.1, z);
+    for (let i = 0; i < n; i++) setTimeout(() => {
+      const a = i / n * TAU + rand(-0.2, 0.2), px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, pe = new THREE.Vector3(px, groundY(px, pz) + 0.1, pz);
+      bolt(deChao ? pe : c0, deChao ? c0 : pe, cor, 0.55, 1.4);
+      for (let j = 1; j < 5; j++) particle(new THREE.Vector3().lerpVectors(pe, c0, j / 5), cor, { map: T.spark, size: 0.45, speed: 0.3, life: 0.5 });
+    }, i * 45);
+  }
+  // espíritos que mergulham do céu sobre o alvo, um por "possibilidade"
+  function mergulho(x, z, cor, n, r) {
+    const gy = groundY(x, z);
+    for (let i = 0; i < n; i++) setTimeout(() => {
+      const a = i / n * TAU + rand(-0.3, 0.3), sx = x + Math.cos(a) * r * 1.6, sz = z + Math.sin(a) * r * 1.6, sy = gy + 7, alvo = new THREE.Vector3(x + rand(-0.6, 0.6), gy + 0.6, z + rand(-0.6, 0.6));
+      const sp = new THREE.Sprite(smat(T.ghost, cor)); sp.scale.set(1.9, 2.8, 1); const h = new THREE.Sprite(smat(T.glow, cor, { opacity: 0.7 })); h.scale.setScalar(3.6);
+      const g = new THREE.Group(); g.add(h); g.add(sp); g.position.set(sx, sy, sz); let tr = 0;
+      add(g, 0.42, (k, dt) => { const e = k * k; g.position.set(sx + (alvo.x - sx) * e, sy + (alvo.y - sy) * e, sz + (alvo.z - sz) * e); sp.material.rotation = Math.atan2(alvo.x - sx, sy - alvo.y) * 0.6; if ((tr -= dt) <= 0) { tr = 0.03; particle(g.position, cor, { map: T.ghost, size: 0.8, speed: 0.1, life: 0.3, shrink: true, op: 0.5 }); } },
+        () => { g.traverse(o => { if (o.material) o.material.dispose(); }); flash(alvo, cor, 3.2, 0.3); flash(alvo, 0xffffff, 1.8, 0.2); wave(x, z, r, cor, 0.45); pillar(alvo.x, alvo.z, 0.45, 6, cor, 0.5);
+          for (let q = 0; q < 6; q++) { const b = q / 6 * TAU; particle(alvo, cor, { map: T.ghost, size: 0.5, v: new THREE.Vector3(Math.cos(b) * 5, 2.5, Math.sin(b) * 5), drag: 3, life: 0.6, shrink: true }); } });
+    }, i * 170);
+  }
+  // redemoinho de espíritos em volta do alvo
+  function ciclone(x, z, r, cor, life = 1.1) {
+    const gy = groundY(x, z), m = new THREE.Mesh(G.tornado, mat(T.beam, cor)); m.position.set(x, gy, z);
+    add(m, life, (k, dt) => { m.rotation.y += dt * 12; const w = r * 0.5 * Math.min(1, k * 4) * (k > 0.8 ? (1 - k) * 5 : 1); m.scale.set(w, 4 * Math.min(1, k * 3), w); m.material.opacity = (1 - k * 0.7) * 0.4; m.material.map.offset.y -= dt * 3; });
+    for (let i = 0; i < 8; i++) { const sp = new THREE.Sprite(smat(T.ghost, cor)); sp.scale.set(0.8, 1.15, 1); const a0 = i / 8 * TAU, h0 = 0.6 + (i % 4) * 0.7;
+      add(sp, life, k => { const a = a0 + k * 9, rr = r * (0.9 - k * 0.4); sp.position.set(x + Math.cos(a) * rr, gy + h0 + k * 1.5, z + Math.sin(a) * rr); sp.material.opacity = k < 0.1 ? k * 10 : 1 - Math.max(0, k - 0.75) * 4; }); }
+    setTimeout(() => { flash(new THREE.Vector3(x, gy + 1.2, z), cor, 3.5, 0.35); wave(x, z, r * 1.2, cor, 0.5); }, life * 900);
+  }
+  // ondas de choque empilhadas (grito, rugido, pisada)
+  function choque(x, z, r, cor, n = 3, poeira = 0x9a8a78) {
+    for (let i = 0; i < n; i++) setTimeout(() => { wave(x, z, r * (0.5 + i * 0.3), cor, 0.5); wave(x, z, r * (0.35 + i * 0.3), 0xffffff, 0.3); }, i * 110);
+    const gy = groundY(x, z); for (let i = 0; i < 14; i++) { const a = i / 14 * TAU; particle(new THREE.Vector3(x + Math.cos(a), gy + 0.3, z + Math.sin(a)), poeira, { map: T.smoke, size: 1.3, grow: 1.4, v: new THREE.Vector3(Math.cos(a) * r * 1.6, 1, Math.sin(a) * r * 1.6), drag: 2.5, life: 0.8, op: 0.45 }); }
+    if (typeof TREMOR !== 'undefined') TREMOR = Math.max(TREMOR, 0.3);
+  }
+  const ESP_NOVA = {
+    // Mãe
+    correntesBrancas: (s, x, z) => { correntes(x, z, s.r || 5, 0xf0f0ff, 8, false); wave(x, z, s.r || 5, 0xe8e8ff, 0.6); },
+    voltem: (s, x, z) => { for (let i = 0; i < 2; i++) setTimeout(() => arc(0xf0f0ff, true, rand(-0.3, 0.3), i ? -1 : 1), i * 100); pillar(x, z, 1.1, 8, 0xe8e8ff, 0.8, true); heal(s, true); wave(x, z, s.r || 6, 0xffffff, 0.6); },
+    voltemTodos: (s, x, z) => { for (let i = 0; i < 4; i++) setTimeout(() => arc(0xf0f0ff, true, rand(-0.4, 0.4), i % 2 ? -1 : 1), i * 90); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU, r = (s.r || 9) * 0.65; setTimeout(() => pillar(x + Math.cos(a) * r, z + Math.sin(a) * r, 0.5, 7, 0xe8e8ff, 0.6), i * 40); } heal(s, true); },
+    gritoGuardia: (s, x, z) => { choque(x, z, s.r || 7, 0xf0f0ff, 4, 0xc8c8d8); flash(me(1.6), 0xffffff, 4, 0.3); },
+    passosTremem: (s, x, z) => { choque(x, z, s.r || 8, 0xc0a070, 3); spikes(x, z, 14, s.r || 8, 0xb0a090, 'rocha', 1.0, 1.8); for (let i = 0; i < 5; i++) setTimeout(() => meteor(x + rand(-1, 1) * (s.r || 8) * 0.6, z + rand(-1, 1) * (s.r || 8) * 0.6, 0x9a8a78, 0.5), 150 + i * 60); if (typeof TREMOR !== 'undefined') TREMOR = Math.max(TREMOR, 0.6); },
+    // Kravenox
+    rugido: (s, x, z) => { choque(x, z, s.r || 7, 0xd01a2a, 4, 0x3a0a14); flash(me(1.6), 0xff2030, 3.5, 0.3); },
+    // Seraphyne
+    silencioV: (s, x, z) => orbeVazio(x, P.y + 1.2, z, (s.r || 6) * 0.55, s.color || 0x9a50ff, 0.8),
+    apagar: (s, x, z) => { orbeVazio(x, P.y + 1.5, z, (s.r || 10) * 0.6, 0x9a50ff, 1.1); correntes(x, z, s.r || 10, 0x7a30c0, 10, false); },
+    buracoNegro: (s, x, z) => { orbeVazio(x, P.y + 2, z, (s.r || 8) * 0.6, 0x6a20b0, 1.3); const m = new THREE.Mesh(G.plane, mat(T.swirl, 0x9a50ff)); m.position.set(x, groundY(x, z) + 0.15, z); add(m, 1.3, (k, dt) => { m.rotation.y -= dt * 8; const q = (s.r || 8) * 2.4 * (1 - k * 0.7); m.scale.set(q, 1, q); m.material.opacity = 1 - k * 0.5; }); },
+  };
+  const ESP_BLAST = {
+    // Erya: cada possibilidade é um espírito que mergulha
+    possibilidades: (s, x, z) => mergulho(x, z, 0xfff6c0, 3, s.r || 4),
+    todasEscolhas: (s, x, z) => { mergulho(x, z, 0xfff6c0, 3, s.r || 8); setTimeout(() => mergulho(x, z, 0xffffff, 3, (s.r || 8) * 0.6), 260); },
+    destinoQuebrado: (s, x, z) => { mergulho(x, z, 0xfff6c0, 3, s.r || 7); setTimeout(() => { const gy = groundY(x, z); for (let i = 0; i < 20; i++) particle(new THREE.Vector3(x, gy + 1, z), 0xfff6c0, { map: T.spark, size: 0.5, speed: 9, g: 8, life: 0.8, spin: true }); flash(new THREE.Vector3(x, gy + 1, z), 0xffffff, 5, 0.35); }, 520); },
+    tormenta: (s, x, z) => ciclone(x, z, s.r || 5, 0xfff6c0),
+    // Seraphyne
+    portal: (s, x, z) => { for (let i = 0; i < 3; i++) { const a = i / 3 * TAU, r = (s.r || 4) * 0.55; setTimeout(() => orbeVazio(x + Math.cos(a) * r, groundY(x, z) + 1, z + Math.sin(a) * r, 1.1, 0x9a50ff, 0.7), i * 90); } },
+    esferaVazio: (s, x, z) => orbeVazio(x, groundY(x, z) + 1.4, z, (s.r || 4) * 0.6, 0x9a50ff, 0.9),
+    correntesVazio: (s, x, z) => { correntes(x, z, s.r || 5, 0xb26bff, 8, true); setTimeout(() => orbeVazio(x, groundY(x, z) + 1.1, z, 1.2, 0x7a30c0, 0.6), 300); },
+    fimDeTudo: (s, x, z) => { orbeVazio(x, groundY(x, z) + 2.5, z, (s.r || 8) * 0.6, 0x6a20b0, 1.3); pillar(x, z, (s.r || 8) * 0.4, 14, 0x9a50ff, 1.2); correntes(x, z, s.r || 8, 0xb26bff, 10, true); },
+    // Kravenox: as quatro essências caem e se juntam
+    quarta: (s, x, z) => { const cs = [0xffe8a0, 0x8ad8ff, 0x9a50ff, 0xd01a2a], r = (s.r || 8) * 0.5; cs.forEach((c, i) => { const a = i / 4 * TAU + 0.4; setTimeout(() => pillar(x + Math.cos(a) * r, z + Math.sin(a) * r, 0.7, 12, c, 0.7), i * 80); }); setTimeout(() => { const p = new THREE.Vector3(x, groundY(x, z) + 1, z); flash(p, 0xffffff, 6, 0.4); pillar(x, z, r * 0.8, 14, 0xffffff, 0.6); wave(x, z, s.r || 8, 0xe0e0ff, 0.6); }, 420); },
+  };
   function blast(s, tgt) {
     const e = elem(s), c = s.color, r = s.r || 3, x = tgt.x, z = tgt.z, gy = groundY(x, z), p = new THREE.Vector3(x, gy + 0.6, z);
     rune(x, z, r, c, 0.9);
+    if (ESP_BLAST[s.id]) { ESP_BLAST[s.id](s, x, z); return; }
     if (e === 'luz') { setTimeout(() => { pillar(x, z, r * 0.6, 14, 0xffe8a0, 0.8); pillar(x, z, r * 0.3, 14, 0xffffff, 0.6); wave(x, z, r * 1.2, 0xffd060, 0.6); flash(p, 0xffe8a0, 4, 0.35); }, 120); }
     else if (e === 'sombra') {
       const m = new THREE.Mesh(G.plane, mat(T.swirl, c)); m.position.set(x, gy + 0.2, z);
