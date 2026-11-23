@@ -128,12 +128,26 @@ const Templo = (() => {
       return { x, z, k, base, al, t: 0 };
     });
   }
-  function preparar3(sala, rnd) {
-    const ch = CHARADAS[Math.floor(rnd() * CHARADAS.length)]; sala.ordem = ch[2]; sala.prox = 0; sala.feitos = new Set();
-    if (sala.quadro) sala.g.remove(sala.quadro);
-    sala.quadro = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), texto(['📜 A charada da parede', ch[0], ch[1]], 1024, 320)); sala.quadro.position.set(-HW + 0.05, 3.2, 0); sala.quadro.rotation.y = Math.PI / 2; sala.g.add(sala.quadro);   // na parede da esquerda (a da frente tem a porta)
-    for (const p of sala.pads) { p.base.material.emissive.setHex(0); p.al.rotation.z = p.x > 0 ? -0.5 : 0.5; p.t = 0; }
+  // a ordem é sorteada a cada entrada (24 possibilidades) e a parede dá só DUAS pistas: o resto se descobre
+  // tentando. Errar faz as alavancas voltarem e chama criaturas, mas a ORDEM NÃO MUDA (antes mudava a cada erro e
+  // ninguém conseguia aprender com o erro); só muda quando se entra no Templo de novo.
+  const NOMES_S = ['o Sol', 'a Lua', 'a Estrela', 'a Sombra'], POS = ['primeiro', 'segundo', 'terceiro', 'último'];
+  function pistas(ordem, rnd) {
+    const pos = k => ordem.indexOf(k), tipos = [];
+    for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) if (a !== b && pos(a) < pos(b)) tipos.push(`${SIMB[a]} ${NOMES_S[a]} vem antes de ${NOMES_S[b]} ${SIMB[b]}`);
+    for (let k = 0; k < 4; k++) if (pos(k) !== 0) tipos.push(`${SIMB[k]} ${NOMES_S[k]} não é o primeiro`);
+    for (let k = 0; k < 4; k++) if (pos(k) !== 3) tipos.push(`${SIMB[k]} ${NOMES_S[k]} não é o ${POS[3]}`);
+    const a = tipos.splice(Math.floor(rnd() * tipos.length), 1)[0], b = tipos[Math.floor(rnd() * tipos.length)];
+    return [a + ';', b + '.'];
   }
+  function preparar3(sala, rnd) {
+    const o = [0, 1, 2, 3]; for (let i = 3; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
+    sala.ordem = o; const ch = pistas(o, rnd);
+    reiniciar3(sala);
+    if (sala.quadro) sala.g.remove(sala.quadro);
+    sala.quadro = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), texto(['📜 O que a parede lembra', ch[0], ch[1]], 1024, 320)); sala.quadro.position.set(-HW + 0.05, 3.2, 0); sala.quadro.rotation.y = Math.PI / 2; sala.g.add(sala.quadro);   // na parede da esquerda (a da frente tem a porta)
+  }
+  function reiniciar3(sala) { sala.prox = 0; sala.feitos = new Set(); for (const p of sala.pads) { p.base.material.emissive.setHex(0); p.al.rotation.z = p.x > 0 ? -0.5 : 0.5; p.t = 0; } }
   function tick3(sala, lx, lz, dt) {
     const S = sala.S, grupo = !!(run.grupo), outros = membrosNaSala(S.sala).map(r => loc(S, r.x, r.z));
     const ocupado = p => [[lx, lz], ...outros].some(([x, z]) => Math.hypot(x - p.x, z - p.z) < 1.1);
@@ -161,8 +175,7 @@ const Templo = (() => {
     log('💢 Ordem errada! As alavancas voltaram e criaturas saíram das paredes.', 'bad'); run.quedas++;
     const L = Math.max(10, Math.min(100, P.lv)), tipos = Object.keys(MOBDEF).filter(t => { const d = MOBDEF[t]; return !d.boss && !d.mini && !d.alfa && !d.field && !d.world && d.drops; }).sort((a, b) => Math.abs(MOBDEF[a].lv - L) - Math.abs(MOBDEF[b].lv - L)).slice(0, 3);
     for (let k = 0; k < 3; k++) { const m = spawnMob(tipos[k % tipos.length], null, { x: sala.S.x + rand(-4, 4), z: sala.S.z + rand(-2, 2) }); m.templo = true; m.noRespawn = true; m.towerFloor = 'templo'; m.state = 'chase'; }
-    preparar3(sala, Math.random);
-    sala.ordem = sala.ordemFixa || sala.ordem;
+    reiniciar3(sala);                                                     // a ordem continua a mesma: quem errou aprendeu algo
   }
 
   // ================= SALA 4: A Luz dos Espelhos =================
@@ -175,27 +188,40 @@ const Templo = (() => {
       const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.6, 12), ouroM); base.position.y = 0.3; g.add(base);
       const vidro = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.4, 0.08), new THREE.MeshPhongMaterial({ color: 0xd0f0ff, shininess: 120, emissive: 0x204050 })); vidro.position.y = 1.3; g.add(vidro);
       const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), new THREE.MeshLambertMaterial({ color: 0x4a6a8a, emissive: 0x102030 })); pad.position.set(e.x, 0.05, e.z + 1.6); sala.g.add(pad);
-      sala.obs.push({ x: e.x, z: e.z, r: 0.6 });
-      return { ...e, k, g, vidro, est: 0, dentro: false };
+      const ob = { x: e.x, z: e.z, r: 0.6 }; sala.obs.push(ob);
+      return { ...e, k, g, vidro, pad, ob, est: 0, dentro: false };
     });
-    const fonte = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffe080, toneMapped: false })); fonte.position.set(FONTE.x, 1.3, FONTE.z); sala.g.add(fonte);
+    const fonte = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffe080, toneMapped: false })); fonte.position.set(FONTE.x, 1.3, FONTE.z); sala.g.add(fonte); sala.fonte = fonte;
     sala.cristal = new THREE.Mesh(new THREE.OctahedronGeometry(0.6), new THREE.MeshLambertMaterial({ color: 0x4080ff, emissive: 0x102040 })); sala.cristal.position.set(ALVO.x, 1.3, ALVO.z); sala.cristal.scale.y = 1.6; sala.g.add(sala.cristal);
-    sala.obs.push({ x: ALVO.x, z: ALVO.z, r: 0.6 });
+    sala.obAlvo = { x: ALVO.x, z: ALVO.z, r: 0.6 }; sala.obs.push(sala.obAlvo);
     sala.raioM = new THREE.MeshBasicMaterial({ color: 0xffe060, toneMapped: false, transparent: true, opacity: 0.85 }); sala.raios = [];
     const dica = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.2), texto(['Pise na placa azul para girar o espelho'], 640, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
-  function preparar4(sala, rnd) { for (const e of sala.esp) { e.est = e.certo === null ? Math.floor(rnd() * 2) : 1 - e.certo; if (rnd() < 0.3 && e.k === 0) e.est = e.certo; } desenharEsp(sala); }
-  function desenharEsp(sala) { for (const e of sala.esp) e.g.rotation.y = e.est ? -Math.PI / 4 : Math.PI / 4; }
+  // a cada entrada: o salão pode vir ESPELHADO (luz da direita para a esquerda) e o espelho falso muda de lugar,
+  // então a solução decorada não serve
+  const FALSO = [[-1, 4], [0, 3.5], [1, -6], [5, -6], [-1, -5.5]];
+  function preparar4(sala, rnd) {
+    const f = sala.f = rnd() < 0.5 ? -1 : 1, fz = FALSO[Math.floor(rnd() * FALSO.length)];
+    for (const e of sala.esp) {
+      if (e.certo === null) { e.x0 = fz[0]; e.z = fz[1]; } else e.x0 = e.x0 ?? e.x;
+      e.x = e.x0 * f; e.g.position.set(e.x, 0, e.z); e.pad.position.set(e.x, 0.05, e.z + 1.6); e.ob.x = e.x; e.ob.z = e.z;
+      const certo = e.certo === null ? null : (f < 0 ? 1 - e.certo : e.certo);
+      e.est = certo === null ? Math.floor(rnd() * 2) : 1 - certo; if (rnd() < 0.3 && e.k === 0) e.est = certo;
+    }
+    sala.fonte.position.x = FONTE.x * f; sala.cristal.position.x = ALVO.x * f; sala.obAlvo.x = ALVO.x * f; sala.raioK = '';
+    desenharEsp(sala);
+  }
+  function desenharEsp(sala) { for (const e of sala.esp) e.g.rotation.y = (e.est ^ ((sala.f || 1) < 0 ? 1 : 0)) ? -Math.PI / 4 : Math.PI / 4; }
   function tracar(sala) {   // segue o raio de espelho em espelho; devolve os pontos e se chegou no cristal
-    let x = FONTE.x, z = FONTE.z, dx = FONTE.dx, dz = FONTE.dz; const pts = [[x, z]];
+    const f = sala.f || 1, AX = ALVO.x * f; let x = FONTE.x * f, z = FONTE.z, dx = FONTE.dx * f, dz = FONTE.dz; const pts = [[x, z]];
     for (let passo = 0; passo < 8; passo++) {
       let melhor = null, md = 1e9;
       for (const e of sala.esp) { const ex = e.x - x, ez = e.z - z, ao = ex * dx + ez * dz, lat = Math.abs(ex * dz - ez * dx); if (ao > 0.3 && lat < 0.3 && ao < md) { md = ao; melhor = e; } }
-      const ax = ALVO.x - x, az = ALVO.z - z, aAo = ax * dx + az * dz, aLat = Math.abs(ax * dz - az * dx);
-      if (aAo > 0.3 && aLat < 0.4 && aAo < md) { pts.push([ALVO.x, ALVO.z]); return { pts, ok: true }; }
+      const ax = AX - x, az = ALVO.z - z, aAo = ax * dx + az * dz, aLat = Math.abs(ax * dz - az * dx);
+      if (aAo > 0.3 && aLat < 0.4 && aAo < md) { pts.push([AX, ALVO.z]); return { pts, ok: true }; }
       if (!melhor) { const t = Math.min(dx > 0 ? (HW - x) : dx < 0 ? (x + HW) : 99, dz > 0 ? (HL - z) : dz < 0 ? (z + HL) : 99); pts.push([x + dx * t, z + dz * t]); return { pts, ok: false }; }
       x = melhor.x; z = melhor.z; pts.push([x, z]);
-      [dx, dz] = melhor.est === 0 ? [-dz, -dx] : [dz, dx];
+      [dx, dz] = (melhor.est ^ (f < 0 ? 1 : 0)) === 0 ? [-dz, -dx] : [dz, dx];
     }
     return { pts, ok: false };
   }
@@ -222,14 +248,20 @@ const Templo = (() => {
   function preparar5(sala, rnd) {
     sala.firmes = new Set(); let c = Math.floor(rnd() * 3);
     for (let r = 0; r < 8; r++) { sala.firmes.add(r + ',' + c); if (rnd() < 0.35) { const c2 = Math.max(0, Math.min(2, c + (rnd() < 0.5 ? -1 : 1))); sala.firmes.add(r + ',' + c2); } c = Math.max(0, Math.min(2, c + Math.floor(rnd() * 3) - 1)); }
+    // dois VÃOS (fileiras inteiras sem pedra) em lugares sorteados: só passa quem PULAR (⤴)
+    const v1 = 1 + Math.floor(rnd() * 3), v2 = v1 + 3 + Math.floor(rnd() * (4 - v1)); sala.vaos = new Set([v1, Math.min(6, v2)]);   // 2 fileiras de pedra entre os vãos: o pulo não cai no próximo
+    for (const r of sala.vaos) for (let c = 0; c < 3; c++) sala.firmes.delete(r + ',' + c);
+    // do outro lado do vão sempre há pedra firme bem em frente de uma firme de antes: dá para pular reto
+    for (const r of sala.vaos) { const c = [0, 1, 2].find(c => sala.firmes.has((r - 1) + ',' + c)); if (c !== undefined) sala.firmes.add((r + 1) + ',' + c); }
     sala.mostrarAte = 0; sala.viuT = -99; resetar5(sala);
   }
-  function resetar5(sala) { for (const p of sala.pedras) { p.caiu = false; p.pisouT = 0; p.ultT = 0; p.m.position.y = 0.15; p.m.visible = true; } }
+  function resetar5(sala) { for (const p of sala.pedras) { const vao = sala.vaos && sala.vaos.has(p.r); p.caiu = vao; p.pisouT = 0; p.ultT = 0; p.m.position.y = 0.15; p.m.visible = !vao; } }
   function tick5(sala, lx, lz, dt) {
-    if (lz > 9.6 && time - sala.viuT > 6) { sala.viuT = time; sala.mostrarAte = time + 4.5; resetar5(sala); log('✨ As runas brilham nas pedras firmes... decore!', 'sys'); Audio8.sfx('buff'); }
+    if (lz > 9.6 && time - sala.viuT > 6) { sala.viuT = time; sala.mostrarAte = time + 4; resetar5(sala); log(`✨ As runas brilham nas pedras firmes... decore!${sala.avisoVao ? '' : ' E onde não há pedra, <b>pule</b> (⤴)!'}`, 'sys'); sala.avisoVao = true; Audio8.sfx('buff'); }
     const mostra = time < sala.mostrarAte;
     for (const p of sala.pedras) {
       p.m.material.emissive.setHex(mostra && sala.firmes.has(p.r + ',' + p.c) ? 0x9060ff : 0x000000);
+      if (sala.vaos && sala.vaos.has(p.r)) continue;
       if (p.caiu && p.m.visible) { p.m.position.y -= dt * 6; if (p.m.position.y < -6) p.m.visible = false; }
       // a pedra firme desaba ATRÁS de você (pouco depois de sair dela) ou se ficar parado nela tempo demais.
       // Antes desabava 1,6 s depois de pisar, ainda com o jogador em cima (na diagonal não dava tempo e ninguém passava).
@@ -237,7 +269,7 @@ const Templo = (() => {
       if (p.pisouT && !p.caiu && time - p.pisouT > 4.5) p.m.position.y = 0.15 + Math.sin(time * 40) * 0.04;   // tremendo: vai cair
     }
     // as pedras ficam encostadas (sem vão entre elas nem entre a borda e a 1ª fileira: antes, andando, sempre se caía no vão)
-    if (lz < 9.05 && lz > -7.75) {
+    if (lz < 9.05 && lz > -7.75 && P.y < 0.25) {                       // no ar (pulando) não cai
       // de pé numa pedra firme (mesmo passando pela quina de outra): tudo bem; a falsa só derruba quem pisa de verdade nela (no meio)
       const cobre = sala.pedras.filter(p => !p.caiu && Math.abs(lx - P5.cols[p.c]) < 1.5 && Math.abs(lz - P5.rows[p.r]) < 1.06);
       const firme = cobre.find(p => sala.firmes.has(p.r + ',' + p.c)), falsa = cobre.find(p => !sala.firmes.has(p.r + ',' + p.c) && Math.abs(lx - P5.cols[p.c]) < 1.0 && Math.abs(lz - P5.rows[p.r]) < 0.7);
@@ -345,7 +377,7 @@ const Templo = (() => {
   function reiniciarSala(i) {
     const s = salas[i]; if (!s || s.aberta) return;
     if (i === 4) resetar5(s);
-    if (i === 2 && !run.grupo) { s.prox = 0; s.feitos = new Set(); for (const p of s.pads) { p.base.material.emissive.setHex(0); p.t = 0; } }
+    if (i === 2 && !run.grupo) reiniciar3(s);
   }
   function prepararTudo(seed) {
     garantir(); const rnd = sorteador(seed);
@@ -449,7 +481,7 @@ const Templo = (() => {
       { label: '🏆 Ranking do Templo', fn: () => { Ranking.mostrar('templo', () => npc(eu)); return true; } },
       { label: 'Até mais' }]);
   }
-  const api = { update, minimap, saida: SAIDA, pres, criarRemoto, entrar, sair, corridaDoGrupo, restam, npc, bloqueia, get run() { return run; }, _salas: () => salas };
+  const api = { update, minimap, saida: SAIDA, pres, criarRemoto, entrar, sair, corridaDoGrupo, restam, npc, bloqueia, get run() { return run; }, _salas: () => salas, _t: { tracar, preparar3, preparar4, preparar5 } };
   MASMORRAS.eco = api;
   return api;
 })();
