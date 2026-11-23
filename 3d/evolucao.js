@@ -52,6 +52,14 @@ const Evo = (() => {
     banner(`${t === 1 ? '2ª' : '3ª'} classe: ${names[t]}`); Audio8.sfx('level');
     for (let i = 0; i < 6; i++) setTimeout(() => ring(P.x, P.z, 1.5 + i * 1.2, 0xc27aff, 0.8), i * 110);
     burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffcf40, 70, 8, 1.4);
+    // a evolução mais marcante: a tela pisca na cor da classe, a terra treme, uma coluna de luz sobe e fica a marca no corpo
+    const cor = CLASSES[P.cls] && CLASSES[P.cls].colors ? CLASSES[P.cls].colors.accent : 0xc27aff, css = '#' + new THREE.Color(cor).getHexString();
+    const fl = document.createElement('div'); fl.style.cssText = `position:fixed;inset:0;z-index:60;pointer-events:none;background:radial-gradient(circle, #fff 0%, ${css} 45%, transparent 80%);opacity:1;transition:opacity 2.2s ease-in`;
+    document.body.appendChild(fl); requestAnimationFrame(() => requestAnimationFrame(() => { fl.style.opacity = 0; })); setTimeout(() => fl.remove(), 2600);
+    if (typeof TREMOR !== 'undefined') TREMOR = Math.max(TREMOR, 1.2);
+    if (typeof VFX !== 'undefined') { VFX.pillar(P.x, P.z, 2.4, 16, cor, 2.6, true, 1); VFX.rune(P.x, P.z, 6, cor, 2.6); VFX.rune(P.x, P.z, 3.5, 0xffffff, 2.2); for (let i = 0; i < 4; i++) setTimeout(() => VFX.wave(P.x, P.z, 4 + i * 2.5, cor, 0.8), 300 + i * 250); }
+    setTimeout(() => { Audio8.sfx('level'); banner(`✨ ${names[t].toUpperCase()} ✨`); }, 1200);
+    setTimeout(() => log(`✨ A marca de <b>${names[t]}</b> ficou no seu corpo: um brilho na cor da classe que todos veem${t >= 2 ? ', mais forte agora' : ''}. (Um 👘 traje de classe muda a cor.)`, 'gold'), 1800);
     log(`🌟 <b>${P.name}</b> evoluiu para <b>${names[t]}</b>! +5 pontos de atributo, +2 de habilidade e várias habilidades novas na árvore (📜), com ativas e passivas.`, 'gold');
     save();
   }

@@ -327,6 +327,7 @@ const Templo = (() => {
     banner(`BAÚ DE ${nota.toUpperCase()}!`); Audio8.sfx('level');
     log(`🎁 <b>Baú de ${nota === 'ouro' ? '🥇 ouro' : nota === 'prata' ? '🥈 prata' : '🥉 bronze'}</b> (${Ranking.fmt(T)}, ${Q} queda${Q === 1 ? '' : 's'}): ${partes.join(', ')} e <b>${xp.toLocaleString('pt-BR')} XP</b>.${nota !== 'ouro' ? ' <small>Ouro: menos de 10 min e até 3 quedas.</small>' : ''}`, 'gold');
     if (typeof Ranking !== 'undefined') Ranking.terminar('templo');
+    if (typeof Trajes !== 'undefined') Trajes.templo();
     run.acabou = true; try { save(); } catch (e) { }
   }
 

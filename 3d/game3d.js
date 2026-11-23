@@ -1601,7 +1601,7 @@ function killMob(m, o = {}) {
   else if (m.model.m3) corpses.push({ g: m.model.g, m3: m.model.body, t: 1.0 });
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
-  if (!o.ajuda || o.ajuda >= 0.25 || o.grupo) P.kills = (P.kills || 0) + 1;
+  if (!o.ajuda || o.ajuda >= 0.25 || o.grupo) { P.kills = (P.kills || 0) + 1; if (typeof Trajes !== 'undefined') Trajes.kill(); }
   if (typeof Tarefas !== 'undefined' && (!o.ajuda || o.ajuda >= 0.25 || o.grupo)) { Tarefas.evento('mata'); if (m.d.boss || m.d.mini || m.d.alfa || m.d.field || m.towerGuard) Tarefas.evento('chefe'); }   // 📅 tarefas
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
     const dif = P.lv - m.d.lv, pen = o.grupo ? (dif > 8 ? 0.3 : dif > 5 ? 0.6 : 1) : 1;   // no grupo vale o mesmo desconto de nível de quem matou
@@ -1894,6 +1894,7 @@ function useSkill(i) {
   const tgt = targeted ? nearestMob(range) : null;
   if (targeted && !tgt) { log('Nenhum alvo ao alcance.', 'bad'); return; }
   P.sp -= s.sp; P.cds[s.id] = s.cd; P.sit = false;
+  if ((s.lv >= 12 || s.tier) && s.type !== 'passiva' && typeof VFX !== 'undefined' && VFX.supremo) VFX.supremo(s);   // ✨ as habilidades fortes ficaram mais bonitas
   if (s.hpCost) { const c2 = Math.round(stats.maxHp() * s.hpCost); P.hp -= c2; floater(P.x, P.y + 2, P.z, c2, 'hurt'); }
   if (tgt) P.face = Math.atan2(tgt.x - P.x, tgt.z - P.z);
   const k = c.rhythm ? applyRhythm(rhythm()) : 1;
@@ -2423,7 +2424,7 @@ function animateLyra(dt) {
 
 function animateSprite(dt) {
   lyra.position.set(P.x, P.y, P.z); lyra.rotation.y = P.face;
-  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, dourado: typeof Cos !== 'undefined' && Cos.nivelIrmandade ? Cos.nivelIrmandade() : 0, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
+  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, dourado: typeof Cos !== 'undefined' && Cos.nivelIrmandade ? Cos.nivelIrmandade() : 0, traje: typeof Trajes !== 'undefined' ? Trajes.cor() : 0, trajeK: typeof Trajes !== 'undefined' ? Trajes.forca() : 0, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
   lyra.visible = true;
 }
 function animateModel(dt) {

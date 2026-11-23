@@ -352,6 +352,15 @@ const VFX = (() => {
   }
   function summon(s) { rune(P.x + Math.sin(P.face) * 1.5, P.z + Math.cos(P.face) * 1.5, 1.6, 0x7a30c0, 1.2); puff(me(0.5), 0x2a0a3a, 12, { map: T.smoke, size: 1.4, grow: 1.4, speed: 2, op: 0.55 }); }
 
+  // ✨ habilidade "suprema" (as de nível 12 e as da 2ª e 3ª classe): runa grande, coluna de luz e ondas na cor da classe
+  function supremo(s) {
+    const c = s.color || 0xffd860, x = P.x, z = P.z;
+    rune(x, z, (s.r || 4) + 1.5, c, 1.4); rune(x, z, (s.r || 4) * 0.6, 0xffffff, 1.0);
+    pillar(x, z, 1.4, 9, c, 0.9, true, 0.8);
+    for (let k = 0; k < 3; k++) setTimeout(() => wave(P.x, P.z, (s.r || 4) + 1 + k * 1.6, c, 0.6), k * 120);
+    flash(new THREE.Vector3(x, P.y + 1.2, z), c, 4, 0.35); puff(new THREE.Vector3(x, P.y + 1, z), c, 22, { up: 4 });
+    if (typeof TREMOR !== 'undefined') TREMOR = Math.max(TREMOR, 0.35);
+  }
   function update(dt) {
     for (let i = live.length - 1; i >= 0; i--) {
       const f = live[i]; f.t += dt; const k = Math.min(1, f.t / f.life);
@@ -375,5 +384,5 @@ const VFX = (() => {
     try { renderer.compile(scene, camera); } catch (e) { }
     scene.remove(g);
   }
-  return { particle, T, spirit, lance, warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
+  return { supremo, pillar, rune, particle, T, spirit, lance, warm, basic, projectile, strike, nova, blast, shoot, drain, dash, buff, heal, summon, arc, flash, wave, update, elem };
 })();

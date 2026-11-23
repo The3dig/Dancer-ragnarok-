@@ -66,6 +66,7 @@ const Tarefas = (() => {
     opts.push({ label: `${T.bonus ? '✅' : todas ? '🎁' : '🔒'} Bônus por fazer as 3 do dia${todas && !T.bonus ? ' · PEGAR PRÊMIO' : ''}`, fn: () => { if (todas && !T.bonus) { T.bonus = true; dar(premioBonus()); marcar(); } painel(); return true; } });
     const S = SEMANA[T.sem.i], okS = T.sem.p >= T.sem.n;
     opts.push({ label: `${T.sem.pegou ? '✅' : okS ? '🎁' : '🗓️'} Semana: ${S.txt(T.sem.n)} — ${Math.min(T.sem.p, T.sem.n).toLocaleString('pt-BR')}/${T.sem.n.toLocaleString('pt-BR')}${okS && !T.sem.pegou ? ' · PEGAR PRÊMIO' : ''}`, fn: () => { if (okS && !T.sem.pegou) { T.sem.pegou = true; dar(premioSem()); marcar(); } painel(); return true; } });
+    opts.push({ label: '👘 Trajes de classe (missões de visual)', fn: () => { if (typeof Trajes !== 'undefined') Trajes.painel(); return true; } });
     opts.push({ label: 'Fechar' });
     dialog('📅 Tarefas', `3 tarefas por dia (mudam à meia-noite) e 1 por semana (muda na segunda-feira). Fazendo as 3 do dia, tem <b>bônus</b>.<br><small>Dia: XP, coroas e poções · Bônus: fragmentos · Semana: 🔺 🌑 🧩 🔰 e muitas coroas.</small>`, opts);
   }

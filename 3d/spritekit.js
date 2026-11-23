@@ -124,12 +124,13 @@ const SpriteKit = (() => {
     const op = st.fade ?? 1;
     a.mat.transparent = op < 1; a.mat.opacity = op;
     // silhueta dourada por cima (funciona até com roupa preta): mesma imagem, pintada de ouro e somada à luz
-    if (st.dourado && !st.dead) {
+    const brilho = st.dourado ? 0xffb428 : st.traje;                 // dourado da Irmandade ou a cor do traje de classe
+    if (brilho && !st.dead) {
       if (!a.ouro) { const m = new THREE.SpriteMaterial({ color: 0xffb428, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
         m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = diffuse;'); };
         a.ouro = new THREE.Sprite(m); a.ouro.renderOrder = 2; a.root.add(a.ouro); }
-      a.ouro.visible = true; a.ouro.material.map = a.mat.map; a.ouro.center.copy(a.spr.center); a.ouro.scale.copy(a.spr.scale); a.ouro.position.copy(a.spr.position); a.ouro.material.rotation = a.mat.rotation;
-      a.ouro.material.opacity = (st.dourado > 1 ? 0.36 : 0.15) * (0.75 + Math.sin(a.t * 3) * 0.25) * op;
+      a.ouro.visible = true; if (a.ouroCor !== brilho) { a.ouroCor = brilho; a.ouro.material.color.setHex(brilho); } a.ouro.material.map = a.mat.map; a.ouro.center.copy(a.spr.center); a.ouro.scale.copy(a.spr.scale); a.ouro.position.copy(a.spr.position); a.ouro.material.rotation = a.mat.rotation;
+      a.ouro.material.opacity = (st.dourado > 1 ? 0.36 : st.dourado ? 0.15 : st.trajeK || 0.22) * (0.75 + Math.sin(a.t * 3) * 0.25) * op;
     } else if (a.ouro) a.ouro.visible = false;
   }
   const lerpA = (c, t, k) => c + (t - c) * Math.min(1, k);
