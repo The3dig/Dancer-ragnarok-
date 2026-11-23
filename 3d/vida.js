@@ -949,14 +949,27 @@ const Vida = (() => {
     if (I.slot === 'anel') { const a = P.equip.anel1, b = P.equip.anel2; if (!a || !b) return null; return score(a) <= score(b) ? a : b; }
     return P.equip[I.slot] || null;
   }
-  const better = id => ITEMS[id] && ITEMS[id].kind === 'equip' && score(id) > score(rival(id)) + 0.01;
+  function ganho(id) { const cur = rival(id), sd = setDelta(id, cur), sv = o => { let v = 0; for (const k in o) v += o[k] * (W[k] || 0); return v; }; return score(id) + sv(sd.depois) - score(cur) - sv(sd.antes); }
+  const better = id => ITEMS[id] && ITEMS[id].kind === 'equip' && ganho(id) > 0.01;   // já conta o bônus de conjunto
+  // bônus de conjunto antes e depois da troca (pedido do Rone: tirar uma peça da Irmandade Eterna perde o bônus de 8 peças,
+  // e a comparação de peça com peça não mostrava isso)
+  function setTot(sc) { const o = {}; for (const st in sc) { const B = setBonus(st, sc[st]); if (B) for (const k in B) o[k] = (o[k] || 0) + B[k]; } return o; }
+  function setDelta(id, cur) {
+    const antes = setCount(), depois = { ...antes }, In = it(id), Ic = cur ? it(cur) : null;
+    if (Ic && Ic.set) depois[Ic.set] = (depois[Ic.set] || 0) - 1;
+    if (In.set) depois[In.set] = (depois[In.set] || 0) + 1;
+    return { antes: setTot(antes), depois: setTot(depois) };
+  }
   function compareHtml(id) {
-    const cur = rival(id), a = effMods(id), b = cur ? effMods(cur) : {}, keys = [...new Set([...Object.keys(a), ...Object.keys(b)])];
+    const cur = rival(id), a0 = effMods(id), b0 = cur ? effMods(cur) : {}, sd = setDelta(id, cur);
+    const a = { ...a0 }, b = { ...b0 }; for (const k in sd.depois) a[k] = (a[k] || 0) + sd.depois[k]; for (const k in sd.antes) b[k] = (b[k] || 0) + sd.antes[k];
+    const comSet = Object.keys(sd.antes).length || Object.keys(sd.depois).length;
+    const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])];
     const fmt = (k, v) => ['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : Math.round(v);
     const rows = keys.map(k => { const d = (a[k] || 0) - (b[k] || 0), dv = ['crit', 'spd'].includes(k) ? Math.round(d * 100) : Math.round(d);
       return `<tr><td>${MODN[k]}</td><td>${b[k] ? fmt(k, b[k]) : '—'}</td><td>${a[k] ? fmt(k, a[k]) : '—'}</td><td class="${dv > 0 ? 'up' : dv < 0 ? 'down' : ''}">${dv > 0 ? '▲ +' + dv : dv < 0 ? '▼ ' + dv : '='}${dv && ['crit', 'spd'].includes(k) ? '%' : ''}</td></tr>`; }).join('');
-    const sa = score(id), sb = score(cur), verdict = !cur ? '<b class="up">Espaço vazio: equipe!</b>' : sa > sb + 0.01 ? '<b class="up">▲ Melhor que a sua</b>' : sa < sb - 0.01 ? '<b class="down">▼ Pior que a sua</b>' : '<b>= Igual à sua</b>';
-    return `<div class="cmp">${verdict}<table><tr><th></th><th>${cur ? it(cur).ic + ' Em uso' : 'Em uso'}</th><th>${it(id).ic} Esta</th><th></th></tr>${rows}</table>${cur ? `<small>Comparando com: ${nameOf(cur)}</small>` : ''}</div>`;
+    const sc2 = o => { let v = 0; for (const k in o) v += o[k] * (W[k] || 0); return v; }, sa = sc2(a), sb = sc2(b), verdict = !cur ? '<b class="up">Espaço vazio: equipe!</b>' : sa > sb + 0.01 ? '<b class="up">▲ Melhor que a sua</b>' : sa < sb - 0.01 ? '<b class="down">▼ Pior que a sua</b>' : '<b>= Igual à sua</b>';
+    return `<div class="cmp">${verdict}<table><tr><th></th><th>${cur ? it(cur).ic + ' Em uso' : 'Em uso'}</th><th>${it(id).ic} Esta</th><th></th></tr>${rows}</table>${cur ? `<small>Comparando com: ${nameOf(cur)}</small>` : ''}${comSet ? '<br><small>🔗 Já conta o <b>bônus de conjunto</b> que você ganha ou perde com a troca.</small>' : ''}</div>`;
   }
   function renderInv() {
     P.equip = P.equip || {};
