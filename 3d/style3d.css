@@ -747,3 +747,16 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #bestwin .lr-s { color: var(--gold); letter-spacing: 1px; }
 #bestwin .lr-bar { height: 6px; background: #2a2036; border-radius: 3px; margin: 5px 0; overflow: hidden; }
 #bestwin .lr-bar i { display: block; height: 100%; background: linear-gradient(90deg, #d8a840, #ffe080); }
+/* 🤖 caça automática (auto.js) */
+#autowin { position: absolute; left: 50%; top: calc(52px + env(safe-area-inset-top)); transform: translateX(-50%); width: min(560px, 94vw); max-height: calc(100% - 60px); overflow-y: auto; z-index: 34; }
+#autowin .wt { display: flex; align-items: center; position: sticky; top: 0; }
+#autowin .wt .x { margin-left: auto; cursor: pointer; font-size: 20px; padding: 0 8px; }
+#autowin .au-b { padding: 6px 12px 12px; }
+#autowin h4 { margin: 10px 0 6px; color: var(--gold); font-size: 13px; display: flex; gap: 8px; align-items: center; }
+#autowin .au-l { display: flex; flex-wrap: wrap; gap: 6px; }
+#autowin button { background: var(--glass2); color: var(--txt); border: 1px solid var(--line); border-radius: 9px; padding: 5px 9px; font: 700 12px inherit; cursor: pointer; }
+#autowin button.on { background: rgba(93,224,122,.25); border-color: #5de07a; }
+#autowin .au-p { margin: 6px 0; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#autowin button[data-a="ir"] { display: block; width: 100%; margin-top: 10px; padding: 10px; font-size: 15px; background: rgba(93,224,122,.3); border-color: #5de07a; }
+#autowin .au-st { padding: 8px; border: 1px solid #5de07a; border-radius: 10px; margin-top: 6px; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+#menu #btn-auto.on { box-shadow: 0 0 0 2px #5de07a, 0 0 10px rgba(93,224,122,.8); }

@@ -29,7 +29,7 @@ const Desafios = (() => {
     anel_sacer: ['Anel Sagrado de Will Sacer', '💍', 'anel', { sp: 320, hp: 460, def: 26, pow: 18 }, 4, 'amigos'],
     botas_urakin: ['Botas Estelares de Urakin Star', '👢', 'botas', { spd: 0.12, def: 34, hp: 420, crit: 0.04 }, 4, 'amigos'],
     luvas_ludivicki: ['Luvas Eternas de Ludivicki', '🧤', 'luvas', { pow: 40, crit: 0.07, def: 22, hp: 300 }, 4, 'amigos'],
-    anel_imperium: ['Anel Imperial de Imperium', '👑', 'anel', { pow: 34, def: 20, hp: 380, crit: 0.06 }, 4, 'amigos'],
+    anel_imperium: ['Anel Imperial do Imperio', '👑', 'anel', { pow: 34, def: 20, hp: 380, crit: 0.06 }, 4, 'amigos'],
     elmo_rivas: ['Elmo das Mil Areias de Rivas', '🪖', 'capacete', { def: 40, hp: 550, pow: 30, crit: 0.06 }, 4, 'amigos'],
   };
   for (const [id, [name, ic, slot, mods, rar, set]] of Object.entries(EQUIP))
@@ -74,9 +74,9 @@ const Desafios = (() => {
     ['aura', 'ludivicki', 'Fúria de Ludivicki', '🧤', { c: [0x40e080, 0xffe060] }],
     ['rastro', 'trevos', 'Rastro de Trevos', '🍀', { c: [0x40c060, 0xb0ff90], spark: true }],
     ['titulo', 'amigo_ludi', '« Amigo do Ludivicki »', '🧤', {}],
-    ['aura', 'imperial', 'Majestade de Imperium', '👑', { c: [0xffcf40, 0x8a2aff] }],
+    ['aura', 'imperial', 'Majestade do Imperio', '👑', { c: [0xffcf40, 0x8a2aff] }],
     ['rastro', 'coroas', 'Rastro Imperial', '👑', { c: [0xffd860, 0xa040ff], spark: true }],
-    ['titulo', 'amigo_imperium', '« Amigo do Imperium »', '👑', {}],
+    ['titulo', 'amigo_imperium', '« Amigo do Imperio »', '👑', {}],
     ['aura', 'lyra', 'Cristal de Lyra', '💠', { c: [0xffc860, 0x9a5aff] }],
     ['titulo', 'fundo', '« Quem Viu o Fundo »', '🌌', {}],
   ];
@@ -175,7 +175,7 @@ const Desafios = (() => {
       { id: 'ld6', req: 'ld5', t: '6. Carrasco e caranguejo', pede: { m: { carrasco: 5, reiCaranguejo: 3 } }, da: { cr: 80000, v: [['rastro', 'trevos']] } },
       { id: 'ld7', req: 'ld6', t: '7. As Luvas Eternas', pede: { m: { guardiaoBranco: 10, primeiroGuardiao: 3 }, p: { kvx: 1000 } }, da: { e: ['luvas_ludivicki'], v: [['aura', 'ludivicki'], ['titulo', 'amigo_ludi']], cr: 120000 } },
     ] },
-    imperium: { nome: 'Imperium', fala: 'Um império não se ergue sozinho. A Cidadela já foi o coração do Reino, e a Torre ainda é a coroa dela. Prove que merece ficar do meu lado: sete etapas, e o meu anel imperial é seu.', lista: [
+    imperium: { nome: 'Imperio', fala: 'Um império não se ergue sozinho. A Cidadela já foi o coração do Reino, e a Torre ainda é a coroa dela. Prove que merece ficar do meu lado: sete etapas, e o meu anel imperial é seu.', lista: [
       { id: 'im1', t: '1. Limpar a Cidadela', pede: { m: { sentinela: 200, esfera: 200 } }, da: { cr: 15000, it: { blue: 15 } } },
       { id: 'im2', req: 'im1', t: '2. Os primeiros degraus', pede: { p: { torre: 15 } }, da: { cr: 25000, it: { red: 40 } } },
       { id: 'im3', req: 'im2', t: '3. Guardiões e chefes', pede: { g: { guardiao: 20, campo: 10 } }, da: { cr: 40000, it: { fragmento_dourado: 1 } } },
@@ -289,7 +289,7 @@ const Desafios = (() => {
   function abrirFoco() { const F = P.dsfFoco; if (!F) return; const d = TODOS.find(q => q.id === F.id); if (!d) return; const id = Object.keys(MESTRES).find(k => MESTRES[k].lista.some(q => q.id === d.id)); const a = AMIGOS.find(x => x[0] === id); Audio8.sfx('click'); ver({ dsf: id, remoto: true, npcNome: a ? a[1] : MESTRES[id].nome }, d); }
   // ---------------- 🤝 Amigos: as grandes aventuras dos amigos (cada um dá uma peça da Irmandade Eterna)
   // amigo novo: é só pôr aqui [saga, nome do NPC, ícone, onde fica]
-  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso'], ['ludivicki', 'Ludivicki', '🧤', 'Vila de Solmira'], ['imperium', 'Imperium', '👑', 'Cidadela do Cisma']];
+  const AMIGOS = [['nosferatur', 'Nosferatur', '🦇', 'Praia de Cômodo'], ['rivas', 'Rivas', '🐪', 'Oásis de Kharum'], ['skye', 'Skye', '🗡️', 'Acampamento de Valdora'], ['temmer', 'Michel Temmer', '⚔️', 'Clareira de Lira'], ['sacer', 'Will Sacer', '✝️', 'Vigília do Vale'], ['urakin', 'Urakin Star', '⭐', 'Refúgio Suspenso'], ['ludivicki', 'Ludivicki', '🧤', 'Vila de Solmira'], ['imperium', 'Imperio', '👑', 'Cidadela do Cisma']];
   function sagaInfo(id) {
     const M = MESTRES[id], s = S(), L = M.lista, feitos = L.filter(d => s.feito[d.id]).length, prox = L.find(d => !s.feito[d.id]);
     const ok = prox && !(prox.req && !s.feito[prox.req]) && pronto(prox);
