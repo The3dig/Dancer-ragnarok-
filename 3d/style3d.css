@@ -884,3 +884,27 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 .lm-c i { position: absolute; top: 1px; right: 3px; font-style: normal; font-size: 11px; color: #8affb0; }
 .lm-c.tem { opacity: 1; filter: none; background: rgba(242,200,106,.12); }
 .lm-c b { font-size: 20px; line-height: 1.1; } .lm-c small { font-size: 9px; text-align: center; line-height: 1.1; }
+
+/* 📜 habilidades compactas (pedido do Rone): caixas pequenas para ver o caminho todo; toque mostra o detalhe em cima */
+#skillwin .snode { padding: 4px 6px; gap: 5px; border-radius: 9px; cursor: pointer; }
+#skillwin .snode .si2 { font-size: 18px; }
+#skillwin .snode .sn { font-size: 11px; line-height: 1.15; }
+#skillwin .snode .sl2 { font-size: 10px; }
+#skillwin .snode .sd, #skillwin .snode .req, #skillwin .snode .spin { display: none; }
+#skillwin .snode button { width: 28px; height: 26px; font-size: 15px; border-radius: 8px; }
+#skillwin .snode.sel { outline: 2px solid #f2c86a; box-shadow: 0 0 10px rgba(242,200,106,.45); }
+#skillwin .snode.novo { border-color: #8affb0; background: rgba(138,255,176,.1); }
+#skillwin .snode.root, #skillwin .snode.ult { width: min(200px, 100%); }
+#skillwin .stree { gap: 6px 8px; padding: 6px 10px; }
+#skillwin .sarrow { margin: -3px 0; font-size: 11px; }
+#skillwin .stier { margin: 6px 10px 0; padding: 3px 8px; font-size: 11px; }
+.sk-mais { color: #8affb0; }
+.sk-det { position: sticky; top: 0; z-index: 2; margin: 6px 10px; padding: 7px 9px; display: flex; gap: 8px; align-items: center; border-radius: 10px; background: rgba(26,18,40,.97); border: 1px solid rgba(242,200,106,.5); font-size: 12px; color: #ece6f6; }
+.sk-det > div { flex: 1; min-width: 0; } .sk-det b { color: #f2c86a; } .sk-det .si2 { font-size: 26px; }
+.sk-det .sd { font-size: 11px; color: #c9c2dd; line-height: 1.3; margin-top: 2px; } .sk-det .req { font-size: 11px; color: #ff9a9a; }
+.sk-det button { flex: none; width: 34px; height: 32px; border-radius: 9px; font-size: 17px; font-weight: 800; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; border: 1px solid #ffe3a0; }
+.sk-det button:disabled { background: rgba(255,255,255,.08); color: #777; border-color: rgba(255,255,255,.1); }
+.sk-conf { margin: 6px 10px 0; padding: 6px 8px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; border-radius: 10px; background: rgba(138,255,176,.1); border: 1px solid rgba(138,255,176,.5); font-size: 12px; color: #ece6f6; }
+.sk-conf span { flex: 1; min-width: 140px; }
+.sk-conf button { padding: 6px 10px; border-radius: 9px; font-weight: 800; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; }
+.sk-conf button[data-skvolta] { background: rgba(255,255,255,.08); color: #ece6f6; border-color: rgba(255,255,255,.2); }

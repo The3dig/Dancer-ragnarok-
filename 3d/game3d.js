@@ -3122,13 +3122,22 @@ function scaleSkill(s, L) {
 }
 function reqMet(i) { const s = SKILLS[i]; return tierOk(s) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv) && (!s.pre || (P.skillLv[s.pre[0]] || 0) >= s.pre[1]); }
 function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
+// ✅ pontos de habilidade só valem depois de CONFIRMAR (pedido do Rone: ele colocou errado e teve que resetar).
+// Enquanto não confirma, dá para desfazer tudo de uma vez.
+let skRasc = null, skSel = 0;
 function learn(i) {
   if (!canLearn(i)) return;
-  const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--;
-  Audio8.sfx(P.skillLv[s.id] === 1 ? 'buff' : 'click');
-  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  if (!skRasc) skRasc = { lv: { ...P.skillLv }, pts: P.skillPts };
+  const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--; skSel = i;
+  Audio8.sfx('click'); renderSkills();
+}
+function skConfirmar() {
+  if (!skRasc) return;
+  for (const s of SKILLS) if (!skRasc.lv[s.id] && P.skillLv[s.id]) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  const n = skRasc.pts - P.skillPts; skRasc = null; Audio8.sfx('buff'); log(`✅ ${n} ponto${n > 1 ? 's' : ''} de habilidade confirmado${n > 1 ? 's' : ''}.`, 'sys');
   buildHotbar(); renderSkills(); save();
 }
+function skDesfazer() { if (!skRasc) return; P.skillLv = skRasc.lv; P.skillPts = skRasc.pts; skRasc = null; Audio8.sfx('miss'); renderSkills(); }
 const PAS_N = { atk: ['ataque', '%'], matk: ['magia', '%'], aspd: ['vel. de golpe', '%'], speed: ['velocidade', '%'], hp: ['HP', '%'], sp: ['SP', '%'], def: ['defesa', ''], crit: ['crítico', '%'], flee: ['esquiva', '%'], regen: ['HP por segundo', '%'], roubo: ['roubo de vida', '%'], cura: ['cura', '%'] };
 function describe(s, L) {
   if (s.type === 'passiva') return Object.entries(s.pas).map(([k, v]) => { const [n, u] = PAS_N[k] || [k, '']; const t = v * Math.max(1, L); return `+${u ? (Math.round(t * 1000) / 10).toString().replace('.', ',') + '%' : Math.round(t * 10) / 10} de ${n}`; }).join(' · ');
@@ -3151,17 +3160,25 @@ function renderSkills() {
     if (s.pre && (P.skillLv[s.pre[0]] || 0) < s.pre[1]) { const ps = SKILLS.find(o => o.id === s.pre[0]); if (ps) reqs.push(`${ps.name} Nv ${s.pre[1]}`); }
     if (!tierOk(s)) reqs.push(`${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
     for (const [j, lv] of (SK_REQ[i] || [])) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
-    return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''}">
+    const novo = skRasc && L > (skRasc.lv[s.id] || 0);
+    return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''} ${i === skSel ? 'sel' : ''} ${novo ? 'novo' : ''}" data-sel="${i}">
       <span class="si2">${s.icon}</span>
-      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
+      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nv ${L}/${SK_MAX}${novo ? ` <b class="sk-mais">+${L - (skRasc.lv[s.id] || 0)}</b>` : ''}</div>
       <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
       <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
   // as habilidades novas (passivas e ativas) de cada classe, embaixo das antigas
   const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
+  // detalhe da habilidade tocada (as caixas ficam pequenas para caber o caminho todo)
+  const det = (() => { const i = Math.min(skSel, SKILLS.length - 1), s = SKILLS[i]; if (!s) return ''; const L = P.skillLv[s.id] || 0, d = document.createElement('div'); d.innerHTML = node(i, ''); const rq = d.querySelector('.req');
+    return `<div class="sk-det"><span class="si2">${s.icon}</span><div><b>${s.name}</b>${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''} <small>· Nível ${L}/${SK_MAX}</small><div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>${rq ? rq.outerHTML : ''}</div>
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`; })();
+  const usados = skRasc ? skRasc.pts - P.skillPts : 0;
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
-    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · não dá para pegar tudo: escolha o seu caminho)</small> ${botaoReset('hab')}</div>
+    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · toque numa habilidade para ver o que ela faz)</small> ${skRasc ? '' : botaoReset('hab')}</div>
+    ${skRasc ? `<div class="sk-conf"><span>Você colocou <b>${usados}</b> ponto${usados > 1 ? 's' : ''}. Confira o caminho:</span><button data-skok>✅ Confirmar</button><button data-skvolta>↩️ Desfazer</button></div>` : ''}
+    ${det}
     <div class="stier">1ª classe — <b>${TIERS[P.cls] ? TIERS[P.cls][0] : ''}</b></div>
     <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>${extras(0)}
     ${SKILLS.length > 4 ? `<div class="stier ${(P.tier || 0) >= 1 ? '' : 'off'}">2ª classe — <b>${TIERS[P.cls][1]}</b> ${(P.tier || 0) >= 1 ? '✅' : '<small>🔒 provação a partir do nível 20 (fale com o Vigia Morvan, na Cidadela)</small>'}</div>
@@ -3173,10 +3190,17 @@ function renderSkills() {
 $('skillwin').addEventListener('click', e => {
   if (e.target.closest('[data-close]')) return toggleSkills();
   if (e.target.closest('[data-reset]')) return pedirReset('hab');
-  const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
+  if (e.target.closest('[data-skok]')) return skConfirmar();
+  if (e.target.closest('[data-skvolta]')) return skDesfazer();
+  const b = e.target.closest('[data-learn]'); if (b) { learn(+b.dataset.learn); return; }
+  const sn = e.target.closest('[data-sel]'); if (sn && !e.target.closest('button')) { skSel = +sn.dataset.sel; Audio8.sfx('click'); renderSkills(); return; }
   const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id, () => renderSkills()); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
 });
-function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills(); }
+function toggleSkills() {
+  // fechando com pontos sem confirmar: pergunta (não perde nada sem querer)
+  if (skRasc && !$('skillwin').classList.contains('hidden')) { const n = skRasc.pts - P.skillPts; dialog('📜 Pontos de habilidade', `Você colocou <b>${n}</b> ponto${n > 1 ? 's' : ''} e ainda não confirmou.`, [{ label: '✅ Confirmar', fn: () => { skConfirmar(); $('skillwin').classList.add('hidden'); } }, { label: '↩️ Desfazer', fn: () => { skDesfazer(); $('skillwin').classList.add('hidden'); } }, { label: 'Continuar escolhendo' }]); return; }
+  $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills();
+}
 
 // ---------------------------------------------------------------- diálogos
 function dialog(title, text, opts) {
