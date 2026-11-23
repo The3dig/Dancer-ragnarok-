@@ -155,10 +155,10 @@ function watchFps(dt) {
 }
 // ---------------------------------------------------------------- andar sozinho até a missão (toque na missão do quadro)
 const AUTO = { on: false, t: 0, side: 1, chk: 0, cx: 0, cz: 0, hp: 0, tg: null, tgT: 0 };
-function autoStart() {
-  if (!questTarget()) { log('Essa missão não tem um lugar para ir agora.', 'sys'); return; }
+function autoStart(quieto) {
+  if (!questTarget()) { if (!quieto) log('Essa missão não tem um lugar para ir agora.', 'sys'); return; }
   Object.assign(AUTO, { on: true, chk: 0, cx: P.x, cz: P.z, hp: P.hp, tgT: 0, fuga: null, stuck: 0 }); document.body.classList.add('walking');
-  log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
+  if (!quieto) log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
 }
 function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.classList.remove('walking'); if (msg) log(msg, 'sys'); $('quest').dataset.h = ''; }
 // próximo ponto do caminho: se o rio estiver no meio, passa pela ponte mais perto
@@ -2815,9 +2815,22 @@ const BigMap = (() => {
   }
   return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, get open() { return open; } };
 })();
+function entradaDe(t) {
+  const z = zoneOf(t.x, t.z), quem = t.name ? ` (${t.name} está lá dentro)` : '';
+  if (z === 'abismo' || z === 'abfundo') return { x: LAIR.x, z: LAIR.z + 6, name: 'a boca do Abismo, na Cratera' + quem };
+  if (typeof MASMORRAS !== 'undefined' && MASMORRAS[z] && MASMORRAS[z].saida) return { x: MASMORRAS[z].saida.x, z: MASMORRAS[z].saida.z, name: 'a entrada da masmorra' + quem };
+  if (z === 'casa' || /^casa/.test(z)) return { x: FARM.x - 11, z: FARM.z + 1, name: 'a casa' + quem };
+  if (z === 'castelo') return null;
+  return { x: Tower.door.x, z: Tower.door.z + 3, name: 'a porta da Torre do Cisma' + quem };
+}
 function questTarget() {
   if (typeof Quests !== 'undefined') {
-    if (inTower(P.z)) return null; const t = Quests.target(); if (!t) return null;
+    if (inTower(P.z)) return null; let t = Quests.target(); if (!t) return null;
+    // o alvo está dentro da Torre, do Abismo, de uma masmorra ou de uma casa (lugares "fora do mapa"): vai até a ENTRADA
+    // (antes andava em linha reta até a posição lá dentro e ficava preso no mato seguindo o Imperyon na Torre)
+    if (inTower(t.z)) { const e = entradaDe(t); if (!e) return null;
+      if (t === P.qGo && Math.hypot(P.x - e.x, P.z - e.z) < 4) { log(`🧭 Você chegou: <b>${e.name}</b>. Entre para encontrar.`, 'sys'); P.qGo = null; return null; }
+      t = e; }
     const aqui = mapaDe(P.x, P.z), la = mapaDe(t.x, t.z); if (aqui === la || la === 'torre') return t;
     // o caminho entre os mapas: Reino ↔ Valdora ↔ Floresta Morta
     if (aqui === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'Passagem para o Reino' };

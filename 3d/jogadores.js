@@ -48,8 +48,11 @@ const Jogadores = (() => {
       const r = achar(seguindo), mexeu = (typeof joy !== 'undefined' && (joy.x || joy.y)) || keys.w || keys.a || keys.s || keys.d;
       if (!r || mexeu || P.dead) { parar(r ? '🚶 Você parou de seguir.' : '🚶 A pessoa saiu: você parou de seguir.'); return; }
       const d = Math.hypot(r.x - P.x, r.z - P.z);
-      if (d > 60 || inTower(r.z) !== inTower(P.z)) { parar('🚶 Ficou longe demais: você parou de seguir.'); return; }
-      if (d > 2.6) { P.qGo = { x: r.x, z: r.z, name: r.n }; if (typeof autoStart === 'function' && !(typeof AUTO !== 'undefined' && AUTO.on)) autoStart(); }
+      // entrou na Torre, numa masmorra ou em casa: leva até a entrada e para de seguir (lá dentro é outro lugar)
+      if (inTower(r.z) !== inTower(P.z)) { const n = r.n; parar(inTower(r.z) ? `🚶 <b>${esc(n)}</b> entrou num lugar fechado: indo até a entrada.` : '🚶 Você parou de seguir.');
+        if (inTower(r.z) && !inTower(P.z)) { P.qGo = { x: r.x, z: r.z, name: n }; if (typeof autoStart === 'function') autoStart(true); } return; }
+      // longe ou em outro mapa: o andar sozinho passa pelas passagens entre os mapas até chegar perto
+      if (d > 2.6) { P.qGo = { x: r.x, z: r.z, name: r.n, seguir: true }; if (typeof autoStart === 'function' && !(typeof AUTO !== 'undefined' && AUTO.on)) autoStart(true); }
     }
   }, 300);
   // tocar no nome do jogador abre o menu
