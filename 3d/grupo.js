@@ -130,6 +130,7 @@ const Grupo = (() => {
         const a = t.dataset.a, v = t.dataset.v, r = Net.peers().find(x => x.peer === v);
         if (a === 'x') { fechar(); return; }
         if (a === 'chamar' && r) convidar(r);
+        if (a === 'ir' && r && typeof Jogadores !== 'undefined' && Jogadores.fechado(r)) { Jogadores.naoDa(r, Jogadores.fechado(r)); return; }
         if (a === 'ir' && r) { P.qGo = { x: r.x, z: r.z, name: r.n }; log(`🧭 Indo até <b>${esc(r.n)}</b>.`, 'sys'); if (typeof autoStart === 'function') autoStart(); fechar(); return; }
         if (a === 'sair') sair();
         if (a === 'regras') regras = !regras;

@@ -16,15 +16,23 @@ const Jogadores = (() => {
     const meuGrupo = P.grupo && s.gp === P.grupo, minhaG = typeof Guilda !== 'undefined' && Guilda.minha();
     const opts = [
       { label: '👤 Ver perfil', fn: () => { perfil(peer); return true; } },
-      { label: seguindo === peer ? '⏹️ Parar de seguir' : '🚶 Seguir', fn: () => { if (seguindo === peer) parar('🚶 Você parou de seguir.'); else { seguindo = peer; log(`🚶 Seguindo <b>${esc(r.n)}</b>. Mexa o personagem para parar.`, 'sys'); } } },
+      { label: seguindo === peer ? '⏹️ Parar de seguir' : '🚶 Seguir', fn: () => { if (seguindo === peer) parar('🚶 Você parou de seguir.'); else if (fechado(r)) naoDa(r, fechado(r)); else { seguindo = peer; log(`🚶 Seguindo <b>${esc(r.n)}</b>. Mexa o personagem para parar.`, 'sys'); } } },
       { label: '🤝 Trocar itens', fn: () => { if (typeof Vida !== 'undefined' && Vida.trocarCom) Vida.trocarCom(peer); return true; } },
       { label: '😀 Mandar emoji', fn: () => { emojis(peer); return true; } },
       ...(!meuGrupo && typeof Grupo !== 'undefined' ? [{ label: '👥 Chamar para o grupo', fn: () => { Grupo.convidar(r); } }] : []),
       ...(minhaG && !s.gid && typeof Guilda !== 'undefined' && Guilda.podeConvidar() ? [{ label: '🛡️ Convidar para a guilda', fn: () => { Guilda.convidarNome(r.n); } }] : []),
-      { label: '🧭 Ir até', fn: () => { P.qGo = { x: r.x, z: r.z, name: r.n }; if (typeof autoStart === 'function') autoStart(); } },
+      { label: '🧭 Ir até', fn: () => { if (fechado(r)) { naoDa(r, fechado(r)); return; } P.qGo = { x: r.x, z: r.z, name: r.n }; if (typeof autoStart === 'function') autoStart(); } },
       { label: 'Fechar' }];
     dialog(`👤 ${esc(r.n)}`, `Nv <b>${s.lv || '?'}</b> · ${esc(classe(s))}${s.gt ? ` · <b>[${esc(s.gt)}]</b>` : ''}${s.title ? `<br><small>« ${esc(s.title)} »</small>` : ''}<br><small>${d} m daqui · ❤️ ${s.hp ?? '?'}%${meuGrupo ? ' · 👥 do seu grupo' : ''}</small>`, opts);
   }
+  // 🚫 lugares que não dá para seguir (Torre, Abismo, masmorras, casa, castelo, arena: ficam "fora do mapa")
+  function fechado(r) {
+    if (!inTower(r.z)) return null;
+    if (inTower(P.z) && Math.hypot(r.x - P.x, r.z - P.z) < 40 && zoneOf(r.x, r.z) === zoneOf(P.x, P.z)) return null;   // estão no mesmo lugar: dá para seguir
+    const z = zoneOf(r.x, r.z);
+    return z === 'abismo' || z === 'abfundo' ? 'no Abismo' : z === 'casa' ? 'dentro de uma casa' : z === 'castelo' ? 'no castelo da guilda' : z === 'torre' || z === 'topo' ? 'na Torre do Cisma' : 'numa masmorra';
+  }
+  function naoDa(r, lugar) { const t = `🚫 <b>${esc(r.n)}</b> está ${lugar}: esse mapa não dá para seguir.`; log(t, 'bad'); Audio8.sfx('miss'); if (typeof banner === 'function') banner('🚫 ESSE MAPA NÃO DÁ PARA SEGUIR'); }
   function perfil(peer) {
     const r = achar(peer); if (!r) return; const s = r.s || {};
     const linhas = [`⭐ Nível <b>${s.lv || '?'}</b>`, `⚔️ Classe: <b>${esc(classe(s))}</b>`, s.gt ? `🛡️ Guilda: <b>[${esc(s.gt)}]</b>` : '🛡️ Sem guilda', s.title ? `🏅 Título: <b>« ${esc(s.title)} »</b>` : '', P.grupo && s.gp === P.grupo ? '👥 Está no seu grupo' : '', s.mt ? '🐦 Montado na Valtrion!' : ''].filter(Boolean);
@@ -49,13 +57,12 @@ const Jogadores = (() => {
       if (!r || mexeu || P.dead) { parar(r ? '🚶 Você parou de seguir.' : '🚶 A pessoa saiu: você parou de seguir.'); return; }
       const d = Math.hypot(r.x - P.x, r.z - P.z);
       // entrou na Torre, numa masmorra ou em casa: leva até a entrada e para de seguir (lá dentro é outro lugar)
-      if (inTower(r.z) !== inTower(P.z)) { const n = r.n; parar(inTower(r.z) ? `🚶 <b>${esc(n)}</b> entrou num lugar fechado: indo até a entrada.` : '🚶 Você parou de seguir.');
-        if (inTower(r.z) && !inTower(P.z)) { P.qGo = { x: r.x, z: r.z, name: n }; if (typeof autoStart === 'function') autoStart(true); } return; }
+      const fe = fechado(r); if (fe || inTower(r.z) !== inTower(P.z)) { parar(''); if (fe) naoDa(r, fe); else log('🚶 Você parou de seguir.', 'sys'); return; }
       // longe ou em outro mapa: o andar sozinho passa pelas passagens entre os mapas até chegar perto
       if (d > 2.6) { P.qGo = { x: r.x, z: r.z, name: r.n, seguir: true }; if (typeof autoStart === 'function' && !(typeof AUTO !== 'undefined' && AUTO.on)) autoStart(true); }
     }
   }, 300);
   // tocar no nome do jogador abre o menu
   document.addEventListener('pointerdown', e => { const l = e.target.closest && e.target.closest('.plabel[data-peer]'); if (!l) return; e.preventDefault(); e.stopPropagation(); Audio8.sfx('click'); menu(l.dataset.peer); }, true);
-  return { menu, pres, get seguindo() { return seguindo; } };
+  return { menu, pres, fechado, naoDa, get seguindo() { return seguindo; } };
 })();
