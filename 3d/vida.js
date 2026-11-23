@@ -740,7 +740,31 @@ const Vida = (() => {
       { label: '🏆 Ranking da Mina da Forja', fn: () => { Ranking.mostrar('minas', () => smith(eu)); return true; } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
       { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },
+      { label: `⚗️ Oficina: trocar materiais de monstro · ${(P.oficina || 0).toLocaleString('pt-BR')} pontos`, fn: () => { oficina(() => smith(eu)); return true; } },
       { label: 'Até mais' }]);
+  }
+  // ---------------------------------------------------------------- ⚗️ Oficina do Doran (pedido do Rone: materiais não serviam para nada)
+  // Materiais de monstro viram PONTOS DE OFÍCIO (o dobro do que o Mercador paga) e os pontos viram coisas úteis.
+  // Não entram os materiais de forja, de evolução nem os de chefe (esses têm uso próprio).
+  const NAO_OFICINA = new Set(['po_forja', 'minerio', 'tempera', 'selo_forja', 'frag_cisma', 'nucleo_abismo', 'lagrima_soberano', 'presa_verme', 'quitina_colossal', 'frag_carta', 'fragmento_dourado', 'cristal_tres', 'raiz_fonte', 'coracao_floresta', 'runa_ordem', 'lamina_carrasco', 'essencia']);
+  const LOJA_OF = [['po_forja', 10, 400], ['minerio', 1, 400], ['tempera', 1, 400], ['frag_carta', 1, 600], ['frag_cisma', 1, 900], ['red_m', 5, 1500], ['blue_m', 5, 3000], ['nucleo_abismo', 1, 4000], ['selo_forja', 1, 8000]];
+  const matsOficina = () => Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && ITEMS[id].kind === 'mat' && !NAO_OFICINA.has(id) && (ITEMS[id].sell || 0) > 0 && Object.values(MOBDEF).some(d => (d.drops || []).some(([x]) => x === id)));
+  function entregar(guarda) {
+    let pts = 0, n = 0;
+    for (const id of matsOficina()) { const q = Math.max(0, P.inv[id] - guarda); if (!q) continue; P.inv[id] -= q; n += q; pts += q * ITEMS[id].sell * 2; }
+    if (!n) { log('⚗️ Não há materiais de monstro para entregar' + (guarda ? ' (além dos 10 de cada que ficam guardados).' : '.'), 'bad'); Audio8.sfx('miss'); return; }
+    P.oficina = (P.oficina || 0) + pts; Audio8.sfx('anvil'); log(`⚗️ Você entregou <b>${n.toLocaleString('pt-BR')} materiais</b> na Oficina e ganhou <b>${pts.toLocaleString('pt-BR')} pontos de ofício</b> (total: ${P.oficina.toLocaleString('pt-BR')}).`, 'gold'); try { save(); } catch (e) { }
+  }
+  function oficina(voltar) {
+    const lista = matsOficina(), valor = lista.reduce((a, id) => a + P.inv[id] * ITEMS[id].sell * 2, 0), pts = P.oficina || 0;
+    dialog('⚗️ Oficina do Doran', `Esses pedaços de bicho que você junta têm valor, sim. Eu derreto, curto e transformo. Cada material vale <b>o dobro</b> do que o Mercador paga, em <b>pontos de ofício</b>.<br><small>Na mochila: <b>${lista.reduce((a, id) => a + P.inv[id], 0).toLocaleString('pt-BR')}</b> materiais de monstro (valem ${valor.toLocaleString('pt-BR')} pontos) · Seus pontos: <b>${pts.toLocaleString('pt-BR')}</b><br>Materiais de forja, de evolução e de chefe não entram: eles têm uso próprio.</small>`, [
+      { label: '⚗️ Entregar todos os materiais de monstro', fn: () => { entregar(0); oficina(voltar); return true; } },
+      { label: '⚗️ Entregar o excesso (guarda 10 de cada, para as receitas)', fn: () => { entregar(10); oficina(voltar); return true; } },
+      ...LOJA_OF.map(([id, n, custo]) => ({ label: `${it(id).ic} ${n > 1 ? n + '× ' : ''}${it(id).name} — ${custo.toLocaleString('pt-BR')} pontos${pts < custo ? ' 🔒' : ''}`, fn: () => {
+        if ((P.oficina || 0) < custo) { log('⚗️ Pontos de ofício insuficientes. Entregue mais materiais de monstro.', 'bad'); Audio8.sfx('miss'); return true; }
+        P.oficina -= custo; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); if (typeof buildHotbar === 'function') buildHotbar();
+        log(`⚗️ A Oficina fez <b>${n}× ${it(id).ic} ${it(id).name}</b> (−${custo.toLocaleString('pt-BR')} pontos).`, 'item'); try { save(); } catch (e) { } oficina(voltar); return true; } })),
+      ...(voltar ? [{ label: '← Voltar', fn: () => { voltar(); return true; } }] : []), { label: 'Fechar' }]);
   }
   // forja e bigorna ao lado do Ferreiro
   {
