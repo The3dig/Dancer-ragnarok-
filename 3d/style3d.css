@@ -666,8 +666,12 @@ body.touch .dmg.item { font-size: 11px; }
 #invwin .invc { min-height: 0; }
 #invwin .igrid { flex: 1 1 auto; min-height: 92px; max-height: none; }
 /* setas para encolher o quadro de mensagens e o de missões */
-.enc-seta { position: fixed; z-index: 40; width: 22px; height: 22px; padding: 0; border-radius: 6px; border: 1px solid rgba(242,200,106,.55); background: rgba(20,14,30,.85); color: #f2c86a; font: 700 11px sans-serif; line-height: 20px; text-align: center; cursor: pointer; pointer-events: auto; }
-.enc-seta.fechado { background: rgba(60,40,20,.9); }
+/* setas de encolher os quadros: botãozinho redondo de vidro escuro com aro dourado e uma divisa (chevron) desenhada */
+.enc-seta { position: fixed; z-index: 40; width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 1.5px solid rgba(242,200,106,.75); background: radial-gradient(circle at 35% 30%, rgba(70,56,90,.92), rgba(16,12,26,.92)); box-shadow: 0 2px 6px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12); cursor: pointer; pointer-events: auto; transition: transform .15s, box-shadow .15s; }
+.enc-seta::before { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-top: 2px solid #f2c86a; border-right: 2px solid #f2c86a; border-radius: 1px; transform: translate(-65%, -50%) rotate(45deg); transition: transform .2s; }
+.enc-seta[data-dir="esq"]::before { transform: translate(-35%, -50%) rotate(-135deg); }
+.enc-seta:hover, .enc-seta:active { transform: scale(1.12); box-shadow: 0 2px 10px rgba(242,200,106,.45), inset 0 1px 0 rgba(255,255,255,.15); }
+.enc-seta.fechado { border-color: #f2c86a; background: radial-gradient(circle at 35% 30%, rgba(120,90,40,.95), rgba(40,28,12,.95)); box-shadow: 0 0 8px rgba(242,200,106,.55), 0 2px 6px rgba(0,0,0,.55); }
 body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 /* Mina da Forja: relógio da corrida */
 .masm-hud { position: fixed; top: calc(52px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 4px 12px; border-radius: 10px; background: rgba(28,18,12,.85); border: 1px solid rgba(255,176,96,.6); color: #ffe0c0; font: 700 13px 'Nunito', sans-serif; pointer-events: none; white-space: nowrap; }
@@ -760,3 +764,14 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #autowin button[data-a="ir"] { display: block; width: 100%; margin-top: 10px; padding: 10px; font-size: 15px; background: rgba(93,224,122,.3); border-color: #5de07a; }
 #autowin .au-st { padding: 8px; border: 1px solid #5de07a; border-radius: 10px; margin-top: 6px; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 #menu #btn-auto.on { box-shadow: 0 0 0 2px #5de07a, 0 0 10px rgba(93,224,122,.8); }
+#dialog .rk-bloco { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--line); }
+#dialog .rk-t { color: var(--gold); }
+/* botão AUTO ao lado do ataque */
+#tbtns #t-auto { right: 20px; bottom: 168px; width: 56px; height: 56px; padding: 0; background: radial-gradient(circle at 35% 30%, rgba(80,90,120,.85), rgba(20,26,40,.85)) !important; border: 2px solid rgba(242,200,106,.85); box-shadow: 0 0 0 2px rgba(0,0,0,.35), inset 0 0 8px rgba(242,200,106,.35); }
+#tbtns #t-auto span { font: 900 13px 'Nunito', sans-serif; letter-spacing: 1px; color: #ffe39a; text-shadow: 0 1px 2px #000; }
+#tbtns #t-auto.on { border-color: #5de07a; background: radial-gradient(circle at 35% 30%, rgba(93,224,122,.85), rgba(20,90,50,.85)) !important; animation: autoPulsa 1.4s ease-in-out infinite; }
+#tbtns #t-auto.on span { color: #fff; }
+@keyframes autoPulsa { 0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 6px rgba(93,224,122,.6); } 50% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 18px rgba(93,224,122,1); } }
+body.touch #tbtns #t-auto { right: 12px; bottom: 136px; width: 46px; height: 46px; }
+body.touch #tbtns #t-auto span { font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { #tbtns #t-auto.on { animation: none; } }

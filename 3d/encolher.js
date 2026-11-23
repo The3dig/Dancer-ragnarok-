@@ -10,7 +10,7 @@ const Encolher = (() => {
   function aplicar(q) {
     const fechado = ler(q.id), b = q.btn;
     document.body.classList.toggle('enc-' + q.id, fechado);
-    b.textContent = seta(q, fechado); b.title = (fechado ? 'Mostrar ' : 'Esconder ') + q.nome;
+    b.textContent = ''; b.dataset.dir = seta(q, fechado) === '▶' ? 'dir' : 'esq'; b.title = (fechado ? 'Mostrar ' : 'Esconder ') + q.nome;
     b.classList.toggle('fechado', fechado);
     posicionar(q);
   }

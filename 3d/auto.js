@@ -74,7 +74,7 @@ const AutoCaca = (() => {
     if (msg) log(`${msg} <small>(${(P.kills || 0) - mortes0} abatidos)</small>`, 'sys');
     if (win && !win.classList.contains('hidden')) render();
   }
-  function marcar() { const b = $('btn-auto'); if (b) b.classList.toggle('on', on); }
+  function marcar() { for (const id of ['btn-auto', 't-auto']) { const b = $(id); if (b) b.classList.toggle('on', on); } }
   const mexeu = () => (typeof joy !== 'undefined' && (joy.x || joy.y)) || keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || (typeof Controle !== 'undefined' && (Controle.x || Controle.y));
   function alvo() {
     const C = cfg();
@@ -120,6 +120,13 @@ const AutoCaca = (() => {
   setInterval(tick, 100);
   // botão 🤖 na barra de cima
   function botao() { const m = $('menu'); if (!m || $('btn-auto')) return; const b = document.createElement('button'); b.id = 'btn-auto'; b.title = 'Caça automática'; b.textContent = '🤖'; b.onclick = () => { Audio8.sfx('click'); abrir(); }; m.insertBefore(b, $('btn-grupo') || $('btn-help')); }
-  setInterval(botao, 2000); botao();
+  // botão redondo "AUTO" ao lado do ataque (celular); no PC fica no ☰ Mais
+  function botaoToque() {
+    const tb = $('tbtns'); if (!tb || $('t-auto')) return;
+    const b = document.createElement('button'); b.id = 't-auto'; b.innerHTML = '<span>AUTO</span>'; b.title = 'Caça automática';
+    const ir = e => { e.preventDefault(); Audio8.sfx('click'); if (on) parar('🤖 Caça automática parada.'); else abrir(); };
+    b.addEventListener('pointerdown', ir); tb.appendChild(b); marcar();
+  }
+  setInterval(() => { botao(); botaoToque(); }, 2000); botao(); botaoToque();
   return { abrir, comecar, parar, get on() { return on; } };
 })();

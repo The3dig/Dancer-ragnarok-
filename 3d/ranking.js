@@ -49,8 +49,15 @@ const Ranking = (() => {
   function nearest() { if (!running || inTower(P.z)) return null; for (const p of PLACAS) if (Math.hypot(P.x - p.x, P.z - p.z) < 2.4) return { label: `🏆 Ranking: ${p.nome}`, fn: () => mostrar(p.cat) }; return null; }
   // ---------------- ícones lá em cima: 🏆 Recordes (todos os rankings) e 🏰 Masmorras (todas as masmorras)
   const ORDEM = ['templo', 'cripta', 'minas', 'torre', 'abismo'];
-  function recordes() {
-    dialog('🏆 Recordes', 'Os mais rápidos e os que deram mais dano em cada lugar. Toque num para ver os 10 primeiros.', [
+  // 🏆 Recordes: já mostra os 5 primeiros de cada lugar (tempo e dano); tocar num lugar mostra os 10
+  async function recordes() {
+    const med = i => ['🥇', '🥈', '🥉'][i] || `<b>${i + 1}º</b>`;
+    const top = (l, f) => l && l.length ? l.slice(0, 5).map((o, i) => `${med(i)} ${o.nome} <b>${f(o)}</b>`).join('<br>') : '<small>ninguém ainda</small>';
+    dialog('🏆 Recordes', '<small>Buscando os recordes…</small>', [{ label: 'Fechar' }]);
+    const rs = await Promise.all(ORDEM.map(c => Nuvem.api('GET', '/conta/ranking/' + c).catch(() => null)));
+    if (!dialogOpen) return;                                             // fechou enquanto buscava
+    const blocos = ORDEM.map((c, k) => { const r = rs[k]; return `<div class="rk-bloco"><b class="rk-t">${NOMES[c]}</b>${r ? `<div class="rk"><div><small>⏱️ Mais rápidos</small><br>${top(r.tempo, o => fmt(o.tempo))}</div><div><small>💥 Mais dano</small><br>${top(r.dano, o => num(o.dano))}</div></div>` : '<small>sem conexão</small>'}</div>`; }).join('');
+    dialog('🏆 Recordes', `<small>Os 5 primeiros de cada lugar. Toque num lugar para ver os 10.</small>${blocos}`, [
       ...ORDEM.map(c => ({ label: NOMES[c], fn: () => { mostrar(c, recordes); return true; } })), { label: '⚔️ Arena (vitórias da temporada)', fn: () => { if (typeof Arena !== 'undefined') Arena.ranking(recordes); return true; } }, { label: 'Fechar' }]);
   }
   const npcPos = id => { const n = NPCS.find(o => o.id === id); return n ? { x: n.x, z: n.z + 2.5 } : null; };
