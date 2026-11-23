@@ -39,8 +39,17 @@ const Eventos = (() => {
   }
   // ---------------- chuva de estrelas: a cada pouco uma estrela cai perto de você
   const PREMIOS = [['zeny', 0], ['zeny', 0], ['frag_carta', 1], ['frag_cisma', 1], ['red', 3], ['blue', 2]];
-  function estrelas(dt) {
+  // só para quem está jogando: fora das cidades (lá ficava todo mundo parado ganhando prêmio), andando
+  // no último meio minuto, e no máximo 15 estrelas por evento
+  let mexeuT = -99, ux = 0, uz = 0, estH = null, estN = 0;
+  const MAX_EST = 15;
+  function estrelas(dt, e) {
+    if (Math.hypot(P.x - ux, P.z - uz) > 1.5) { ux = P.x; uz = P.z; mexeuT = time; }
+    if (estH !== e.h) { estH = e.h; estN = 0; }
     if ((estT -= dt) > 0 || inTower(P.z) || P.dead) return; estT = 7;
+    const zn = zoneOf(P.x, P.z);
+    if ((ZONES[zn] && ZONES[zn].town) || zn === 'sitio' || zn === 'casa' || time - mexeuT > 30 || estN >= MAX_EST) return;
+    estN++;
     const a = Math.random() * TAU, r = 4 + Math.random() * 10, x = P.x + Math.sin(a) * r, z = P.z + Math.cos(a) * r; if (blocked(x, z)) return;
     const [id, n] = PREMIOS[Math.floor(Math.random() * PREMIOS.length)];
     drops.push(makeDrop(id, id === 'zeny' ? 100 * Math.max(1, P.lv) : n, x, z));
@@ -71,7 +80,7 @@ const Eventos = (() => {
   function nearest() { return orlo && running && !inTower(P.z) && Math.hypot(P.x - orlo.x, P.z - orlo.z) < 3 ? { label: '🧳 Falar com o Mercador Orlo', fn: loja } : null; }
 
   const NOMES = { dourada: '🌟 Hora Dourada', invasao: '⚔️ Invasão', estrelas: '✨ Chuva de Estrelas', mercador: '🧳 Mercador Raro' };
-  const DESC = e => ({ dourada: '+50% de XP e de drop em todo o Reino!', invasao: `monstros atacam a <b>${e.cid.n}</b>! Defenda a praça: eles soltam fragmentos.`, estrelas: 'estrelas caem perto de você em qualquer mapa aberto: pegue-as!', mercador: `o <b>Mercador Orlo</b> está na praça de <b>${e.cid.n}</b> vendendo raridades.` })[e.tipo];
+  const DESC = e => ({ dourada: '+50% de XP e de drop em todo o Reino!', invasao: `monstros atacam a <b>${e.cid.n}</b>! Defenda a praça: eles soltam fragmentos.`, estrelas: 'estrelas caem perto de quem está caçando fora das cidades (até 15 por pessoa): pegue-as!', mercador: `o <b>Mercador Orlo</b> está na praça de <b>${e.cid.n}</b> vendendo raridades.` })[e.tipo];
   function update(dt) {
     if (!running) return;
     const e = agora();
@@ -79,7 +88,7 @@ const Eventos = (() => {
     if (e.ativo && ultimo !== e.h) { ultimo = e.h; banner(NOMES[e.tipo].toUpperCase()); Audio8.sfx('level'); log(`⚡ <b>Evento:</b> ${NOMES[e.tipo]} por ${DUR} minutos — ${DESC(e)}`, 'gold'); }
     if (!e.ativo) { if (orlo) tirarOrlo(); if (ultimo === e.h && e.falta < 0) { ultimo = -e.h; log(`⚡ ${NOMES[e.tipo]} acabou. O próximo evento é às :${INI} da próxima hora.`, 'sys'); for (const m of mobs.filter(m => m.invasor)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => !m.invasor); } return; }
     if (e.tipo === 'invasao') invasao(e, dt);
-    else if (e.tipo === 'estrelas') estrelas(dt);
+    else if (e.tipo === 'estrelas') estrelas(dt, e);
     else if (e.tipo === 'mercador') montarOrlo(e);
   }
   // para o 🏰 e o ❓: o que está acontecendo e o próximo

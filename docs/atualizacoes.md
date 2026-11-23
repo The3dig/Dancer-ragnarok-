@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 24/11
 
+- **✨ Chuva de Estrelas mais justa**: Na **Chuva de Estrelas** (evento surpresa), as estrelas caíam até em quem estava parado na cidade. Agora elas só caem para quem está **caçando fora das cidades** (andando no último meio minuto), e no máximo **15 por pessoa** em cada evento.
 - **✨ Magias de área novas**: Várias magias de área só desenhavam um círculo no chão. Agora cada uma tem efeito próprio: na **Erya**, espíritos mergulham do céu (Mil Possibilidades, Todas as Escolhas, Destino Quebrado) e giram em redemoinho (Tormenta); na **Seraphyne**, esferas negras do Vazio que puxam tudo e implodem, e correntes roxas (Portal, Silêncio, Esfera, Correntes, Apagar, Buraco Negro, Fim de Tudo); na **Mãe**, correntes brancas, cortes de lua e o chão tremendo (Correntes Brancas, Voltem, Grito, Passos que Tremem); no **Kravenox**, o Rugido e as quatro colunas da Quarta Essência.
 - **🔧 Ponte do Templo e saída da Arena**: **A Ponte que Desaba** (Templo do Eco Selado): a pedra firme desabava embaixo de você antes de dar tempo de atravessar, e ninguém passava. Agora ela só desaba **atrás** de você, depois que você sai dela (ou se ficar parado nela tempo demais: ela treme antes). As runas também ficam acesas um pouco mais. **Arena:** ao sair, você aparecia em cima do Mestre Brakus e ficava preso; agora aparece ao lado dele. As saídas de todas as masmorras procuram um lugar livre.
 
