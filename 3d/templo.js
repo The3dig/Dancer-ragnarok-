@@ -39,14 +39,16 @@ const Templo = (() => {
     const g = new THREE.Group(); g.position.set(S.x, 0, S.z); g.visible = false; scene.add(g);
     const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); g.add(o); return o; };
     const chao = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, HL * 2).rotateX(-Math.PI / 2), pedra); chao.receiveShadow = true; g.add(chao);
-    box(0.6, 6, HL * 2, pedraP, -HW - 0.3, 3, 0); box(0.6, 6, HL * 2, pedraP, HW + 0.3, 3, 0); box(HW * 2 + 1.2, 6, 0.6, pedraP, 0, 3, HL + 0.3); box(HW * 2 + 1.2, 6, 0.6, pedraP, 0, 3, -HL - 0.3);
+    // paredes só com o lado de dentro: de fora (onde a câmera fica, atrás de você) dá para ver através delas
+    const parede = (w, x, z, ry) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, 6), pedraP); p.position.set(x, 3, z); p.rotation.y = ry; g.add(p); };
+    parede(HL * 2, -HW, 0, Math.PI / 2); parede(HL * 2, HW, 0, -Math.PI / 2); parede(HW * 2, 0, HL, Math.PI); parede(HW * 2, 0, -HL, 0);
     const teto = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2 + 1, HL * 2 + 1).rotateX(Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x1a1612 })); teto.position.y = 6; g.add(teto);
     // porta ao norte (sobe quando a sala é vencida) com o portal de luz atrás
     box(0.8, 4.4, 0.8, ouroM, -2.2, 2.2, PORTA); box(0.8, 4.4, 0.8, ouroM, 2.2, 2.2, PORTA); box(5.2, 0.8, 0.8, ouroM, 0, 4.6, PORTA);
     const porta = box(3.6, 4, 0.4, pedraP, 0, 2, PORTA - 0.1);
     const portal = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.8), new THREE.MeshBasicMaterial({ color: 0xa0e0ff, transparent: true, opacity: 0, toneMapped: false, side: THREE.DoubleSide })); portal.position.set(0, 1.9, PORTA - 0.6); g.add(portal);
     // nome da sala na parede da entrada
-    const placa = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.1), texto([`${S.sala + 1}. ${NOMES[S.sala]}`], 512, 128)); placa.position.set(0, 4.2, HL - 0.05); placa.rotation.y = Math.PI; g.add(placa);
+    const placa = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.1), texto([`${S.sala + 1}. ${NOMES[S.sala]}`], 512, 128)); placa.position.set(0, 5.45, -HL + 0.05); placa.scale.set(0.85, 0.8, 1); g.add(placa);   // acima da porta, de frente para quem entra
     const luz = new THREE.PointLight(0xffe0b0, 1.2, 40); luz.position.set(0, 5, 0); g.add(luz);
     return { S, g, box, porta, portal, aberta: false, obs: [] };
   }
@@ -74,7 +76,7 @@ const Templo = (() => {
   function montar1(sala) {
     sala.placas = [];
     for (let r = 0; r < 6; r++) for (let c = 0; c < 5; c++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.12, 2.0), new THREE.MeshLambertMaterial({ color: 0x8a8070, emissive: 0x000000 })); m.position.set(P1.cols[c], 0.06, P1.rows[r]); sala.g.add(m); sala.placas.push({ r, c, m }); }
-    const dica = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), texto(['Volte aqui para ver de novo'], 512, 128)); dica.position.set(0, 2.6, HL - 0.05); dica.rotation.y = Math.PI; sala.g.add(dica);
+    const dica = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), texto(['Volte aqui para ver de novo'], 512, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function preparar1(sala, rnd) {
     let c = Math.floor(rnd() * 5); sala.seguro = new Set();
@@ -100,7 +102,7 @@ const Templo = (() => {
       const lam = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.0, 0.12), new THREE.MeshPhongMaterial({ color: 0xc8ccd8, shininess: 80 })); lam.position.y = -4.6; piv.add(lam);
       return { z, piv, w: 1.5 + k * 0.25, ph: k * 1.7 };
     });
-    const dica = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), texto(['A esquiva atravessa a lâmina'], 512, 128)); dica.position.set(0, 2.6, HL - 0.05); dica.rotation.y = Math.PI; sala.g.add(dica);
+    const dica = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), texto(['A esquiva atravessa a lâmina'], 512, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function tick2(sala, lx, lz) {
     for (const L of sala.laminas) {
@@ -129,7 +131,7 @@ const Templo = (() => {
   function preparar3(sala, rnd) {
     const ch = CHARADAS[Math.floor(rnd() * CHARADAS.length)]; sala.ordem = ch[2]; sala.prox = 0; sala.feitos = new Set();
     if (sala.quadro) sala.g.remove(sala.quadro);
-    sala.quadro = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), texto(['📜 A charada da parede', ch[0], ch[1]], 1024, 320)); sala.quadro.position.set(0, 3.2, -HL + 0.05); sala.g.add(sala.quadro);
+    sala.quadro = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), texto(['📜 A charada da parede', ch[0], ch[1]], 1024, 320)); sala.quadro.position.set(-HW + 0.05, 3.2, 0); sala.quadro.rotation.y = Math.PI / 2; sala.g.add(sala.quadro);   // na parede da esquerda (a da frente tem a porta)
     for (const p of sala.pads) { p.base.material.emissive.setHex(0); p.al.rotation.z = p.x > 0 ? -0.5 : 0.5; p.t = 0; }
   }
   function tick3(sala, lx, lz, dt) {
@@ -180,7 +182,7 @@ const Templo = (() => {
     sala.cristal = new THREE.Mesh(new THREE.OctahedronGeometry(0.6), new THREE.MeshLambertMaterial({ color: 0x4080ff, emissive: 0x102040 })); sala.cristal.position.set(ALVO.x, 1.3, ALVO.z); sala.cristal.scale.y = 1.6; sala.g.add(sala.cristal);
     sala.obs.push({ x: ALVO.x, z: ALVO.z, r: 0.6 });
     sala.raioM = new THREE.MeshBasicMaterial({ color: 0xffe060, toneMapped: false, transparent: true, opacity: 0.85 }); sala.raios = [];
-    const dica = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.2), texto(['Pise na placa azul para girar o espelho'], 640, 128)); dica.position.set(0, 2.6, HL - 0.05); dica.rotation.y = Math.PI; sala.g.add(dica);
+    const dica = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.2), texto(['Pise na placa azul para girar o espelho'], 640, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function preparar4(sala, rnd) { for (const e of sala.esp) { e.est = e.certo === null ? Math.floor(rnd() * 2) : 1 - e.certo; if (rnd() < 0.3 && e.k === 0) e.est = e.certo; } desenharEsp(sala); }
   function desenharEsp(sala) { for (const e of sala.esp) e.g.rotation.y = e.est ? -Math.PI / 4 : Math.PI / 4; }
@@ -215,7 +217,7 @@ const Templo = (() => {
     const fosso = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, 18.4).rotateX(-Math.PI / 2), escuro); fosso.position.set(0, 0.02, 0.6); sala.g.add(fosso);
     sala.pedras = [];
     for (let r = 0; r < 8; r++) for (let c = 0; c < 3; c++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 1.8), new THREE.MeshLambertMaterial({ color: 0x7a7266, emissive: 0x000000 })); m.position.set(P5.cols[c], 0.15, P5.rows[r]); sala.g.add(m); sala.pedras.push({ r, c, m, caiu: false, pisouT: 0 }); }
-    const dica = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.2), texto(['As runas mostram as pedras firmes'], 640, 128)); dica.position.set(0, 2.6, HL - 0.05); dica.rotation.y = Math.PI; sala.g.add(dica);
+    const dica = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.2), texto(['As runas mostram as pedras firmes'], 640, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function preparar5(sala, rnd) {
     sala.firmes = new Set(); let c = Math.floor(rnd() * 3);
@@ -278,7 +280,7 @@ const Templo = (() => {
     log('☠ <b>O Guardião do Eco</b> despertou. Ele é <b>imune</b> enquanto os <b>4 pilares</b> não estiverem acesos <b>ao mesmo tempo</b>: fique 1 segundo na placa de cada pilar (cada um fica aceso por 12 segundos). Cuidado com os círculos no chão!', 'bad');
   }
   function criarRemoto(o) {
-    const p = String(o.id).split(':'); if (p[1] !== 'templo' || p[2] !== P.grupo) return null;
+    const p = String(o.id).split(':'); if (p[1] !== 'eco' || p[2] !== P.grupo) return null;
     const m = spawnMob(o.type, null, { x: o.x, z: o.z }); escalarGuardiao(m, +p[4], +p[5]);
     m.nid = o.id; m.dg = p.slice(0, 4).join(':'); m.dono = o.dono; m.nx = o.x; m.nz = o.z; m.hp = Math.min(m.maxHp, o.hp ?? m.maxHp);
     return m;
@@ -347,7 +349,7 @@ const Templo = (() => {
   const restam = () => Math.max(0, LIMITE - usadas());
   function corridaDoGrupo() {
     if (!P.grupo || typeof Grupo === 'undefined') return null;
-    for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === 'templo' && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
+    for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === 'eco' && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
     return null;
   }
   function entrar(modo) {
@@ -360,7 +362,7 @@ const Templo = (() => {
       else {
         const M_ = typeof Grupo !== 'undefined' ? Grupo.membros() : [];
         if (!P.grupo || !M_.length || !Net.connected) { log('🏛️ Para ir em grupo, monte um grupo no 👥 (2 a 6 pessoas, todos on-line).', 'bad'); Audio8.sfx('miss'); return; }
-        grupo = { id: `dg:templo:${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true };
+        grupo = { id: `dg:eco:${P.grupo}:${Date.now().toString(36)}`, n: Math.min(6, M_.length + 1), host: true };
       }
     }
     if (typeof autoStop === 'function') autoStop('');
@@ -414,7 +416,7 @@ const Templo = (() => {
     mg.fillStyle = '#f0e2c0'; mg.font = 'bold 11px sans-serif'; if (run) { mg.fillText(`Sala ${run.sala + 1}/6`, W / 2, H / 2 - 4); mg.fillText(`⏱️ ${Ranking.fmt((Date.now() - run.t0) / 1000)} · 💢 ${run.quedas}`, W / 2, H / 2 + 14); }
     mg.textAlign = 'left';
   }
-  function pres() { return run && run.grupo && run.grupo.host ? { id: run.grupo.id, z: 'templo', n: run.grupo.n, fim: run.t0 + 30 * 60e3, onda: run.sala, chefe: run.sala === 5, acabou: run.acabou } : null; }
+  function pres() { return run && run.grupo && run.grupo.host ? { id: run.grupo.id, z: 'eco', n: run.grupo.n, fim: run.t0 + 30 * 60e3, onda: run.sala, chefe: run.sala === 5, acabou: run.acabou } : null; }
 
   // ---------------- a Estudiosa Ilka e a entrada da ruína em Solmira
   {
@@ -435,6 +437,6 @@ const Templo = (() => {
       { label: 'Até mais' }]);
   }
   const api = { update, minimap, saida: SAIDA, pres, criarRemoto, entrar, sair, corridaDoGrupo, restam, npc, bloqueia, get run() { return run; }, _salas: () => salas };
-  MASMORRAS.templo = api;
+  MASMORRAS.eco = api;
   return api;
 })();

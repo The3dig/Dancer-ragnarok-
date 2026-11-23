@@ -398,7 +398,7 @@ const MINA = { i: 'mina', mina: true, zona: 'minas', x: 720, z: TZ, y: 0, r: 24 
 const CRIPTA = { i: 'cripta', mina: true, zona: 'cripta', x: 800, z: TZ, y: 0, r: 24 };       // Cripta das Cartas (cartas.js): fragmentos e Cartas Arcanas, fora do mapa
 const MASMORRAS = {};
 // Templo do Eco Selado (templo.js): 6 salas retangulares em fila, fora do mapa (uma de cada vez é desenhada)
-const TEMPLO = Array.from({ length: 6 }, (_, i) => ({ i: 'templo' + i, mina: true, templo: true, zona: 'templo', sala: i, x: 900 + i * 50, z: TZ, y: 0, r: 17 }));                                                                           // masmorras "escape" (minas.js) registradas pela zona
+const TEMPLO = Array.from({ length: 6 }, (_, i) => ({ i: 'templo' + i, mina: true, templo: true, zona: 'eco', sala: i, x: 900 + i * 50, z: TZ, y: 0, r: 17 }));                                                                           // masmorras "escape" (minas.js) registradas pela zona
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
   if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
@@ -2076,7 +2076,7 @@ const ZONES = {
   casa: { name: 'Sua Casa', music: 'semNome' },
   minas: { name: 'Mina da Forja', music: 'masmorra' },
   cripta: { name: 'Cripta das Cartas', music: 'masmorra' },
-  templo: { name: 'Templo do Eco Selado', music: 'masmorra' },
+  eco: { name: 'Templo do Eco Selado', music: 'masmorra' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
   acampamento: { name: 'Acampamento de Valdora', music: 'despedida', town: true },
   estrada: { name: 'Estrada de Valdora', music: 'guerra' },
