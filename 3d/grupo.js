@@ -179,7 +179,8 @@ const Grupo = (() => {
   }
   function init() {
     if (typeof Net !== 'undefined' && Net.on) Net.on('voz', recebeu);
-    if (!$('t-voz') && $('tbtns')) {
+    // 🎤 rádio do grupo DESLIGADO (decisão do Rone: a turma usa o Discord; o código fica guardado se quiser voltar)
+    if (false && !$('t-voz') && $('tbtns')) {
       const b = document.createElement('button'); b.id = 't-voz'; b.title = 'Rádio do grupo: segure e fale'; b.textContent = '🎤'; b.style.display = 'none'; $('tbtns').appendChild(b);
       b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); gravar(); });
       for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, e => { e.preventDefault(); parar(); });
