@@ -1186,6 +1186,57 @@ const Vida = (() => {
   const REGION = { pompom: 'Campos Dourados', zunzum: 'Campos Dourados', fungolino: 'Campos Dourados', besouro: 'Areias Rubras', serpe: 'Areias Rubras',
     guardiao: 'Ruínas das Areias (chefe)', larva: 'Torre do Cisma', verme: 'Torre do Cisma', esfera: 'Torre do Cisma', sentinela: 'Torre do Cisma', kravenox: 'Topo da Torre · sábado 20h (chefe mundial)',
     larvaMae: 'Campos Dourados (chefe de campo)', raizPetra: 'Floresta a oeste (chefe de campo)', cristalizado: 'Areias Rubras (chefe de campo)', larvaFogo: 'Perto das ruínas (chefe de campo)' };
+  const tiposBest = () => Object.keys(MOBDEF).filter(t => !t.startsWith('alfa_') && !t.startsWith('fb_') && t !== 'vermeColosso' && (REGION[t] || SPAWNS.some(q => q.type === t) || MOBDEF[t].boss)).sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
+  const regiaoCache = {};
+  const regiao = t => { if (regiaoCache[t]) return regiaoCache[t]; let r = MOBDEF[t].boss ? 'Chefe' : '—'; if (REGION[t]) r = REGION[t]; else { const sp = SPAWNS.find(q => q.type === t); if (sp) { try { r = ZONES[zoneOf(sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2)].name; } catch (e) { } } } return (regiaoCache[t] = r); };
+
+  // ---------------------------------------------------------------- 📚 livro das regiões (pedido do Rone, como no Ragnarok)
+  // Cada região tem 5 níveis: 1 = matou todos os tipos de bicho da região; 2 = 100 de cada; 3 = 500; 4 = 1.500; 5 = 5.000.
+  // Cada nível dá prêmio, maior nas regiões mais fortes; no 4 e no 5, uma carta de um bicho da região.
+  const REG_META = [1, 100, 500, 1500, 5000];
+  function regioes() {
+    const R = {};
+    for (const t of tiposBest()) { const d = MOBDEF[t]; if (d.boss || d.mini || d.world || d.field) continue; const r = regiao(t); if (r === '—' || r === 'Chefe') continue; (R[r] = R[r] || []).push(t); }
+    return R;
+  }
+  const minKills = l => Math.min(...l.map(t => (P.bestiary || {})[t] || 0));
+  const nivelReg = l => { const m = minKills(l); let lv = 0; while (lv < 5 && m >= REG_META[lv]) lv++; return lv; };
+  const forcaReg = l => Math.max(1, Math.min(5, Math.round(l.reduce((a, t) => a + MOBDEF[t].lv, 0) / l.length / 20)));
+  function premioReg(l, k) {
+    const T = forcaReg(l), cartas = l.map(t => 'carta_' + t).filter(id => ITEMS[id]), p = {};
+    if (k === 1) p.frag_carta = 2 * T;
+    if (k === 2) { p.frag_carta = 5 * T; p.frag_cisma = 2 * T; }
+    if (k === 3) { p.frag_carta = 10 * T; p.nucleo_abismo = T; }
+    if (k >= 4) { if (cartas.length) p[cartas[Math.floor(Math.random() * cartas.length)]] = 1; else p.frag_carta = 40 * T; }
+    if (k === 5) { p.frag_carta = (p.frag_carta || 0) + 30 * T; p.lagrima_soberano = T >= 4 ? 1 : 0; }
+    return p;
+  }
+  const premioTxt = p => Object.entries(p).filter(([, n]) => n > 0).map(([id, n]) => `${n}× ${it(id).ic} ${it(id).name}`).join(', ');
+  function checarRegiao(tipo) {
+    const r = regiao(tipo), l = regioes()[r]; if (!l) return;
+    P.colReg = P.colReg || {}; const ja = P.colReg[r] || 0, lv = nivelReg(l);
+    for (let k = ja + 1; k <= lv; k++) {
+      const p = premioReg(l, k); for (const [id, n] of Object.entries(p)) if (n > 0) P.inv[id] = (P.inv[id] || 0) + n;
+      P.colReg[r] = k; banner(`📚 ${r} · nível ${k}`); Audio8.sfx('level');
+      log(`📚 <b>Livro das Regiões: ${r} nível ${k}</b>${k === 1 ? ' (você conheceu todos os bichos da região)' : ` (${REG_META[k - 1].toLocaleString('pt-BR')} de cada bicho)`}! Prêmio: ${premioTxt(p)}.`, 'gold');
+    }
+    if (lv > ja) try { save(); } catch (e) { }
+  }
+  function livroRegioes(w) {
+    const R = regioes(), cols = P.colReg || {};
+    const nomes = Object.keys(R).sort((a, b) => forcaReg(R[a]) - forcaReg(R[b]) || a.localeCompare(b));
+    const linhas = nomes.map(r => {
+      const l = R[r], lv = nivelReg(l), m = minKills(l), meta = REG_META[lv], falta = l.filter(t => !((P.bestiary || {})[t] >= (meta || 0)));
+      const pc = lv >= 5 ? 100 : Math.floor(Math.min(1, m / meta) * 100);
+      return `<div class="lr"><div class="lr-t"><b>${r}</b> <span class="lr-s">${'★'.repeat(lv)}${'☆'.repeat(5 - lv)}</span> <small>${l.length} bichos · força ${forcaReg(l)}</small></div>
+        <div class="lr-bar"><i style="width:${pc}%"></i></div>
+        <small>${lv >= 5 ? '✅ Região completa!' : `Próximo (nível ${lv + 1}): ${lv === 0 ? 'derrotar <b>todos os tipos</b> da região' : `<b>${meta.toLocaleString('pt-BR')} de cada</b> (o que você menos caçou: ${m.toLocaleString('pt-BR')})`}${falta.length && falta.length <= 4 ? ` · faltam: ${falta.map(t => (P.bestiary || {})[t] ? MOBDEF[t].name : '???').join(', ')}` : ''}<br>Prêmio: ${premioTxt(premioReg(l, lv + 1)).replace(/1× 🃏 [^,]*/, '1 carta de um bicho da região')}`}</small></div>`;
+    }).join('');
+    w.innerHTML = `<div class="wt">📚 Livro das Regiões <button class="x" data-b="x">×</button></div>
+      <div class="lr-top"><button data-b="${tiposBest()[0]}">← Bestiário</button><small>Complete cada região: <b>★1</b> derrote todos os tipos de bicho · <b>★2</b> 100 de cada · <b>★3</b> 500 · <b>★4</b> 1.500 · <b>★5</b> 5.000. Cada estrela dá um prêmio, maior nas regiões fortes; na ★4 e ★5, uma <b>carta</b> de um bicho da região.</small></div>
+      <div class="lr-lista">${linhas}</div>`;
+    w.classList.remove('hidden');
+  }
   function bestiary(sel) {
     let w = $('bestwin');
     if (!w) {
@@ -1193,14 +1244,14 @@ const Vida = (() => {
       w.addEventListener('click', e => { const t = e.target.closest('[data-b]'); if (!t) return; Audio8.sfx('click'); if (t.dataset.b === 'x') w.classList.add('hidden'); else bestiary(t.dataset.b); });
     }
     if (dialogOpen) closeDialog(); $('invwin') && $('invwin').classList.add('hidden');
-    const types = Object.keys(MOBDEF).filter(t => !t.startsWith('alfa_') && !t.startsWith('fb_') && t !== 'vermeColosso' && (REGION[t] || SPAWNS.some(q => q.type === t) || MOBDEF[t].boss)).sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
-    const regiao = t => { if (REGION[t]) return REGION[t]; const sp = SPAWNS.find(q => q.type === t); if (sp) { try { return ZONES[zoneOf(sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2)].name; } catch (e) { } } return MOBDEF[t].boss ? 'Chefe' : '—'; };
+    const types = tiposBest();
+    if (sel === 'regioes' || (!sel && w.dataset.sel === 'regioes')) { w.dataset.sel = 'regioes'; return livroRegioes(w); }
     sel = sel || w.dataset.sel || types[0]; w.dataset.sel = sel;
     const seen = P.bestiary || {}, d = MOBDEF[sel];
     const img = t => { const s = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; return s && SPR[s] ? `<img src="data:image/png;base64,${SPR[s]}">` : (t === 'kravenox' && SPR.k_down_0 ? `<img src="data:image/png;base64,${SPR.k_down_0}">` : `<span style="font-size:30px">${iconeMob(t)}</span>`); };
     const list = types.map(t => `<div class="bl${t === sel ? ' on' : ''}" data-b="${t}">${img(t)}<span>${seen[t] ? MOBDEF[t].name : '???'}<small>Nv ${MOBDEF[t].lv}${seen[t] ? ` · ⚔️ ${seen[t].toLocaleString('pt-BR')} · ★${nivelCaca(t).lv}` : ''}</small></span></div>`).join('');
     const drops = d.drops.map(([id, ch]) => { const I = it(id); const c = I.kind === 'equip' ? RARITY[I.rar].c : I.kind === 'carta' ? '#ffb640' : '#cfc8b8'; return `<div class="bd"><span>${I.ic}</span><b style="color:${c}">${I.name}</b><em>${ch >= 1 ? '100%' : (ch * 100).toFixed(ch < 0.01 ? 2 : ch < 0.1 ? 1 : 0).replace('.', ',') + '%'}</em></div>`; }).join('');
-    w.innerHTML = `<div class="wt">📖 Bestiário <small>· ${Object.keys(seen).length}/${types.length} conhecidos · ⚔️ ${Object.values(seen).reduce((a, b) => a + b, 0).toLocaleString('pt-BR')} abatidos</small><button class="x" data-b="x">×</button></div>
+    w.innerHTML = `<div class="wt">📖 Bestiário <button class="lr-btn" data-b="regioes">📚 Regiões</button> <small>· ${Object.keys(seen).length}/${types.length} conhecidos · ⚔️ ${Object.values(seen).reduce((a, b) => a + b, 0).toLocaleString('pt-BR')} abatidos</small><button class="x" data-b="x">×</button></div>
       <div class="bb"><div class="blist">${list}</div>
       <div class="bdet">${seen[sel] ? `<div class="bh">${img(sel)}<div><b>${d.name}</b><br><small>Nv ${d.lv} · HP ${d.hp.toLocaleString('pt-BR')} · ${regiao(sel)}</small><br>${(() => { const c = nivelCaca(sel), pc = c.prox ? Math.floor((c.n - c.ant) / (c.prox - c.ant) * 100) : 100, cd = ITEMS['carta_' + sel];
         return `<small>⚔️ Abatidos: <b>${c.n.toLocaleString('pt-BR')}</b> · Nível de caça <b>${c.lv}/10</b>${c.prox ? ` (próximo: ${c.prox.toLocaleString('pt-BR')})` : ' ✅'}</small><div style="height:6px;background:#2a2036;border-radius:3px;margin:3px 0"><div style="width:${pc}%;height:6px;background:#ffb640;border-radius:3px"></div></div><small>${cd ? `🃏 No nível 10: <b>${cd.name}</b>${(P.bestCard || {})[sel] ? ' (já recebida ✅)' : ''} · cada nível deixa ela +10% mais fácil de cair` : ''}</small>`; })()}</div></div><div class="bdl">${drops}</div>`
@@ -1209,6 +1260,7 @@ const Vida = (() => {
   }
   function onKill(m) {
     P.bestiary = P.bestiary || {}; const antes = nivelCaca(m.type).lv; P.bestiary[m.type] = (P.bestiary[m.type] || 0) + 1;
+    try { checarRegiao(m.type); } catch (e) { }
     const c = nivelCaca(m.type); if (c.lv <= antes) return;
     const D = MOBDEF[m.type], cd = ITEMS['carta_' + m.type];
     if (c.lv < 10) { log(`📖 Bestiário: <b>${D.name}</b> chegou ao <b>nível ${c.lv}</b> de caça (${c.n.toLocaleString('pt-BR')} abatidos). Próximo: ${c.prox.toLocaleString('pt-BR')}.`, 'sys'); return; }

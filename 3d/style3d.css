@@ -738,3 +738,12 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 /* botão de trocar a barra de atalhos (1, 2, 3) */
 #hotbar .hbnum .ic { font-size: 20px; font-weight: 800; color: var(--gold); }
 #hotbar .hbnum .k { position: absolute; bottom: 1px; left: 0; right: 0; text-align: center; font-size: 9px; }
+/* 📚 livro das regiões (vida.js) */
+#bestwin .lr-btn { margin-left: 8px; background: var(--glass2); color: var(--gold); border: 1px solid var(--line); border-radius: 8px; font: 700 12px inherit; padding: 2px 8px; cursor: pointer; }
+#bestwin .lr-top { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; }
+#bestwin .lr-top button { flex: none; background: var(--glass2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-weight: 700; }
+#bestwin .lr-lista { overflow-y: auto; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+#bestwin .lr { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.03); }
+#bestwin .lr-s { color: var(--gold); letter-spacing: 1px; }
+#bestwin .lr-bar { height: 6px; background: #2a2036; border-radius: 3px; margin: 5px 0; overflow: hidden; }
+#bestwin .lr-bar i { display: block; height: 100%; background: linear-gradient(90deg, #d8a840, #ffe080); }
