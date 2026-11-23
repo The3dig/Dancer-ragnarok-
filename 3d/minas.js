@@ -138,6 +138,9 @@ function criarMasmorra(C) {
       else if (time - (G.vistoT || time) > 8 || (!h && !G.vistoT)) { if (run.chefe && vivos().length === 0 && typeof Ranking !== 'undefined') Ranking.terminar(C.zona); run.acabou = true; G.host = null; log('👥 A corrida do grupo acabou (quem começou saiu ou a masmorra foi limpa). Saia pelo arco de luz.', 'sys'); }
     }
     const falta = run.fim - time, v = vivos().length;
+    // com a barra de vida de um chefe na tela, o painel desce para baixo dela (antes ficava por cima do HP do chefe)
+    const bb = document.getElementById('bossbar'), bv = bb && !bb.classList.contains('hidden') ? bb.getBoundingClientRect() : null;
+    hudEl.style.top = bv && bv.height ? (bv.bottom + 6) + 'px' : '';
     hudEl.innerHTML = run.acabou ? `${C.icone} ${C.nome}: limpa · saia pelo arco de luz` : `${C.icone} ${run.chefe ? C.chefeCurto : 'Onda ' + Math.max(1, run.onda + 1) + '/' + ONDAS.length} · 👾 ${v} · <b class="${falta < 60 ? 'pouco' : ''}">⏳ ${mmss(falta)}</b>`;
     if (!run.acabou && falta <= 0 && !P.dead) { Audio8.sfx('boom'); sair(C.msgDesabou); return; }
     if (G && !G.host) { /* as ondas vêm do jogo de quem começou */ }
