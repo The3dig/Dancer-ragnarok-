@@ -956,7 +956,7 @@ const Vida = (() => {
       if (I.sell > 0 && P.inv[sel] > 1 && I.use !== 'pot') btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
       if (I.kind !== 'montaria') btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
       if (I.funde && P.inv[sel] >= 10) { const N = it(I.funde); btns.push(`<button data-a="fundir" data-v="${sel}">⚗️ Fundir 10 → 1 ${N.ic} ${N.name}</button>`); if (P.inv[sel] >= 20) btns.push(`<button data-a="fundirtodas" data-v="${sel}">⚗️ Fundir todas (${Math.floor(P.inv[sel] / 10) * 10} → ${Math.floor(P.inv[sel] / 10)})</button>`); }
-      if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = ensureBar().includes('i:' + sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
+      if (I.use || I.heal) { btns.push(`<button data-a="use" data-v="${sel}">Usar</button>`); const on = naBarra('i:' + sel); btns.push(`<button data-a="hot" data-v="${sel}">${on ? '✖ Tirar do atalho' : '📌 Pôr no atalho'}</button>`); }
       let extra = '';
       if (I.kind === 'carta') {
         const ok = Object.keys(SLOTS).filter(sl => P.equip[sl] && (sl === I.cslot || (I.cslot === 'anel' && sl.startsWith('anel'))));
@@ -995,7 +995,7 @@ const Vida = (() => {
     if (a === 'sell1' || a === 'sellall') { const n = a === 'sell1' ? 1 : P.inv[v], z = ITEMS[v].sell * n; P.inv[v] -= n; P.zeny += z; Audio8.sfx('coin'); log(`💰 Vendeu ${n}× <b>${it(v).name}</b> por <b>${z.toLocaleString('pt-BR')} cr</b>.`, 'gold'); if (!P.inv[v]) sel = null; buildHotbar(); }
     if (a === 'trash') { if (trashArm !== v) trashArm = v; else { const n = P.inv[v]; P.inv[v] = 0; trashArm = null; sel = null; Audio8.sfx('miss'); log(`🗑️ Destruiu ${n}× <b>${it(v).name}</b>.`, 'sys'); buildHotbar(); } }
     if (a === 'hot') {                                   // põe/tira o item da barra de atalhos
-      const r = barToggle('i:' + v);
+      const r = barToggle('i:' + v, () => renderInv());
       if (r === true) log(`📌 <b>${it(v).name}</b> foi para a barra de atalhos.`, 'item'); else if (r === false) log(`✖ <b>${it(v).name}</b> saiu da barra de atalhos.`, 'sys'); else { renderInv(); return; }
       buildHotbar();
     }

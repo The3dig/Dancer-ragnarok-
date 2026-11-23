@@ -775,3 +775,7 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 body.touch #tbtns #t-auto { right: 12px; bottom: 136px; width: 46px; height: 46px; }
 body.touch #tbtns #t-auto span { font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { #tbtns #t-auto.on { animation: none; } }
+/* arrastar atalhos (modo ✏️) */
+.atalho-fantasma { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%) scale(1.15); opacity: .9; box-shadow: 0 6px 18px rgba(0,0,0,.6); border-color: var(--gold) !important; }
+#hotbar .slot.atalho-origem { opacity: .35; }
+#hotbar .slot.atalho-alvo { box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(242,200,106,.8); }

@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 24/11
 
+- **🔢 Atalhos melhores**: Ao tocar em **📌 Pôr no atalho** (na mochila ou nas habilidades), agora você escolhe **em qual barra** vai: 1, 2 ou 3 (com quantos espaços livres cada uma tem). E no modo **✏️**, **segure um atalho e arraste** para o espaço que quiser: os dois trocam de lugar.
 - **🏆 Recordes com os 5 primeiros e botão AUTO**: O 🏆 **Recordes** (☰ Mais) já mostra os **5 primeiros** de cada lugar, em tempo e em dano. No celular, a caça automática agora é o botão redondo **AUTO** ao lado do ataque (fica verde e pulsando enquanto caça; toque de novo para parar). E as setas que encolhem os quadros ficaram mais bonitas.
 - **🛡️ Novo amigo: Balhulk**: O cavaleiro **Balhulk** chegou ao **Acampamento de Valdora** com uma aventura de **7 provas** (está na lista 🤝 Amigos). O que ele dá no final? Ninguém sabe. Ele só diz que é algo que **ninguém neste Reino tem**... Quem completar, descobre.
 - **🤖 Caça automática**: Para quem não tem tempo: vá até um mapa de caça e toque em **🤖** lá em cima. Escolha **os bichos**, **as habilidades** que ele vai usar e **quando tomar poção** de vida e de SP (e quando parar se acabar a poção). Toque em **Começar** e o personagem caça sozinho até 30 m de onde você está, se defendendo de quem atacar. Ele usa a **maior poção liberada** para o seu nível. Para parar, é só mexer o personagem (ou tocar em 🤖 → Parar). Os mapas são difíceis: leve bastante poção!

@@ -2939,11 +2939,22 @@ function trocarBarra() {
   if (!P.bar.some(Boolean)) log(`🔢 Barra <b>${P.barIdx + 1}</b> está vazia: toque em ✏️ e escolha o que fica em cada espaço.`, 'sys');
 }
 // põe (ou tira) uma habilidade/item no 1º espaço livre — usado pela mochila e pela árvore de habilidades
-function barToggle(e) {
-  const b = ensureBar(), i = b.indexOf(e);
-  if (i >= 0) { b[i] = null; buildHotbar(); return false; }
-  const j = b.indexOf(null); if (j < 0) { log('A barra de atalhos está cheia. Toque em ✏️ para trocar um espaço.', 'bad'); Audio8.sfx('miss'); return null; }
-  b[j] = e; buildHotbar(); return true;
+// está em alguma das 3 barras?
+function naBarra(e) { ensureBar(); return P.bars.some(b => Array.isArray(b) && b.includes(e)); }
+// pôr: pergunta em QUAL barra (1, 2 ou 3) e vai para o 1º espaço livre dela (depois dá para arrastar no ✏️).
+// tirar: sai de todas as barras. depois(): chamado quando escolheu (para redesenhar a janela de onde veio)
+function barToggle(e, depois) {
+  ensureBar();
+  if (naBarra(e)) { for (const b of P.bars) if (Array.isArray(b)) { const i = b.indexOf(e); if (i >= 0) b[i] = null; } buildHotbar(); return false; }
+  const nome = e.startsWith('s:') ? (SKILLS.find(s => s.id === e.slice(2)) || {}).name : (ITEMS[e.slice(2)] || {}).name;
+  const opts = [0, 1, 2].map(k => { const b = Array.isArray(P.bars[k]) && P.bars[k].length === BAR_N ? P.bars[k] : (P.bars[k] = Array(BAR_N).fill(null)), livres = b.filter(x => !x).length;
+    return { label: `🔢 Barra ${k + 1}${k === (P.barIdx || 0) ? ' (a que está à mostra)' : ''} · ${livres ? livres + ' espaço' + (livres > 1 ? 's' : '') + ' livre' + (livres > 1 ? 's' : '') : 'cheia'}`, fn: () => {
+      const j = b.indexOf(null); if (j < 0) { log(`A barra ${k + 1} está cheia. Escolha outra ou abra o ✏️ e troque um espaço.`, 'bad'); Audio8.sfx('miss'); return true; }
+      b[j] = e; Audio8.sfx('click'); log(`📌 <b>${nome || 'Atalho'}</b> foi para a <b>barra ${k + 1}</b>${k !== (P.barIdx || 0) ? ' (toque no número ao lado do ✏️ para trocar de barra)' : ''}. No ✏️ dá para arrastar para o espaço que quiser.`, 'sys');
+      buildHotbar(); if (depois) depois(); } }; });
+  opts.push({ label: 'Cancelar' });
+  dialog('📌 Pôr no atalho', `Em qual barra vai <b>${nome || 'este atalho'}</b>?`, opts);
+  return null;
 }
 function barUse(e) {
   if (!e) return;
@@ -2957,6 +2968,25 @@ function barPick(i) {
   Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || ITEMS[id].spH || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
   opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
   dialog(`✏️ Atalho ${BAR_KEYS[i]}`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
+}
+// ✏️ no modo de editar: segure um atalho e arraste para outro espaço (troca os dois); só tocar abre a escolha
+function arrastarAtalho(ev, i, el) {
+  ev.preventDefault(); ev.stopPropagation(); Audio8.init();
+  const x0 = ev.clientX, y0 = ev.clientY, b = ensureBar(); let fant = null;
+  const mover = e => {
+    if (!fant) { if (!b[i] || Math.hypot(e.clientX - x0, e.clientY - y0) < 10) return; fant = el.cloneNode(true); fant.classList.add('atalho-fantasma'); document.body.appendChild(fant); el.classList.add('atalho-origem'); }
+    fant.style.left = e.clientX + 'px'; fant.style.top = e.clientY + 'px';
+    document.querySelectorAll('#hotbar .slot.atalho-alvo').forEach(s => s.classList.remove('atalho-alvo'));
+    const t = document.elementFromPoint(e.clientX, e.clientY), sl = t && t.closest('#hotbar .slot[data-i]'); if (sl && +sl.dataset.i !== i) sl.classList.add('atalho-alvo');
+  };
+  const soltar = e => {
+    window.removeEventListener('pointermove', mover); window.removeEventListener('pointerup', soltar); window.removeEventListener('pointercancel', soltar);
+    if (!fant) { barPick(i); return; }
+    fant.remove(); const t = document.elementFromPoint(e.clientX, e.clientY), sl = t && t.closest('#hotbar .slot[data-i]');
+    if (sl && +sl.dataset.i !== i) { const j = +sl.dataset.i; [b[i], b[j]] = [b[j], b[i]]; Audio8.sfx('click'); }
+    buildHotbar();
+  };
+  window.addEventListener('pointermove', mover); window.addEventListener('pointerup', soltar); window.addEventListener('pointercancel', soltar);
 }
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = ''; const old = $('hotbar2'); if (old) old.remove();
@@ -2975,12 +3005,13 @@ function buildHotbar() {
         el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span>${k}<span class="cost">x${P.inv[id] || 0}</span>`;
         if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
       } else { el.className = 'slot vazio'; el.innerHTML = `<span class="ic">${barEdit ? '+' : ''}</span>${k}`; }
-      tapOn(el, () => barEdit ? barPick(i) : barUse(e));
+      el.dataset.i = i;
+      if (barEdit) el.addEventListener('pointerdown', ev => arrastarAtalho(ev, i, el)); else tapOn(el, () => barUse(e));
       grp.appendChild(el);
     }
   }
   const ed = document.createElement('div'); ed.className = 'slot hbedit' + (barEdit ? ' on' : ''); ed.title = 'Editar atalhos'; ed.innerHTML = '<span class="ic">✏️</span>';
-  tapOn(ed, () => { barEdit = !barEdit; Audio8.sfx('click'); if (barEdit) log('✏️ Toque num espaço da barra para escolher a habilidade ou o item. Toque em ✏️ de novo para terminar.', 'sys'); buildHotbar(); });
+  tapOn(ed, () => { barEdit = !barEdit; Audio8.sfx('click'); if (barEdit) log('✏️ Toque num espaço da barra para escolher a habilidade ou o item, ou <b>segure e arraste</b> um atalho para outro espaço. Toque em ✏️ de novo para terminar.', 'sys'); buildHotbar(); });
   hb.appendChild(ed);
   const nb = document.createElement('div'); nb.className = 'slot hbnum'; nb.title = 'Trocar de barra (são 3)'; nb.innerHTML = `<span class="ic">${(P.barIdx || 0) + 1}</span><span class="k">barra</span>`;
   tapOn(nb, trocarBarra); hb.appendChild(nb);
@@ -3090,7 +3121,7 @@ function renderSkills() {
       <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
       <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
-      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${ensureBar().includes('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
   // as habilidades novas (passivas e ativas) de cada classe, embaixo das antigas
   const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
@@ -3108,7 +3139,7 @@ $('skillwin').addEventListener('click', e => {
   if (e.target.closest('[data-close]')) return toggleSkills();
   if (e.target.closest('[data-reset]')) return pedirReset('hab');
   const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
-  const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
+  const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id, () => renderSkills()); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
 });
 function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills(); }
 
