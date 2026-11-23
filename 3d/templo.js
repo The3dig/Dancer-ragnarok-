@@ -224,14 +224,17 @@ const Templo = (() => {
     for (let r = 0; r < 8; r++) { sala.firmes.add(r + ',' + c); if (rnd() < 0.35) { const c2 = Math.max(0, Math.min(2, c + (rnd() < 0.5 ? -1 : 1))); sala.firmes.add(r + ',' + c2); } c = Math.max(0, Math.min(2, c + Math.floor(rnd() * 3) - 1)); }
     sala.mostrarAte = 0; sala.viuT = -99; resetar5(sala);
   }
-  function resetar5(sala) { for (const p of sala.pedras) { p.caiu = false; p.pisouT = 0; p.m.position.y = 0.15; p.m.visible = true; } }
+  function resetar5(sala) { for (const p of sala.pedras) { p.caiu = false; p.pisouT = 0; p.ultT = 0; p.m.position.y = 0.15; p.m.visible = true; } }
   function tick5(sala, lx, lz, dt) {
-    if (lz > 9.6 && time - sala.viuT > 6) { sala.viuT = time; sala.mostrarAte = time + 3.5; resetar5(sala); log('✨ As runas brilham nas pedras firmes... decore!', 'sys'); Audio8.sfx('buff'); }
+    if (lz > 9.6 && time - sala.viuT > 6) { sala.viuT = time; sala.mostrarAte = time + 4.5; resetar5(sala); log('✨ As runas brilham nas pedras firmes... decore!', 'sys'); Audio8.sfx('buff'); }
     const mostra = time < sala.mostrarAte;
     for (const p of sala.pedras) {
       p.m.material.emissive.setHex(mostra && sala.firmes.has(p.r + ',' + p.c) ? 0x9060ff : 0x000000);
       if (p.caiu && p.m.visible) { p.m.position.y -= dt * 6; if (p.m.position.y < -6) p.m.visible = false; }
-      if (p.pisouT && !p.caiu && time - p.pisouT > 1.6) { p.caiu = true; Audio8.sfx('hit'); }
+      // a pedra firme desaba ATRÁS de você (pouco depois de sair dela) ou se ficar parado nela tempo demais.
+      // Antes desabava 1,6 s depois de pisar, ainda com o jogador em cima (na diagonal não dava tempo e ninguém passava).
+      if (p.pisouT && !p.caiu && (time - p.ultT > 1.0 || time - p.pisouT > 6)) { p.caiu = true; Audio8.sfx('hit'); }
+      if (p.pisouT && !p.caiu && time - p.pisouT > 4.5) p.m.position.y = 0.15 + Math.sin(time * 40) * 0.04;   // tremendo: vai cair
     }
     // as pedras ficam encostadas (sem vão entre elas nem entre a borda e a 1ª fileira: antes, andando, sempre se caía no vão)
     if (lz < 9.05 && lz > -7.75) {
@@ -242,6 +245,7 @@ const Templo = (() => {
       if (!sob) { cair('Você caiu no abismo!', 0.15); return; }
       if (!sala.firmes.has(sob.r + ',' + sob.c)) { if (sob !== falsa) return; sob.caiu = true; cair('Era uma pedra falsa! Ela desabou com você.', 0.15); return; }
       if (!sob.pisouT) sob.pisouT = time;
+      for (const p of cobre) if (p.pisouT || p === sob) { if (!p.pisouT) p.pisouT = time; p.ultT = time; }
     }
     if (lz < -8.4) abrir(sala, '🚪 Você atravessou <b>A Ponte que Desaba</b>!');
   }
@@ -393,7 +397,7 @@ const Templo = (() => {
     if (run && run.grupo && run.grupo.host && Net.connected) Net.send({ t: 'dgfim', pref: run.grupo.id + ':' });
     if (run && !run.acabou && typeof Ranking !== 'undefined') Ranking.cancelar('templo');
     for (const m of mobs.filter(m => m.templo)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); } mobs = mobs.filter(m => !m.templo);
-    run = null; P.x = SAIDA.x; P.z = SAIDA.z; P.y = groundY(P.x, P.z); P.face = Math.PI; camS.yaw = 0; Audio8.sfx('warp');
+    run = null; { const q = pontoLivre(SAIDA.x, SAIDA.z); P.x = q.x; P.z = q.z; } P.y = groundY(P.x, P.z); P.face = Math.PI; camS.yaw = 0; Audio8.sfx('warp');
     if (msg) log(msg, 'sys');
   }
 

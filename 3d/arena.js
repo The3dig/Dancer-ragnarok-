@@ -7,7 +7,7 @@
 'use strict';
 const Arena = (() => {
   const A = ARENA, R = A.r;
-  const SAIDA = { x: VIL.x + 15, z: VIL.z - 9 };                            // em Solmira, na frente do Mestre Brakus
+  const SAIDA = { x: VIL.x + 12, z: VIL.z - 9 };                            // em Solmira, uns passos ao lado do Mestre Brakus (em cima dele, o jogador ficava preso)
   const temporada = () => { const d = new Date(); return 'arena' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0'); };
   const nomeTemporada = () => new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const S = () => { const t = temporada(); if (!P.arena || P.arena.t !== t) P.arena = { t, v: 0, d: 0 }; return P.arena; };
@@ -34,7 +34,7 @@ const Arena = (() => {
     camS.x = P.x; camS.z = P.z; P.protT = time + 3; armada = false; Audio8.sfx('warp');
     banner('⚔️ ARENA DE SOLMIRA'); log(`⚔️ <b>Arena:</b> PvP livre e <b>sem penalidade</b> (morrer não tira XP nem itens). Cada vitória conta para o 🏆 ranking de <b>${nomeTemporada()}</b>. Saia pelo portão de luz.`, 'gold');
   }
-  function sair(msg) { P.x = SAIDA.x; P.z = SAIDA.z; P.y = groundY(P.x, P.z); P.face = 0; Audio8.sfx('warp'); if (msg) log(msg, 'sys'); }
+  function sair(msg) { const q = pontoLivre(SAIDA.x, SAIDA.z); P.x = q.x; P.z = q.z; P.y = groundY(P.x, P.z); P.face = 0; Audio8.sfx('warp'); if (msg) log(msg, 'sys'); }
   // venceu alguém na arena: +1 vitória na temporada (e vai para o servidor)
   async function vitoria(nome) {
     const s = S(); s.v++; Audio8.sfx('level'); log(`🏆 Vitória na Arena sobre <b>${nome}</b>! Temporada: <b>${s.v}</b> vitória${s.v === 1 ? '' : 's'}.`, 'gold');
@@ -43,7 +43,7 @@ const Arena = (() => {
   }
   // morreu na arena: sem perder nada, volta na porta com a vida cheia
   function morreu() { const s = S(); s.d++; P.voltaArena = true; log('⚔️ Você caiu na Arena. Sem penalidade: volta na porta, com a vida cheia.', 'sys'); Audio8.sfx('die'); }
-  function volta() { P.voltaArena = false; P.hp = stats.maxHp(); P.sp = stats.maxSp(); return SAIDA; }
+  function volta() { P.voltaArena = false; P.hp = stats.maxHp(); P.sp = stats.maxSp(); return pontoLivre(SAIDA.x, SAIDA.z); }
   async function ranking(voltar) {
     let r = null; try { r = await Nuvem.api('GET', '/conta/ranking/' + temporada()); } catch (e) { }
     const l = r && r.dano && r.dano.length ? r.dano.map((o, i) => `${['🥇', '🥈', '🥉'][i] || `<b>${i + 1}º</b>`} ${o.nome} — <b>${o.dano}</b> vitória${o.dano === 1 ? '' : 's'}`).join('<br>') : '<small>Ninguém venceu ainda nesta temporada. Seja o primeiro!</small>';

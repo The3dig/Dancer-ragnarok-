@@ -116,7 +116,7 @@ function criarMasmorra(C) {
   function sair(msg) {
     if (typeof Ranking !== 'undefined') Ranking.cancelar(C.zona);
     fimGrupo(); limpar(); run = null; hud(false);
-    P.x = C.saida.x; P.z = C.saida.z; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; Audio8.sfx('warp'); leaveT = 1.5;
+    { const q = pontoLivre(C.saida.x, C.saida.z); P.x = q.x; P.z = q.z; } P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; Audio8.sfx('warp'); leaveT = 1.5;
     if (msg) log(msg, 'sys');
   }
   const hudEl = (() => { const d = document.createElement('div'); d.id = C.zona + '-hud'; d.className = 'masm-hud hidden'; document.body.appendChild(d); return d; })();

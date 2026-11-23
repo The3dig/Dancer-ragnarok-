@@ -636,6 +636,12 @@ function addOb(x, z, r) {
       const k = i + ',' + j; if (!OB.has(k)) OB.set(k, []); OB.get(k).push(o);
     }
 }
+// procura um lugar livre perto de (x, z), em espiral: quem sai de uma masmorra nunca nasce preso num NPC ou numa parede
+function pontoLivre(x, z) {
+  if (!blocked(x, z)) return { x, z };
+  for (let d = 0.8; d <= 6; d += 0.8) for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, nx = x + Math.sin(a) * d, nz = z + Math.cos(a) * d; if (!blocked(nx, nz)) return { x: nx, z: nz }; }
+  return { x, z };
+}
 function blocked(x, z, r = 0.45) {
   if (inTower(z)) { const f = floorAt(x, z); if (f && f.templo && typeof Templo !== 'undefined') return Templo.bloqueia(f, x, z, r); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (z < -300 && x > 1000) { if (!CID_OUT || CID_OUT(x, z, r)) return true; }

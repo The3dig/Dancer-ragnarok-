@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 24/11
+
+- **🔧 Ponte do Templo e saída da Arena**: **A Ponte que Desaba** (Templo do Eco Selado): a pedra firme desabava embaixo de você antes de dar tempo de atravessar, e ninguém passava. Agora ela só desaba **atrás** de você, depois que você sai dela (ou se ficar parado nela tempo demais: ela treme antes). As runas também ficam acesas um pouco mais. **Arena:** ao sair, você aparecia em cima do Mestre Brakus e ficava preso; agora aparece ao lado dele. As saídas de todas as masmorras procuram um lugar livre.
+
 ## 23/11
 
 - **🥽 VR no Meta Quest (experimental)**: No navegador do **Meta Quest**, aparece um botão **🥽** lá em cima: você entra no jogo em realidade virtual, olhando em volta com a cabeça, com o herói andando à sua frente. Analógico esquerdo anda, gatilho direito ataca, A e B usam habilidades, analógico direito gira a vista. Ainda é um teste: vida e mochila não aparecem nos óculos. No celular e no PC nada muda.

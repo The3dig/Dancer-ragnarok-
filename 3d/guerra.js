@@ -80,7 +80,7 @@ const Guerra = (() => {
     const a = Math.random() * TAU; P.x = F.x + Math.sin(a) * (R - 4); P.z = F.z + Math.cos(a) * (R - 4); P.y = 0; P.face = Math.atan2(F.x - P.x, F.z - P.z); camS.x = P.x; camS.z = P.z; P.protT = time + 4; armada = false; Audio8.sfx('warp');
     banner('🏰 GUERRA DE GUILDAS'); log('🏰 <b>Guerra de Guildas:</b> destrua o 💎 <b>Coração da Fortaleza</b>. A guilda que causar <b>mais dano</b> nele domina a Fortaleza até domingo que vem (+10% de XP e de drop). PvP livre contra as outras guildas, sem perder itens.', 'gold');
   }
-  function sair(msg) { P.x = SAIDA.x; P.z = SAIDA.z; P.y = groundY(P.x, P.z); P.face = 0; Audio8.sfx('warp'); if (msg) log(msg, 'sys'); }
+  function sair(msg) { const q = pontoLivre(SAIDA.x, SAIDA.z); P.x = q.x; P.z = q.z; P.y = groundY(P.x, P.z); P.face = 0; Audio8.sfx('warp'); if (msg) log(msg, 'sys'); }
   function npc(eu) {
     const d = dona && dona.sigla ? `Hoje a Fortaleza é da guilda <b>[${dona.sigla}]</b>${souDona() ? ' — a sua! Vocês têm +10% de XP e de drop' : ''}.` : 'Ninguém domina a Fortaleza ainda.';
     dialog('💬 Comandante Varek', `${eu ? `<b>${eu}</b>, ` : ''}todo <b>domingo, das 18h às 19h</b>, as guildas disputam a Fortaleza das Bandeiras. Quem fizer mais estrago no Coração da Fortaleza manda nela a semana inteira. ${d}<br><small>${ativa() ? '⚔️ A guerra está acontecendo AGORA!' : 'Só membros de guilda entram.'}</small>`, [
