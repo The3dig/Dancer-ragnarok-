@@ -3455,6 +3455,18 @@ $('chat-hist').addEventListener('click', e => { const a = e.target.closest('.ite
 $('btn-chat').onclick = openChat;
 $('chat-send').onclick = sendChat;
 $('chat-in').addEventListener('blur', () => setTimeout(fitScreen, 400));
+// 💬 teclado aberto no celular (principalmente deitado): o teclado come quase a tela toda e o chat ficava cortado,
+// sem dar para ver o que se escreve. Aí o chat ocupa só o pedaço que sobra, com a caixa de texto embaixo, logo acima do teclado.
+function ajustarChat() {
+  const cb = $('chatbox'), vv = window.visualViewport;
+  const aberto = !cb.classList.contains('hidden') && document.activeElement === $('chat-in') && vv && vv.height < innerHeight * 0.8;
+  cb.classList.toggle('teclado', !!aberto);
+  if (aberto) { cb.style.top = (vv.offsetTop + 4) + 'px'; cb.style.height = Math.max(90, vv.height - 8) + 'px'; const h = $('chat-hist'); h.scrollTop = h.scrollHeight; }
+  else { cb.style.top = ''; cb.style.height = ''; }
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', ajustarChat); visualViewport.addEventListener('scroll', ajustarChat); }
+$('chat-in').addEventListener('focus', () => { ajustarChat(); setTimeout(ajustarChat, 350); setTimeout(ajustarChat, 800); });
+$('chat-in').addEventListener('blur', () => setTimeout(ajustarChat, 50));
 $('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') fecharChat(); });
 $('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
 $('btn-sit').onclick = () => { P.sit = !P.sit; };

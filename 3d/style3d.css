@@ -865,3 +865,10 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 @keyframes anPulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @media (prefers-reduced-motion: reduce) { #anuncio .an-ic { animation: none; } #anuncio { transition: opacity .3s; } }
 #netpausa .volta-aqui { display: block; margin: 14px auto 0; padding: 12px 20px; border-radius: 14px; border: 1px solid #f2c86a; background: linear-gradient(180deg, #c08a2a, #7a4a10); color: #fff6d8; font: 800 15px 'Nunito', sans-serif; cursor: pointer; pointer-events: auto; }
+
+/* 💬 chat com o teclado aberto: ocupa só o espaço que sobra acima do teclado, conversa em cima e caixa de texto embaixo */
+#chatbox.teclado { position: fixed; bottom: auto !important; left: calc(6px + env(safe-area-inset-left)); right: calc(6px + env(safe-area-inset-right)); width: auto; transform: none; gap: 4px; z-index: 90; }
+#chatbox.teclado #chat-hist { flex: 1 1 auto; min-height: 0; max-height: none !important; padding: 4px 8px; font-size: 12px; }
+#chatbox.teclado .chat-linha { flex: 0 0 auto; }
+#chatbox.teclado input { padding: 6px 10px; }
+#chatbox.teclado #chat-canal, #chatbox.teclado #chat-item, #chatbox.teclado #chat-x, #chatbox.teclado #chat-send { padding: 0 8px !important; font-size: 12px; }
