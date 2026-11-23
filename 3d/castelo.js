@@ -146,7 +146,7 @@ const Castelo = (() => {
   for (const x of [-5, -1.5, 2]) { estante(x, -21.4, 0); ob(x, -21.4, 1.4); }
   estante(-7.4, -16, Math.PI / 2); ob(-7.4, -16, 1.3); estante(7.4, -13, -Math.PI / 2); ob(7.4, -13, 1.3);
   { const mt = new THREE.Group(); mt.position.set(-1, 0, -15.5); g.add(mt); box(3, 0.12, 1.5, madeira(0x6a4a2a), 0, 1, 0, mt); for (const [dx, dz] of [[-1.3, -0.6], [1.3, -0.6], [-1.3, 0.6], [1.3, 0.6]]) box(0.12, 1, 0.12, madeira(0x4a2a14), dx, 0.5, dz, mt); box(0.8, 0.06, 0.6, L(0xf0e6c8), -0.5, 1.09, 0, mt); box(0.1, 0.3, 0.1, L(0xf0e6d0), 0.9, 1.21, 0, mt); const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilhoT, color: 0xffc060, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); f.position.set(0.9, 1.5, 0); f.scale.setScalar(0.35); mt.add(f); velas.push(f); ob(-1, -15.5, 1.6); }
-  { cil(0.1, 0.1, 1, madeira(0x5a3a24), 4.5, 0.5, -18); const gl = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 16), PH(0x2a6aa8, 0x0a1a2a)); gl.position.set(4.5, 1.5, -18); g.add(gl); g.userData.globo = gl; ob(4.5, -18, 0.6); }
+  // (o globo azul num pino foi tirado: pedido do Rone)
   tapete(6, 4, 0, -16, tapeteT('#3a2a4a', '#d9a63a', '#8a6ab8'));
   lustre(0, -15.5, 1);
   // ----- VESTÍBULO (sul): bancos, armaduras de guarda, o quadro das brincadeiras e o portal de saída
@@ -347,17 +347,35 @@ const Castelo = (() => {
   }
   // ---------------- 🎯 bonecos de treino do arsenal (pedido do Rone): dá para bater, mostram o dano, nunca caem
   const BONECOS = [[-22.4, -5], [-22.4, -1.6], [-22.4, 1.6], [-22.4, 5]];
+  // o primeiro é o boneco MVP (defesa e vida de chefe); os outros são bicho comum. Você escolhe o nível de cada tipo
+  // (pedido do Rone: todos iguais e sem defesa ficava fácil demais)
   let bonecos = [], dpsT = 0;
+  const cfgB = () => (P.bonecoLv = P.bonecoLv || { n: Math.max(10, P.lv), mvp: Math.max(10, P.lv) });
+  function defDe(L, mvp) {
+    const base = Object.values(MOBDEF).filter(d => !d.world && !d.alfa && d.def != null && d.lv && (mvp ? (d.boss || d.mini) : !(d.boss || d.mini)));
+    const d = base.sort((a, b) => Math.abs(a.lv - L) - Math.abs(b.lv - L))[0]; if (!d) return Math.round(L * (mvp ? 1.6 : 0.8));
+    return Math.round(d.def * Math.max(0.5, L / d.lv) * (mvp ? 1.3 : 1));
+  }
+  function ajustarBoneco(o) {
+    const C2 = cfgB(), k = o.mvp ? 'mvp' : 'n';
+    o.d = { ...o.d, lv: C2[k], def: defDe(C2[k], o.mvp) };   // (sem marcar como chefe: senão aparecia a barra de vida de 1 bilhão)
+    const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `${o.mvp ? '👑 Boneco MVP' : '🎯 Boneco'} <small>Nv ${C2[k]}</small>`;
+    o.janela = []; o.titulo = `${o.mvp ? '👑 Boneco MVP' : '🎯 Boneco'} Nv ${C2[k]}`;
+  }
+  function escolherNivelBoneco(o) {
+    const C2 = cfgB(), k = o.mvp ? 'mvp' : 'n', NIV = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150];
+    dialog(o.mvp ? '👑 Boneco MVP' : '🎯 Boneco de treino', `${o.mvp ? 'Tem a <b>defesa de um chefe (MVP)</b> do nível escolhido.' : 'Tem a <b>defesa de um bicho comum</b> do nível escolhido.'} Escolha o nível para testar o seu dano de verdade.<br><small>Agora: <b>Nv ${C2[k]}</b> · defesa ${defDe(C2[k], o.mvp)}</small>`,
+      [...NIV.map(L => ({ label: `${L === C2[k] ? '✅' : '▫️'} Nível ${L}`, fn: () => { C2[k] = L; for (const b of bonecos) if (!!b.mvp === !!o.mvp) ajustarBoneco(b); Audio8.sfx('click'); try { save(); } catch (e) { } } })), { label: 'Fechar' }]);
+  }
   function criarBonecos() {
     if (bonecos.length) return;
     const t = BASE()[0]; if (!t) return;
-    for (const [bx, bz] of BONECOS) {
+    BONECOS.forEach(([bx, bz], i) => {
       const o = spawnMob(t, null, { x: C.x + bx, z: C.z + bz }); o.model.g.visible = false;
-      o.d = { ...o.d, name: 'Boneco de Treino', lv: P.lv, hp: 1e9, atk: 0, def: 0, xp: 0, zeny: [0, 0], aggro: 0, speed: 0, respawn: 1e9, drops: [] }; o.hp = o.maxHp = 1e9;
-      o.boneco = true; o.noRespawn = true; o.bx = o.x; o.bz = o.z; o.dano = 0; o.janela = [];
-      const sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = '🎯 Boneco de Treino';
-      bonecos.push(o);
-    }
+      o.d = { ...o.d, name: 'Boneco de Treino', hp: 1e9, atk: 0, xp: 0, zeny: [0, 0], aggro: 0, speed: 0, respawn: 1e9, drops: [] }; o.hp = o.maxHp = 1e9;
+      o.boneco = true; o.mvp = i === 0; o.noRespawn = true; o.bx = o.x; o.bz = o.z; o.dano = 0; o.janela = [];
+      ajustarBoneco(o); bonecos.push(o);
+    });
   }
   function tirarBonecos() { for (const o of bonecos) { o.dead = true; scene.remove(o.model.g); o.lab.remove(); } mobs = mobs.filter(o => !o.boneco); bonecos = []; }
   function bonecosTick(dt) {
@@ -368,7 +386,7 @@ const Castelo = (() => {
         if (a.ativo && a.tipo === 'bonecos') { const e = E(); e.bon = (e.bon || 0) + perdeu; const passo = Math.max(500, P.lv * 120); while ((e.bonP || 0) < 12 && e.bon >= ((e.bonP || 0) + 1) * passo) { e.bonP = (e.bonP || 0) + 1; ponto(1, '🎯'); } } }
       o.janela = o.janela.filter(([t2]) => time - t2 < 5);
     }
-    if ((dpsT -= dt) <= 0) { dpsT = 0.5; for (const o of bonecos) { const dps = Math.round(o.janela.reduce((s2, [, v]) => s2 + v, 0) / 5), sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `🎯 Boneco de Treino <small>${dps ? dps.toLocaleString('pt-BR') + ' de dano/s' : 'bata em mim!'}</small>`; } }
+    if ((dpsT -= dt) <= 0) { dpsT = 0.5; for (const o of bonecos) { const dps = Math.round(o.janela.reduce((s2, [, v]) => s2 + v, 0) / 5), sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `${o.titulo} <small>${dps ? dps.toLocaleString('pt-BR') + ' de dano/s' : 'bata em mim!'}</small>`; } }
   }
   // ---------------- 🗡️ Duelo da Guilda: PvP dentro do castelo em rodadas de 5 minutos (20h00, 20h10, 20h20)
   function pvpAtivo() { const a = agora(); if (!a.ativo || a.tipo !== 'pvp' || !dentro()) return false; if (forcado) return true; const min = new Date().getMinutes(); return min % 10 < 5; }
@@ -415,6 +433,7 @@ const Castelo = (() => {
     if (Math.hypot(P.x - bobo.x, P.z - bobo.z) < 2.6) return { label: '🃏 Jogar jokenpô com o Bobo', fn: () => jokenpo() };
     for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return n.nome === 'Capitão da Guarda de Auren' ? { label: '🎖️ Trocar emblemas com o Capitão da Guarda de Auren', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
     for (const b of baus) if (Math.hypot(P.x - b.x, P.z - b.z) < 2) return { label: '🎁 Abrir o baú', fn: () => abrirBau(b) };
+    for (const o of bonecos) if (Math.hypot(P.x - o.x, P.z - o.z) < 2.6) return { label: `⚙️ Nível do ${o.mvp ? 'boneco MVP' : 'boneco'} (Nv ${o.d.lv})`, fn: () => escolherNivelBoneco(o) };
     if (Math.hypot(P.x - QUADRO.x, P.z - QUADRO.z) < 2.6) return { label: '📜 Brincadeiras das 20h', fn: () => info(true) };
     return null;
   }
