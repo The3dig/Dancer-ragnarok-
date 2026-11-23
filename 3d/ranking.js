@@ -46,9 +46,43 @@ const Ranking = (() => {
     addOb(x, z, 0.4); PLACAS.push({ x, z, cat, nome });
   }
   function nearest() { if (!running || inTower(P.z)) return null; for (const p of PLACAS) if (Math.hypot(P.x - p.x, P.z - p.z) < 2.4) return { label: `🏆 Ranking: ${p.nome}`, fn: () => mostrar(p.cat) }; return null; }
+  // ---------------- ícones lá em cima: 🏆 Recordes (todos os rankings) e 🏰 Masmorras (todas as masmorras)
+  const ORDEM = ['templo', 'cripta', 'minas', 'torre', 'abismo'];
+  function recordes() {
+    dialog('🏆 Recordes', 'Os mais rápidos e os que deram mais dano em cada lugar. Toque num para ver os 10 primeiros.', [
+      ...ORDEM.map(c => ({ label: NOMES[c], fn: () => { mostrar(c, recordes); return true; } })), { label: 'Fechar' }]);
+  }
+  const npcPos = id => { const n = NPCS.find(o => o.id === id); return n ? { x: n.x, z: n.z + 2.5 } : null; };
+  const MASM = () => {
+    const sem = (m, lim) => m && m.restam ? `restam <b>${m.restam()} de ${lim}</b> esta semana` : '';
+    return [
+      { cat: 'templo', ic: '🏛️', quem: 'Estudiosa Ilka', nome: 'Templo do Eco Selado', onde: 'Estudiosa Ilka, ao sul da praça de Solmira', nivel: '30+', sem: sem(MASMORRAS.eco, 3), txt: 'Armadilhas e enigmas em 6 salas e o Guardião do Eco. Baú de ouro, prata ou bronze pelo tempo e pelas quedas. Sozinho ou em grupo.', pos: () => npcPos('templo') },
+      { cat: 'cripta', ic: '🃏', quem: 'Cartomante Zaíra', nome: 'Cripta das Cartas', onde: 'Cartomante Zaíra, na tenda roxa a oeste da praça de Solmira', nivel: '30+', sem: sem(MASMORRAS.cripta, 2), txt: '3 ondas e o Guardião das Cartas em 8 minutos. 🧩 Fragmentos Arcanos e, raramente, uma Carta Arcana. Sozinho ou em grupo.', pos: () => npcPos('cartas') },
+      { cat: 'minas', ic: '⛏️', quem: 'Ferreiro Doran', nome: 'Mina da Forja', onde: 'Ferreiro Doran, perto da praça de Solmira', nivel: 'qualquer', sem: sem(MASMORRAS.minas, 5), txt: '3 ondas e o Capataz em 8 minutos. 🔶 Minério, 🔷 Têmpera e 🔰 Selo da Forja para o refino. Sozinho ou em grupo.', pos: () => npcPos('smith') },
+      { cat: 'torre', ic: '🗼', quem: 'a porta da Torre', nome: 'Torre do Cisma', onde: 'na Cidadela do Cisma (extremo leste)', nivel: '18 a 58', sem: 'sem limite', txt: '30 andares subindo, com guardiões a cada 5. No topo, o Kravenox acorda aos sábados, às 20h. 🔺 Fragmentos do Cisma para o Despertar.', pos: () => typeof Tower !== 'undefined' && Tower.door ? { x: Tower.door.x, z: Tower.door.z + 5 } : null },
+      { cat: 'abismo', ic: '🕳️', quem: 'a boca da Cratera', nome: 'Abismo do Cisma', onde: 'na Cratera do Cisma, perto de Solmira', nivel: '58+', sem: 'sem limite', txt: '30 andares descendo, bem mais perigosos que a Torre. No Fundo, o Verme Colossal acorda de 15 em 15 dias. 🌑 Núcleos do Abismo.', pos: () => typeof LAIR !== 'undefined' ? { x: LAIR.x, z: LAIR.z + 8 } : null },
+    ];
+  };
+  function masmorras() {
+    const L = MASM();
+    dialog('🏰 Masmorras', 'Todas as masmorras do Reino. Toque numa para ver como funciona, ir até lá ou ver o ranking.', [
+      ...L.map(m => ({ label: `${m.ic} ${m.nome} · nível ${m.nivel}${m.sem && m.sem !== 'sem limite' ? ' · ' + m.sem.replace(/<\/?b>/g, '') : ''}`, fn: () => { detalhe(m); return true; } })), { label: 'Fechar' }]);
+  }
+  function detalhe(m) {
+    dialog(`${m.ic} ${m.nome}`, `${m.txt}<br><small>📍 ${m.onde} · nível ${m.nivel}${m.sem ? ' · ' + m.sem : ''}</small>`, [
+      { label: '🧭 Ir até lá', fn: () => { const p = m.pos(); if (!p) return; P.qGo = { x: p.x, z: p.z, name: m.quem, qt: m.nome, qc: '#ffd860' }; $('quest').dataset.h = ''; log(`🧭 A seta leva até a <b>${m.nome}</b> (${m.onde}).`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) { if (AUTO.on) autoStop(''); autoStart(); } } },
+      { label: '🏆 Ranking', fn: () => { mostrar(m.cat, () => detalhe(m)); return true; } },
+      { label: '← Voltar', fn: () => { masmorras(); return true; } }]);
+  }
+  function botoes() {
+    const menu = $('menu'), antes = $('btn-help'); if (!menu || $('btn-recordes')) return;
+    const b1 = document.createElement('button'); b1.id = 'btn-masmorras'; b1.title = 'Masmorras'; b1.textContent = '🏰'; b1.onclick = () => { Audio8.sfx('click'); masmorras(); }; menu.insertBefore(b1, antes);
+    const b2 = document.createElement('button'); b2.id = 'btn-recordes'; b2.title = 'Recordes'; b2.textContent = '🏆'; b2.onclick = () => { Audio8.sfx('click'); recordes(); }; menu.insertBefore(b2, antes);
+  }
   function init() {
+    botoes();
     if (typeof Tower !== 'undefined' && Tower.door) placa(Tower.door.x + 5, Tower.door.z + 5, 'torre', 'Torre do Cisma');
     if (typeof LAIR !== 'undefined') placa(LAIR.x + 6, LAIR.z + 9, 'abismo', 'Abismo do Cisma');
   }
-  return { comecar, dano, cancelar, terminar, mostrar, atual, nearest, init, NOMES, fmt };
+  return { comecar, dano, cancelar, terminar, mostrar, atual, nearest, init, NOMES, fmt, recordes, masmorras };
 })();

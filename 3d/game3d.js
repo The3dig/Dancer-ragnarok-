@@ -3302,7 +3302,7 @@ function fecharJanelas(exceto) {
   }
 }
 // qual janela cada botão abre (as outras fecham antes)
-const JANELA_DO_BOTAO = { 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'dialog' };
+const JANELA_DO_BOTAO = { 'btn-masmorras': 'dialog', 'btn-recordes': 'dialog', 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'dialog' };
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('#menu button'); if (!b || !(b.id in JANELA_DO_BOTAO)) return;
   fecharJanelas(JANELA_DO_BOTAO[b.id]);
