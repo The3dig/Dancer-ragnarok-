@@ -92,6 +92,14 @@ const Grupo = (() => {
     const lista = [null, ...pertoDe(m, P.lv)];
     return lista.length > 1 ? lista[Math.floor(Math.random() * lista.length)] : null;
   }
+  // 🎁 drops repartidos (pedido do Rone): em cada bicho que cai, o grupo perto é embaralhado e cada item vai para um,
+  // na vez de cada um (2 itens e 2 pessoas = 1 para cada; 2 itens e 3 pessoas = um fica sem). null = fica comigo.
+  function repartidor(m) {
+    if (!gp() || !online()) return null;
+    const l = [null, ...pertoDe(m, P.lv)]; if (l.length < 2) return null;
+    for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; }
+    let k = 0; return () => l[k++ % l.length];
+  }
   // XP dividido igual (com +10% por companheiro): 2 no grupo = 55% para cada; 4 = 32,5%; 8 = 21%
   function quantosPerto(m, ref = P.lv) { if (!gp() || !online()) return 1; return 1 + pertoDe(m, ref).length; }
   function parteXp(m, ref = P.lv) { const n = quantosPerto(m, ref); return n > 1 ? (1 + 0.1 * (n - 1)) / n : 1; }
@@ -271,5 +279,5 @@ const Grupo = (() => {
 
     if (!$('btn-grupo')) { const b = document.createElement('button'); b.id = 'btn-grupo'; b.title = 'Grupo'; b.textContent = '👥'; b.onclick = painel; $('menu').insertBefore(b, $('btn-help')); }
   }
-  return { pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
+  return { repartidor, pedirMasmorra, init, update, pres, painel, html, membros, doGrupo, convidar, sair, sortear, enviar, parteXp, quantosPerto, parteDoMatador, peso, apoio, PERTO };
 })();

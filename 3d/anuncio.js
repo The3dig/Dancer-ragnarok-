@@ -28,5 +28,15 @@ const Anuncio = (() => {
     aviso('verme5', dia === 0 && min >= 19 * 60 + 55 && min < 20 * 60, { ic: '🐛', cor: 'sangue', tag: 'EM 5 MINUTOS', titulo: 'O Verme Colossal vai acordar', sub: 'Às 20h, no Fundo do Abismo do Cisma. Leve poções e amigos!', som: 'boom' });
     aviso('guerra5', dia === 0 && min >= 17 * 60 + 55 && min < 18 * 60, { ic: '🏰', cor: 'azul', tag: 'EM 5 MINUTOS', titulo: 'Guerra de Guildas', sub: 'Às 18h a Fortaleza abre. Fale com o Comandante Varek, em Solmira.' });
   }, 5000);
-  return { mostrar, fechar };
+  // 📣 anúncio para o jogo INTEIRO (pedido do Rone: "Ludivicki pegou a carta!"): vai na presença de quem conseguiu
+  // e aparece grande na tela de todos que estão on-line
+  let meu = null; const vistos = new Map();
+  function global(o) { meu = { ...o, at: Date.now() }; mostrar(o); }
+  const pres = () => meu && Date.now() - meu.at < 90000 ? { anun: meu } : {};
+  setInterval(() => {
+    if (typeof running === 'undefined' || !running || typeof Net === 'undefined' || !Net.peers) return;
+    for (const r of Net.peers()) { const a = r.s && r.s.anun; if (!a || !a.at || vistos.get(r.peer) === a.at) continue; vistos.set(r.peer, a.at);
+      if (Date.now() - a.at < 90000) mostrar({ ic: String(a.ic || '📣').slice(0, 4), cor: ['ouro', 'sangue', 'azul', 'verde'].includes(a.cor) ? a.cor : 'ouro', tag: String(a.tag || '').slice(0, 40), titulo: String(a.titulo || '').slice(0, 80), sub: String(a.sub || '').slice(0, 160), som: 'level' }); }
+  }, 1500);
+  return { mostrar, fechar, global, pres };
 })();

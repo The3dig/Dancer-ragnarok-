@@ -72,6 +72,7 @@ const Partilha = (() => {
       if (String(m.id).startsWith('dg:forte:') && typeof Guerra !== 'undefined') Guerra.coracaoCaiu(m);   // 🏰 o Coração da Fortaleza caiu
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
+      mb.danoPor = m.dano || {};                                        // quem bateu (o castelo sorteia a carta do Campeão entre eles)
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
       const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO ? Grupo.parteDoMatador(mb, m.by) : null;
       const grupo = gq && gq.parte > 0;
