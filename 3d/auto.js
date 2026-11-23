@@ -125,7 +125,7 @@ const AutoCaca = (() => {
   function botao() { const m = $('menu'); if (!m || $('btn-auto')) return; const b = document.createElement('button'); b.id = 'btn-auto'; b.title = 'Caça automática'; b.textContent = '🤖'; b.onclick = () => { Audio8.sfx('click'); abrir(); }; m.insertBefore(b, $('btn-grupo') || $('btn-help')); }
   // botão redondo "AUTO" ao lado do ataque (celular); no PC fica no ☰ Mais
   function botaoToque() {
-    const tb = $('tbtns'); if (!tb || $('t-auto')) return;
+    const tb = $('touch'); if (!tb || $('t-auto')) return;                // fica ao lado do joystick (no canto direito encavalava no quadro de missões)
     const b = document.createElement('button'); b.id = 't-auto'; b.innerHTML = '<span>AUTO</span>'; b.title = 'Caça automática';
     const ir = e => { e.preventDefault(); Audio8.sfx('click'); if (on) parar('🤖 Caça automática parada.'); else abrir(); };
     b.addEventListener('pointerdown', ir); tb.appendChild(b); marcar();

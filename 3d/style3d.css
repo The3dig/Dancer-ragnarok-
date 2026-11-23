@@ -767,14 +767,14 @@ body.enc-chat #chat, body.enc-quest #quest { display: none !important; }
 #dialog .rk-bloco { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--line); }
 #dialog .rk-t { color: var(--gold); }
 /* botão AUTO ao lado do ataque */
-#tbtns #t-auto { right: 20px; bottom: 168px; width: 56px; height: 56px; padding: 0; background: radial-gradient(circle at 35% 30%, rgba(80,90,120,.85), rgba(20,26,40,.85)) !important; border: 2px solid rgba(242,200,106,.85); box-shadow: 0 0 0 2px rgba(0,0,0,.35), inset 0 0 8px rgba(242,200,106,.35); }
-#tbtns #t-auto span { font: 900 13px 'Nunito', sans-serif; letter-spacing: 1px; color: #ffe39a; text-shadow: 0 1px 2px #000; }
-#tbtns #t-auto.on { border-color: #5de07a; background: radial-gradient(circle at 35% 30%, rgba(93,224,122,.85), rgba(20,90,50,.85)) !important; animation: autoPulsa 1.4s ease-in-out infinite; }
-#tbtns #t-auto.on span { color: #fff; }
+#t-auto { position: absolute; left: calc(150px + env(safe-area-inset-left)); right: auto; bottom: 26px; width: 56px; height: 56px; padding: 0; border-radius: 50%; color: #fff; pointer-events: auto; touch-action: none; background: radial-gradient(circle at 35% 30%, rgba(80,90,120,.85), rgba(20,26,40,.85)) !important; border: 2px solid rgba(242,200,106,.85); box-shadow: 0 0 0 2px rgba(0,0,0,.35), inset 0 0 8px rgba(242,200,106,.35); }
+#t-auto span { font: 900 13px 'Nunito', sans-serif; letter-spacing: 1px; color: #ffe39a; text-shadow: 0 1px 2px #000; }
+#t-auto.on { border-color: #5de07a; background: radial-gradient(circle at 35% 30%, rgba(93,224,122,.85), rgba(20,90,50,.85)) !important; animation: autoPulsa 1.4s ease-in-out infinite; }
+#t-auto.on span { color: #fff; }
 @keyframes autoPulsa { 0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 6px rgba(93,224,122,.6); } 50% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 18px rgba(93,224,122,1); } }
-body.touch #tbtns #t-auto { right: 12px; bottom: 136px; width: 46px; height: 46px; }
-body.touch #tbtns #t-auto span { font-size: 11px; }
-@media (prefers-reduced-motion: reduce) { #tbtns #t-auto.on { animation: none; } }
+body.touch #t-auto { left: calc(128px + env(safe-area-inset-left)); bottom: 22px; width: 46px; height: 46px; }
+body.touch #t-auto span { font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { #t-auto.on { animation: none; } }
 /* arrastar atalhos (modo ✏️) */
 .atalho-fantasma { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%) scale(1.15); opacity: .9; box-shadow: 0 6px 18px rgba(0,0,0,.6); border-color: var(--gold) !important; }
 #hotbar .slot.atalho-origem { opacity: .35; }

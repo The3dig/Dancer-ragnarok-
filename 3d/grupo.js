@@ -129,8 +129,20 @@ const Grupo = (() => {
   async function gravar() {
     if (rec || !online() || !membros().length) { if (!membros().length) log('🎤 O rádio fala com o seu grupo: chame alguém no 👥 primeiro.', 'sys'); return; }
     if (mimeOk() === null || !navigator.mediaDevices) { log('🎤 Este navegador não grava áudio.', 'bad'); return; }
+    if (window.top !== window) { log('🎤 Aqui dentro desta página o microfone não funciona. Abra o jogo direto no navegador (Safari ou Chrome) para usar o rádio.', 'bad'); return; }
     try { mic = mic && mic.active ? mic : await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-    catch (e) { log('🎤 Sem permissão para usar o microfone. Libere nas configurações do navegador.', 'bad'); return; }
+    catch (e1) {
+      // alguns celulares recusam o pedido com ajustes de áudio: tenta o pedido simples
+      try { if (e1 && e1.name === 'NotAllowedError') throw e1; mic = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch (e) {
+        const ios = /iPhone|iPad|iPod/.test(navigator.userAgent), app = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+        const msg = e && e.name === 'NotFoundError' ? 'Não achei nenhum microfone neste aparelho.'
+          : e && e.name === 'NotReadableError' ? 'O microfone está sendo usado por outro app (ligação, gravador...). Feche o outro app e tente de novo.'
+          : ios ? (app ? 'O iPhone bloqueou o microfone para o jogo. Vá em <b>Ajustes → Safari → Microfone</b> e escolha <b>Perguntar</b> ou <b>Permitir</b>, feche o jogo e abra de novo.' : 'O Safari bloqueou o microfone para o jogo. Toque em <b>aA</b> na barra de endereço → <b>Ajustes do Site</b> → <b>Microfone</b> → <b>Permitir</b>, e tente de novo.')
+          : 'O navegador bloqueou o microfone para o jogo. Toque no cadeado ao lado do endereço do site → <b>Permissões</b> → <b>Microfone</b> → <b>Permitir</b>, e tente de novo.';
+        log('🎤 ' + msg, 'bad'); return;
+      }
+    }
     const t = mimeOk(); pedacos = [];
     try { rec = new MediaRecorder(mic, { ...(t ? { mimeType: t } : {}), audioBitsPerSecond: 24000 }); } catch (e) { rec = new MediaRecorder(mic); }
     rec.ondataavailable = e => { if (e.data && e.data.size) pedacos.push(e.data); };
