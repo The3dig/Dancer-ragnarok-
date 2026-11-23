@@ -16,6 +16,7 @@ const Ranking = (() => {
   const atual = () => corrida;
   async function terminar(cat) {
     if (!corrida || corrida.cat !== cat) return;
+    if (typeof Tarefas !== 'undefined') Tarefas.evento('masmorra');
     const tempo = (Date.now() - corrida.t0) / 1000, d = corrida.dano; corrida = null;
     log(`🏆 <b>${NOMES[cat]}</b> concluída em <b>${fmt(tempo)}</b>, com <b>${num(d)}</b> de dano.`, 'gold');
     if (typeof Nuvem === 'undefined' || !Nuvem.logado) return;
