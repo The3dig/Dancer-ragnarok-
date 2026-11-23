@@ -728,7 +728,7 @@ const Vida = (() => {
     dialog('💬 Ferreiro Doran', `${eu ? `Ah, <b>${eu}</b>. ` : ''}O fogo desta forja nunca apagou, nem no dia do Cisma. Trago o aço de volta à vida: refino suas peças e forjo novas com o que você trouxer das caçadas.`, [
       { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
       { label: '✨ Despertar equipamento (★1 a ★10)', fn: () => { despertar(); return true; } },
-      { label: '⛏️ Mina da Forja: sozinho (materiais do refino)', fn: () => { if (typeof Minas !== 'undefined') Minas.entrar(); } },
+      { label: `⛏️ Mina da Forja: sozinho · restam ${typeof Minas !== 'undefined' ? Minas.restam() : 0} de 5 esta semana`, fn: () => { if (typeof Minas !== 'undefined') Minas.entrar(); } },
       { label: typeof Minas !== 'undefined' && Minas.corridaDoGrupo() ? `👥 Descer à Mina com o seu grupo (${Minas.corridaDoGrupo().nome} já começou)` : '👥 Mina da Forja em grupo (2 a 6: mais difícil, saque bem maior)', fn: () => { if (typeof Minas !== 'undefined') Minas.entrar('grupo'); } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
       { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },

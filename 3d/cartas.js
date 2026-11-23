@@ -24,7 +24,7 @@ const Cartas = (() => {
   
   // ---------------- a Cripta das Cartas (o mesmo molde da Mina da Forja)
   const Cripta = criarMasmorra({
-    zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 30,
+    zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 30, limite: 2,   // 2 por semana
     saida: { x: VIL.x - 10.5, z: VIL.z + 5 },                            // na frente da tenda da Cartomante, em Solmira
     chefeNome: 'Guardião das Cartas', chefeCurto: 'Guardião', txtOnda: 'saíram das cartas espalhadas',
     corPedra: new THREE.Color(0.42, 0.36, 0.55), corTeto: 0x120a1c, corSaida: 0xd8b8ff, corMapa: '#160e22', corTitulo: '#c89aff',
@@ -75,7 +75,6 @@ const Cartas = (() => {
     const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
     const placa = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false })); placa.position.set(2.2, 2.0, 3.0); placa.rotation.y = 0.5; g.add(placa);
     const poste = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.4, 0.12), madeira); poste.position.set(2.2, 0.7, 3.0); g.add(poste);
-    const luz = new THREE.PointLight(0xb080ff, 0.9, 10); luz.position.set(0, 2, 2.5); g.add(luz);
     addOb(tx, tz, 3.4);
   }
   // ---------------- a Cartomante Zaíra
@@ -94,7 +93,7 @@ const Cartas = (() => {
     dialog('💬 Cartomante Zaíra', `${eu ? `Ah, <b>${eu}</b>... ` : ''}Toda carta tem um pedaço de alma. Traga os 🧩 <b>Fragmentos Arcanos</b> da <b>Cripta das Cartas</b> e eu monto a carta do monstro que você quiser. Carta que não serve, eu quebro e devolvo os fragmentos.<br><small>As <b>Cartas Arcanas</b> eu não sei fazer: só a Cripta dá, e muito raramente. Você tem <b>${frag()} 🧩</b>.</small>`, [
       { label: '🃏 Montar carta de monstro', fn: () => { montar(); return true; } },
       { label: '💔 Quebrar cartas (viram 🧩 fragmentos)', fn: () => { quebrar(); return true; } },
-      { label: '🏛️ Cripta das Cartas: sozinho (nível 30+)', fn: () => { Cripta.entrar(); } },
+      { label: `🏛️ Cripta das Cartas: sozinho (nível 30+) · restam ${Cripta.restam()} de ${Cripta.limite} esta semana`, fn: () => { Cripta.entrar(); } },
       { label: Cripta.corridaDoGrupo() ? `👥 Entrar na Cripta com o seu grupo (${Cripta.corridaDoGrupo().nome} já começou)` : '👥 Cripta das Cartas em grupo (2 a 6: mais difícil, saque bem maior)', fn: () => { Cripta.entrar('grupo'); } },
       { label: 'Até mais' }]);
   }

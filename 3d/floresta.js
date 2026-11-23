@@ -152,10 +152,10 @@ const Floresta = (() => {
     for (let i = 0; i < 6000 && lista.length < (TOUCH ? 140 : 210); i++) {
       const x = rand(B.x0 + 10, B.x0 + B.w - 10), z = rand(MONTE + 6, B.z0 + B.h - 10);
       if (dRoad(x, z) < 5 || Math.hypot(x - CLAR.x, z - CLAR.z) < 18 || Math.hypot(x - GUARD.x, z - GUARD.z) < 19 || Math.hypot(x - FGATE.x, z - FGATE.z) < 12 || Math.hypot(x - FGATE_V.x, z - FGATE_V.z) < 12 || Math.abs(x - WALL.x) < 14 && z < WALL.z + 12 || lista.some(o => Math.hypot(o.x - x, o.z - z) < 6.5)) continue;
-      lista.push({ x, z, s: rand(1.0, 1.7), r: rand(0, TAU), c: Math.random() < 0.6 });
+      lista.push({ x, z, s: rand(1.0, 1.7), r: rand(0, TAU), c: false });   // sem os cristais roxos no tronco (o Rone achou feio)
     }
     const mk = (geo, mat, l) => { const im = new THREE.InstancedMesh(geo, mat, l.length); im.castShadow = !TOUCH; im.frustumCulled = false; l.forEach((o, i) => im.setMatrixAt(i, M4(o.x, h(o.x, o.z) - 0.3, o.z, rand(-0.05, 0.05), o.r, rand(-0.05, 0.05), o.s))); G.add(im); return im; };
-    mk(geoT, casca, lista); lista.forEach((o, i) => { o.v = i % VAR_R; }); raizVar.forEach((g, v) => { const l = lista.filter(o => o.v === v); if (l.length) mk(g, raizM, l); }); mk(geoC, cristalM, lista.filter(o => o.c));
+    mk(geoT, casca, lista); lista.forEach((o, i) => { o.v = i % VAR_R; }); raizVar.forEach((g, v) => { const l = lista.filter(o => o.v === v); if (l.length) mk(g, raizM, l); }); if (lista.some(o => o.c)) mk(geoC, cristalM, lista.filter(o => o.c));
     lista.forEach(o => addOb(o.x, o.z, 1.3 * o.s));
     // ossos e raízes soltas pelo chão
     // raiz solta: sai da terra, faz uma curva baixa e volta para a terra (as pontas ficam enterradas)

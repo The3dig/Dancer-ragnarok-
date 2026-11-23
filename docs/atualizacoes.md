@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 23/11
+
+- **⚡ Jogo mais leve e limite semanal das masmorras**: **Travamento:** a Mina, a Cripta, a tenda da Zaíra e a Casa ficavam com as luzes acesas o tempo todo, mesmo com você longe, e isso pesava no mapa inteiro. Agora elas só existem quando você está dentro. **Limite por semana** (vira na segunda-feira, sozinho ou em grupo): **Cripta das Cartas 2 vezes** e **Mina da Forja 5 vezes**. O NPC mostra quantas restam. **Floresta Morta:** as árvores perderam os cristais roxos do tronco. **Guerreiro Cristalizado:** se aparecer com o desenho antigo, vira 3D em até 2 segundos.
+
 ## 22/11
 
 - **🃏 Tenda da Zaíra e ícones maiores**: A **Cartomante Zaíra** agora tem uma **tenda roxa** a oeste da praça de Solmira (antes estava colada no Quadro de Caça). Os **ícones em cima dos NPCs** ficaram maiores (o dela é uma carta 🃏). **Cripta e Mina:** você não cai mais em cima do arco de saída ao entrar.

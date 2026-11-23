@@ -34,6 +34,7 @@ const ModelosIA = (() => {
     }
   }
   setTimeout(() => { for (const k in MAPA) carregar(MAPA[k].arq); }, 600);
+  setInterval(() => { if (Object.keys(lib).length) trocarExistentes(); }, 2000);   // qualquer chefe que ainda esteja com o desenho antigo vira 3D
   // vitrine para testar no celular: abra o jogo com #ver-guerreiro no fim do link.
   // Aparece um Guerreiro parado na sua frente, que não ataca, não morre e some sozinho em 3 minutos (só você vê).
   let vitrine = null;

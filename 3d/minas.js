@@ -83,8 +83,14 @@ function criarMasmorra(C) {
     for (const r of Grupo.membros()) { const g = r.s && r.s.dg; if (g && g.z === C.zona && !g.acabou && g.fim > Date.now() && g.id.split(':')[2] === P.grupo) return { ...g, nome: r.n }; }
     return null;
   }
+  // limite por semana (a semana vira na segunda-feira): cada entrada conta, sozinho ou em grupo
+  const semana = () => Math.floor((Date.now() / 864e5 + 3) / 7);
+  function usadas() { const s = P.dgSemana; return s && s.w === semana() ? (s[C.zona] || 0) : 0; }
+  const restam = () => C.limite ? Math.max(0, C.limite - usadas()) : 99;
+  function gastar() { if (!P.dgSemana || P.dgSemana.w !== semana()) P.dgSemana = { w: semana() }; P.dgSemana[C.zona] = (P.dgSemana[C.zona] || 0) + 1; try { save(); } catch (e) { } }
   function entrar(modo) {
     if (C.minLv && P.lv < C.minLv) { log(`${C.icone} A <b>${C.nome}</b> é para o nível ${C.minLv} em diante.`, 'bad'); Audio8.sfx('miss'); return; }
+    if (!restam()) { log(`${C.icone} Você já entrou <b>${C.limite} vezes</b> na <b>${C.nome}</b> esta semana. Ela abre de novo na <b>segunda-feira</b>.`, 'bad'); Audio8.sfx('miss'); return; }
     let grupo = null;
     if (modo === 'grupo') {
       const outra = corridaDoGrupo();
@@ -99,6 +105,7 @@ function criarMasmorra(C) {
     limpar();
     P.x = ENTRADA.x; P.z = ENTRADA.z; P.y = M.y; P.face = Math.PI; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.dist = Math.min(camS.dist || 9, 11);
     P.protT = time + 3; Audio8.sfx('warp'); leaveT = 1.5; saidaArmada = false;
+    gastar(); if (C.limite) log(`${C.icone} Entradas na ${C.nome} esta semana: <b>${usadas()} de ${C.limite}</b>.`, 'sys');
     run = { onda: -1, fim: time + (grupo ? (grupo.fimMs - Date.now()) / 1000 : TEMPO), espera: 3, chefe: false, acabou: false, grupo };
     banner(`${C.icone} ${C.nome.toUpperCase()}${grupo ? ' · EM GRUPO' : ''}`); log(C.msgEntrar(TEMPO, ONDAS.length), 'gold');
     if (grupo) log(grupo.host ? `👥 <b>Corrida em grupo (${grupo.n} pessoas):</b> monstros mais fortes e em maior número, saque bem maior. Seus companheiros entram falando com o mesmo NPC.` : `👥 Você entrou na corrida do grupo de <b>${grupo.de}</b>.`, 'gold');
@@ -119,6 +126,7 @@ function criarMasmorra(C) {
     if (tema.update) tema.update(dt);
     luzSaida.material.opacity = 0.45 + Math.sin(time * 2) * 0.15;
     const dentro = inTower(P.z) && zoneOf(P.x, P.z) === C.zona;
+    g.visible = dentro;                                                 // fora dela a caverna some: as luzes dela pesavam no mapa todo (o jogo travava)
     if (!dentro) { if (run) { fimGrupo(); limpar(); run = null; hud(false); } return; }
     if (!run) run = { onda: ONDAS.length, fim: time + 1, espera: 0, chefe: true, acabou: true };   // voltou de outro jeito (asa, morte): só a saída
     const G = run.grupo;
@@ -148,7 +156,7 @@ function criarMasmorra(C) {
   }
   // o que vai na presença de quem começou a corrida em grupo (os companheiros leem)
   function pres() { const G = run && run.grupo; return G && G.host ? { id: G.id, z: C.zona, n: G.n, fim: Math.round(Date.now() + (run.fim - time) * 1000), onda: run.onda, chefe: run.chefe, acabou: run.acabou } : null; }
-  const api = { update, minimap, entrar, sair, criarRemoto, pres, corridaDoGrupo, saida: C.saida, get correndo() { return !!(run && !run.acabou); } };
+  const api = { update, minimap, entrar, sair, criarRemoto, pres, corridaDoGrupo, restam, limite: C.limite, saida: C.saida, get correndo() { return !!(run && !run.acabou); } };
   MASMORRAS[C.zona] = api;
   return api;
 }
@@ -160,7 +168,7 @@ function dgCriar(o) { const z = String(o.id).split(':')[1]; return MASMORRAS[z] 
 
 // ---------------- Mina da Forja (Ferreiro Doran): materiais do refino
 const Minas = criarMasmorra({
-  zona: 'minas', lugar: MINA, nome: 'Mina da Forja', icone: '⛏️', tempo: 8 * 60, ondas: [10, 12, 14],
+  zona: 'minas', lugar: MINA, nome: 'Mina da Forja', icone: '⛏️', tempo: 8 * 60, ondas: [10, 12, 14], limite: 5,   // 5 por semana
   saida: { x: VIL.x - 15, z: VIL.z - 4 },                              // ao lado da forja do Doran, em Solmira
   chefeNome: 'Capataz da Mina', chefeCurto: 'Capataz',
   drops: chefe => chefe ? [['minerio', 1], ['minerio', 1], ['minerio', 1], ['minerio', 0.6], ['tempera', 1], ['tempera', 1], ['tempera', 1], ['tempera', 0.6], ['selo_forja', 0.3], ['red', 1]]
