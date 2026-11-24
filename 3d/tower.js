@@ -610,10 +610,10 @@ const Tower = (() => {
     const dCrat = Math.hypot(P.x - LAIR.x, P.z - LAIR.z);
     if (!inTower(P.z) && !crateraArmada && dCrat > 6) crateraArmada = true;
     if (!inTower(P.z) && crateraArmada && dCrat < 2.8) { leaveT = 2.5; crateraArmada = false; enterFromCrater(); return; }
-    if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); unbuild(); } return; }
+    if (!inTower(P.z)) { placaSaida.visible = false; if (cur !== -1) { cur = -1; clearFloorMobs(); unbuild(); } return; }
     const f = floorAt(P.x, P.z); if (!f || f.casa || f.mina) return;
     if (f.i !== cur) { cur = f.i; buildFloor(f); }                  // asa de mosca / volta de outro jeito
-    animFloor(dt);
+    animFloor(dt); marcarSaida();
     // escadaria norte: abre quando o andar está limpo e fica aberta
     const left = mobs.filter(m => m.towerFloor === cur).length;
     if (cur !== TOP && cur !== AB_FUNDO && time >= espera) {
@@ -626,6 +626,22 @@ const Tower = (() => {
     }
     const rp = rampa(f, P.x, P.z);                                       // chegou no fim de uma escadaria: troca de andar
     if (rp && rp.p > 0.97) { leaveT = 1; const fwd = rp.tipo === avanca(f); enter(fwd ? cur + 1 : cur - 1, !fwd); }
+  }
+  // 🚪 saída do 1º andar bem à mostra (o Balhulk ficou preso: "não tem saída"): placa em cima da escadaria que desce
+  // e um botão "Sair da Torre" em qualquer lugar do 1º andar quando não tem monstro em cima de você
+  const placaSaida = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); x.fillStyle = 'rgba(20,60,30,.9)'; x.fillRect(0, 0, 256, 96); x.strokeStyle = '#8affb0'; x.lineWidth = 6; x.strokeRect(3, 3, 250, 90);
+    x.fillStyle = '#d8ffe0'; x.font = 'bold 50px Georgia'; x.textAlign = 'center'; x.fillText('⬇ SAÍDA', 128, 66);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, toneMapped: false })); sp.scale.set(3.2, 1.2, 1); sp.visible = false; scene.add(sp); return sp; })();
+  function marcarSaida() {
+    const f = cur >= 0 ? FL(cur) : null, ok = f && (cur === 0 || cur === 100);
+    placaSaida.visible = !!ok; if (!ok) return;
+    const p = pontoRampa(f, avanca(f) === 'sobe' ? 'desce' : 'sobe', 0.2); placaSaida.position.set(p.x, (p.y != null ? p.y : groundY(p.x, p.z)) + 3.2, p.z);
+    placaSaida.material.opacity = 0.75 + Math.sin(time * 4) * 0.25;
+  }
+  function nearest() {
+    if (cur !== 0 && cur !== 100) return null;
+    if (mobs.some(m => !m.dead && m.towerFloor === cur && Math.hypot(m.x - P.x, m.z - P.z) < 7)) return null;
+    return { label: cur === 0 ? '🚪 Sair da Torre' : '🚪 Voltar para a Cratera', fn: () => { enter(cur === 0 ? -1 : 99); } };
   }
   function minimap(g) {
     const W = g.canvas.width, H = g.canvas.height, x0 = W / 2 - 42, bw = 84 / (TOP + 1);
@@ -644,7 +660,7 @@ const Tower = (() => {
     g.fillStyle = '#b8a8d0'; g.font = '11px sans-serif'; if (cur < TOP) g.fillText(`monstros Nv ${lvOf(Math.max(0, cur))}`, W / 2, H / 2 + 41);
     g.textAlign = 'left';
   }
-  return { update, minimap, enter, corridor, selada, criarRemoto, pres, lvOf, xpCampo, get floor() { return cur; }, door: DOOR, roof };
+  return { nearest, update, minimap, enter, corridor, selada, criarRemoto, pres, lvOf, xpCampo, get floor() { return cur; }, door: DOOR, roof };
 })();
 
 // ---------------------------------------------------------------- modelos dos inimigos do Reino Quebrado

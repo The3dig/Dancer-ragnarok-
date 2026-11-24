@@ -183,7 +183,7 @@ function autoDir(dt) {
   // levar um golpe não para mais a caminhada; só para se a vida ficar baixa (aí é hora de lutar ou tomar poção)
   if (P.hp < stats.maxHp() * 0.3) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }   // (era 50%: parava demais no meio da missão)
   const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
-  if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
+  if (W.end && d < (T.name === 'o ponto marcado' ? 1.2 : 3)) { if (T === P.qGo && !T.seguir) P.qGo = null; autoStop('🚶 Você chegou.'); return null; }   // chegou: esquece o ponto (no PC saía andando atrás do bicho da missão)
   let a = Math.atan2(dx, dz);
   // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
   const free = ang => !blocked(P.x + Math.sin(ang) * 1.3, P.z + Math.cos(ang) * 1.3) && !blocked(P.x + Math.sin(ang) * 0.6, P.z + Math.cos(ang) * 0.6);
@@ -1604,6 +1604,13 @@ setTimeout(() => {
   c.addEventListener('pointerup', e => { if (performance.now() - t0 > 350 || Math.abs(e.clientY - y0) > 10) return; const abre = !c.classList.contains('grande'); c.classList.toggle('grande', abre); Audio8.sfx('click'); c.scrollTop = c.scrollHeight; });
   document.addEventListener('pointerdown', e => { if (c.classList.contains('grande') && !c.contains(e.target) && !e.target.closest('.enc-btn,.enc')) c.classList.remove('grande'); }, true);
 }, 1500);
+// 💡 quem tem habilidade ativa e nunca usou (o Balhulk achava que eram passivas): uma dica durante a caçada
+setInterval(() => {
+  if (typeof running === 'undefined' || !running || P.usouSkill || P.dicaSkill2 || dialogOpen) return;
+  const ativas = SKILLS.filter(sk => (P.skillLv[sk.id] || 0) > 0 && sk.type !== 'passiva'); if (!ativas.length) return;
+  const zn = ZONES[zoneOf(P.x, P.z)]; if (!zn || zn.town || !mobs.some(m => !m.dead && Math.hypot(m.x - P.x, m.z - P.z) < 15)) return;
+  P.dicaSkill2 = 1; banner('💡 USE AS SUAS HABILIDADES'); log(`💡 Você tem <b>${ativas.map(sk => sk.icon + ' ' + sk.name).join(', ')}</b>, mas ainda não usou. Elas <b>não são automáticas</b>: toque no ícone na <b>barra de baixo</b> (ou tecla 1 a 8). Fazem muito mais dano que o ataque normal!`, 'gold');
+}, 20000);
 function log(html, cls = '') {
   const el = document.createElement('div'); el.className = 'line ' + cls; el.innerHTML = html;
   const c = $('chat'), noFim = !c.classList.contains('grande') || c.scrollHeight - c.scrollTop - c.clientHeight < 40; c.appendChild(el); while (c.children.length > 250) c.removeChild(c.firstChild); if (noFim) c.scrollTop = c.scrollHeight;   // aberto e lendo as antigas: não pula para o fim
@@ -1961,7 +1968,7 @@ function nearestN(r, n) {
   for (let i = 0; l.length && l.length < n; i++) l.push(l[i]);
   return l;
 }
-function useSkill(i) {
+function useSkill(i) { P.usouSkill = 1;
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
   if (P.montado && typeof Montaria !== 'undefined' && SKILLS[i].type !== 'passiva') Montaria.descer();
@@ -2344,7 +2351,7 @@ function updatePlayer(dt) {
   // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
   if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Eventos !== 'undefined' && Eventos.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Memorias !== 'undefined' && Memorias.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Comodos !== 'undefined' && Comodos.nearest()) || (typeof Castelo !== 'undefined' && Castelo.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Eventos !== 'undefined' && Eventos.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Memorias !== 'undefined' && Memorias.nearest()) || (typeof Tower !== 'undefined' && Tower.nearest && Tower.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Comodos !== 'undefined' && Comodos.nearest()) || (typeof Castelo !== 'undefined' && Castelo.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> Falar com ${nearNpc.name}` : TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> ${nearUse.label}` : TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -2430,8 +2437,9 @@ function updateMob(m, dt) {
     if (m.state === 'chase') {
       // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
       // Também não se cura se acabou de apanhar (antes o chefe que saltava longe voltava a encher a vida a cada golpe).
-      const brigando = (m.d.boss || m.d.field || m.d.mini) && time - (m.lastHit || -99) < 10;   // chefe apanhando não volta para casa: vem atrás de quem bate
-      if (P.dead || (m.towerFloor === undefined && !brigando && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
+      const chefeC = m.d.boss || m.d.field || m.d.mini, brigando = chefeC && time - (m.lastHit || -99) < 10;   // chefe apanhando não volta para casa: vem atrás de quem bate
+      const naCidade = m.towerFloor === undefined && !m.invasor && ((ZONES[zoneOf(P.x, P.z)] || {}).town || (ZONES[zoneOf(m.x, m.z)] || {}).town);   // ...mas nunca entra em cidade
+      if (P.dead || naCidade || (m.towerFloor === undefined && !brigando && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
         m.face = Math.atan2(P.x - m.x, P.z - m.z);
@@ -3291,6 +3299,8 @@ function learn(i) {
 function skConfirmar() {
   if (!skRasc) return;
   for (const s of SKILLS) if (!skRasc.lv[s.id] && P.skillLv[s.id]) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  const novas = SKILLS.filter(sk => !skRasc.lv[sk.id] && P.skillLv[sk.id] && sk.type !== 'passiva');
+  if (novas.length && !P.dicaSkill) { P.dicaSkill = 1; setTimeout(() => dialog('✨ Habilidade nova!', `<b>${novas.map(sk => sk.icon + ' ' + sk.name).join(', ')}</b> ${novas.length > 1 ? 'foram' : 'foi'} para a <b>barra de baixo</b>.<br><br>Habilidades <b>não funcionam sozinhas</b> (só as marcadas como <i>passiva</i>): <b>toque no ícone</b> na barra (ou tecla 1 a 8) para usar. Cada uma gasta SP e tem um tempo de recarga.<br><small>Dá para mudar o que fica na barra com o ✏️ e ter 3 barras (botão 1/2/3).</small>`, [{ label: 'Entendi' }]), 400); }
   const n = skRasc.pts - P.skillPts; skRasc = null; Audio8.sfx('buff'); log(`✅ ${n} ponto${n > 1 ? 's' : ''} de habilidade confirmado${n > 1 ? 's' : ''}.`, 'sys');
   buildHotbar(); renderSkills(); save();
 }
@@ -3676,7 +3686,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['usouSkill', 'dicaSkill', 'dicaSkill2', 'grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   const src = P._duelo ? { ...P, ...P._duelo } : P;   // ⚖️ no Duelo da Guilda salva o personagem de verdade, não o igualado
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, src[k]])))); } catch (e) { }
 }
