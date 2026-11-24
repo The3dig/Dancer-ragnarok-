@@ -75,9 +75,9 @@ const Memorias = (() => {
   const M0 = ILHAS[0], lanternas = [];
   { const lona = new THREE.MeshLambertMaterial({ color: 0x3a5a6a, side: THREE.DoubleSide }), mad = PM('madeira.jpg', [1, 1], 0x8a6a4a);
     for (const [dx, dz, ry] of [[-7, -6, 0.4], [7, -6, -0.4], [-8, 6, 2.6]]) { const b = new THREE.Mesh(new THREE.ConeGeometry(2.6, 3, 4, 1, true), lona); b.position.set(M0.x + dx, 1.8, M0.z + dz); b.rotation.y = ry; ARQ.add(b); addOb(M0.x + dx, M0.z + dz, 2.4); }
-    const fog = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 0.3, 10), rocha); fog.position.set(M0.x, 0.45, M0.z - 1); ARQ.add(fog); addOb(M0.x, M0.z - 1, 1.1); brilho(M0.x, 1.2, M0.z - 1, 0xffa050, 4, 0.8);
+    const fog = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 0.3, 10), rocha); fog.position.set(M0.x + 6, 0.45, M0.z + 2); ARQ.add(fog); addOb(M0.x + 6, M0.z + 2, 1.1); brilho(M0.x + 6, 1.2, M0.z + 2, 0xffa050, 4, 0.8);   // fogueira fora do centro: antes quem chegava caía em cima dela e ficava preso
     for (let k = 0; k < 6; k++) { const a = k / 6 * TAU, x = M0.x + Math.sin(a) * 12, z = M0.z + Math.cos(a) * 12; const pau = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 2.4, 6), mad); pau.position.set(x, 1.5, z); ARQ.add(pau); lanternas.push(brilho(x, 2.8, z, 0x9af0ff, 1.4, 0.8)); }
-    const l = new THREE.PointLight(0xffb070, 1.3, 26); l.position.set(M0.x, 4, M0.z); G.add(l); }
+    const l = new THREE.PointLight(0xffb070, 1.3, 26); l.position.set(M0.x + 3, 4, M0.z + 1); G.add(l); }
 
   // ---------------------------------------------------------------- a Porta dos Três Espinhos (livro): enorme, sem fechadura, uma marca no centro
   const PT = ILHAS[4], porta = new THREE.Group(); porta.position.set(PT.x + PT.r - 3, 0.3, PT.z); porta.rotation.y = -Math.PI / 2; G.add(porta);
@@ -124,7 +124,7 @@ const Memorias = (() => {
   // ---------------------------------------------------------------- atravessar
   function blackout() { const f = document.getElementById('tfade'); if (!f) return; f.style.transition = 'none'; f.style.opacity = 1; void f.offsetWidth; f.style.transition = 'opacity 1.2s'; requestAnimationFrame(() => requestAnimationFrame(() => { f.style.opacity = 0; })); }
   function go(to) {
-    const t = to === 'memorias' ? { x: MGATE.x + 8, z: MGATE.z, face: Math.PI / 2 } : { x: MGATE_C.x - 6, z: MGATE_C.z, face: -Math.PI / 2 };
+    const t = to === 'memorias' ? { x: MGATE.x + 4.5, z: MGATE.z, face: Math.PI / 2 } : { x: MGATE_C.x - 6, z: MGATE_C.z, face: -Math.PI / 2 };
     P.x = t.x; P.z = t.z; P.y = groundY(P.x, P.z); P.vy = 0; P.face = t.face; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.yaw = P.face + Math.PI; camS.dist = Math.min(camS.dist, 12); camS.cur = 6;
     if (typeof AUTO !== 'undefined') { AUTO.cx = P.x; AUTO.cz = P.z; AUTO.chk = 0; AUTO.tgT = 0; }
     blackout(); Audio8.sfx('warp');
