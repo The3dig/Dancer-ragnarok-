@@ -1016,3 +1016,8 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 .tcard.t-bronze { background: linear-gradient(160deg, #f8dcc0, #c08050 50%, #f0c8a0) !important; }
 .tcard.t-arcana { background: linear-gradient(160deg, #f0dcff, #9a5ad8 50%, #e8c8ff) !important; box-shadow: 0 0 14px rgba(192,112,255,.55), 0 3px 10px rgba(0,0,0,.6); }
 .tcard.t-lenda { background: linear-gradient(160deg, #ffd0c0, #c83040 50%, #ffb0a0) !important; box-shadow: 0 0 16px rgba(255,64,80,.6), 0 3px 10px rgba(0,0,0,.6); color: #2a0808; }
+/* ficha: "Pontos para distribuir" e o Resetar lado a lado, sem o botão cair em cima dos atributos */
+#statwin.ficha .pts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 10px; border-radius: 8px; }
+#statwin.ficha .pts .btn-reset { float: none; margin-left: auto; padding: 5px 10px; font-size: 12px; }
+#statwin.ficha .sgrid { grid-template-columns: 1fr; }
+#statwin.ficha .srow .si { font-size: 12px; }

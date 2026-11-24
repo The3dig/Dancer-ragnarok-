@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 25/11
 
+- **♻️ Botão Resetar no lugar**: Na **ficha do personagem**, o botão **Resetar** caía em cima dos atributos. Agora ele fica ao lado dos "Pontos para distribuir", e cada atributo tem uma linha inteira, com a explicação sem ficar espremida.
 - **🃏 Cartas desenhadas**: Na mochila, cada **carta aparece como uma cartinha de verdade**, com o **desenho do monstro** dentro e a moldura pela raridade: **prata** (comum), **bronze** (chefe menor e alfa), **ouro** (chefe), **roxa** (arcana) e **vermelha** (Campeão Sombrio). A carta grande também ganhou a cor dela. **Mochila:** o ATQ, DEF e HP agora ficam embaixo do nome (antes ficavam cortados no fim da tela no celular pequeno).
 - **◀ Seta do quadro de mensagens no lugar**: Se o quadro de mensagens estava aberto **grande** e você escondia ele, a setinha ficava **lá em cima, por cima do seu retrato**. Agora ela fica sempre no lugar do quadro normal.
 - **🏕️ Bichos fora das cidades**: As **Raízes Negras** estavam nascendo **dentro do Acampamento de Valdora**, do lado do quadro. Agora nenhum bicho comum nasce nem passeia dentro de cidade (os da invasão continuam invadindo). Na **Praia de Cômodo** os bichos voltaram a perseguir: a regra de "não entra na cidade" estava valendo para a praia inteira, e agora vale só para a vila.
