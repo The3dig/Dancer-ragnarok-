@@ -666,6 +666,8 @@ function pontoLivre(x, z) {
   for (let d = 0.8; d <= 6; d += 0.8) for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, nx = x + Math.sin(a) * d, nz = z + Math.cos(a) * d; if (!blocked(nx, nz)) return { x: nx, z: nz }; }
   return { x, z };
 }
+// o ponto livre mais perto (até 6 m): para tirar quem ficou preso dentro de um lugar bloqueado
+function pontoLivre(x, z) { for (let r = 0.5; r <= 6; r += 0.5) for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, px = x + Math.sin(a) * r, pz = z + Math.cos(a) * r; if (!blocked(px, pz)) return { x: px, z: pz }; } return null; }
 function blocked(x, z, r = 0.45) {
   if (inTower(z)) { const f = floorAt(x, z); if (f && f.templo && typeof Templo !== 'undefined') return Templo.bloqueia(f, x, z, r); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (z < -300 && x >= 1400) { if (!MEM_OUT || MEM_OUT(x, z, r)) return true; }
@@ -2331,8 +2333,10 @@ function updatePlayer(dt) {
   }
   if (P.dashT > 0) { P.dashT -= dt; vx = Math.sin(P.face) * 17; vz = Math.cos(P.face) * 17; if (Math.random() < 0.6) burst(new THREE.Vector3(P.x, P.y + 0.3, P.z), 0xffffff, 1, 1, 0.3); }
   const nx = P.x + vx * dt, nz = P.z + vz * dt;
-  if (!blocked(nx, P.z)) P.x = nx;
-  if (!blocked(P.x, nz)) P.z = nz;
+  // já está DENTRO de um lugar bloqueado (beira do rio, empurrão de bicho): deixa sair andando para qualquer lado
+  // (antes recusava todo passo e o AUTO da Lady Ingrid travou na margem do rio nos Campos Dourados)
+  if (blocked(P.x, P.z) && !inTower(P.z) && !P.dead) { const f = pontoLivre(P.x, P.z); if (f) { P.x += (f.x - P.x) * Math.min(1, dt * 8); P.z += (f.z - P.z) * Math.min(1, dt * 8); } }
+  else { if (!blocked(nx, P.z)) P.x = nx; if (!blocked(P.x, nz)) P.z = nz; }
   const gy = pisoY(P.x, P.z);
   P.vy -= 20 * dt; P.y += P.vy * dt;
   if (P.y <= gy) { P.y = gy; P.vy = 0; P.onGround = true; } else P.onGround = P.y - gy < 0.05;
