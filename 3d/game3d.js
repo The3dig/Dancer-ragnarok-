@@ -167,6 +167,11 @@ function autoStart(quieto) {
 function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.classList.remove('walking'); if (msg) log(msg, 'sys'); $('quest').dataset.h = ''; }
 // próximo ponto do caminho: se o rio estiver no meio, passa pela ponte mais perto
 function autoWaypoint(T) {
+  // Templo da Primeira Raiz: para sair ou entrar, passa pela boca do túnel (a sala redonda só tem saída ao sul;
+  // antes o AUTO ia reto até a Lira e ficava dando cabeçada na parede da sala)
+  if (typeof Floresta !== 'undefined' && Floresta.noTemplo) { const a = Floresta.noTemplo(P.x, P.z), b = Floresta.noTemplo(T.x, T.z), e = Floresta.entrada;
+    const naBoca = Math.abs(P.x - e.x) < 2.5 && P.z < e.z + 1.5;          // já na frente da passagem, entrando: segue
+    if (a !== b && (a || (Math.hypot(P.x - e.x, P.z - e.z) > 2 && !naBoca))) return { x: e.x, z: e.z }; }
   const sp = Math.sign(P.x - riverX(P.z)), st = Math.sign(T.x - riverX(T.z));
   if (sp === st || sp === 0 || inTower(P.z) || inTower(T.z) || inVal(P.z) || inVal(T.z)) return { x: T.x, z: T.z, end: true };
   const bz = BRIDGES.reduce((a, b) => Math.abs(b - (P.z + T.z) / 2) + Math.abs(b - P.z) * 0.5 < Math.abs(a - (P.z + T.z) / 2) + Math.abs(a - P.z) * 0.5 ? b : a), bx = riverX(bz);

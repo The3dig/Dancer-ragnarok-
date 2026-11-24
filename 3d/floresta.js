@@ -32,6 +32,9 @@ const Floresta = (() => {
     // a encosta ao norte (vira paredão); o túnel e a sala ficam no nível do chão
     if (z < MONTE + 6) { const k = smooth(MONTE + 6, MONTE - 10, z); b += k * 16 + k * Math.sin(x * 0.3) * 1.5; }
     if (naSala(x, z) || noTunel(x, z)) b = 0.3;
+    // a chegada na passagem fica plana (antes o chão subia com a encosta bem na frente da parede e o personagem
+    // parecia atravessar a pedra para entrar)
+    { const dx = Math.abs(x - TUN.x); if (dx < TUN.w + 3 && z <= TUN.z1 + 9 && z > TUN.z1 - 1) b = lerp(0.3, b, Math.max(smooth(TUN.w + 0.5, TUN.w + 3, dx), smooth(TUN.z1 + 6, TUN.z1 + 9, z))); }
     const e = Math.max(B.x0 + 8 - x, x - (B.x0 + B.w - 8), B.z0 + 8 - z, z - (B.z0 + B.h - 8), 0);
     return b + e * 1.6;
   }
@@ -327,5 +330,7 @@ const Floresta = (() => {
     const E = esporos; for (let i = 0; i < E.N; i++) { const s = E.sd[i]; E.pos[i * 3] = P.x + s[0] + Math.sin(time * 0.2 + i) * 0.4; E.pos[i * 3 + 1] = P.y + s[1] + Math.sin(time * 0.3 + s[3]) * 0.3; E.pos[i * 3 + 2] = P.z + s[2]; }
     E.pts.geometry.attributes.position.needsUpdate = true;
   }
-  return { h, out, zona, update, map, G, get dentro() { return dentro; } };
+  // para o AUTO: está dentro do Templo (túnel ou sala)? e onde fica a boca do túnel, do lado de fora
+  const noTemplo = (x, z) => z < MONTE + 1 && (naSala(x, z) || noTunel(x, z));
+  return { h, out, zona, update, map, G, noTemplo, entrada: { x: WALL.x, z: WALL.z + 4 }, get dentro() { return dentro; } };
 })();

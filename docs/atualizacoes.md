@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 25/11
 
+- **🗿 Templo da Primeira Raiz arrumado**: **Baú no meio do túnel:** um baú escondido tinha nascido bem no meio do túnel e fechava a passagem. Agora os baús só aparecem em lugar aberto (e nunca dentro de cidade). **Entrada:** o chão subia com a encosta bem na frente da parede e o personagem parecia atravessar a pedra. Agora a chegada é plana até o túnel. **AUTO:** para sair do Templo (ir até a Lira) ou entrar (ir até a estátua), ele passa pela boca do túnel em vez de dar cabeçada na parede da sala.
 - **♻️ Botão Resetar no lugar**: Na **ficha do personagem**, o botão **Resetar** caía em cima dos atributos. Agora ele fica ao lado dos "Pontos para distribuir", e cada atributo tem uma linha inteira, com a explicação sem ficar espremida.
 - **🃏 Cartas desenhadas**: Na mochila, cada **carta aparece como uma cartinha de verdade**, com o **desenho do monstro** dentro e a moldura pela raridade: **prata** (comum), **bronze** (chefe menor e alfa), **ouro** (chefe), **roxa** (arcana) e **vermelha** (Campeão Sombrio). A carta grande também ganhou a cor dela. **Mochila:** o ATQ, DEF e HP agora ficam embaixo do nome (antes ficavam cortados no fim da tela no celular pequeno).
 - **◀ Seta do quadro de mensagens no lugar**: Se o quadro de mensagens estava aberto **grande** e você escondia ele, a setinha ficava **lá em cima, por cima do seu retrato**. Agora ela fica sempre no lugar do quadro normal.

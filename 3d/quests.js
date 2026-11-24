@@ -298,11 +298,14 @@ const Quests = (() => {
     const pot = L => L >= 80 ? ['red_x', 'blue_g'] : L >= 60 ? ['red_g', 'blue_m'] : L >= 40 ? ['red_m', 'blue_m'] : ['red', 'blue'];
     const premio = L => { const [r, b] = pot(L), it = { [r]: 3 + Math.floor(L / 25), [b]: 2 + Math.floor(L / 30) }; if (L >= 20) it.frag_carta = 1 + Math.floor(L / 40); if (L >= 50) it.frag_cisma = 1 + Math.floor(L / 50); return { zeny: Math.round(L * L * 3 + 300), items: it }; };
     const vistos = new Set(); let k = 0;
+    // só em lugar aberto: livre em volta (3 m para cada lado) e fora de cidade
+    // (um Baú do Caçador nasceu no meio do túnel do Templo da Primeira Raiz e fechava a passagem)
+    const folgado = (x, z) => !blocked(x, z, 0.9) && [[3, 0], [-3, 0], [0, 3], [0, -3]].every(([a, b]) => !blocked(x + a, z + b, 0.6)) && !(typeof naCidadeXZ === 'function' && naCidadeXZ(x, z));
     for (const sp of SPAWNS) {
       if (!sp.area || !MOBDEF[sp.type] || MOBDEF[sp.type].boss) continue; const key = sp.area.join(','); if (vistos.has(key)) continue; vistos.add(key);
       if (k++ % 2) continue;
       const [x0, x1, z0, z1] = sp.area, L = MOBDEF[sp.type].lv;
-      let pt = null; const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2; for (const [cx, cz] of [[x0 + 1.5, z0 + 1.5], [x1 - 1.5, z1 - 1.5], [x0 + 1.5, z1 - 1.5], [x1 - 1.5, z0 + 1.5], [mx, z0 + 1.5], [mx, z1 - 1.5], [x0 + 1.5, mz], [x1 - 1.5, mz], [mx + 2, mz + 2]]) if (!blocked(cx, cz, 0.9)) { pt = [cx, cz]; break; }
+      let pt = null; const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2; for (const [cx, cz] of [[x0 + 1.5, z0 + 1.5], [x1 - 1.5, z1 - 1.5], [x0 + 1.5, z1 - 1.5], [x1 - 1.5, z0 + 1.5], [mx, z0 + 1.5], [mx, z1 - 1.5], [x0 + 1.5, mz], [x1 - 1.5, mz], [mx + 2, mz + 2]]) if (folgado(cx, cz)) { pt = [cx, cz]; break; }
       if (!pt) continue;
       SECRETS.push({ id: 'bx' + key.replace(/[^0-9-]/g, '').slice(0, 14), gerado: 1, kind: 'bau', name: NOMES[k % NOMES.length], x: pt[0], z: pt[1], lv: Math.max(1, L - 5), rw: premio(L), msg: MSG[k % MSG.length] });
     }
