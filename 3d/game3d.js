@@ -2357,7 +2357,7 @@ function updatePlayer(dt) {
     const m = P.caca, d = Math.hypot(m.x - P.x, m.z - P.z);
     const limite = typeof AutoCaca !== 'undefined' && AutoCaca.on ? 140 : 45;   // na caça automática o raio pode ser grande (antes largava o bicho a 45 m, escolhia de novo e ficava parado)
     if (m.dead || !mobs.includes(m) || d > limite || P.dead) P.caca = null;
-    else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range + 0.2 + (m.d.rad ?? (m.d.boss ? 1.6 : 0));
+    else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range - (CLS().ranged ? 0.3 : 0.6) + (m.d.rad ?? (m.d.boss ? 1.6 : 0));   // chega um pouco DENTRO do alcance (antes parava 20 cm fora e batia no vento para sempre)
       if (d > alc) {
         // contorna árvore, carroça e cerca até o bicho (antes ia em linha reta e ficava empurrando o obstáculo para sempre)
         let tx = m.x, tz = m.z;
@@ -2521,7 +2521,9 @@ function updateMob(m, dt) {
       else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
     } else {
       m.timer -= dt;
-      if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; if (!m.invasor && m.towerFloor === undefined && naCidadeXZ(m.tx, m.tz)) { m.tx = m.sx; m.tz = m.sz; } }
+      if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; if (!m.invasor && m.towerFloor === undefined && naCidadeXZ(m.tx, m.tz)) { m.tx = m.sx; m.tz = m.sz; }
+        // ficou dentro da cidade (nasceu lá numa versão antiga ou foi empurrado): sai andando para fora
+        if (!m.invasor && m.towerFloor === undefined && naCidadeXZ(m.x, m.z)) { for (let k = 0; k < 16; k++) { const a2 = k / 16 * TAU, x2 = m.x + Math.sin(a2) * 14, z2 = m.z + Math.cos(a2) * 14; if (!naCidadeXZ(x2, z2) && !blocked(x2, z2, 0.8)) { m.tx = x2; m.tz = z2; m.sx = x2; m.sz = z2; break; } } } }
       if (Math.hypot(m.tx - m.x, m.tz - m.z) > 0.2) stepMob(m, m.tx, m.tz, m.d.speed * 0.5, dt);
     }
   }

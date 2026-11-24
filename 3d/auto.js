@@ -89,6 +89,8 @@ const AutoCaca = (() => {
     // quem está me atacando vem primeiro (mesmo que não seja da lista)
     let best = null, bd = 1e9;
     for (const m of mobs) {
+      if (typeof naCidadeXZ === 'function' && naCidadeXZ(m.x, m.z) && !m.invasor) continue;
+      if (m.state !== 'chase' && m.z > -300 && P.z > -300 && typeof riverX === 'function' && !inTower(m.z) && Math.sign(m.x - riverX(m.z)) !== Math.sign(P.x - riverX(P.z))) continue;   // do outro lado do rio: não escolhe (ia até a margem e ficava parado)   // dentro da cidade não dá para bater: ficava parado do lado da Raiz na Vila de Solmira
       if (m.dead || m.isPeer || m.d.world || (m.inalcancavel && time - m.inalcancavel < 30 && !(m.state === 'chase' && Math.hypot(m.x - P.x, m.z - P.z) < 4))) continue;   // não deu para chegar: tenta outro por 30 s
       const dP = Math.hypot(m.x - P.x, m.z - P.z), dC = Math.hypot(m.x - centro.x, m.z - centro.z);
       const ameaca = m.state === 'chase' && dP < 6, quero = C.bichos.includes(m.type) && dC < C.raio;
