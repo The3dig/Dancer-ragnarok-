@@ -956,3 +956,42 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
   width: min(560px, 62vw) !important; height: min(62vh, 520px) !important; max-height: none !important; overflow-y: auto !important; font-size: 13px !important; opacity: 1 !important; z-index: 46 !important;
   background: rgba(10,8,18,.94) !important; border: 1px solid rgba(242,200,106,.5) !important; padding: 8px 10px !important; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 #chat.grande::before { content: '💬 Mensagens · toque para fechar'; display: block; position: sticky; top: -8px; margin: -8px -10px 6px; padding: 5px 10px; background: rgba(30,22,44,.98); color: #ffe9a8; font: 800 12px 'Nunito', sans-serif; border-bottom: 1px solid rgba(242,200,106,.3); }
+
+/* 📜 Ficha do personagem em tela cheia (pedido do Rone: celular pequeno, XP com %, mais números) */
+#statwin.ficha, body.touch #statwin.ficha, body #statwin.ficha { position: fixed; inset: 0; left: 0; top: 0; transform: none; width: 100%; height: 100%; max-height: none; border-radius: 0; z-index: 300; color: #f3e6cc; font-family: inherit; margin: 0; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, #1a1410, #0e0b09); }
+#statwin.ficha .wt { flex: none; display: flex; align-items: center; gap: 10px; padding: calc(6px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 6px calc(12px + env(safe-area-inset-left)); }
+#statwin.ficha .fc-t { flex: 1; text-align: center; }
+#statwin.ficha .fc-voltar { background: rgba(242,200,106,.15); border: 1px solid var(--line); color: var(--gold); border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 14px; cursor: pointer; }
+#statwin .fc { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); align-content: start; }
+#statwin .fc section { background: rgba(255,255,255,.04); border: 1px solid rgba(242,200,106,.18); border-radius: 10px; padding: 10px 12px; }
+#statwin .fc-id { grid-column: 1; }
+#statwin .fc-atr { grid-column: 1; }
+#statwin .fc-nums { grid-column: 2; grid-row: 1 / span 2; }
+#statwin .fc h4 { margin: 2px 0 8px; color: var(--gold); font-family: 'Cinzel', Georgia, serif; font-size: 14px; letter-spacing: .5px; }
+#statwin .fc-nome { font-family: 'Cinzel', Georgia, serif; font-size: 20px; font-weight: 800; color: #fff3d6; }
+#statwin .fc-nome em { font-style: normal; font-size: 13px; color: var(--gold); }
+#statwin .fc-sub { font-size: 13px; opacity: .9; margin: 2px 0 10px; }
+#statwin .fc-xpt { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
+#statwin .fc-xpt b { font-size: 22px; color: #ffe07a; }
+#statwin .fc-xpt small { font-size: 12px; opacity: .85; }
+#statwin .fc-bar { position: relative; height: 20px; border-radius: 10px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.12); overflow: hidden; margin: 6px 0; }
+#statwin .fc-bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 10px; }
+#statwin .fc-bar > span { position: relative; display: block; text-align: center; font-size: 12px; font-weight: 800; line-height: 20px; text-shadow: 0 1px 2px #000; }
+#statwin .fc-bar.xp { height: 16px; } #statwin .fc-bar.xp > i { background: linear-gradient(90deg, #c88a18, #ffd860); }
+#statwin .fc-bar.hp > i { background: linear-gradient(90deg, #2f9a4a, #6fe08a); }
+#statwin .fc-bar.sp > i { background: linear-gradient(90deg, #2a62c0, #6fb0ff); }
+#statwin .fc-cr { font-size: 13px; margin-top: 6px; }
+#statwin .fc-parte { display: block; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin-top: 3px; overflow: hidden; }
+#statwin .fc-parte > i { display: block; height: 100%; background: var(--gold); }
+#statwin .fc-est { margin-top: 8px; font-size: 13px; line-height: 1.4; }
+#statwin .fc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+#statwin .fc-n { background: rgba(0,0,0,.3); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; }
+#statwin .fc-n small { font-size: 11px; opacity: .8; }
+#statwin .fc-n b { font-size: 17px; color: #fff3d6; }
+#statwin .fc-jorn { width: 100%; padding: 9px; border-radius: 8px; background: rgba(242,200,106,.15); border: 1px solid var(--line); color: var(--gold); font-weight: 800; font-size: 14px; cursor: pointer; }
+@media (max-width: 640px) { #statwin .fc { grid-template-columns: 1fr; } #statwin .fc-nums { grid-column: 1; grid-row: auto; } }
+#statwin .fc { align-items: start; }
+@media (min-width: 760px) { #statwin .fc-grid { grid-template-columns: 1fr 1fr 1fr; } #statwin .fc-n b { font-size: 16px; } }
+#statwin .fc-esq { grid-column: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+#statwin .fc-nums { grid-column: 2; grid-row: auto; min-width: 0; }
+@media (max-width: 640px) { #statwin .fc-esq, #statwin .fc-nums { grid-column: 1; } }

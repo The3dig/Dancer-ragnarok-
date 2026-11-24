@@ -3273,16 +3273,71 @@ function buildHotbar() {
   const nb = document.createElement('div'); nb.className = 'slot hbnum'; nb.title = 'Trocar de barra (são 3)'; nb.innerHTML = `<span class="ic">${(P.barIdx || 0) + 1}</span><span class="k">barra</span>`;
   tapOn(nb, trocarBarra); hb.appendChild(nb);
 }
-function renderStats() {
-  const w = $('statwin');
-  const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts >= custoStat(P[k]) ? '' : 'disabled'} title="custa ${custoStat(P[k])} ponto(s)">+${custoStat(P[k]) > 1 ? `<small>${custoStat(P[k])}</small>` : ''}</button><span class="si">${STAT_INFO[k]}</span></div>`;
-  const html = `<div class="wt">📊 ${className(P.cls, P.gender)} · Nv ${P.lv}<button class="x" data-close>×</button></div>
-    <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'} ${botaoReset('atr')}</div>
-    <div class="sgrid">${STAT_KEYS.map(row).join('')}</div>
-    <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b> · Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
-  if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
+// 📜 Ficha do personagem (pedido do Rone): tela cheia, XP com %, e números que mostram que nenhum personagem é igual ao outro
+const fmtN = v => Math.round(v || 0).toLocaleString('pt-BR');
+function fichaEstilo() {
+  const tot = STAT_KEYS.reduce((a, k) => a + P[k], 0) || 1, ord = [...STAT_KEYS].sort((a, b) => P[b] - P[a]);
+  const EST = { str: 'golpes pesados', agi: 'velocidade e esquiva', vit: 'resistência', int: 'magia e SP', dex: 'precisão e pontaria', luk: 'sorte e crítico' };
+  const igual = P[ord[0]] - P[ord[STAT_KEYS.length - 1]] <= 3;
+  return { tot, ord, txt: igual ? 'Equilibrado: um pouco de tudo' : `Focado em ${EST[ord[0]]}${P[ord[1]] >= P[ord[0]] * 0.6 ? ` e ${EST[ord[1]]}` : ''}` };
 }
-$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); if (e.target.closest('[data-reset]')) pedirReset('atr'); });
+function fichaCodigo() {   // "impressão digital" do personagem: nome, nível, pontos e equipamentos
+  const txt = [P.name, P.cls, P.lv, P.tier || 0, ...STAT_KEYS.map(k => P[k]), JSON.stringify(P.equip || {})].join('|');
+  let h = 2166136261; for (let i = 0; i < txt.length; i++) { h ^= txt.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const x = (h >>> 0).toString(36).toUpperCase().padStart(7, '0'); return x.slice(0, 3) + '-' + x.slice(3, 7);
+}
+function renderStats() {
+  const w = $('statwin'); w.classList.add('ficha'); if (w.parentNode !== document.body) document.body.appendChild(w);   // fora do HUD: cobre a tela toda
+  const need = xpNeed(P.lv), xpPct = P.lv >= LV_MAX ? 100 : Math.min(100, P.xp / need * 100), hpM = stats.maxHp(), spM = stats.maxSp();
+  const barra = (cls, v, max, txt) => `<div class="fc-bar ${cls}"><i style="width:${Math.max(0, Math.min(100, v / max * 100)).toFixed(2)}%"></i><span>${txt}</span></div>`;
+  const tit = typeof Cosmeticos !== 'undefined' && Cosmeticos.pres ? Cosmeticos.pres().ct : null, gd = typeof Guilda !== 'undefined' && Guilda.info ? Guilda.info() : null;
+  const E = fichaEstilo();
+  const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts >= custoStat(P[k]) ? '' : 'disabled'} title="custa ${custoStat(P[k])} ponto(s)">+${custoStat(P[k]) > 1 ? `<small>${custoStat(P[k])}</small>` : ''}</button><span class="si">${STAT_INFO[k]}<i class="fc-parte"><i style="width:${(P[k] / E.tot * 100).toFixed(1)}%"></i></i></span></div>`;
+  const pct = v => `${(v * 100).toFixed(1).replace('.', ',')}%`;
+  const num = (ic, nome, v, dica) => `<div class="fc-n" title="${dica || ''}"><small>${ic} ${nome}</small><b>${v}</b></div>`;
+  const ataques = 1 / stats.aspd(), mag = CLS().magic, danoBase = mag ? stats.matk() : stats.atk();
+  const b = P.bestiary || {}, tipos = Object.keys(b).filter(t => MOBDEF[t]), mortos = tipos.reduce((a, t) => a + b[t], 0), chefes = tipos.filter(t => MOBDEF[t].boss || MOBDEF[t].mini).reduce((a, t) => a + b[t], 0);
+  const tempo = (() => { const s2 = Math.floor(P.tempo || 0), d = Math.floor(s2 / 86400), h = Math.floor(s2 % 86400 / 3600), m = Math.floor(s2 % 3600 / 60); return d ? `${d}d ${h}h` : h ? `${h}h ${m}min` : `${m}min`; })();
+  const html = `<div class="wt"><button class="fc-voltar" data-close>⬅ Voltar</button><span class="fc-t">📜 Ficha do personagem</span><button class="x" data-close>×</button></div>
+  <div class="fc"><div class="fc-esq">
+    <section class="fc-id">
+      <div class="fc-nome">${P.name}${tit ? ` <em>${tit}</em>` : ''}</div>
+      <div class="fc-sub">${className(P.cls, P.gender)} · <b>Nível ${P.lv}</b>${P.tier ? ` · ${P.tier + 1}ª classe` : ''}${gd ? ` · ${gd.emblema || '🛡️'} ${gd.nome}` : ''}</div>
+      <div class="fc-xp"><div class="fc-xpt"><b>XP ${P.lv >= LV_MAX ? 'MÁXIMO' : xpPct.toFixed(2).replace('.', ',') + '%'}</b><small>${fmtN(P.xp)} / ${fmtN(need)} · faltam <b>${fmtN(Math.max(0, need - P.xp))}</b> para o nível ${P.lv + 1}</small></div>${barra('xp', xpPct, 100, '')}</div>
+      ${barra('hp', P.hp, hpM, `HP ${fmtN(P.hp)} / ${fmtN(hpM)}`)}
+      ${barra('sp', P.sp, spM, `SP ${fmtN(P.sp)} / ${fmtN(spM)}`)}
+      <div class="fc-cr">💰 <b>${fmtN(P.zeny)}</b> cr · ⏱️ ${tempo} jogando</div>
+    </section>
+    <section class="fc-atr">
+      <h4>Atributos</h4>
+      <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ''} ${botaoReset('atr')}</div>
+      <div class="sgrid">${STAT_KEYS.map(row).join('')}</div>
+      <div class="fc-est">🧬 <b>${E.txt}</b><br><small>Código do personagem: <b>${fichaCodigo()}</b> · muda com cada ponto e cada equipamento: nenhum é igual ao outro.</small></div>
+    </section></div>
+    <section class="fc-nums">
+      <h4>Combate</h4>
+      <div class="fc-grid">
+        ${num('⚔️', 'Ataque', fmtN(stats.atk()), 'dano físico')}${num('✨', 'Ataque mágico', fmtN(stats.matk()), 'dano de magia')}
+        ${num('🛡️', 'Defesa', fmtN(stats.def()), 'diminui o dano que você leva')}${num('❤️', 'Vida máxima', fmtN(hpM))}
+        ${num('💧', 'SP máximo', fmtN(spM))}${num('⚡', 'Ataques por segundo', ataques.toFixed(2).replace('.', ','))}
+        ${num('💥', 'Dano por segundo (normal)', fmtN(danoBase * ataques), 'ataque normal sem crítico nem habilidade')}${num('🎯', 'Crítico', pct(stats.crit()))}
+        ${num('💨', 'Esquiva', pct(stats.flee()))}${num('🏃', 'Velocidade', stats.speed().toFixed(1).replace('.', ',') + ' m/s')}
+        ${num('📏', 'Alcance', CLS().range.toFixed(1).replace('.', ',') + ' m')}${num('🩸', 'Roubo de vida', pct(pas('roubo')))}
+        ${num('🃏', 'Dano extra (cartas e guilda)', pct(gBon('dano')))}${num('💗', 'Vida extra (cartas e guilda)', pct(gBon('hp')))}
+        ${num('📈', 'XP extra', pct(gBon('xp')))}${num('⭐', 'Pontos extras da casa', fmtN(P.ptsExtra))}
+      </div>
+      <h4>Jornada</h4>
+      <div class="fc-grid">
+        ${num('⚔️', 'Monstros derrotados', fmtN(mortos))}${num('☠️', 'Chefes derrotados', fmtN(chefes))}
+        ${num('📖', 'Espécies no bestiário', fmtN(tipos.length))}${num('🃏', 'Cartas nível 10', fmtN(Object.keys(P.bestCard || {}).length))}
+        ${num('🗼', 'Andar mais alto da Torre', P.towerBest != null ? P.towerBest + 1 + 'º' : '—')}${num('💀', 'Desmaios', fmtN(P.mortes))}
+      </div>
+      ${typeof Jornada !== 'undefined' ? '<button class="fc-jorn" data-jorn>📜 Jornada completa</button>' : ''}
+    </section>
+  </div>`;
+  if (w.dataset.h !== html) { const sc = (w.querySelector('.fc') || {}).scrollTop || 0; w.innerHTML = html; w.dataset.h = html; const f = w.querySelector('.fc'); if (f) f.scrollTop = sc; }
+}
+$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); if (e.target.closest('[data-reset]')) pedirReset('atr'); if (e.target.closest('[data-jorn]')) { toggleStats(); Jornada.abrir(); } });
 // ---------------- Reset de atributos e de habilidades (20/11): 3 de graça de cada; depois, só com o item comprado no Mercador (caro)
 const RESET_GRATIS = 3;
 const RESET_INFO = { hab: { nome: 'habilidades', item: 'reset_hab', ic: '📜' }, atr: { nome: 'atributos', item: 'reset_atr', ic: '🔄' } };
