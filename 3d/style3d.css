@@ -1021,3 +1021,8 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 #statwin.ficha .pts .btn-reset { float: none; margin-left: auto; padding: 5px 10px; font-size: 12px; }
 #statwin.ficha .sgrid { grid-template-columns: 1fr; }
 #statwin.ficha .srow .si { font-size: 12px; }
+
+/* 💻 computador com a mesma tela do celular (pedido do Rone): ícones no meio, missões à direita, mensagens à esquerda */
+body.pc #menu { top: max(8px, env(safe-area-inset-top)); right: auto; left: 50%; transform: translateX(-50%); gap: 6px; }
+body.pc #quest { display: block; position: absolute; top: 252px; right: 10px; left: auto; margin: 0; transform: none; width: 250px; font-size: 12px; pointer-events: auto; }
+body.pc #chat { top: 250px; bottom: auto; left: 10px; margin-left: 0; transform: none; width: 300px; height: 150px; font-size: 12px; opacity: .92; pointer-events: auto; }

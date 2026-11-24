@@ -153,7 +153,11 @@ const Comodos = (() => {
   const naMochila = id => P.inv[id] || 0, noBau = id => (S().bau || {})[id] || 0, qtd = id => naMochila(id) + noBau(id);
   const podeMat = mat => Object.entries(mat).every(([id, n]) => qtd(id) >= n);
   const fmt = n => n.toLocaleString('pt-BR');
-  const matTxt = mat => Object.entries(mat).map(([id, n]) => `${qtd(id) >= n ? '✅' : '▫️'} ${n} ${it(id).ic} ${it(id).name} <small>· 🎒 ${fmt(naMochila(id))} · 📦 ${fmt(noBau(id))}</small>`).join('<br>');
+  // de onde vem o material (pedido do Rone: "não sei o que precisa para ativar a compra dos móveis")
+  const fonte = id => { const I = ITEMS[id] || {}; const de = Object.entries(MOBDEF).filter(([t, D]) => (D.drops || []).some(([i]) => i === id) && !t.startsWith('alfa_') && !D.boss).sort((a, b) => a[1].lv - b[1].lv).slice(0, 2).map(([, D]) => `${D.name} (Nv ${D.lv})`);
+    return de.length ? `cai de ${de.join(' ou ')}` : ['semente', 'colheita', 'racao', 'comida'].includes(I.kind) || /lã|leite|ovo|flor/i.test(I.name || '') ? 'vem do Sítio' : I.price ? 'compra nas lojas' : 'missões e baús'; };
+  const matTxt = mat => Object.entries(mat).map(([id, n]) => { const t = qtd(id), ok = t >= n; return `${ok ? '✅' : '❌'} <b>${it(id).ic} ${it(id).name}</b>: tem <b>${fmt(t)}</b> de ${fmt(n)}${ok ? '' : ` · <b style="color:#ff9a8a">faltam ${fmt(n - t)}</b>`} <small>(🎒 ${fmt(naMochila(id))} · 📦 ${fmt(noBau(id))} · ${fonte(id)})</small>`; }).join('<br>');
+  const faltaTxt = (cr, mat) => { const f = []; if (P.zeny < cr) f.push(`${fmt(cr - P.zeny)} cr`); for (const [id, n] of Object.entries(mat)) if (qtd(id) < n) f.push(`${fmt(n - qtd(id))} ${it(id).name}`); return f.length ? 'falta: ' + f.join(', ') : 'já dá para fazer!'; };
   const pref = () => S().pref === 'bau' ? 'bau' : 'mochila';
   function tirarMat(mat) {
     const b = (S().bau = S().bau || {});
@@ -196,9 +200,9 @@ const Comodos = (() => {
   function moveis(R) {
     dialog(`${R.ic} ${R.nome}`, `Cada móvel dá conforto (e fica lindo!). <small>Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [
       ...MOVEIS[R.id].map(m => { const feito = S().mob[m.id], ok = !feito && P.zeny >= m.cr && podeMat(m.mat);
-        return { label: `${feito ? '✅' : ok ? '🔨' : '▫️'} ${m.ic} ${m.nome} · +${m.conf} conforto${feito ? '' : ` · ${m.cr.toLocaleString('pt-BR')} cr`}`, fn: () => {
+        return { label: `${feito ? '✅' : ok ? '🔨' : '🔒'} ${m.ic} ${m.nome} · +${m.conf} conforto${feito ? ' · feito' : ` · ${faltaTxt(m.cr, m.mat)}`}`, fn: () => {
           if (feito) { moveis(R); return true; }
-          dialog(`${m.ic} ${m.nome}`, `+${m.conf} de conforto<br>💰 ${m.cr.toLocaleString('pt-BR')} cr<br>${matTxt(m.mat)}`, [
+          dialog(`${m.ic} ${m.nome}`, `+${m.conf} de conforto<br>${P.zeny >= m.cr ? '✅' : '❌'} <b>💰 Coroas</b>: tem <b>${fmt(P.zeny)}</b> de ${fmt(m.cr)}<br>${matTxt(m.mat)}<br><small>A mochila e o baú da casa contam juntos.</small>`, [
             { label: ok ? '🔨 Fazer' : '🔒 Falta material ou coroas', fn: () => { if (!ok) { Audio8.sfx('miss'); moveis(R); return true; }
               P.zeny -= m.cr; tirarMat(m.mat); S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil');
               log(`🏠 <b>${m.nome}</b> está na ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } completos(); moveis(R); return true; } },
@@ -284,5 +288,5 @@ const Comodos = (() => {
     return null;
   }
   function init() { for (const R of ROOMS) if (S().salas[R.id]) montarSala(R); if (tem(0)) montarPortaCasa(); completos(); if (P.larAte > Date.now() && typeof addBuff === 'function') addBuff('lar', Math.round((P.larAte - Date.now()) / 1000), {}, '🏠'); }
-  return { update, nearest, bonus, conforto, init, completos, livro, qtd, podeMat, tirarMat, matTxt, optPref, SALAS, MOVEIS };
+  return { faltaTxt, fonte, update, nearest, bonus, conforto, init, completos, livro, qtd, podeMat, tirarMat, matTxt, optPref, SALAS, MOVEIS };
 })();

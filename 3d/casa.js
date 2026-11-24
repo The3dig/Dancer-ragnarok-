@@ -183,7 +183,9 @@ const Casa = (() => {
       const CM = typeof Comodos !== 'undefined' && Comodos.qtd;                          // 📦 conta a mochila e o baú da casa
       const tem = id => CM ? Comodos.qtd(id) : (P.inv[id] || 0);
       const ok = P.zeny >= preco && Object.entries(need).every(([id, n]) => tem(id) >= n);
-      return { label: `${ok ? '🔨' : '▫️'} ${ic} ${nome} — ${preco} cr + ${txt}`, fn: () => {
+      const falta = CM && Comodos.faltaTxt ? Comodos.faltaTxt(preco, need) : '';
+      return { label: `${ok ? '🔨' : '🔒'} ${ic} ${nome} — ${preco} cr + ${txt}${falta && !ok ? ` · ${falta}` : ''}`, fn: () => {
+        if (!ok && CM && Comodos.matTxt) { dialog(`${ic} ${nome}`, `Para fazer precisa:<br>${P.zeny >= preco ? '✅' : '❌'} <b>💰 Coroas</b>: tem <b>${P.zeny.toLocaleString('pt-BR')}</b> de ${preco.toLocaleString('pt-BR')}<br>${Comodos.matTxt(need)}<br><small>A mochila e o baú da casa contam juntos.</small>`, [{ label: '← Voltar', fn: () => { reformas(); return true; } }]); return true; }
         if (!ok) { const falta = Object.entries(need).filter(([id, n]) => tem(id) < n).map(([id, n]) => `${n - tem(id)} ${it(id).name}`); log(falta.length ? `Falta: ${falta.join(', ')}.` : 'Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); reformas(); return true; }
         P.zeny -= preco; if (CM) Comodos.tirarMat(need); else for (const [id, n] of Object.entries(need)) P.inv[id] -= n;
         S().mov[k] = 1; if (FUNDO[k]) posOf()[k] = sortear(k); furnish(); if (typeof Comodos !== 'undefined') Comodos.completos(); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffd060, 24, 3, 0.7);
