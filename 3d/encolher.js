@@ -26,11 +26,14 @@ const Encolher = (() => {
   function posicionar(q) {
     const el = document.getElementById(q.id), b = q.btn; if (!el) return;
     const hud = document.getElementById('hud'), some = !hud || hud.classList.contains('hidden') || janelaAberta();
-    const medir = !ler(q.id) || !pos[q.id];                         // escondido desde o começo: mostra um instante só para medir
+    // escondido: mede sempre no tamanho normal (sem o "grande" do chat), mostrando um instante só para medir
+    // (antes guardava a posição do quadro grande e a seta ficava lá em cima, por cima do retrato)
+    const fech = ler(q.id), medir = true;
     if (medir) {
-      if (ler(q.id)) document.body.classList.remove('enc-' + q.id);
+      const grande = fech && el.classList.contains('grande'); if (grande) el.classList.remove('grande');
+      if (fech) document.body.classList.remove('enc-' + q.id);
       const r = el.getBoundingClientRect(), vis = r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
-      if (ler(q.id)) document.body.classList.add('enc-' + q.id);
+      if (fech) document.body.classList.add('enc-' + q.id);
       if (!vis) { b.style.display = 'none'; return; }
       pos[q.id] = { top: r.top, l: r.left, r: r.right };
     }
@@ -42,7 +45,7 @@ const Encolher = (() => {
   function iniciar() {
     for (const q of QUADROS) {
       const b = document.createElement('button'); b.className = 'enc-seta enc-' + q.lado; b.type = 'button'; q.btn = b;
-      b.addEventListener('click', e => { e.stopPropagation(); gravar(q.id, !ler(q.id)); if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); aplicar(q); });
+      b.addEventListener('click', e => { e.stopPropagation(); const el = document.getElementById(q.id); if (el) el.classList.remove('grande'); gravar(q.id, !ler(q.id)); if (typeof Audio8 !== 'undefined') Audio8.sfx('click'); aplicar(q); });
       document.body.appendChild(b); aplicar(q);
     }
     setInterval(() => { for (const q of QUADROS) posicionar(q); }, 150);
