@@ -1596,9 +1596,17 @@ function floater(x, y, z, txt, cls) {
 }
 
 // ---------------------------------------------------------------- UI helpers
+// 💬 tocar nas mensagens abre o quadro grande para ler as de trás (pedido do Rone); tocar de novo (ou fora) fecha
+setTimeout(() => {
+  const c = $('chat'); if (!c || c.dataset.grande) return; c.dataset.grande = 1;
+  let t0 = 0, y0 = 0;
+  c.addEventListener('pointerdown', e => { t0 = performance.now(); y0 = e.clientY; e.stopPropagation(); });
+  c.addEventListener('pointerup', e => { if (performance.now() - t0 > 350 || Math.abs(e.clientY - y0) > 10) return; const abre = !c.classList.contains('grande'); c.classList.toggle('grande', abre); Audio8.sfx('click'); c.scrollTop = c.scrollHeight; });
+  document.addEventListener('pointerdown', e => { if (c.classList.contains('grande') && !c.contains(e.target) && !e.target.closest('.enc-btn,.enc')) c.classList.remove('grande'); }, true);
+}, 1500);
 function log(html, cls = '') {
   const el = document.createElement('div'); el.className = 'line ' + cls; el.innerHTML = html;
-  const c = $('chat'); c.appendChild(el); while (c.children.length > 60) c.removeChild(c.firstChild); c.scrollTop = c.scrollHeight;
+  const c = $('chat'), noFim = !c.classList.contains('grande') || c.scrollHeight - c.scrollTop - c.clientHeight < 40; c.appendChild(el); while (c.children.length > 250) c.removeChild(c.firstChild); if (noFim) c.scrollTop = c.scrollHeight;   // aberto e lendo as antigas: não pula para o fim
 }
 function banner(txt) { const b = $('banner'); b.textContent = txt; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 function judge(txt, cls) { const j = $('judge'); j.textContent = txt; j.className = cls; void j.offsetWidth; j.classList.add('pop'); }

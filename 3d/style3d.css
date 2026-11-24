@@ -949,3 +949,10 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 #grupowin .gp-acoes button { padding: 8px 14px; border-radius: 10px; font-weight: 800; border: 1px solid rgba(242,200,106,.5); background: rgba(242,200,106,.12); color: #f0e8dc; }
 #grupowin .gp-acoes .gr-todos { background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; }
 #grupowin .gr-txt { margin: 0 10px 10px; max-height: 26vh; overflow-y: auto; }
+
+/* 💬 mensagens: tocar abre o quadro grande com o histórico (rola para cima) */
+#chat { pointer-events: auto !important; cursor: pointer; }
+#chat.grande { position: fixed !important; left: calc(8px + env(safe-area-inset-left)) !important; top: calc(56px + env(safe-area-inset-top)) !important; bottom: auto !important; transform: none !important;
+  width: min(560px, 62vw) !important; height: min(62vh, 520px) !important; max-height: none !important; overflow-y: auto !important; font-size: 13px !important; opacity: 1 !important; z-index: 46 !important;
+  background: rgba(10,8,18,.94) !important; border: 1px solid rgba(242,200,106,.5) !important; padding: 8px 10px !important; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+#chat.grande::before { content: '💬 Mensagens · toque para fechar'; display: block; position: sticky; top: -8px; margin: -8px -10px 6px; padding: 5px 10px; background: rgba(30,22,44,.98); color: #ffe9a8; font: 800 12px 'Nunito', sans-serif; border-bottom: 1px solid rgba(242,200,106,.3); }
