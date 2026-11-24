@@ -25,7 +25,8 @@ const Partilha = (() => {
   function criar(o) {
     if (String(o.id).startsWith('dg:')) return MOBDEF[o.type] && typeof dgCriar === 'function' ? dgCriar(o) : null;   // masmorra em grupo
     const s = spawnDe(o.id); if (!s || !MOBDEF[o.type]) return null;
-    const m = spawnMob(o.type, s.area, { x: o.x, z: o.z });
+    const dentro = s.area && !s.at && naCidadeXZ(o.x, o.z);                       // o servidor guardou ele dentro de uma cidade: nasce fora
+    const m = dentro ? spawnMob(o.type, s.area) : spawnMob(o.type, s.area, { x: o.x, z: o.z }); if (dentro) { o.x = m.x; o.z = m.z; }
     m.nid = o.id; m.area = s.area; m.at = s.at; m.sx = o.x; m.sz = o.z;
     if (s.at) { m.sx = s.at.x; m.sz = s.at.z; }
     m.nx = o.x; m.nz = o.z; m.dono = o.dono; m.maxHp = Math.max(m.maxHp, o.max || 1); m.hp = o.hp ?? m.maxHp;
@@ -60,7 +61,7 @@ const Partilha = (() => {
     const ja = new Set(l.map(o => o.id));
     SPAWNS.forEach((sp, si) => { if (!MOBDEF[sp.type]) return; for (let i = 0; i < sp.n; i++) { const id = si + '-' + i; if (ja.has(id)) continue;
       let x = sp.at ? sp.at.x : 0, z = sp.at ? sp.at.z : 0, d = MOBDEF[sp.type];
-      if (!sp.at) for (let t = 0; t < 12; t++) { x = sp.area[0] + Math.random() * (sp.area[1] - sp.area[0]); z = sp.area[2] + Math.random() * (sp.area[3] - sp.area[2]); if (!blocked(x, z, 0.8)) break; }
+      if (!sp.at) for (let t = 0; t < 12; t++) { x = sp.area[0] + Math.random() * (sp.area[1] - sp.area[0]); z = sp.area[2] + Math.random() * (sp.area[3] - sp.area[2]); if (!blocked(x, z, 0.8) && !naCidadeXZ(x, z)) break; }
       l.push({ id, type: sp.type, max: d.hp, hp: d.hp, resp: d.respawn, x: +x.toFixed(2), z: +z.toFixed(2), vivo: true }); } });
     // em partes: a lista inteira passa do tamanho máximo de mensagem do servidor (24 KB) e era jogada fora
     semT = Date.now();

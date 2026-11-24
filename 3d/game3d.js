@@ -1568,11 +1568,13 @@ const SPAWNS = [
   { type: 'soldadoMemoria', n: 4, area: [1660, 1680, -770, -750] }, { type: 'guardaEspinhos', n: 7, area: [1658, 1680, -772, -748] },
   { type: 'guardiaoBrancoRio', n: 1, at: { x: 1676, z: -760 } },
 ];
+// bicho comum não nasce dentro de cidade (a área da Raiz Negra cobria o Acampamento de Valdora)
+function naCidadeXZ(x, z) { const k = zoneOf(x, z), zn = ZONES[k]; if (!zn || !zn.town) return false; if (k === 'praia') return Math.hypot(x - PVILA.x, z - PVILA.z) < 24; return true; }   // a Praia é uma zona só: cidade é só a vila
 function spawnMob(type, area, at) {
   const d = MOBDEF[type]; let x, z, t = 0;
   if (at) { x = at.x; z = at.z; }
   else do { x = rand(area[0], area[1]); z = rand(area[2], area[3]); t++; }
-  while (t < 300 && (blocked(x, z, 1) || dRoad(x, z) < 4 || Math.hypot(x - P.x, z - P.z) < 18 || Math.hypot(x - OAS.x, z - OAS.z) < 34 || (type !== 'guardiao' && Math.hypot(x - RUIN.x, z - RUIN.z) < 16) || Math.hypot(x - LAIR.x, z - LAIR.z) < 26));
+  while (t < 300 && (blocked(x, z, 1) || naCidadeXZ(x, z) || dRoad(x, z) < 4 || Math.hypot(x - P.x, z - P.z) < 18 || Math.hypot(x - OAS.x, z - OAS.z) < 34 || (type !== 'guardiao' && Math.hypot(x - RUIN.x, z - RUIN.z) < 16) || Math.hypot(x - LAIR.x, z - LAIR.z) < 26));
   const model = mobModel(type);
   model.g.position.set(x, groundY(x, z), z); scene.add(model.g);
   const lab = document.createElement('div'); lab.className = 'mlabel' + (d.boss ? ' boss' : d.alfa ? ' alfa' : '');
@@ -2495,7 +2497,7 @@ function updateMob(m, dt) {
       // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
       // Também não se cura se acabou de apanhar (antes o chefe que saltava longe voltava a encher a vida a cada golpe).
       const chefeC = m.d.boss || m.d.field || m.d.mini, brigando = chefeC && time - (m.lastHit || -99) < 10;   // chefe apanhando não volta para casa: vem atrás de quem bate
-      const naCidade = m.towerFloor === undefined && !m.invasor && ((ZONES[zoneOf(P.x, P.z)] || {}).town || (ZONES[zoneOf(m.x, m.z)] || {}).town);   // ...mas nunca entra em cidade
+      const naCidade = m.towerFloor === undefined && !m.invasor && (naCidadeXZ(P.x, P.z) || naCidadeXZ(m.x, m.z));   // ...mas nunca entra em cidade
       if (P.dead || naCidade || (m.towerFloor === undefined && !brigando && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
@@ -2513,7 +2515,7 @@ function updateMob(m, dt) {
       else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
     } else {
       m.timer -= dt;
-      if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; }
+      if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; if (!m.invasor && m.towerFloor === undefined && naCidadeXZ(m.tx, m.tz)) { m.tx = m.sx; m.tz = m.sz; } }
       if (Math.hypot(m.tx - m.x, m.tz - m.z) > 0.2) stepMob(m, m.tx, m.tz, m.d.speed * 0.5, dt);
     }
   }
