@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 25/11
+
+- **🏰 Câmera do castelo arrumada**: No **castelo da guilda** a câmera não fica mais presa e colada no personagem: ela fica **de longe e um pouco por cima**, como nos outros mapas, e o castelo ficou sem teto para dar para ver as salas inteiras. Parede, coluna ou arco que tapar a visão some inteiro. Também diminuí as áreas que travavam o personagem perto das mesas.
+
 ## 24/11
 
 - **🗺️ Mapa do Mundo novo**: O **Mapa do Mundo** foi redesenhado como um mapa de fantasia: um continente só, com os territórios dividindo fronteiras, litoral, mar, montanhas em Valdora, a Floresta Morta cheia de pinheiros, túmulos e névoa no Vale, o rio do Reino, as estradas e a Torre do Cisma no lugar dela. A **Cidade Submersa** é um arquipélago flutuando no céu estrelado e o **Rio das Memórias** aparece num recorte redondo, "sob a Cidade". Toque num território para abrir o mapa dele.

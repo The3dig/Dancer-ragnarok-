@@ -53,7 +53,7 @@ const Castelo = (() => {
     const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, H = 6;
     const mat = paredeM.clone(); mat.map = paredeM.map.clone(); mat.map.repeat.set(len / 4, 1.6); mat.map.needsUpdate = true; mat.transparent = true;
     const w = box(0.6, H, len, mat, cx, H / 2, cz, g, ang); paredes.push(w);
-    box(0.72, 0.5, len, rodape, cx, 0.25, cz, g, ang); box(0.8, 0.35, len, PM('pedra.jpg', [len / 3, 1], new THREE.Color(0.55, 0.5, 0.46)), cx, H - 0.1, cz, g, ang);
+    w.userData.extras = [box(0.72, 0.5, len, rodape, cx, 0.25, cz, g, ang), box(0.8, 0.35, len, PM('pedra.jpg', [len / 3, 1], new THREE.Color(0.55, 0.5, 0.46)), cx, H - 0.1, cz, g, ang)];   // somem junto com a parede
     for (let t = 0; t <= len; t += 0.8) ob(x0 + (x1 - x0) * t / len, z0 + (z1 - z0) * t / len, 0.55);
   }
   // contorno de uma sala com os vãos das portas
@@ -70,8 +70,7 @@ const Castelo = (() => {
   for (const [k, [x0, x1, z0, z1]] of Object.entries(SALAS)) {
     const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, pm = k === 'saguao' ? piso : pisoV.clone(); if (pm !== piso) { pm.map = pisoV.map.clone(); pm.map.repeat.set(w / 3, d / 3); pm.map.needsUpdate = true; }
     const ch = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), pm); ch.position.set(cx, 0.01, cz); ch.receiveShadow = true; g.add(ch);
-    const te = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(Math.PI / 2), L(0x2a2018)); te.position.set(cx, 6, cz); g.add(te);
-    for (let t = x0 + 2; t < x1; t += 3) box(0.35, 0.4, d, madeira(0x4a2a14), t, 5.8, cz);                 // vigas do teto
+    // sem teto nem vigas: a câmera fica de longe, por cima, como numa casa de bonecas (pedido do Rone: a câmera presa na sala atrapalhava a luta)
   }
   // paredes (cada parede compartilhada só uma vez)
   sala([-11, 11, -9, 9]);
@@ -86,7 +85,7 @@ const Castelo = (() => {
     }
   }
   // arcos de pedra nas portas
-  for (const [eixo, pos, c, larg] of PORTAS) { const a = new THREE.Mesh(new THREE.TorusGeometry(larg / 2 + 0.2, 0.32, 8, 20, Math.PI), PM('pedra.jpg', [2, 1], new THREE.Color(0.6, 0.55, 0.5))); if (eixo === 'x') { a.position.set(pos, 3.6, c); a.rotation.y = Math.PI / 2; } else a.position.set(c, 3.6, pos); g.add(a); }
+  for (const [eixo, pos, c, larg] of PORTAS) { const a = new THREE.Mesh(new THREE.TorusGeometry(larg / 2 + 0.2, 0.32, 8, 20, Math.PI), PM('pedra.jpg', [2, 1], new THREE.Color(0.6, 0.55, 0.5))); if (eixo === 'x') { a.position.set(pos, 3.6, c); a.rotation.y = Math.PI / 2; } else a.position.set(c, 3.6, pos); g.add(a); paredes.push(a); }
   { const fora = new THREE.Mesh(new THREE.PlaneGeometry(90, 90).rotateX(-Math.PI / 2), L(0x241c16)); fora.position.y = -0.02; g.add(fora); }   // fora das salas: chão escuro (antes aparecia o vazio preto)
   // ----- SAGUÃO: colunas, tapete até o trono, trono, mesa de guerra, lustres, vitrais e tapeçarias
   for (const x of [-7.5, 7.5]) for (const z of [-5, 0, 5]) { paredes.push(cil(0.55, 0.62, 5.6, PM('pedra.jpg', [1, 3], new THREE.Color(0.75, 0.7, 0.65)), x, 2.8, z)); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 0.2, z); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 5.6, z); const an = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.06, 8, 20).rotateX(Math.PI / 2), ouro); an.position.set(x, 1.1, z); g.add(an); ob(x, z, 0.8); }
@@ -97,7 +96,7 @@ const Castelo = (() => {
     const mapaT = tex(256, 256, (x, w) => { x.fillStyle = '#d8c8a0'; x.beginPath(); x.arc(128, 128, 126, 0, 7); x.fill(); x.strokeStyle = '#6a4a2a'; x.lineWidth = 3; for (let k = 0; k < 6; k++) { x.beginPath(); x.moveTo(40 + k * 30, 60); x.quadraticCurveTo(128, 30 + k * 30, 210, 90 + k * 18); x.stroke(); } x.fillStyle = '#a8182a'; for (let k = 0; k < 7; k++) { x.beginPath(); x.arc(60 + Math.random() * 140, 60 + Math.random() * 140, 6, 0, 7); x.fill(); } });
     const mp = new THREE.Mesh(new THREE.CircleGeometry(2.1, 28).rotateX(-Math.PI / 2), L(0xffffff, { map: mapaT })); mp.position.y = 1.1; mesa.add(mp);
     for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, c2 = new THREE.Group(); c2.position.set(Math.cos(a) * 3, 0, Math.sin(a) * 3); c2.rotation.y = -a + Math.PI / 2; mesa.add(c2); box(0.7, 0.1, 0.7, madeira(0x5a3a24), 0, 0.6, 0, c2); box(0.7, 1, 0.1, madeira(0x5a3a24), 0, 1.1, -0.32, c2); for (const [dx, dz] of [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]]) box(0.08, 0.6, 0.08, madeira(0x4a2a14), dx, 0.3, dz, c2); }
-    ob(0, 1, 3.3); }
+    ob(0, 1, 2.7); }
   // lustres (com velas que brilham)
   const velas = [];
   function lustre(x, z, r = 1.1) { const l = new THREE.Group(); l.position.set(x, 5.3, z); g.add(l); box(0.05, 0.6, 0.05, ferro, 0, 0.35, 0, l); const an = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 8, 28).rotateX(Math.PI / 2), ferro); l.add(an); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; box(0.09, 0.3, 0.09, L(0xf0e6d0), Math.cos(a) * r, 0.18, Math.sin(a) * r, l); const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilhoT, color: 0xffc060, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); f.position.set(Math.cos(a) * r, 0.45, Math.sin(a) * r); f.scale.setScalar(0.35); l.add(f); velas.push(f); } }
@@ -136,7 +135,7 @@ const Castelo = (() => {
   { const m2 = new THREE.Group(); m2.position.set(18, 0, 0); g.add(m2); box(9, 0.14, 2, madeira(0x7a4a2a), 0, 1.0, 0, m2); box(9.1, 0.04, 1.4, L(0xf0e8d8), 0, 1.09, 0, m2); for (const x of [-4, 4]) for (const z of [-0.8, 0.8]) box(0.14, 1, 0.14, madeira(0x5a3a24), x, 0.5, z, m2);
     for (let k = 0; k < 6; k++) for (const s2 of [-1, 1]) { const c2 = new THREE.Group(); c2.position.set(-3.6 + k * 1.45, 0, 1.4 * s2); c2.rotation.y = s2 > 0 ? Math.PI : 0; m2.add(c2); box(0.6, 0.08, 0.6, madeira(0x5a3a24), 0, 0.6, 0, c2); box(0.6, 1, 0.08, madeira(0x5a3a24), 0, 1.1, -0.28, c2); for (const [dx, dz] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) box(0.07, 0.6, 0.07, madeira(0x4a2a14), dx, 0.3, dz, c2); const pr = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.04, 14), L(0xe8e8e8)); pr.position.set(-3.6 + k * 1.45, 1.13, 0.45 * s2); m2.add(pr); const cc = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), L([0xd08a3a, 0xc04030, 0x70a040][k % 3])); cc.position.set(-3.6 + k * 1.45, 1.2, 0.45 * s2); m2.add(cc); }
     for (const x of [-2.5, 0, 2.5]) { box(0.1, 0.35, 0.1, L(0xf0e6d0), x, 1.3, 0, m2); const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilhoT, color: 0xffc060, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); f.position.set(x, 1.6, 0); f.scale.setScalar(0.35); m2.add(f); velas.push(f); }
-    for (let t = -4; t <= 4; t += 0.8) ob(18 + t, 0, 1.5); }
+    for (let t = -4; t <= 4; t += 1) ob(18 + t, 0, 1.15); }
   { const lr = new THREE.Group(); lr.position.set(24.2, 0, 0); lr.rotation.y = -Math.PI / 2; g.add(lr); box(3.2, 2.6, 1, PM('pedra.jpg', [2, 2], new THREE.Color(0.5, 0.45, 0.4)), 0, 1.3, 0, lr); box(1.7, 1.4, 0.3, L(0x140804), 0, 0.8, 0.4, lr); const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogoT, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); f.position.set(0, 0.9, 0.6); f.scale.set(1.3, 1.4, 1); lr.add(f); g.userData.fogos.push(f); box(3.6, 0.3, 1.3, PM('pedra.jpg', [2, 1], new THREE.Color(0.6, 0.55, 0.5)), 0, 2.7, 0, lr); ob(24.2, 0, 1.2); }
   for (const [x, z] of [[13, -6], [14, -6], [13.5, -5.1]]) { cil(0.42, 0.42, 0.9, madeira(0x6a3a1a), x, 0.45, z); ob(x, z, 0.45); }
   lustre(18, 0, 1.4);
@@ -190,15 +189,12 @@ const Castelo = (() => {
   function paredesNaFrente() {
     if (typeof camera === 'undefined') return; camera.getWorldPosition(_cam); _alvo.set(P.x, P.y + 1.2, P.z);
     const dist = _cam.distanceTo(_alvo); _ray.origin.copy(_cam); _ray.direction.subVectors(_alvo, _cam).normalize();
-    for (const w of paredes) { _bx.setFromObject(w); const hit = _ray.intersectBox(_bx, _hit); const tapa = hit && _cam.distanceTo(_hit) < dist - 0.3; w.visible = !tapa; w.material.opacity = 1; w.material.depthWrite = true; }
+    for (const w of paredes) { _bx.setFromObject(w); const hit = _ray.intersectBox(_bx, _hit); const tapa = hit && _cam.distanceTo(_hit) < dist - 0.3; w.visible = !tapa; w.material.opacity = 1; w.material.depthWrite = true; for (const e of (w.userData.extras || [])) e.visible = !tapa; }
   }
   // a câmera fica dentro da sala onde você está e abaixo do teto (usada no updateCamera)
   function salaDe(lx, lz, m) { for (const r of Object.values(SALAS)) if (lx > r[0] - m && lx < r[1] + m && lz > r[2] - m && lz < r[3] + m) return r; return null; }
-  function camFora(x, z, y) {
-    if (!dentro()) return false; if (y > 5.3) return true;
-    const r = salaDe(P.x - C.x, P.z - C.z, 0.2); if (!r) return false;
-    const lx = x - C.x, lz = z - C.z; return !(lx > r[0] + 0.5 && lx < r[1] - 0.5 && lz > r[2] + 0.5 && lz < r[3] - 0.5);
-  }
+  function camFora() { return false; }                     // (a câmera não fica mais presa na sala; as paredes da frente somem)
+
   // ---------------- entrar e sair
   function entrar() {
     if (typeof Guilda === 'undefined' || !Guilda.minha()) { log('🏰 Só quem é de uma guilda entra no castelo.', 'bad'); Audio8.sfx('miss'); return; }
@@ -371,7 +367,7 @@ const Castelo = (() => {
     if (bonecos.length) return;
     const t = BASE()[0]; if (!t) return;
     BONECOS.forEach(([bx, bz], i) => {
-      const o = spawnMob(t, null, { x: C.x + bx, z: C.z + bz }); o.model.g.visible = false;
+      const o = spawnMob(t, null, { x: C.x + bx, z: C.z + bz }); scene.remove(o.model.g);   // o boneco é o manequim do arsenal; o bicho por baixo some
       o.d = { ...o.d, name: 'Boneco de Treino', hp: 1e9, atk: 0, xp: 0, zeny: [0, 0], aggro: 0, speed: 0, respawn: 1e9, drops: [] }; o.hp = o.maxHp = 1e9;
       o.boneco = true; o.mvp = i === 0; o.noRespawn = true; o.bx = o.x; o.bz = o.z; o.dano = 0; o.janela = [];
       ajustarBoneco(o); bonecos.push(o);
@@ -430,6 +426,7 @@ const Castelo = (() => {
         else if (f === 'luta') { banner('🗡️ DUELO DA GUILDA: VALENDO!'); Audio8.sfx('boom'); log('🗡️ <b>Valendo por 5 minutos!</b> Todo mundo da guilda aqui dentro pode se atacar. Quem cai volta no saguão, sem perder nada.', 'gold'); }
         else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa às 20h10 / 20h20 (com 2 minutos de preparação).', 'sys'); } } } }
     estandarte(); quadro(); paredesNaFrente();
+    if (camS.pitch < 0.6) camS.pitch += (0.6 - camS.pitch) * Math.min(1, dt * 3);   // câmera um pouco por cima: vê a sala inteira
     for (const v of velas) v.material.opacity = 0.75 + Math.sin(time * 9 + v.position.x * 3) * 0.2;
     if (g.userData.globo) g.userData.globo.rotation.y += dt * 0.3;
     // gente andando pelo castelo (param um pouco em cada ponto e olham para você quando passa perto)
