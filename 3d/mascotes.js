@@ -37,11 +37,15 @@ const Mascotes = (() => {
     const t = id.slice(5), D = MOBDEF[t]; if (!D || !(P.inv[id] > 0)) return;
     if (S()[t]) { log(`🐾 Você já tem o mascote <b>${D.name}</b>. Guarde a isca para um amigo (pode trocar).`, 'sys'); return; }
     if (capturando) return;
-    let m = null, bd = 7;
-    for (const o of mobs) if (o.type === t && !o.dead && !o.invul) { const d = Math.hypot(o.x - P.x, o.z - P.z); if (d < bd) { bd = d; m = o; } }
-    if (!m) { log(`🪤 Chegue perto de um(a) <b>${D.name}</b> (até 7 m) para usar a isca.`, 'bad'); return; }
-    P.inv[id]--; Audio8.sfx('skill');
+    // 🎯 usa o ALVO escolhido (toque no bicho); sem alvo, o mais perto do tipo certo
+    let m = null, bd = 9;
+    if (P.alvo && !P.alvo.dead && mobs.includes(P.alvo)) { if (P.alvo.type !== t) { log(`🪤 Essa isca é de <b>${D.name}</b>, e o seu alvo é <b>${P.alvo.d.name}</b>. Toque num(a) ${D.name} para escolher.`, 'bad'); return; } if (Math.hypot(P.alvo.x - P.x, P.alvo.z - P.z) < 9) m = P.alvo; }
+    if (!m) for (const o of mobs) if (o.type === t && !o.dead && !o.invul) { const d = Math.hypot(o.x - P.x, o.z - P.z); if (d < bd) { bd = d; m = o; } }
+    if (!m) { log(`🪤 Chegue perto de um(a) <b>${D.name}</b> (até 9 m) e toque nele para escolher como alvo.`, 'bad'); return; }
     const vida = Math.max(0, m.hp / m.maxHp), chance = Math.min(0.95, (D.boss || D.mini ? 0.04 : 0.12) + (D.boss || D.mini ? 0.3 : 0.6) * (1 - vida));
+    // chance baixa: avisa antes de gastar a isca (a Lady perdeu uma isca na Sombra Errante sem saber)
+    if (chance < 0.35 && !capturar.confirmado) { dialog(`🪤 Isca de ${D.name}`, `A chance agora é só <b>${Math.round(chance * 100)}%</b> (ele está com <b>${Math.round(vida * 100)}%</b> de vida).<br>Quanto <b>menos vida</b> ele tiver, maior a chance: bata nele até ficar bem fraco e jogue a isca. Se falhar, a isca se perde.`, [{ label: `🪤 Jogar mesmo assim (${Math.round(chance * 100)}%)`, fn: () => { capturar.confirmado = true; try { capturar(id); } finally { capturar.confirmado = false; } } }, { label: 'Esperar' }]); return; }
+    P.inv[id]--; Audio8.sfx('skill');
     capturando = { m, t, chance, at: time };
     log(`🪤 Você jogou a isca no(a) <b>${D.name}</b>... (chance ${Math.round(chance * 100)}%: quanto menos vida ele tiver, maior)`, 'sys');
     for (let i = 0; i < 3; i++) setTimeout(() => ring(m.x, m.z, 1.5 + i, 0xffd060, 0.5), i * 250);

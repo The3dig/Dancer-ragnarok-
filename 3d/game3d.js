@@ -1949,6 +1949,7 @@ function checkGrave() {
   log(`🎒 Você recuperou a sacola: ${got.join(' ')} (está na mochila).`, 'gold');
 }
 function nearestMob(r, cone = true) {
+  if (alvoOk() && Math.hypot(P.alvo.x - P.x, P.alvo.z - P.z) <= r + (P.alvo.d.rad ?? (P.alvo.d.boss ? 1.6 : 0))) return P.alvo;   // 🎯 o alvo escolhido vem primeiro
   let best = null, bs = 1e9;
   for (const m of mobs) {
     const dx = m.x - P.x, dz = m.z - P.z, d = Math.hypot(dx, dz);
@@ -1967,6 +1968,7 @@ function nearestMob(r, cone = true) {
 function handPos() { const v = new THREE.Vector3(); (L.orb || L.handR).getWorldPosition(v); return v; }
 function attack() {
   if (P.dead || dialogOpen || P.atkCd > 0) return;
+  if (alvoOk() && !P.caca && Math.hypot(P.alvo.x - P.x, P.alvo.z - P.z) > CLS().range + 0.4 + (P.alvo.d.rad ?? (P.alvo.d.boss ? 1.6 : 0))) { P.caca = P.alvo; return; }   // alvo longe: vai até ele
   if (P.montado && typeof Montaria !== 'undefined') Montaria.descer();          // montado não luta: desce e ataca
   // atacar não para a caminhada até a missão: dá para ir andando e batendo (só para com vida baixa)
   const c = CLS();
@@ -2244,6 +2246,7 @@ const ZONES = {
   valdora: { name: 'Ruínas de Valdora', music: 'valdora' },
 };
 function update(dt) {
+  tickAlvo();
   time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
   updatePlayer(dt);
   // monstro muito longe (outro mapa): não pensa nem desenha (agora há mais monstros por mapa)
@@ -3628,7 +3631,7 @@ addEventListener('pointerup', e => {
   // PC: clique rápido (sem arrastar) = clicar no mundo, como no Ragnarok. Arrastar continua girando a câmera.
   if (d.mouse && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 7 && performance.now() - d.t0 < 450) cliqueMundo(e.clientX, e.clientY);
   // celular: toque rápido em cima de outro jogador (no boneco ou no nome) abre o menu dele (convidar para grupo/guilda, seguir...)
-  else if (!d.mouse && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 22 && performance.now() - d.t0 < 700) { const pr = jogadorNoToque(e.clientX, e.clientY); if (pr && typeof Jogadores !== 'undefined') { Audio8.sfx('click'); Jogadores.menu(pr); } }
+  else if (!d.mouse && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 22 && performance.now() - d.t0 < 700) { const pr = jogadorNoToque(e.clientX, e.clientY); if (pr && typeof Jogadores !== 'undefined') { Audio8.sfx('click'); Jogadores.menu(pr); } else { const a = soMouse(e.clientX, e.clientY); if (a && a.tipo === 'mob') escolherAlvo(a.o); } }
 });
 // outro jogador debaixo do dedo/cursor (o corpo ou o nome em cima da cabeça)
 function jogadorNoToque(cx, cy) {
@@ -3640,6 +3643,27 @@ function jogadorNoToque(cx, cy) {
   }
   return best;
 }
+// 🎯 ALVO (pedido do Rone, como no Ragnarok): toque/clique no monstro seleciona; o ataque, as habilidades e a isca de
+// mascote vão nele (antes iam no mais perto, e no MVP cada golpe caía em quem estivesse do lado). Tocar de novo nele = ir bater.
+function alvoOk() { const m = P.alvo; return !!(m && !m.dead && mobs.includes(m) && Math.hypot(m.x - P.x, m.z - P.z) < 60); }
+const alvoMarca = (() => { const g = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.12, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff3a3a, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false })); g.visible = false; g.renderOrder = 5; scene.add(g); return g; })();
+function escolherAlvo(m, ir) {
+  if (!m) return; const mesmo = P.alvo === m; P.alvo = m; Audio8.sfx('click');
+  if (mesmo || ir) { P.caca = m; if (AUTO.on) autoStop(''); }                 // tocou de novo: vai até ele e bate
+  else log(`🎯 Alvo: <b>${m.d.name}</b> <small>Nv ${m.d.lv}</small>. Toque nele de novo (ou no ⚔️) para atacar.`, 'sys');
+}
+function tickAlvo() {
+  if (P.alvo && !alvoOk()) P.alvo = null;
+  const m = P.alvo, hud = $('alvo-hud');
+  alvoMarca.visible = !!m;
+  if (m) { const r = (m.d.rad || (m.d.boss ? 1.8 : 0.9)) * (m.d.boss ? 1.1 : 1); alvoMarca.position.set(m.x, groundY(m.x, m.z) + 0.06, m.z); alvoMarca.scale.setScalar(r); alvoMarca.rotation.y += 0.03; alvoMarca.material.opacity = 0.65 + Math.sin(time * 6) * 0.25; }
+  if (!hud) return;
+  if (!m) { if (!hud.classList.contains('hidden')) hud.classList.add('hidden'); return; }
+  hud.classList.remove('hidden'); const pc = Math.max(0, m.hp / m.maxHp * 100);
+  const h = `<b>🎯 ${m.d.name}</b> <small>Nv ${m.d.lv}</small><i><b style="width:${pc.toFixed(1)}%"></b></i><span>${pc < 1 && m.hp > 0 ? '<1' : Math.round(pc)}%</span><button data-x>✕</button>`;
+  if (hud.dataset.h !== h) { hud.innerHTML = h; hud.dataset.h = h; }
+}
+{ const d = document.createElement('div'); d.id = 'alvo-hud'; d.className = 'hidden'; document.body.appendChild(d); d.addEventListener('pointerdown', e => { e.stopPropagation(); if (e.target.closest('[data-x]')) { P.alvo = null; P.caca = null; Audio8.sfx('click'); } else if (P.alvo) escolherAlvo(P.alvo, true); }); }
 // o que está debaixo do mouse: monstro (o mais perto do cursor na tela) ou NPC
 function soMouse(cx, cy) {
   let best = null, bd = 46;
@@ -3652,7 +3676,7 @@ function cliqueMundo(cx, cy) {
   if (P.dead || dialogOpen) return;
   { const pr = jogadorNoToque(cx, cy); if (pr && typeof Jogadores !== 'undefined') { Jogadores.menu(pr); return; } }   // clicou em outro jogador: menu dele
   const alvo = soMouse(cx, cy);
-  if (alvo && alvo.tipo === 'mob') { if (AUTO.on) autoStop(''); P.caca = alvo.o; P.face = Math.atan2(alvo.o.x - P.x, alvo.o.z - P.z); return; }        // clicou no monstro: vai até ele e ataca até cair
+  if (alvo && alvo.tipo === 'mob') { if (AUTO.on) autoStop(''); P.alvo = alvo.o; P.caca = alvo.o; P.face = Math.atan2(alvo.o.x - P.x, alvo.o.z - P.z); return; }        // clicou no monstro: vai até ele e ataca até cair
   if (alvo && alvo.tipo === 'npc') { const n = alvo.o; P.caca = null; if (Math.hypot(n.x - P.x, n.z - P.z) < 3.2) talk(n); else { P.qGo = { x: n.x, z: n.z, name: n.name }; P.falarCom = n; if (typeof autoStart === 'function') autoStart(); } return; }
   // clicou no chão: anda até lá
   const r = cvEl.getBoundingClientRect(); _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
@@ -3690,7 +3714,7 @@ addEventListener('keydown', e => {
   if (k === 'i') { fecharJanelas('invwin'); if (typeof Vida !== 'undefined') Vida.bag(); }
   if (k === 'l') { fecharJanelas('bestwin'); if (typeof Vida !== 'undefined') Vida.bestiary(); }
   if (k === 'p' && typeof Mascotes !== 'undefined') { fecharJanelas('dialog'); Mascotes.livro(); }
-  if (k === 'tab') { e.preventDefault(); const m = nearestMob(18, false); if (m) { P.caca = m; if (AUTO.on) autoStop(''); log(`🎯 Alvo: <b>${m.d.name}</b>`, 'sys'); } }
+  if (k === 'tab') { e.preventDefault(); const m = nearestMob(18, false); if (m) { P.caca = m; P.alvo = m; if (AUTO.on) autoStop(''); log(`🎯 Alvo: <b>${m.d.name}</b>`, 'sys'); } }
   if (k === 'h') showHelp();
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -3941,6 +3965,26 @@ let last = performance.now();
 P.y = groundY(P.x, P.z);
 // no celular, 30 quadros por segundo: metade do trabalho da placa de vídeo, bem menos calor e bateria
 const FRAME_MS = TOUCH ? 1000 / 30 : 0; let lastFrame = 0;
+// 🪟 o jogo continua com a janela em segundo plano (pedido do Rone: deixar caçando enquanto trabalha).
+// O navegador para de desenhar quando a janela fica escondida; aí um relógio num Worker (que o navegador não congela)
+// continua rodando a lógica: AUTO, caça, missões, rede. Só não desenha a tela.
+let lastLogic = performance.now();
+function passoJogo(dt) {
+  update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); if (typeof Castelo !== 'undefined') Castelo.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+}
+function passoFundo(dt) {
+  update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); if (typeof Castelo !== 'undefined') Castelo.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); 
+}
+(() => { try {
+  const w = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),100)'], { type: 'text/javascript' })));
+  w.onmessage = () => {
+    if (!running || window.VR_ATIVO || (typeof Net !== 'undefined' && Net.pausa)) return;
+    const agora = performance.now(), parado = agora - lastLogic; if (parado < 400) return;      // a tela está desenhando: nada a fazer
+    let falta = Math.min(2, parado / 1000); lastLogic = agora; last = agora;
+    while (falta > 0) { const dt = Math.min(0.05, falta); falta -= dt; try { passoFundo(dt); } catch (e) { console.warn(e); break; } }
+    if (typeof AutoCaca !== 'undefined' && AutoCaca._tick) try { AutoCaca._tick(); } catch (e) { }
+  };
+} catch (e) { } })();
 function loop(now) {
   if (!window.VR_ATIVO) requestAnimationFrame(loop);                  // no VR quem chama é o óculos (vr.js)
   if (document.hidden) return;
@@ -3951,7 +3995,7 @@ function loop(now) {
   if (running && typeof Net !== 'undefined' && Net.pausa) {      // sem conexão: o mundo para (o jogo é todo on-line)
     Net.update(dt); sky.position.copy(camera.position); draw();
   } else if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); if (typeof Castelo !== 'undefined') Castelo.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    passoJogo(dt); lastLogic = performance.now();
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {

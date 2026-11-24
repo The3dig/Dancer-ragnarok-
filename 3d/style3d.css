@@ -1026,3 +1026,14 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 body.pc #menu { top: max(8px, env(safe-area-inset-top)); right: auto; left: 50%; transform: translateX(-50%); gap: 6px; }
 body.pc #quest { display: block; position: absolute; top: 252px; right: 10px; left: auto; margin: 0; transform: none; width: 250px; font-size: 12px; pointer-events: auto; }
 body.pc #chat { top: 250px; bottom: auto; left: 10px; margin-left: 0; transform: none; width: 300px; height: 150px; font-size: 12px; opacity: .92; pointer-events: auto; }
+
+/* 🎯 alvo escolhido: nome e vida no alto da tela, ✕ para largar */
+#alvo-hud { position: fixed; top: calc(58px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 35; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border-radius: 12px;
+  background: rgba(30,8,10,.82); border: 1px solid rgba(255,90,90,.7); color: #ffe8e0; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.5); pointer-events: auto; cursor: pointer; }
+#alvo-hud.hidden { display: none; }
+#alvo-hud small { opacity: .8; }
+#alvo-hud i { display: block; width: 120px; height: 9px; border-radius: 5px; background: rgba(0,0,0,.6); overflow: hidden; }
+#alvo-hud i b { display: block; height: 100%; background: linear-gradient(90deg, #c82a2a, #ff6a5a); }
+#alvo-hud span { min-width: 34px; font-weight: 800; }
+#alvo-hud button { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 8px; width: 28px; height: 26px; cursor: pointer; }
+@media (max-height: 470px) { #alvo-hud { top: calc(44px + env(safe-area-inset-top)); font-size: 11px; } #alvo-hud i { width: 90px; } }
