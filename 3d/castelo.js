@@ -33,7 +33,7 @@ const Castelo = (() => {
   //   Biblioteca (norte, atrás do trono) · Arsenal (oeste) · SAGUÃO · Banquete (leste) · Vestíbulo (sul, com a saída)
   const g = new THREE.Group(); g.position.set(C.x, 0, C.z); g.visible = false; scene.add(g);
   const SALAS = { saguao: [-11, 11, -9, 9], vest: [-6, 6, 9, 19], arsenal: [-25, -11, -7, 7], banquete: [11, 25, -7, 7], biblio: [-8, 8, -22, -9] };
-  const PORTAS = [['x', -11, 0, 3.2], ['x', 11, 0, 3.2], ['z', 9, 0, 3.6], ['z', -9, 5.5, 2.8]];   // eixo, posição, centro, largura (a da biblioteca fica ao lado do trono)
+  const PORTAS = [['x', -11, 0, 3.8], ['x', 11, 0, 3.8], ['z', 9, 0, 4.2], ['z', -9, 5.5, 3.4]];   // portas mais largas   // eixo, posição, centro, largura (a da biblioteca fica ao lado do trono)
   const tex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
   const L = (c, o = {}) => new THREE.MeshLambertMaterial({ color: c, ...o }), PH = (c, e = 0, sh = 60) => new THREE.MeshPhongMaterial({ color: c, emissive: e, shininess: sh });
   const ouro = PH(0xd9a63a, 0x2a1800, 90), ferro = PH(0x4a4a52, 0, 50);
@@ -54,7 +54,7 @@ const Castelo = (() => {
     const mat = paredeM.clone(); mat.map = paredeM.map.clone(); mat.map.repeat.set(len / 4, 1.6); mat.map.needsUpdate = true; mat.transparent = true;
     const w = box(0.6, H, len, mat, cx, H / 2, cz, g, ang); paredes.push(w);
     w.userData.extras = [box(0.72, 0.5, len, rodape, cx, 0.25, cz, g, ang), box(0.8, 0.35, len, PM('pedra.jpg', [len / 3, 1], new THREE.Color(0.55, 0.5, 0.46)), cx, H - 0.1, cz, g, ang)];   // somem junto com a parede
-    for (let t = 0; t <= len; t += 0.8) ob(x0 + (x1 - x0) * t / len, z0 + (z1 - z0) * t / len, 0.55);
+    for (let t = 0.3; t <= len - 0.3; t += 0.7) ob(x0 + (x1 - x0) * t / len, z0 + (z1 - z0) * t / len, 0.45);   // (antes a ponta da parede comia a porta e o pessoal enroscava)
   }
   // contorno de uma sala com os vãos das portas
   function sala([x0, x1, z0, z1]) {
@@ -89,7 +89,7 @@ const Castelo = (() => {
   { const fora = new THREE.Mesh(new THREE.PlaneGeometry(90, 90).rotateX(-Math.PI / 2), L(0x241c16)); fora.position.y = -0.02; g.add(fora); }   // fora das salas: chão escuro (antes aparecia o vazio preto)
   // ----- SAGUÃO: colunas, tapete até o trono, trono, mesa de guerra, lustres, vitrais e tapeçarias
   for (const x of [-7.5, 7.5]) for (const z of [-5, 0, 5]) { paredes.push(cil(0.55, 0.62, 5.6, PM('pedra.jpg', [1, 3], new THREE.Color(0.75, 0.7, 0.65)), x, 2.8, z)); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 0.2, z); box(1.4, 0.4, 1.4, PM('pedra.jpg', [1, 1], new THREE.Color(0.55, 0.5, 0.46)), x, 5.6, z); const an = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.06, 8, 20).rotateX(Math.PI / 2), ouro); an.position.set(x, 1.1, z); g.add(an); ob(x, z, 0.8); }
-  tapete(3.2, 26, 0, 3, tapeteT('#7a0e1c', '#d9a63a', '#b8862a'));
+  tapete(3.2, 17.6, 0, 0, tapeteT('#7a0e1c', '#d9a63a', '#b8862a'));   // termina na porta (antes invadia o tapete do vestíbulo e os dois piscavam)
   box(7, 0.3, 3.4, PM('pedra.jpg', [2, 1], new THREE.Color(0.6, 0.55, 0.5)), 0, 0.15, -7.2); box(5, 0.3, 2.4, PM('pedra.jpg', [2, 1], new THREE.Color(0.66, 0.6, 0.55)), 0, 0.45, -7.4);
   { const tr = new THREE.Group(); tr.position.set(0, 0.6, -7.7); g.add(tr); box(1.7, 0.6, 1.3, ouro, 0, 0.3, 0, tr); box(1.4, 0.2, 1.1, L(0x7a0e1c), 0, 0.68, 0.05, tr); box(1.7, 2.8, 0.25, ouro, 0, 1.9, -0.55, tr); box(1.3, 2.2, 0.05, L(0x7a0e1c), 0, 1.9, -0.41, tr); for (const s2 of [-1, 1]) { box(0.22, 0.55, 1.2, ouro, 0.82 * s2, 0.95, 0, tr); const p = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), ouro); p.position.set(0.82 * s2, 3.4, -0.55); tr.add(p); } ob(0, -7.6, 1.4); }
   { const mesa = new THREE.Group(); mesa.position.set(0, 0, 1); g.add(mesa); cil(2.4, 2.4, 0.18, madeira(0x9a6a40), 0, 1.0, 0, 28, mesa); cil(0.5, 0.75, 1, madeira(0x6a4a2a), 0, 0.5, 0, 10, mesa);
@@ -155,11 +155,12 @@ const Castelo = (() => {
   const portal = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.8), new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false, side: THREE.DoubleSide })); portal.position.set(0, 1.9, 18.75); g.add(portal);
   const QUADRO = { x: C.x - 4.6, z: C.z + 10.4 };
   const quadroMat = new THREE.MeshBasicMaterial({ toneMapped: false, side: THREE.DoubleSide });
-  { const q = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.8), quadroMat); q.position.set(-4.6, 1.9, 9.65); g.add(q); box(2.8, 2, 0.12, madeira(0x6a4a2a), -4.6, 1.9, 9.55); }
+  { const q = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.8), quadroMat); q.position.set(-4.6, 1.9, 9.46); g.add(q); box(2.8, 2, 0.12, madeira(0x6a4a2a), -4.6, 1.9, 9.36); }   // encostada na parede
   let quadroKey = '';
   function quadro() {
     const a = agora(), k = a.tipo + a.ativo + new Date().getDay(); if (k === quadroKey) return; quadroKey = k;
-    const c = document.createElement('canvas'); c.width = 512; c.height = 352; const x = c.getContext('2d'); x.fillStyle = '#2a2018'; x.fillRect(0, 0, 512, 352); x.strokeStyle = '#d9a63a'; x.lineWidth = 8; x.strokeRect(4, 4, 504, 344);
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 704; const x = c.getContext('2d'); x.scale(2, 2);   // o dobro de resolução (estava desfocada)
+    x.fillStyle = '#2a2018'; x.fillRect(0, 0, 512, 352); x.strokeStyle = '#d9a63a'; x.lineWidth = 8; x.strokeRect(4, 4, 504, 344);
     x.fillStyle = '#ffd860'; x.font = 'bold 30px Georgia'; x.textAlign = 'center'; x.fillText('Brincadeiras das 20h', 256, 46); x.font = '22px Georgia'; x.textAlign = 'left';
     const hoje = new Date().getDay();
     [1, 2, 3, 4, 5].forEach((d, i) => { x.fillStyle = d === hoje ? '#7dff6a' : '#f0e2c0'; x.fillText(`${DIAS[d].padEnd(8)} ${NOME[TIPOS[d]]}`, 26, 92 + i * 40); });

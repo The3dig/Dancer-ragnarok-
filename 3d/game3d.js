@@ -21,6 +21,10 @@ const rr = (a, b) => a + R() * (b - a);
 THREE.ColorManagement.legacyMode = false;
 { const setHSL0 = THREE.Color.prototype.setHSL; THREE.Color.prototype.setHSL = function (h, s, l) { setHSL0.call(this, h, s, l); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+// placas e cartazes nítidos mesmo vistos de lado ou de cima (pedido do Rone: "todas as placas do jogo estão desfocadas"):
+// toda textura desenhada no jogo (CanvasTexture) ganha filtro anisotrópico
+{ const MAXA = Math.min(8, renderer.capabilities.getMaxAnisotropy() || 1), CT = THREE.CanvasTexture;
+  try { THREE.CanvasTexture = class extends CT { constructor(...a) { super(...a); this.anisotropy = MAXA; } }; } catch (e) { } }
 renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.0 : 2));
 // o celular ficou sem memória de vídeo (o iPhone "perde" o desenho 3D): a imagem congelava pela metade e só o chat
 // continuava funcionando (bug da Lady Ingrid na Ponte dos Mortos). Agora o jogo avisa, salva, liga o modo leve e recarrega sozinho.
@@ -2975,7 +2979,8 @@ function entradaDe(t) {
 }
 function questTarget() {
   if (typeof Quests !== 'undefined') {
-    if (inTower(P.z)) return null; let t = Quests.target(); if (!t) return null;
+    if (inTower(P.z)) return P.qGo && P.qGo.seguir && inTower(P.qGo.z) ? P.qGo : null;   // seguindo alguém dentro da Torre: anda até ele no mesmo andar
+    let t = Quests.target(); if (!t) return null;
     // o alvo está dentro da Torre, do Abismo, de uma masmorra ou de uma casa (lugares "fora do mapa"): vai até a ENTRADA
     // (antes andava em linha reta até a posição lá dentro e ficava preso no mato seguindo o Imperyon na Torre)
     if (inTower(t.z)) { const e = entradaDe(t); if (!e) return null;

@@ -925,3 +925,27 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 .seg-pedido button { margin-left: 8px; padding: 5px 10px; border-radius: 9px; border: 1px solid #ffe3a0; background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; font-weight: 800; }
 .seg-pedido button[data-n] { background: rgba(255,255,255,.1); color: #f0e8dc; border-color: rgba(255,255,255,.3); }
 #grupowin .gr-card.lider { border-color: #f2c86a !important; }
+
+/* 👥 tela do grupo grande: 6 espaços com o corpo inteiro */
+#grupowin { position: fixed !important; left: 2vw !important; right: 2vw !important; top: calc(8px + env(safe-area-inset-top)) !important; bottom: 8px !important; width: auto !important; max-width: none !important; max-height: none !important; transform: none !important; display: flex; flex-direction: column; z-index: 45; }
+#grupowin.hidden { display: none !important; }
+#grupowin .gp-b { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 8px 10px; }
+#grupowin .gp-slots { flex: 3; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 8px; min-height: 0; }
+#grupowin .gp-slot { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 6px; border-radius: 14px; background: radial-gradient(circle at 50% 35%, rgba(242,200,106,.16), rgba(16,12,26,.9)); border: 1px solid rgba(242,200,106,.35); cursor: pointer; min-height: 0; overflow: hidden; }
+#grupowin .gp-slot.eu { border-color: #8affb0; cursor: default; }
+#grupowin .gp-slot.lider { border: 2px solid #f2c86a; box-shadow: 0 0 14px rgba(242,200,106,.35); }
+#grupowin .gp-slot.vazio { cursor: default; opacity: .55; background: rgba(255,255,255,.03); border-style: dashed; }
+#grupowin .gp-corpo { flex: 1; min-height: 0; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+#grupowin .gp-corpo img { height: 100%; max-height: 150px; image-rendering: pixelated; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); }
+#grupowin .gp-corpo.morto img { filter: grayscale(1) brightness(.6); transform: rotate(-80deg); }
+#grupowin .gp-sem { font-size: 42px; color: rgba(242,200,106,.6); margin-bottom: 18px; }
+#grupowin .gp-nome { font-weight: 800; color: #ffe9a8; font-size: 13px; text-align: center; line-height: 1.1; }
+#grupowin .gp-info, #grupowin .gp-onde { font-size: 11px; color: #c9c2dd; text-align: center; }
+#grupowin .gp-hp { width: 80%; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; } #grupowin .gp-hp i { display: block; height: 100%; }
+#grupowin .gp-coroa { position: absolute; top: 4px; left: 8px; font-size: 22px; }
+#grupowin .gp-mini { position: absolute; top: 4px; right: 6px; padding: 2px 6px; border-radius: 8px; border: 1px solid #ffe3a0; background: rgba(242,200,106,.2); }
+#grupowin .gp-lado { flex: 1.1; min-width: 0; display: flex; flex-direction: column; } #grupowin .gp-lista { flex: 1; overflow-y: auto; }
+#grupowin .gp-acoes { display: flex; gap: 8px; padding: 6px 10px 10px; flex-wrap: wrap; justify-content: center; }
+#grupowin .gp-acoes button { padding: 8px 14px; border-radius: 10px; font-weight: 800; border: 1px solid rgba(242,200,106,.5); background: rgba(242,200,106,.12); color: #f0e8dc; }
+#grupowin .gp-acoes .gr-todos { background: linear-gradient(135deg, #f2c86a, #c98a2c); color: #1a1020; }
+#grupowin .gr-txt { margin: 0 10px 10px; max-height: 26vh; overflow-y: auto; }

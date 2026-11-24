@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 25/11
 
+- **👥 Tela do grupo nova e correções**: O **👥 Grupo** agora abre numa **tela grande** com os **6 espaços** sempre à mostra e o **corpo inteiro** de cada um (👑 no líder, vida, onde está). Toque num companheiro para trocar, seguir, fazer seguir ou passar a liderança. **Seguir na Torre**: quem segue agora anda junto também dentro do mesmo andar (antes só se mexia quando o outro trocava de andar). No castelo, as **portas ficaram mais largas** e as paredes param de "comer" as passagens; o **tapete da entrada** não pisca mais; a **lousa** está nítida e encostada na parede. E todas as **placas e cartazes** do jogo ficaram mais nítidos vistos de lado.
 - **🏰 Câmera do castelo arrumada**: No **castelo da guilda** a câmera não fica mais presa e colada no personagem: ela fica **de longe e um pouco por cima**, como nos outros mapas, e o castelo ficou sem teto para dar para ver as salas inteiras. Parede, coluna ou arco que tapar a visão some inteiro. Também diminuí as áreas que travavam o personagem perto das mesas.
 
 ## 24/11
