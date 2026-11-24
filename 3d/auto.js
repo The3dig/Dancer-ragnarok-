@@ -43,7 +43,8 @@ const AutoCaca = (() => {
     render(); win.classList.remove('hidden');
   }
   function render() {
-    const C = cfg(), perto = pertoTipos(), tipos = [...new Set([...Object.keys(perto), ...C.bichos.filter(t => MOBDEF[t])])].sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
+    const C = cfg(), perto = pertoTipos(); if (!on) C.bichos = C.bichos.filter(t => perto[t]);   // só os bichos daqui (nada de bicho de outro mapa)
+    const tipos = [...new Set([...Object.keys(perto), ...C.bichos.filter(t => MOBDEF[t])])].sort((a, b) => MOBDEF[a].lv - MOBDEF[b].lv);
     const sk = ativas(), hpP = pocao('hp'), spP = pocao('sp');
     const btn = (a, v, txt, on2) => `<button data-a="${a}" data-v="${v}" class="${on2 ? 'on' : ''}">${txt}</button>`;
     win.innerHTML = `<div class="wt">🤖 Caça automática<span class="x" data-a="x">×</span></div><div class="au-b">
@@ -66,6 +67,7 @@ const AutoCaca = (() => {
   function comecar() {
     const C = cfg();
     if (P.dead) return;
+    { const perto = pertoTipos(); C.bichos = C.bichos.filter(t => perto[t]); }
     if (!C.bichos.length) { log('🤖 Escolha pelo menos um bicho para caçar.', 'bad'); Audio8.sfx('miss'); abrir(); return; }
     const z = zoneOf(P.x, P.z); if (ZONES[z] && ZONES[z].town) { log('🤖 Na cidade não tem o que caçar: vá até um mapa de caça.', 'bad'); Audio8.sfx('miss'); return; }
     if (typeof autoStop === 'function' && typeof AUTO !== 'undefined' && AUTO.on) autoStop('');
@@ -74,6 +76,9 @@ const AutoCaca = (() => {
   }
   function parar(msg) {
     if (!on) return; on = false; P.caca = null; centro = null; marcar();
+    // parou: zera a escolha dos bichos e esquece o ponto de caça (pedido do Rone: a Ludi foi para a Floresta e o
+    // personagem saiu andando atrás dos bichos do deserto, da caçada anterior, e travou no caminho)
+    cfg().bichos = []; if (P.qGo && P.qGo.name === 'o ponto de caça') P.qGo = null;
     if (msg) log(`${msg} <small>(${(P.kills || 0) - mortes0} abatidos)</small>`, 'sys');
     if (win && !win.classList.contains('hidden')) render();
   }

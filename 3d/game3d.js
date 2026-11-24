@@ -183,7 +183,7 @@ function autoDir(dt) {
   // levar um golpe não para mais a caminhada; só para se a vida ficar baixa (aí é hora de lutar ou tomar poção)
   if (P.hp < stats.maxHp() * 0.3) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }   // (era 50%: parava demais no meio da missão)
   const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
-  if (W.end && d < (T.name === 'o ponto marcado' ? 1.2 : 3)) { if (T === P.qGo && !T.seguir) P.qGo = null; autoStop('🚶 Você chegou.'); return null; }   // chegou: esquece o ponto (no PC saía andando atrás do bicho da missão)
+  if (W.end && d < (T.quadro ? 0.6 : T.name === 'o ponto marcado' ? 1.2 : 3)) { if (T.quadro) P.face = Math.atan2(T.quadro.x - P.x, T.quadro.z - P.z); if (T === P.qGo && !T.seguir) P.qGo = null; autoStop(T.quadro ? '' : '🚶 Você chegou.'); return null; }   // chegou: esquece o ponto (no PC saía andando atrás do bicho da missão)
   let a = Math.atan2(dx, dz);
   // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
   const free = ang => !blocked(P.x + Math.sin(ang) * 1.3, P.z + Math.cos(ang) * 1.3) && !blocked(P.x + Math.sin(ang) * 0.6, P.z + Math.cos(ang) * 0.6);

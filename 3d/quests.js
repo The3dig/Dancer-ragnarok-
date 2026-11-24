@@ -226,9 +226,11 @@ const Quests = (() => {
     return q ? q.id : null;
   }
   // diário: ativas (seguir), disponíveis (a seta leva até quem dá a missão) e quantas já concluiu
+  // 📜 a seta leva até a FRENTE do quadro (pedido do Rone: parar bem na frente para já apertar o botão de conversa)
+  const frenteQuadro = b => ({ x: b.x, z: b.z + 1.6, quadro: b });
   const placeOf = (x, z) => { try { return ZONES[zoneOf(x, z)].name; } catch (e) { return ''; } };
   function giverPos(q) {
-    if (q.board) { const b = BOARDS[q.board]; return { x: b.x, z: b.z, name: 'Quadro de Caça · ' + placeOf(b.x, b.z) }; }
+    if (q.board) { const b = BOARDS[q.board]; return { ...frenteQuadro(b), name: 'Quadro de Caça · ' + placeOf(b.x, b.z) }; }
     const n = npcByName(q.giver); return n ? { x: n.x, z: n.z, name: n.name + ' · ' + placeOf(n.x, n.z) } : null;
   }
   // missões novas (que você ainda não pegou nem viu no diário): o 📜 mostra "!"
@@ -265,10 +267,10 @@ const Quests = (() => {
       if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { if (G.fim && Math.hypot(P.x - G.fim.x, P.z - G.fim.z) > 4) { G.x = G.fim.x; G.z = G.fim.z; G.name = `o ponto marcado (${G.regN})`; return G; } log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }
       const w = BigMap.rota(aqui, G.reg); G.x = w.x; G.z = w.z; G.name = `${w.name}, caminho para ${G.regN}`; return G;
     }
-    if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < (P.qGo.name === 'o ponto marcado' ? 1.3 : 4)) { if (!P.qGo.seguir) log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); const seg = P.qGo.seguir; P.qGo = null; if (!seg && typeof autoStop === 'function' && typeof AUTO !== 'undefined' && AUTO.on) { autoStop(''); return null; } } else return P.qGo; }
+    if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < (P.qGo.quadro ? 0.5 : P.qGo.name === 'o ponto marcado' ? 1.3 : 4)) { if (!P.qGo.seguir) log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); const seg = P.qGo.seguir; P.qGo = null; if (!seg && typeof autoStop === 'function' && typeof AUTO !== 'undefined' && AUTO.on) { autoStop(''); return null; } } else return P.qGo; }
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const q = byId[focusId()]; if (!q) return null;
-    if (ready(q) || !q.steps.length) { if (q.board) return BOARDS[q.board]; const n = npcByName(q.to || q.giver); return n ? { x: n.x, z: n.z } : null; }
+    if (ready(q) || !q.steps.length) { if (q.board) return frenteQuadro(BOARDS[q.board]); const n = npcByName(q.to || q.giver); return n ? { x: n.x, z: n.z } : null; }
     const st = q.steps.find((s, i) => prog(q, i) < need(s));
     if (st && st.kill) { let best = null, bd = 1e9; for (const m of mobs) if (m.type === st.kill) { const d = Math.hypot(m.x - P.x, m.z - P.z); if (d < bd) { bd = d; best = m; } } if (best) return { x: best.x, z: best.z }; const sp = SPAWNS.find(s => s.type === st.kill); if (sp) return sp.at ? { x: sp.at.x, z: sp.at.z } : { x: (sp.area[0] + sp.area[1]) / 2, z: (sp.area[2] + sp.area[3]) / 2 }; if (['larva', 'verme', 'esfera', 'sentinela'].includes(st.kill)) return { x: Tower.door.x, z: Tower.door.z }; }
     if (st && st.item) {                                   // quem solta o item: monstro vivo perto, senão onde ele nasce
@@ -284,7 +286,7 @@ const Quests = (() => {
   }
 
   // ---------------- mundo: quadros de caça, tesouros e NPCs escondidos
-  const BOARDS = { margem: { x: MREF.x + 9, z: MREF.z - 6 }, solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 }, praia: { x: PVILA.x + 10, z: PVILA.z - 2 }, vigilia: { x: VIGIL.x + 9, z: VIGIL.z + 4 }, refugio: { x: CREF.x - 9, z: CREF.z - 3 } };
+  const BOARDS = { margem: { x: MREF.x + 11, z: MREF.z - 1 }, solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 }, praia: { x: PVILA.x + 10, z: PVILA.z - 2 }, vigilia: { x: VIGIL.x + 9, z: VIGIL.z + 4 }, refugio: { x: CREF.x - 9, z: CREF.z - 3 } };
   const opened = () => (P.secrets = P.secrets || {});
   const glintMats = [];
   // 🟣 mais baús escondidos (pedido do Rone): um no canto de metade das áreas de caça de todos os mapas (Reino, Valdora,
@@ -389,6 +391,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { _baus: () => SECRETS.filter(s => s.kind === 'bau').map(s => [s.name, Math.round(s.x), Math.round(s.z), s.lv || 0]), quadroPerto, warp, readyCount, novasCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { _boards: BOARDS, _baus: () => SECRETS.filter(s => s.kind === 'bau').map(s => [s.name, Math.round(s.x), Math.round(s.z), s.lv || 0]), quadroPerto, warp, readyCount, novasCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();
