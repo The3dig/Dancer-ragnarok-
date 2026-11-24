@@ -27,8 +27,8 @@ const Mascotes = (() => {
   // ---------------- iscas: um item por monstro, que cai dele mesmo
   for (const t of tipos()) {
     const D = MOBDEF[t];
-    ITEMS['isca_' + t] = { name: `Isca de ${D.name}`, ic: '🪤', kind: 'isca', use: 'isca', price: 0, sell: 50 + (D.lv || 1) * 20, desc: `Use perto de um(a) ${D.name} para tentar capturar. Quanto menos vida ele tiver, maior a chance.` };
-    D.drops.push(['isca_' + t, D.boss || D.mini ? 0.08 : D.field ? 0.05 : 0.01]);
+    ITEMS['isca_' + t] = { name: `Isca de ${D.name}`, ic: '🪤', kind: 'isca', use: 'isca', price: 0, sell: 50 + (D.lv || 1) * 20, desc: `Use perto de um(a) ${D.name} para tentar capturar. Como no Rag: cada captura usa até 5 iscas (com menos, a chance cai) e quanto menos vida ele tiver, maior a chance.` };
+    D.drops.push(['isca_' + t, D.boss || D.mini ? 0.15 : D.field ? 0.08 : 0.025]);   // precisa de 5: cai mais que antes (era 1%)
   }
 
   // ---------------- capturar
@@ -42,12 +42,14 @@ const Mascotes = (() => {
     if (P.alvo && !P.alvo.dead && mobs.includes(P.alvo)) { if (P.alvo.type !== t) { log(`🪤 Essa isca é de <b>${D.name}</b>, e o seu alvo é <b>${P.alvo.d.name}</b>. Toque num(a) ${D.name} para escolher.`, 'bad'); return; } if (Math.hypot(P.alvo.x - P.x, P.alvo.z - P.z) < 9) m = P.alvo; }
     if (!m) for (const o of mobs) if (o.type === t && !o.dead && !o.invul) { const d = Math.hypot(o.x - P.x, o.z - P.z); if (d < bd) { bd = d; m = o; } }
     if (!m) { log(`🪤 Chegue perto de um(a) <b>${D.name}</b> (até 9 m) e toque nele para escolher como alvo.`, 'bad'); return; }
-    const vida = Math.max(0, m.hp / m.maxHp), chance = Math.min(0.95, (D.boss || D.mini ? 0.04 : 0.12) + (D.boss || D.mini ? 0.3 : 0.6) * (1 - vida));
-    // chance baixa: avisa antes de gastar a isca (a Lady perdeu uma isca na Sombra Errante sem saber)
-    if (chance < 0.35 && !capturar.confirmado) { dialog(`🪤 Isca de ${D.name}`, `A chance agora é só <b>${Math.round(chance * 100)}%</b> (ele está com <b>${Math.round(vida * 100)}%</b> de vida).<br>Quanto <b>menos vida</b> ele tiver, maior a chance: bata nele até ficar bem fraco e jogue a isca. Se falhar, a isca se perde.`, [{ label: `🪤 Jogar mesmo assim (${Math.round(chance * 100)}%)`, fn: () => { capturar.confirmado = true; try { capturar(id); } finally { capturar.confirmado = false; } } }, { label: 'Esperar' }]); return; }
-    P.inv[id]--; Audio8.sfx('skill');
+    // 🪤 como no Rag (pedido do Rone): cada captura usa até 5 iscas; com 5 a chance é cheia, com menos ela cai na mesma proporção.
+    // E quanto menos vida o bicho tiver, maior a chance. Se falhar, as iscas usadas se perdem.
+    const vida = Math.max(0, m.hp / m.maxHp), cheia = Math.min(0.95, (D.boss || D.mini ? 0.12 : 0.35) + (D.boss || D.mini ? 0.35 : 0.6) * (1 - vida));
+    const n = Math.min(5, P.inv[id] || 0), chance = cheia * n / 5;
+    if (!capturar.confirmado) { dialog(`🪤 Capturar ${D.name}`, `Vai usar <b>${n} de 5 iscas</b>${n < 5 ? ` (com 5 a chance seria <b>${Math.round(cheia * 100)}%</b>)` : ''}.<br>Ele está com <b>${Math.round(vida * 100)}%</b> de vida: quanto mais fraco, maior a chance.<br>Chance agora: <b style="font-size:1.2em">${Math.round(chance * 100)}%</b><br><small>Se falhar, as ${n} iscas se perdem.</small>`, [{ label: `🪤 Jogar ${n} isca${n > 1 ? 's' : ''} (${Math.round(chance * 100)}%)`, fn: () => { capturar.confirmado = true; try { capturar(id); } finally { capturar.confirmado = false; } } }, { label: 'Esperar' }]); return; }
+    P.inv[id] -= n; Audio8.sfx('skill');
     capturando = { m, t, chance, at: time };
-    log(`🪤 Você jogou a isca no(a) <b>${D.name}</b>... (chance ${Math.round(chance * 100)}%: quanto menos vida ele tiver, maior)`, 'sys');
+    log(`🪤 Você jogou <b>${n} isca${n > 1 ? 's' : ''}</b> no(a) <b>${D.name}</b>... (chance ${Math.round(chance * 100)}%)`, 'sys');
     for (let i = 0; i < 3; i++) setTimeout(() => ring(m.x, m.z, 1.5 + i, 0xffd060, 0.5), i * 250);
   }
   function terminarCaptura() {
