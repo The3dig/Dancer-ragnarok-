@@ -49,7 +49,8 @@ const Partilha = (() => {
   }
   function semente() {
     if (!mobs.some(m => m.nid)) { setTimeout(semente, 800); return; }          // os monstros ainda não nasceram neste jogo: espera
-    const l = mobs.filter(m => m.nid).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2), vivo: true }));
+    // só os monstros do mundo, vivos: Torre e masmorra (dg:) têm o caminho delas (antes os mortos da Torre voltavam quase sem vida)
+    const l = mobs.filter(m => m.nid && !m.dead && m.hp > 0 && !m.dg && !String(m.nid).startsWith('dg:')).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2), vivo: true }));
     // em partes: a lista inteira passa do tamanho máximo de mensagem do servidor (24 KB) e era jogada fora
     for (let i = 0; i < l.length; i += 150) Net.send({ t: i ? 'semente+' : 'semente', l: l.slice(i, i + 150) });
   }

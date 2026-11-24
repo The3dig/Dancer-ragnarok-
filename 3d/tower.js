@@ -628,7 +628,7 @@ const Tower = (() => {
     if (rp && rp.p > 0.97) { leaveT = 1; const fwd = rp.tipo === avanca(f); enter(fwd ? cur + 1 : cur - 1, !fwd); }
   }
   // 🚪 saída do 1º andar bem à mostra (o Balhulk ficou preso: "não tem saída"): placa em cima da escadaria que desce
-  // e um botão "Sair da Torre" em qualquer lugar do 1º andar quando não tem monstro em cima de você
+  // e um botão "Sair da Torre" perto dela (pergunta antes de sair)
   const placaSaida = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); x.fillStyle = 'rgba(20,60,30,.9)'; x.fillRect(0, 0, 256, 96); x.strokeStyle = '#8affb0'; x.lineWidth = 6; x.strokeRect(3, 3, 250, 90);
     x.fillStyle = '#d8ffe0'; x.font = 'bold 50px Georgia'; x.textAlign = 'center'; x.fillText('⬇ SAÍDA', 128, 66);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, toneMapped: false })); sp.scale.set(3.2, 1.2, 1); sp.visible = false; scene.add(sp); return sp; })();
@@ -638,10 +638,13 @@ const Tower = (() => {
     const p = pontoRampa(f, avanca(f) === 'sobe' ? 'desce' : 'sobe', 0.2); placaSaida.position.set(p.x, (p.y != null ? p.y : groundY(p.x, p.z)) + 3.2, p.z);
     placaSaida.material.opacity = 0.75 + Math.sin(time * 4) * 0.25;
   }
+  // o botão só aparece PERTO da placa de saída e pergunta antes (a Lady Ingrid tocava no 💬 no meio do andar e saía sem querer)
   function nearest() {
     if (cur !== 0 && cur !== 100) return null;
-    if (mobs.some(m => !m.dead && m.towerFloor === cur && Math.hypot(m.x - P.x, m.z - P.z) < 7)) return null;
-    return { label: cur === 0 ? '🚪 Sair da Torre' : '🚪 Voltar para a Cratera', fn: () => { enter(cur === 0 ? -1 : 99); } };
+    const f = FL(cur); if (!f) return null;
+    const p = pontoRampa(f, avanca(f) === 'sobe' ? 'desce' : 'sobe', 0.2); if (Math.hypot(p.x - P.x, p.z - P.z) > 5) return null;
+    const fora = cur === 0 ? 'Sair da Torre' : 'Voltar para a Cratera', ir = cur === 0 ? -1 : 99;
+    return { label: '🚪 ' + fora, fn: () => dialog('🚪 ' + fora, cur === 0 ? 'Quer mesmo <b>sair da Torre</b>?' : 'Quer mesmo <b>voltar para a Cratera</b>?', [{ label: '✅ Sim, sair', fn: () => enter(ir) }, { label: 'Ficar' }]) };
   }
   function minimap(g) {
     const W = g.canvas.width, H = g.canvas.height, x0 = W / 2 - 42, bw = 84 / (TOP + 1);
