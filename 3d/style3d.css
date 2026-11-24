@@ -995,3 +995,24 @@ body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 
 #statwin .fc-esq { grid-column: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 #statwin .fc-nums { grid-column: 2; grid-row: auto; min-width: 0; }
 @media (max-width: 640px) { #statwin .fc-esq, #statwin .fc-nums { grid-column: 1; } }
+/* mochila: a coluna do boneco rola no celular pequeno (as informações ficavam cortadas embaixo) */
+#invwin .doll { min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#invwin .doll-fig .dstat { text-align: left; margin-top: 3px; }
+
+/* 🃏 ícone de carta: uma cartinha de verdade com o monstro dentro (pedido do Rone) */
+.ico-carta { position: relative; display: inline-flex; width: 74%; aspect-ratio: 5 / 7; max-height: 92%; border-radius: 5px; padding: 3px; box-sizing: border-box;
+  background: linear-gradient(160deg, var(--cc1), var(--cc2) 55%, var(--cc1)); box-shadow: 0 1px 4px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.35); --cc1: #e8e8f0; --cc2: #8a8ca0; --ccf: #2a2a3a; --ccg: #9ad0ff; }
+.ico-carta .icc-pic { flex: 1; border-radius: 3px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--ccg) 35%, #2a2238), var(--ccf)); box-shadow: inset 0 0 0 1px rgba(0,0,0,.6); }
+.ico-carta .icc-pic img { width: 92%; height: 92%; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 1px 1px rgba(0,0,0,.7)); }
+.ico-carta .icc-pic i { font-style: normal; font-size: 1.1em; }
+.ico-carta .icc-gema { position: absolute; left: 50%; bottom: -3px; width: 7px; height: 7px; transform: translateX(-50%) rotate(45deg); background: var(--ccg); border: 1px solid rgba(0,0,0,.5); box-shadow: 0 0 5px var(--ccg); }
+.ico-carta.c-ouro { --cc1: #fff0b0; --cc2: #b07a18; --ccf: #2a1a08; --ccg: #ffcf40; }
+.ico-carta.c-bronze { --cc1: #f0c8a0; --cc2: #8a5028; --ccf: #24140c; --ccg: #ff9a50; }
+.ico-carta.c-arcana { --cc1: #e8c8ff; --cc2: #6a2aa8; --ccf: #1a0a2a; --ccg: #c070ff; }
+.ico-carta.c-lenda { --cc1: #ffb0a0; --cc2: #a01828; --ccf: #2a0808; --ccg: #ff4050; }
+.ico-carta.big { width: 64%; }
+/* carta grande: moldura pela raridade */
+.tcard.t-ouro { background: linear-gradient(160deg, #fff4c0, #d8a838 50%, #fff0b0) !important; box-shadow: 0 0 14px rgba(255,200,64,.55), 0 3px 10px rgba(0,0,0,.6); }
+.tcard.t-bronze { background: linear-gradient(160deg, #f8dcc0, #c08050 50%, #f0c8a0) !important; }
+.tcard.t-arcana { background: linear-gradient(160deg, #f0dcff, #9a5ad8 50%, #e8c8ff) !important; box-shadow: 0 0 14px rgba(192,112,255,.55), 0 3px 10px rgba(0,0,0,.6); }
+.tcard.t-lenda { background: linear-gradient(160deg, #ffd0c0, #c83040 50%, #ffb0a0) !important; box-shadow: 0 0 16px rgba(255,64,80,.6), 0 3px 10px rgba(0,0,0,.6); color: #2a0808; }

@@ -174,6 +174,14 @@ const Icones = (() => {
     return (cache[id] = c.toDataURL('image/png'));
   }
   // HTML do ícone: o desenho para equipamento, o emoji para o resto
-  function html(id, cls = '') { const u = equip(id); return u ? `<img class="ico-eq ${cls}" src="${u}" alt="">` : `<span>${ITEMS[id] ? ITEMS[id].ic : '?'}</span>`; }
-  return { equip, html };
+  // 🃏 cartas (pedido do Rone): no ícone aparece a carta de verdade, moldura pela raridade e o desenho do monstro dela
+  function cartaTipo(I) { if (I.arcana) return 'arcana'; if (I.arte && !I.mob) return 'lenda'; const D = I.mob && MOBDEF[I.mob]; return D && (D.boss || D.world) ? 'ouro' : D && (D.mini || D.field || D.alfa) ? 'bronze' : 'prata'; }
+  function mobPng(t) { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && typeof SPR !== 'undefined' && SPR[k] ? SPR[k] : t === 'kravenox' && typeof SPR !== 'undefined' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? 'data:image/png;base64,' + b : null; }
+  function carta(id, cls = '') {
+    const I = ITEMS[id]; if (!I || I.kind !== 'carta') return null;
+    const png = I.mob ? mobPng(I.mob) : null, pic = png ? `<img src="${png}" alt="">` : `<i>${I.arte || (I.mob && typeof iconeMob === 'function' ? iconeMob(I.mob) : '🃏')}</i>`;
+    return `<span class="ico-carta c-${cartaTipo(I)} ${cls}"><span class="icc-pic">${pic}</span><span class="icc-gema"></span></span>`;
+  }
+  function html(id, cls = '') { const c = carta(id, cls); if (c) return c; const u = equip(id); return u ? `<img class="ico-eq ${cls}" src="${u}" alt="">` : `<span>${ITEMS[id] ? ITEMS[id].ic : '?'}</span>`; }
+  return { equip, html, carta, cartaTipo, mobPng };
 })();

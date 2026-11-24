@@ -997,7 +997,7 @@ const Vida = (() => {
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl] || 'Peça';
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : `<span class="nopic">${iconeMob(t)}</span>`; };
     // carta desenhada: moldura dourada, retrato do monstro, bônus e onde encaixa
-    const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${I.arte ? `<span class="nopic arte">${I.arte}</span>` : mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
+    const cardArt = I => `<div class="tcard t-${typeof Icones !== 'undefined' && Icones.cartaTipo ? Icones.cartaTipo(I) : 'prata'}"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${I.arte ? `<span class="nopic arte">${I.arte}</span>` : mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
     const bigArt = (I, id) => I.kind === 'carta' ? cardArt(I) : `<div class="ibig r${I.kind === 'equip' ? I.rar : 'x'}">${typeof Icones !== 'undefined' && id ? Icones.html(id, 'big') : `<span>${I.ic}</span>`}</div>`;
     if (sel && sel.startsWith('eq:')) {
       const sl = sel.slice(3), id = P.equip[sl], cd = P.cards && P.cards[sl];
@@ -1034,8 +1034,7 @@ const Vida = (() => {
     const mag = CLASSES[P.cls].magic;
     invWin().innerHTML = `<div class="wt">🎒 Mochila <small>· ${P.zeny} cr</small><span class="x" data-a="close">×</span></div>
       <div class="invb">
-        <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div><div class="eslots">${slots}</div>
-          <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div>
+        <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small><div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div></div></div><div class="eslots">${slots}</div>
           ${Object.entries(setCount()).map(([st, n]) => { const B = setBonus(st, n); return `<div class="dset ${B ? 'on' : ''}">${SETS[st].name}: ${n}/${SETS[st].pecas || 4}${B ? ' ✅ ' + modTxt(B) : ''}</div>`; }).join('')}</div>
         <div class="invr"><div class="invc"><div class="igrid">${cells}</div><div class="idet">${det}</div>
           <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>${tabsHtml}</div>${view}
