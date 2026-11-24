@@ -267,7 +267,7 @@ const Quests = (() => {
       if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { if (G.fim && Math.hypot(P.x - G.fim.x, P.z - G.fim.z) > 4) { G.x = G.fim.x; G.z = G.fim.z; G.name = `o ponto marcado (${G.regN})`; return G; } log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }
       const w = BigMap.rota(aqui, G.reg); G.x = w.x; G.z = w.z; G.name = `${w.name}, caminho para ${G.regN}`; return G;
     }
-    if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < (P.qGo.quadro ? 0.5 : P.qGo.name === 'o ponto marcado' ? 1.3 : 4)) { if (!P.qGo.seguir) log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); const seg = P.qGo.seguir; P.qGo = null; if (!seg && typeof autoStop === 'function' && typeof AUTO !== 'undefined' && AUTO.on) { autoStop(''); return null; } } else return P.qGo; }
+    if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < (P.qGo.quadro ? 1.1 : P.qGo.name === 'o ponto marcado' ? 1.3 : 4)) { if (!P.qGo.seguir) log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); const seg = P.qGo.seguir; P.qGo = null; if (!seg && typeof autoStop === 'function' && typeof AUTO !== 'undefined' && AUTO.on) { autoStop(''); return null; } } else return P.qGo; }
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const q = byId[focusId()]; if (!q) return null;
     if (ready(q) || !q.steps.length) { if (q.board) return frenteQuadro(BOARDS[q.board]); const n = npcByName(q.to || q.giver); return n ? { x: n.x, z: n.z } : null; }

@@ -176,6 +176,35 @@ function autoWaypoint(T) {
 // passagens entre mapas: quem anda sozinho vai até o meio do arco (e atravessa), não para na frente
 const PORTAS = () => [PGATE, RGATE_P, VGATE_R, VGATE_V, VGATE_VF, FGATE, FGATE_V, VALE_GATE, VGATE_C, CGATE, MGATE_C, MGATE];
 function portaPerto(T) { if (!T) return null; for (const g of PORTAS()) if (Math.hypot(T.x - g.x, T.z - g.z) < 6) return g; return null; }
+// ---- caminho em volta dos obstáculos (A* numa grade de 1 m, no máximo ~70 m de lado)
+function linhaLivre(ax, az, bx, bz) { const L = Math.hypot(bx - ax, bz - az), n = Math.ceil(L / 0.5); for (let k = 1; k <= n; k++) { const t = k / n; if (blocked(ax + (bx - ax) * t, az + (bz - az) * t, 0.5)) return false; } return true; }
+function acharCaminho(sx, sz, tx, tz) {
+  let gx = tx, gz = tz; const D = Math.hypot(tx - sx, tz - sz); if (D > 30) { gx = sx + (tx - sx) / D * 30; gz = sz + (tz - sz) / D * 30; }   // longe: um pedaço de cada vez
+  const S = 1, M = 14, x0 = Math.floor(Math.min(sx, gx) - M), z0 = Math.floor(Math.min(sz, gz) - M), W = Math.ceil(Math.max(sx, gx) + M) - x0, H = Math.ceil(Math.max(sz, gz) + M) - z0;
+  const N = W * H, livre = new Int8Array(N).fill(-1), g = new Float32Array(N).fill(1e9), de = new Int32Array(N).fill(-1), fech = new Uint8Array(N);
+  const idx = (i, j) => j * W + i, cx = i => x0 + i * S + 0.5, cz = j => z0 + j * S + 0.5;
+  const ok = (i, j) => { if (i < 0 || j < 0 || i >= W || j >= H) return false; const k = idx(i, j); if (livre[k] < 0) livre[k] = blocked(cx(i), cz(j), 0.5) ? 0 : 1; return livre[k] === 1; };
+  const si = Math.floor(sx - x0), sj = Math.floor(sz - z0); let ti = Math.floor(gx - x0), tj = Math.floor(gz - z0);
+  if (!ok(ti, tj)) { let best = null, bd = 1e9; for (let r = 1; r <= 6 && !best; r++) for (let a = -r; a <= r; a++) for (const [i, j] of [[ti + a, tj - r], [ti + a, tj + r], [ti - r, tj + a], [ti + r, tj + a]]) if (ok(i, j)) { const dd = Math.hypot(i - si, j - sj); if (dd < bd) { bd = dd; best = [i, j]; } } if (!best) return null; [ti, tj] = best; }
+  const aberto = [idx(si, sj)]; g[idx(si, sj)] = 0; let exp = 0, fim = -1;
+  const h = k => Math.hypot(k % W - ti, Math.floor(k / W) - tj);
+  while (aberto.length && exp < 6000) {
+    let bi = 0, bf = 1e9; for (let q = 0; q < aberto.length; q++) { const f = g[aberto[q]] + h(aberto[q]); if (f < bf) { bf = f; bi = q; } }
+    const k = aberto[bi]; aberto[bi] = aberto[aberto.length - 1]; aberto.pop(); if (fech[k]) continue; fech[k] = 1; exp++;
+    const i = k % W, j = Math.floor(k / W); if (i === ti && j === tj) { fim = k; break; }
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const ni = i + di, nj = j + dj; if (!ok(ni, nj)) continue; if (di && dj && (!ok(i + di, j) || !ok(i, j + dj))) continue;   // não corta quina
+      const nk = idx(ni, nj), ng = g[k] + (di && dj ? 1.414 : 1); if (ng < g[nk]) { g[nk] = ng; de[nk] = k; aberto.push(nk); }
+    }
+  }
+  if (fim < 0) return null;
+  const pts = []; for (let k = fim; k >= 0 && k !== idx(si, sj); k = de[k]) pts.push({ x: cx(k % W), z: cz(Math.floor(k / W)) });
+  return pts.reverse();
+}
+function segueDir(a, dt, dx, dz) {
+  if ((AUTO.chk += dt) > 2) { const moved = Math.hypot(P.x - AUTO.cx, P.z - AUTO.cz); if (moved < 0.8) { AUTO.stuck = (AUTO.stuck || 0) + 1; AUTO.refaz = 1; if (AUTO.stuck > 12) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } } else AUTO.stuck = 0; AUTO.chk = 0; AUTO.cx = P.x; AUTO.cz = P.z; }
+  return { x: Math.sin(a), z: Math.cos(a) };
+}
 function autoDir(dt) {
   if ((AUTO.tgT -= dt) <= 0) { AUTO.tgT = 0.4; AUTO.tg = questTarget(); }
   const T = AUTO.tg;
@@ -183,10 +212,21 @@ function autoDir(dt) {
   // levar um golpe não para mais a caminhada; só para se a vida ficar baixa (aí é hora de lutar ou tomar poção)
   if (P.hp < stats.maxHp() * 0.3) { autoStop('⚠️ Vida baixa: parou de andar sozinho. Lute ou tome uma poção.'); return null; }   // (era 50%: parava demais no meio da missão)
   const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
-  if (W.end && d < (T.quadro ? 0.6 : T.name === 'o ponto marcado' ? 1.2 : 3)) { if (T.quadro) P.face = Math.atan2(T.quadro.x - P.x, T.quadro.z - P.z); if (T === P.qGo && !T.seguir) P.qGo = null; autoStop(T.quadro ? '' : '🚶 Você chegou.'); return null; }   // chegou: esquece o ponto (no PC saía andando atrás do bicho da missão)
+  if (W.end && (d < (T.quadro ? 1.1 : T.name === 'o ponto marcado' ? 1.2 : 3) || (T.quadro && Math.hypot(P.x - T.quadro.x, P.z - T.quadro.z) < 2.3 && P.z > T.quadro.z))) { if (T.quadro) P.face = Math.atan2(T.quadro.x - P.x, T.quadro.z - P.z); if (T === P.qGo && !T.seguir) P.qGo = null; autoStop(T.quadro ? '' : '🚶 Você chegou.'); return null; }   // chegou
   let a = Math.atan2(dx, dz);
-  // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
   const free = ang => !blocked(P.x + Math.sin(ang) * 1.3, P.z + Math.cos(ang) * 1.3) && !blocked(P.x + Math.sin(ang) * 0.6, P.z + Math.cos(ang) * 0.6);
+  // 🧭 caminho de verdade (pedido do Rone: o AUTO travava em carroça, barraca, cerca "em qualquer lugar"):
+  // se a linha reta até o alvo está bloqueada, calcula uma rota pela grade em volta (A*) e segue ponto a ponto
+  {
+    const reto = Math.min(d, 18) < 1.5 || linhaLivre(P.x, P.z, P.x + dx / d * Math.min(d, 18), P.z + dz / d * Math.min(d, 18));
+    const R = AUTO.rota;
+    if (reto) AUTO.rota = null;
+    else if (!R || time - R.t > 4 || Math.hypot(R.ax - W.x, R.az - W.z) > 3 || AUTO.refaz) { AUTO.refaz = 0; const pts = acharCaminho(P.x, P.z, W.x, W.z); AUTO.rota = pts ? { pts, t: time, ax: W.x, az: W.z } : null; }
+    const Rt = AUTO.rota;
+    if (Rt) { while (Rt.pts.length > 1 && (Math.hypot(Rt.pts[0].x - P.x, Rt.pts[0].z - P.z) < 0.9 || linhaLivre(P.x, P.z, Rt.pts[1].x, Rt.pts[1].z))) Rt.pts.shift();
+      const q = Rt.pts[0]; if (q) { a = Math.atan2(q.x - P.x, q.z - P.z); if (free(a) || Math.hypot(q.x - P.x, q.z - P.z) < 1.2) { AUTO.fuga = null; return segueDir(a, dt, dx, dz); } } }
+  }
+  // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
   // obstáculo grande (tenda, casa): contorna pelo mesmo lado até ver o alvo livre de novo (antes desviava pouco e ficava
   // indo e voltando na frente da tenda da Zaíra seguindo o Ludi)
   if (AUTO.fuga && AUTO.fuga.t > 0 && free(AUTO.fuga.a)) { AUTO.fuga.t -= dt; a = AUTO.fuga.a; }
@@ -199,7 +239,8 @@ function autoDir(dt) {
   if ((AUTO.chk += dt) > 2) {                                      // preso: foge para o lado e tenta pelo outro; se não sair, desiste
     const moved = Math.hypot(P.x - AUTO.cx, P.z - AUTO.cz);
     if (moved < 0.8) { AUTO.side = -(AUTO.side || 1); AUTO.stuck = (AUTO.stuck || 0) + 1; AUTO.fuga = { a: Math.atan2(dx, dz) + AUTO.side * (1.3 + AUTO.stuck * 0.3), t: 1.2 };
-      if (AUTO.stuck > 5) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
+      AUTO.refaz = 1; AUTO.rota = null;
+      if (AUTO.stuck > 12) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
     else AUTO.stuck = 0;
     AUTO.chk = 0; AUTO.cx = P.x; AUTO.cz = P.z;
   }
@@ -2309,7 +2350,19 @@ function updatePlayer(dt) {
     const m = P.caca, d = Math.hypot(m.x - P.x, m.z - P.z);
     if (m.dead || !mobs.includes(m) || d > 45 || P.dead) P.caca = null;
     else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range + 0.2 + (m.d.rad ?? (m.d.boss ? 1.6 : 0));
-      if (d > alc) { const sp = stats.speed(); vx = (m.x - P.x) / d * sp; vz = (m.z - P.z) / d * sp; P.moving = true; P.sit = false; } else attack(); }
+      if (d > alc) {
+        // contorna árvore, carroça e cerca até o bicho (antes ia em linha reta e ficava empurrando o obstáculo para sempre)
+        let tx = m.x, tz = m.z;
+        if (!linhaLivre(P.x, P.z, m.x, m.z)) {
+          const R = P.cacaRota; if (!R || R.m !== m || time - R.t > 1.5) P.cacaRota = { m, t: time, pts: acharCaminho(P.x, P.z, m.x, m.z) || [] };
+          const pts = P.cacaRota.pts; while (pts.length > 1 && (Math.hypot(pts[0].x - P.x, pts[0].z - P.z) < 0.9 || linhaLivre(P.x, P.z, pts[1].x, pts[1].z))) pts.shift();
+          if (pts[0]) { tx = pts[0].x; tz = pts[0].z; }
+        }
+        const dd = Math.hypot(tx - P.x, tz - P.z) || 1, sp = stats.speed(); vx = (tx - P.x) / dd * sp; vz = (tz - P.z) / dd * sp; P.face = Math.atan2(vx, vz); P.moving = true; P.sit = false;
+        // não chega de jeito nenhum (outro lado do rio, cercado): larga esse e a caça automática escolhe outro
+        const C = P.cacaChk; if (!C || C.m !== m) P.cacaChk = { m, t: time, d };
+        else if (time - C.t > 3) { if (d > C.d - 0.8) { m.inalcancavel = time; P.caca = null; P.cacaRota = null; } else P.cacaChk = { m, t: time, d }; }
+      } else { P.cacaChk = null; attack(); } }
   }
   if (!ix && !iz && AUTO.on && !dialogOpen) {                      // andando sozinho até o objetivo da missão
     const d = autoDir(dt);

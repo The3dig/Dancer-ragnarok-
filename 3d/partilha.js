@@ -44,14 +44,26 @@ const Partilha = (() => {
     }
     // monstros que o servidor ainda não conhece (lugar novo, versão nova): manda para ele em vez de apagar
     const novos = [];
-    for (const [id, m] of loc) if (!vistos.has(id)) { if (m.dg) continue; if (m.dono === undefined || m.dono === null) { m.dono = me(); novos.push(m); } else tirar(m); }
+    // acabei de mandar a semente em partes: a resposta chega depois da 1ª parte e não tem as outras ainda — não apaga nada
+    // (antes, ao reconectar sozinho, ficavam só 150 monstros no mundo: sumiram as Sentinelas da Muralha)
+    const semeando = Date.now() - semT < 8000;
+    for (const [id, m] of loc) if (!vistos.has(id)) { if (m.dg || semeando) continue; if (m.dono === undefined || m.dono === null) { m.dono = me(); novos.push(m); } else tirar(m); }
     for (let i = 0; i < novos.length; i += 150) Net.send({ t: 'semente+', l: novos.slice(i, i + 150).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
   }
+  let semT = 0;
   function semente() {
     if (!mobs.some(m => m.nid)) { setTimeout(semente, 800); return; }          // os monstros ainda não nasceram neste jogo: espera
     // só os monstros do mundo, vivos: Torre e masmorra (dg:) têm o caminho delas (antes os mortos da Torre voltavam quase sem vida)
     const l = mobs.filter(m => m.nid && !m.dead && m.hp > 0 && !m.dg && !String(m.nid).startsWith('dg:')).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2), vivo: true }));
+    // os do mundo que estavam mortos esperando renascer também vão (vivos de novo, vida cheia): senão o servidor
+    // esquecia deles e não voltavam mais (sumiram as Sentinelas da Muralha de Valdora)
+    const ja = new Set(l.map(o => o.id));
+    SPAWNS.forEach((sp, si) => { if (!MOBDEF[sp.type]) return; for (let i = 0; i < sp.n; i++) { const id = si + '-' + i; if (ja.has(id)) continue;
+      let x = sp.at ? sp.at.x : 0, z = sp.at ? sp.at.z : 0, d = MOBDEF[sp.type];
+      if (!sp.at) for (let t = 0; t < 12; t++) { x = sp.area[0] + Math.random() * (sp.area[1] - sp.area[0]); z = sp.area[2] + Math.random() * (sp.area[3] - sp.area[2]); if (!blocked(x, z, 0.8)) break; }
+      l.push({ id, type: sp.type, max: d.hp, hp: d.hp, resp: d.respawn, x: +x.toFixed(2), z: +z.toFixed(2), vivo: true }); } });
     // em partes: a lista inteira passa do tamanho máximo de mensagem do servidor (24 KB) e era jogada fora
+    semT = Date.now();
     for (let i = 0; i < l.length; i += 150) Net.send({ t: i ? 'semente+' : 'semente', l: l.slice(i, i + 150) });
   }
   // ---------------- mensagens do servidor
@@ -85,7 +97,7 @@ const Partilha = (() => {
     });
     Net.on('dono', m => { const loc = porId(); for (const [id, peer] of m.l) { const mb = loc.get(id); if (mb) { mb.dono = peer; if (peer === me()) { mb.state = 'idle'; mb.tx = mb.x; mb.tz = mb.z; } } } });
     Net.on('nasce', m => {                                                            // eu controlo: escolho onde ele renasce
-      const type = mortos.get(m.id), s = spawnDe(m.id); if (!type || !s || porId().get(m.id)) return;
+      const s = spawnDe(m.id), type = mortos.get(m.id) || (s && s.type); if (!type || !s || porId().get(m.id)) return;   // sem anotação de quem era: o tipo vem do lugar onde nasce
       const mb = spawnMob(type, s.area, s.at); mb.nid = m.id; mb.dono = me(); mb.nx = mb.x; mb.nz = mb.z;
       Net.send({ t: 'nasceu', id: m.id, x: +mb.x.toFixed(2), z: +mb.z.toFixed(2) });
     });

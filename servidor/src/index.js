@@ -382,7 +382,7 @@ export class Mundo {
         // monstro de masmorra em grupo ("dg:<zona>:<grupo>:..."): só o grupo controla, some quando morre e expira em 20 min
         if (o.id.startsWith("dg:")) { mob.gp = o.id.split(":")[2] || ""; mob.criado = agora; }
         this.mobs.set(o.id, mob);
-        this.todos({ t: "mundo1", mob: { id: mob.id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono } }, ws);
+        this.todos({ t: "mundo1", mob: { id: mob.id, type: mob.type, max: mob.max, hp: mob.hp, x: mob.x, z: mob.z, f: 0, vivo: true, dono: mob.dono } });   // também para quem mandou (os que ele não tinha mais na tela voltam)
       }
     } else if (m.t === "voz" && typeof m.a === "string" && Array.isArray(m.para)) {
       // recado de voz do grupo: vai só para os companheiros escolhidos (no máximo 7), um a cada 2 s por jogador

@@ -476,7 +476,7 @@ const Tower = (() => {
   }
   function criarOnda(i) {
     if (!online()) { for (const L of lugares(i)) criarUm(i, L.k, L.x, L.z); return; }
-    const pref = `dg:torre:*:${i}-${Math.floor(Date.now() / 120000).toString(36)}`, ja = new Set(mobs.map(m => m.nid)), novos = [];
+    const pref = `dg:torre:*:${i}-${Math.floor(Date.now() / 20000).toString(36)}`   /* cada onda com nome próprio (de 2 min passou a 20 s: o andar renasce em 90 s e a onda nova pegava o nome da velha, com a vida velha do servidor) */, ja = new Set(mobs.map(m => m.nid)), novos = [];
     for (const L of lugares(i)) {
       const id = `${pref}:${L.k}`; if (ja.has(id)) continue;            // outro jogador criou no mesmo instante: o servidor fica com um só
       const m = criarUm(i, L.k, L.x, L.z); if (!m) continue; m.nid = id; m.dg = pref; m.dono = Net.me; m.nx = m.x; m.nz = m.z; novos.push(m);
