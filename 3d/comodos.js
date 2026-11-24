@@ -190,6 +190,7 @@ const Comodos = (() => {
     dialog('🧹 Governanta Clara', `Bem-vindo de volta! Eu cuido de tudo por aqui. ${fala}<br><br>🏠 <b>Conforto: ${cf} / ${CONF_MAX}</b><br><small>Ao sair de casa você fica <b>1 hora Descansado</b>: +${pct(b.xp)} de XP, +${pct(b.drop)} de drop e +${pct(b.cr)} de coroas. Mais móveis, mais conforto.</small>`, [
       ...salas.map(R => ({ label: `${R.ic} Móveis: ${R.nome} (${MOVEIS[R.id].filter(m => S().mob[m.id]).length}/5)`, fn: () => { moveis(R); return true; } })),
       { label: '📖 Livro dos Móveis', fn: () => { livro(); return true; } },
+      ...(typeof Casa !== 'undefined' && Casa.menuMudar ? [{ label: '🪑 Mudar os móveis da sala de lugar', fn: () => { Casa.menuMudar(() => governanta()); return true; } }] : []),
       { label: 'Obrigado, Clara' }]);
   }
   function moveis(R) {
@@ -254,9 +255,11 @@ const Comodos = (() => {
     // governanta
     gov.g.visible = aqui === -1;
     if (gov.g.visible && gov.act) {
-      gov.t -= dt; if (gov.t <= 0) { const q = GOV_PTS[Math.floor(Math.random() * GOV_PTS.length)]; gov.tx = CASA.x + q[0]; gov.tz = CASA.z + q[1]; gov.t = rand(5, 9); gov.varre = 0; }
+      // só vai para ponto livre (não entra em móvel nem no baú: ficava presa "dentro de uma caixa")
+      gov.t -= dt; if (gov.t <= 0) { const ok = GOV_PTS.filter(q => !blocked(CASA.x + q[0], CASA.z + q[1], 0.7)); const q = ok.length ? ok[Math.floor(Math.random() * ok.length)] : [0, 2]; gov.tx = CASA.x + q[0]; gov.tz = CASA.z + q[1]; gov.t = rand(5, 9); gov.varre = 0; }
+      if (blocked(gov.x, gov.z, 0.5)) { const f = typeof pontoLivre === 'function' && pontoLivre(gov.x, gov.z); if (f) { gov.x = f.x; gov.z = f.z; } }
       const dx = gov.tx - gov.x, dz = gov.tz - gov.z, d = Math.hypot(dx, dz), anda = d > 0.2;
-      if (anda) { gov.x += dx / d * Math.min(d, 1.1 * dt); gov.z += dz / d * Math.min(d, 1.1 * dt); gov.face = Math.atan2(dx, dz); } else gov.varre += dt;
+      if (anda) { const nx = gov.x + dx / d * Math.min(d, 1.1 * dt), nz = gov.z + dz / d * Math.min(d, 1.1 * dt); if (blocked(nx, nz, 0.4)) gov.t = 0; else { gov.x = nx; gov.z = nz; } gov.face = Math.atan2(dx, dz); } else gov.varre += dt;
       gov.g.position.set(gov.x, CASA.y, gov.z);
       gov.act.update(dt, { face: Math.hypot(P.x - gov.x, P.z - gov.z) < 3 ? Math.atan2(P.x - gov.x, P.z - gov.z) : gov.face, moving: anda });
       if (gov.vass) { gov.vass.rotation.z = !anda ? Math.sin(gov.varre * 7) * 0.5 : 0.2; if (!anda && Math.random() < dt * 4 && typeof VFX !== 'undefined') VFX.particle(new THREE.Vector3(gov.x + 0.5, CASA.y + 0.15, gov.z + 0.2), 0xc8b89a, { map: VFX.T.smoke, size: 0.5, speed: 0.6, g: -0.3, life: 0.8, op: 0.4 }); }

@@ -13,7 +13,7 @@ const TAU = Math.PI * 2;
 function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const R = mulberry(2024);
 const TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
-if (TOUCH) document.body.classList.add('touch');
+document.body.classList.add('touch'); if (!TOUCH) document.body.classList.add('pc');   // no computador também usa a tela do celular (pedido do Rone: no Mac ficava tudo fora do lugar); teclado e mouse continuam valendo
 const rr = (a, b) => a + R() * (b - a);
 
 // ---------------------------------------------------------------- renderer
@@ -3017,19 +3017,35 @@ const BigMap = (() => {
     cv.style.width = Math.round(16 * r) + 'px'; cv.style.height = Math.round(9 * r) + 'px'; cv.style.margin = '0 auto';
     box.classList.remove('hidden'); open = true; draw();
   }
+  let papel = null;
+  function pergaminho(W, H) {
+    if (!papel || papel.width !== 256) { papel = document.createElement('canvas'); papel.width = papel.height = 256; const q = papel.getContext('2d'), im = q.createImageData(256, 256);
+      for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 70; im.data[i] = v * 1.05; im.data[i + 1] = v * 0.95; im.data[i + 2] = v * 0.78; im.data[i + 3] = 255; } q.putImageData(im, 0, 0); }
+    g.save(); g.globalCompositeOperation = 'overlay'; g.globalAlpha = 0.35; g.fillStyle = g.createPattern(papel, 'repeat'); g.fillRect(0, 0, W, H); g.restore();
+    const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.72); vg.addColorStop(0, 'rgba(60,36,14,0)'); vg.addColorStop(1, 'rgba(60,36,14,.38)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(70,44,18,.9)'; g.lineWidth = Math.max(4, W / 160); g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, W - g.lineWidth, H - g.lineWidth);
+    g.strokeStyle = 'rgba(232,206,150,.55)'; g.lineWidth = 1.5; const m = Math.max(9, W / 90); g.strokeRect(m, m, W - m * 2, H - m * 2);
+    const R = vm && REG.find(r => r.id === vm); const nome = R ? R.n : (vmMap().nome || ''); if (nome && !view) { const fs = Math.max(16, W / 42); g.font = `800 ${fs}px Cinzel, Georgia, serif`; g.textAlign = 'left'; g.lineWidth = fs * 0.3; g.strokeStyle = 'rgba(20,12,6,.9)'; g.strokeText(nome, m * 2, m * 2 + fs); g.fillStyle = '#f2d28a'; g.fillText(nome, m * 2, m * 2 + fs); if (R) { g.font = `700 ${fs * 0.6}px Nunito, sans-serif`; g.strokeText(R.lv, m * 2, m * 2 + fs * 1.8); g.fillStyle = '#e8dcc0'; g.fillText(R.lv, m * 2, m * 2 + fs * 1.8); } g.textAlign = 'center'; }
+  }
   function draw() {
     if (!open) return;
     if (view === 'mundo') return drawMundo();
     const A = area(), k = cv.width / A.w, X = x => (x - A.x0) * k, Z = z => (z - A.z0) * k, u = view ? 3 : 1;
-    const M = vmMap(), B = M.base || base; g.imageSmoothingEnabled = true; g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
+    const M = vmMap(), B = M.base || base; g.imageSmoothingEnabled = true;
+    // 🗺️ zoom no mesmo estilo do Mapa do Mundo (pedido do Rone: o zoom ainda estava do jeito antigo): tons de pergaminho,
+    // papel granulado, borda escurecida e os nomes com contorno
+    g.fillStyle = '#ead6a8'; g.fillRect(0, 0, cv.width, cv.height);                       // papel por baixo
+    g.save(); g.globalCompositeOperation = 'multiply'; g.filter = 'saturate(.75) brightness(1.65) contrast(.95)';
+    g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
+    g.restore(); pergaminho(cv.width, cv.height);
     g.textAlign = 'center';
     if (!view) {
-      const fs = Math.round(Math.max(9 * k, 27)); g.font = `800 ${fs}px Nunito, sans-serif`;                // nomes grandes (no celular ficavam miúdos)
+      const fs = Math.round(Math.max(9 * k, 27)); g.font = `800 ${fs}px Cinzel, Georgia, serif`;                // nomes grandes (no celular ficavam miúdos)
       const usados = [];                                                                         // nomes não ficam um em cima do outro
       for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 6, lx = Math.min(cv.width - w, Math.max(w, X(p.x))); let ly = Math.max(fs * 1.2, Z(p.z) - fs * 0.9);
         for (let k = 0; k < 6 && usados.some(u => Math.abs(u.x - lx) < u.w + w && Math.abs(u.y - ly) < fs * 1.3); k++) ly += fs * 1.35;
         usados.push({ x: lx, y: ly, w });
-        g.fillStyle = 'rgba(12,8,20,.7)'; g.fillRect(lx - w, ly - fs * 0.95, w * 2, fs * 1.25); g.fillStyle = '#ffe9a8'; g.fillText(n, lx, ly); }
+        g.lineJoin = 'round'; g.lineWidth = Math.max(4, fs * 0.28); g.strokeStyle = 'rgba(20,12,6,.92)'; g.strokeText(n, lx, ly); g.fillStyle = '#ffe9b8'; g.fillText(n, lx, ly); }
       for (const c of cities()) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
     }
     for (const m of mobs) { if (m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue; const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k / u * (view ? 1.6 : 1); g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); }
@@ -3701,7 +3717,7 @@ const joy = { x: 0, y: 0, id: null };
   const btn = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); Audio8.init(); fn(); });
   btn('t-atk', attack); btn('t-jump', doJump); btn('t-dash', doDash);
   btn('t-talk', () => { if (nearNpc) talk(nearNpc); else if (nearUse) nearUse.fn(); });
-  if (TOUCH) $('touch').classList.remove('hidden');
+  $('touch').classList.remove('hidden');                              // botões de ataque, pulo e esquiva também no computador (dá para clicar)
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
 const HELP_OPTS = () => [{ label: 'Fechar' }, { label: typeof Desempenho !== 'undefined' && Desempenho.ligado ? '📈 Medidor de desempenho: LIGADO (toque para desligar)' : '📈 Medidor de desempenho: desligado (mostra onde o jogo trava)', fn: () => { if (typeof Desempenho !== 'undefined') Desempenho.alternar(); } }, { label: MODO_LEVE ? '🐢 Modo leve: LIGADO (toque para voltar ao normal)' : '🐢 Modo leve: desligado (ligue se travar ao espelhar na TV)', fn: () => { try { localStorage.setItem('modoLeve', MODO_LEVE ? '0' : '1'); } catch (e) { } save(); location.reload(); } }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
@@ -3808,7 +3824,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['bars', 'barIdx', 'usouSkill', 'dicaSkill', 'dicaSkill2', 'grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['forjaSemAnim', 'bars', 'barIdx', 'usouSkill', 'dicaSkill', 'dicaSkill2', 'grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   const src = P._duelo ? { ...P, ...P._duelo } : P;   // ⚖️ no Duelo da Guilda salva o personagem de verdade, não o igualado
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, src[k]])))); } catch (e) { }
 }

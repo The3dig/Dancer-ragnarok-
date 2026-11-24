@@ -837,6 +837,7 @@ const Vida = (() => {
     const eq = Object.keys(SLOTS).map(sl => P.equip && P.equip[sl]).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
     const selos = P.inv.selo_forja || 0;
     const opts = [];
+    opts.push({ label: P.forjaSemAnim ? '⏩ Animação do refino: DESLIGADA (mais rápido) — toque para ligar' : '🎬 Animação do refino: ligada — toque para desligar', fn: () => { P.forjaSemAnim = !P.forjaSemAnim; save(); refine(); return true; } });   // pedido do Rone: a animação deixava mais lento
     if (eq.some(id => refOf(id) >= REF_QUEBRA && refOf(id) < REF_MAX)) opts.push({ label: usarSelo ? `🔰 Selo da Forja: LIGADO (tem ${selos}) — a peça não quebra` : `▫️ Selo da Forja: desligado (tem ${selos}) — toque para usar`, fn: () => { if (!usarSelo && !selos) { log('Você não tem 🔰 <b>Selo da Forja Eterna</b>. Ele cai do <b>Capataz da Mina</b>, no fim da Mina da Forja.', 'bad'); Audio8.sfx('miss'); } else usarSelo = !usarSelo; refine(); return true; } });
     for (const id of eq) {
       const r = refOf(id);
@@ -871,7 +872,8 @@ const Vida = (() => {
     } else { P.refine[id] = r >= 4 ? Math.max(4, r - 1) : r; res = 'falhou'; }
     try { save(); } catch (e) { }
     closeDialog();
-    Forja.animar({ ic: it(id).ic, nome: it(id).name, de: r, para: res === 'sucesso' ? r + 1 : res === 'falhou' ? P.refine[id] : 0, res, selo }, () => {
+    const anima = P.forjaSemAnim ? (o, fim) => { Audio8.sfx(o.res === 'sucesso' ? 'level' : 'miss'); fim(); } : (o, fim) => Forja.animar(o, fim);   // sem animação: resultado na hora
+    anima({ ic: it(id).ic, nome: it(id).name, de: r, para: res === 'sucesso' ? r + 1 : res === 'falhou' ? P.refine[id] : 0, res, selo }, () => {
       if (res === 'sucesso') { log(`🔨 <b>SUCESSO!</b> <b>+${r + 1} ${it(id).name}</b>.`, 'gold'); if (r + 1 >= 7) banner(`Refino +${r + 1}!`); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); }
       else if (res === 'quebrou') log(`💥 <b>QUEBROU!</b> A <b>+${r} ${it(id).name}</b> se partiu na bigorna e sumiu.`, 'bad');
       else log(`🔨 O refino falhou${selo ? ' (o 🔰 Selo protegeu a peça)' : ''}: <b>${it(id).name}</b> ficou <b>+${P.refine[id]}</b>.`, 'bad');

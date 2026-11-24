@@ -70,11 +70,42 @@ const Casa = (() => {
   };
   let _fire = null;
   function fireTex() { if (_fire) return _fire; const c = document.createElement('canvas'); c.width = 64; c.height = 128; const x = c.getContext('2d'), r = x.createRadialGradient(32, 92, 2, 32, 80, 50); r.addColorStop(0, 'rgba(255,250,210,1)'); r.addColorStop(0.3, 'rgba(255,170,60,.95)'); r.addColorStop(0.7, 'rgba(255,60,20,.4)'); r.addColorStop(1, 'rgba(120,0,0,0)'); x.fillStyle = r; x.beginPath(); x.moveTo(32, 4); x.quadraticCurveTo(62, 70, 32, 124); x.quadraticCurveTo(2, 70, 32, 4); x.fill(); return (_fire = new THREE.CanvasTexture(c)); }
+  // 🎁 os móveis de parede vão para um lugar SORTEADO quando você compra (pedido do Rone: arrumar é difícil, e assim
+  // é surpresa onde vai estar). Para mudar, fale com a Governanta Clara: ela troca o móvel de lugar.
+  const SLOT = { b0: { w: 'b', v: -3.2 }, b1: { w: 'b', v: 0.6 }, b2: { w: 'b', v: 4.4 }, l0: { w: 'l', v: -1.5 }, l1: { w: 'l', v: 3 }, r0: { w: 'r', v: -4.2 }, r1: { w: 'r', v: -0.2 } };
+  const FUNDO = { cama: 1.8, estante: 0.4, lareira: 0.6, trofeu: 0.5, estandarte: 0.12 };      // quanto o móvel sai da parede
+  const LEGADO = { estante: 'b1', trofeu: 'b2', estandarte: 'b0', lareira: 'l1', cama: 'r0' };   // quem já tinha fica onde estava
+  const posOf = () => (S().pos = S().pos || {});
+  const livres = (menos) => Object.keys(SLOT).filter(sl => !Object.entries(posOf()).some(([k, v]) => v === sl && k !== menos && S().mov[k]));
+  function sortear(k) { const l = livres(k); return l.length ? l[Math.floor(Math.random() * l.length)] : null; }
+  const obsDe = {};
+  function obPor(x, z, r) { const o = { x, z, r }; for (let i = Math.floor((x - r) / CELL); i <= Math.floor((x + r) / CELL); i++) for (let j = Math.floor((z - r) / CELL); j <= Math.floor((z + r) / CELL); j++) { const kk = i + ',' + j; if (!OB.has(kk)) OB.set(kk, []); OB.get(kk).push(o); } return o; }
+  function obTirar(o) { for (const l of OB.values()) { const i = l.indexOf(o); if (i >= 0) l.splice(i, 1); } }
   function furnish() {
     for (const k of Object.keys(MOVEIS)) {
       if (!S().mov[k] || objs[k]) continue;
-      const p = new THREE.Group(); g.add(p); BUILD[k](p); objs[k] = p;
+      const p = new THREE.Group(); g.add(p);
+      if (!FUNDO[k]) { BUILD[k](p); objs[k] = p; continue; }                                  // tapete, mesa e vasos ficam onde estão
+      const pos = posOf(); if (!pos[k] || !SLOT[pos[k]] || !livres(k).includes(pos[k])) pos[k] = (LEGADO[k] && livres(k).includes(LEGADO[k])) ? LEGADO[k] : sortear(k);
+      const raios = [], orig = addOb; addOb = (x, z, r) => raios.push(r); try { BUILD[k](p); } finally { addOb = orig; }   // o desenho do móvel não marca o lugar antigo
+      const sl = SLOT[pos[k]], d = FUNDO[k];
+      if (sl.w === 'b') { p.position.set(sl.v, 0, -H + d); p.rotation.y = 0; } else if (sl.w === 'l') { p.position.set(-H + d, 0, sl.v); p.rotation.y = Math.PI / 2; } else { p.position.set(H - d, 0, sl.v); p.rotation.y = -Math.PI / 2; }
+      const r = Math.max(0.5, ...raios), wx = C.x + p.position.x, wz = C.z + p.position.z, fx = Math.sin(p.rotation.y), fz = Math.cos(p.rotation.y);
+      obsDe[k] = k === 'cama' ? [obPor(wx + fx * 0.8, wz + fz * 0.8, 1.1), obPor(wx - fx * 0.8, wz - fz * 0.8, 1.1)] : FUNDO[k] > 0.2 ? [obPor(wx, wz, Math.min(r, 1.4))] : [];
+      objs[k] = p;
     }
+  }
+  // a Clara muda um móvel de lugar (vai para o próximo lugar livre)
+  function mudar(k) {
+    const l = livres(k).filter(sl => sl !== posOf()[k]); if (!l.length) { log('Não tem outro lugar livre para esse móvel.', 'bad'); return false; }
+    const atual = Object.keys(SLOT).indexOf(posOf()[k]), ord = Object.keys(SLOT), prox = [...ord.slice(atual + 1), ...ord.slice(0, atual + 1)].find(sl => l.includes(sl));
+    posOf()[k] = prox; if (objs[k]) { g.remove(objs[k]); delete objs[k]; } for (const o of obsDe[k] || []) obTirar(o); delete obsDe[k];
+    furnish(); Audio8.sfx('pick'); save(); return true;
+  }
+  function menuMudar(voltar) {
+    const tem = Object.keys(FUNDO).filter(k => S().mov[k]);
+    if (!tem.length) return dialog('🧹 Governanta Clara', 'Ainda não tem móvel para mudar de lugar. Compre na <b>bancada de reformas</b> e eu coloco onde eu achar melhor! 😉', [{ label: 'Voltar', fn: () => { if (voltar) voltar(); return true; } }]);
+    dialog('🧹 Mudar os móveis de lugar', 'Escolha o móvel: cada toque leva ele para <b>outro lugar livre</b> da sala.', [...tem.map(k => ({ label: `${MOVEIS[k][1]} ${MOVEIS[k][0]}`, fn: () => { mudar(k); menuMudar(voltar); return true; } })), { label: '← Voltar', fn: () => { if (voltar) voltar(); return true; } }]);
   }
   // porta da casa do Sítio (por fora): soleira acesa
   const sole = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffd890, transparent: true, opacity: 0.5, toneMapped: false })); sole.position.set(OUT_DOOR.x + 0.5, groundY(OUT_DOOR.x, OUT_DOOR.z) + 0.05, OUT_DOOR.z); scene.add(sole);
@@ -155,8 +186,8 @@ const Casa = (() => {
       return { label: `${ok ? '🔨' : '▫️'} ${ic} ${nome} — ${preco} cr + ${txt}`, fn: () => {
         if (!ok) { const falta = Object.entries(need).filter(([id, n]) => tem(id) < n).map(([id, n]) => `${n - tem(id)} ${it(id).name}`); log(falta.length ? `Falta: ${falta.join(', ')}.` : 'Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); reformas(); return true; }
         P.zeny -= preco; if (CM) Comodos.tirarMat(need); else for (const [id, n] of Object.entries(need)) P.inv[id] -= n;
-        S().mov[k] = 1; furnish(); if (typeof Comodos !== 'undefined') Comodos.completos(); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffd060, 24, 3, 0.7);
-        log(`🏠 <b>${nome}</b> foi colocado na sua casa!`, 'gold'); save(); reformas(); return true; } };
+        S().mov[k] = 1; if (FUNDO[k]) posOf()[k] = sortear(k); furnish(); if (typeof Comodos !== 'undefined') Comodos.completos(); Audio8.sfx('anvil'); burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xffd060, 24, 3, 0.7);
+        log(`🏠 <b>${nome}</b> chegou! ${FUNDO[k] ? 'A Governanta Clara escolheu onde colocar: vá ver! (ela muda de lugar se você pedir)' : 'Já está na sua casa.'}`, 'gold'); save(); reformas(); return true; } };
     });
     if (typeof Comodos !== 'undefined' && Comodos.optPref) { opts.push(Comodos.optPref(reformas)); opts.push({ label: '📖 Livro dos Móveis', fn: () => { Comodos.livro(); return true; } }); }
     opts.push({ label: 'Fechar' });
@@ -189,5 +220,5 @@ const Casa = (() => {
     if (Math.hypot(P.x - BANC.x, P.z - BANC.z) < 2.6) return { label: '🔨 Reformas da casa', fn: () => reformas() };
     return null;
   }
-  return { update, nearest, entrar, sair, furnish, door: OUT_DOOR, MOVEIS };
+  return { update, nearest, entrar, sair, furnish, menuMudar, door: OUT_DOOR, MOVEIS };
 })();
