@@ -2355,7 +2355,8 @@ function updatePlayer(dt) {
   if (P.falarCom && !dialogOpen && Math.hypot(P.falarCom.x - P.x, P.falarCom.z - P.z) < 3.2) { const n = P.falarCom; P.falarCom = null; if (AUTO.on) autoStop(''); talk(n); }
   if (!ix && !iz && P.caca && !dialogOpen) {                       // PC: monstro clicado — vai até ele e ataca até cair
     const m = P.caca, d = Math.hypot(m.x - P.x, m.z - P.z);
-    if (m.dead || !mobs.includes(m) || d > 45 || P.dead) P.caca = null;
+    const limite = typeof AutoCaca !== 'undefined' && AutoCaca.on ? 140 : 45;   // na caça automática o raio pode ser grande (antes largava o bicho a 45 m, escolhia de novo e ficava parado)
+    if (m.dead || !mobs.includes(m) || d > limite || P.dead) P.caca = null;
     else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range + 0.2 + (m.d.rad ?? (m.d.boss ? 1.6 : 0));
       if (d > alc) {
         // contorna árvore, carroça e cerca até o bicho (antes ia em linha reta e ficava empurrando o obstáculo para sempre)

@@ -18,7 +18,7 @@ const AutoCaca = (() => {
   }
   const pertoTipos = () => {
     const c = {};
-    for (const m of mobs) if (!m.dead && !m.isPeer && !m.d.world && Math.hypot(m.x - P.x, m.z - P.z) < 45) { c[m.type] = c[m.type] || { n: 0, d: m.d }; c[m.type].n++; }
+    for (const m of mobs) if (!m.dead && !m.isPeer && !m.d.world && Math.hypot(m.x - P.x, m.z - P.z) < Math.max(45, (P.autoCfg && P.autoCfg.raio) || 0)) { c[m.type] = c[m.type] || { n: 0, d: m.d }; c[m.type].n++; }
     return c;
   };
 
@@ -136,5 +136,5 @@ const AutoCaca = (() => {
     b.addEventListener('pointerdown', ir); tb.appendChild(b); marcar();
   }
   setInterval(() => { botao(); botaoToque(); }, 2000); botao(); botaoToque();
-  return { abrir, comecar, parar, get on() { return on; } };
+  return { abrir, comecar, parar, _tick: tick, get on() { return on; } };
 })();
