@@ -10,6 +10,7 @@ const AutoCaca = (() => {
   const RAIO = 30;                                                        // caça até 30 m do ponto onde começou
   let on = false, centro = null, potT = 0, skT = 0, mortes0 = 0, t0 = 0, win = null;
   const cfg = () => { const c = (P.autoCfg = P.autoCfg || { bichos: [], skills: [], hp: 50, sp: 30, parar: 20 }); if (!c.raio) c.raio = RAIO; return c; };
+  const curas = () => ativas().filter(({ s }) => s.type === 'heal');   // 💚 pedido do Rone: curar sozinho quando estiver morrendo
   const ativas = () => SKILLS.map((s, i) => ({ s, i })).filter(({ s }) => s.type !== 'passiva' && (P.skillLv[s.id] || 0) > 0 && (typeof tierOk !== 'function' || tierOk(s)));
   // a melhor poção que você pode usar agora (a maior liberada para o seu nível)
   function pocao(tipo) {
@@ -31,7 +32,7 @@ const AutoCaca = (() => {
         if (a === 'x') { win.classList.add('hidden'); return; }
         if (a === 'bicho') { const k = C.bichos.indexOf(v); if (k >= 0) C.bichos.splice(k, 1); else C.bichos.push(v); }
         if (a === 'skill') { const k = C.skills.indexOf(v); if (k >= 0) C.skills.splice(k, 1); else C.skills.push(v); }
-        if (a === 'hp' || a === 'sp' || a === 'parar') C[a] = Math.max(0, Math.min(90, C[a] + (+v)));
+        if (a === 'hp' || a === 'sp' || a === 'parar' || a === 'cura') C[a] = Math.max(0, Math.min(90, (C[a] ?? 50) + (+v)));
         if (a === 'raio') C.raio = Math.max(10, Math.min(200, C.raio + (+v)));
         if (a === 'todos') C.bichos = Object.keys(pertoTipos());
         if (a === 'ir') { win.classList.add('hidden'); comecar(); return; }
@@ -56,6 +57,7 @@ const AutoCaca = (() => {
       <h4>3. Poções</h4>
       <div class="au-p">❤️ Tomar poção de vida abaixo de ${btn('hp', -10, '−', false)} <b>${C.hp}%</b> ${btn('hp', 10, '+', false)} <small>${hpP ? `usa ${ITEMS[hpP].ic} ${ITEMS[hpP].name} (${P.inv[hpP]})` : '⚠️ sem poção de vida!'}</small></div>
       <div class="au-p">💧 Tomar poção de SP abaixo de ${btn('sp', -10, '−', false)} <b>${C.sp}%</b> ${btn('sp', 10, '+', false)} <small>${spP ? `usa ${ITEMS[spP].ic} ${ITEMS[spP].name} (${P.inv[spP]})` : 'sem poção de SP'}</small></div>
+      <div class="au-p">💚 Usar <b>habilidade de cura</b> abaixo de ${btn('cura', -10, '−', false)} <b>${C.cura ?? 50}%</b> ${btn('cura', 10, '+', false)} <small>${curas().length ? curas().map(({ s }) => s.icon + ' ' + s.name).join(', ') : 'você ainda não tem habilidade de cura'}${(C.cura ?? 50) === 0 ? ' · desligado' : ''}</small></div>
       <div class="au-p">🛑 Parar se a vida ficar abaixo de ${btn('parar', -5, '−', false)} <b>${C.parar}%</b> ${btn('parar', 5, '+', false)} <small>sem poção de vida</small></div>
       <h4>4. Até onde ele vai</h4>
       <div class="au-p">📏 Caçar até ${btn('raio', -10, '−', false)} <b>${C.raio} m</b> ${btn('raio', 10, '+', false)} de onde você começar <small>(perto: fica no lugar · longe: anda pelo mapa)</small></div>
@@ -109,6 +111,10 @@ const AutoCaca = (() => {
     if (time - potT > 0.8) {
       if (hp < C.hp) { const id = pocao('hp'); if (id) { usePotion(id); potT = time; } else if (hp < C.parar) { parar('🤖 Acabaram as poções de vida e a vida está baixa: caça parada.'); return; } }
       else if (sp < C.sp) { const id = pocao('sp'); if (id) { usePotion(id); potT = time; } }
+    }
+    // cura de habilidade quando a vida cai (mesmo sem alvo e mesmo sem estar marcada na lista)
+    if ((C.cura ?? 50) > 0 && hp < (C.cura ?? 50) && time - (tick.curaT || 0) > 0.6) {
+      for (const { s, i } of curas()) { if ((P.cds[s.id] || 0) > 0) continue; const sc = typeof scaleSkill === 'function' ? scaleSkill(s, P.skillLv[s.id]) : s; if (P.sp < (sc.sp || 0)) continue; tick.curaT = time; useSkill(i); break; }
     }
     // alvo
     if (!P.caca || P.caca.dead || !mobs.includes(P.caca)) P.caca = alvo();

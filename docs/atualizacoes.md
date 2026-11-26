@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 26/11
+
+- **🔧 Lote de correções (1)**: **Segundo plano:** fora da janela o jogo continua, e na volta não explode mais tudo de uma vez (números, efeitos e sons não ficam acumulando). **Troca:** quem termina primeiro mantém a troca visível por mais tempo (o outro às vezes não recebia) e a lista não volta para o topo quando o outro mexe. **Casa:** portas de verdade para os cômodos (moldura, portal e placa com o nome); o Mestre de Obras saiu de trás das tábuas. **Refino e estrelas** são da peça: quando ela sai da sua mão, não passam para a próxima igual. **Alvo:** agora vale tocar no corpo todo do bicho (MVP grande ficou fácil). **❤️ Vida baixa:** a tela pisca vermelho e o coração bate abaixo de 30%. **AUTO:** nova opção "usar habilidade de cura abaixo de X%". **Cartas:** a lista rola. **Poções:** todas com escolha de quantidade. **🚪 Sair** na Torre, Abismo e masmorras. **Guilda:** brincadeiras às **21h**. **Som** de luta longe (grupo) não toca mais. **Ficha aberta:** os botões de luta continuam funcionando.
+
 ## 25/11
 
 - **🪤 Mascote igual ao Rag: até 5 iscas**: Cada captura usa **até 5 iscas** do bicho. **Quanto mais iscas você juntar (até 5), maior a chance**: com 5 a chance é cheia, com 3 é 3/5 dela, e assim por diante. E quanto **menos vida** o bicho tiver, maior também. Antes de jogar, o jogo mostra quantas iscas vai usar e a chance. Se falhar, as iscas usadas se perdem. As iscas agora **caem mais** (bicho comum 2,5%, chefe 15%), para dar para juntar 5.

@@ -72,7 +72,7 @@ const Casa = (() => {
   function fireTex() { if (_fire) return _fire; const c = document.createElement('canvas'); c.width = 64; c.height = 128; const x = c.getContext('2d'), r = x.createRadialGradient(32, 92, 2, 32, 80, 50); r.addColorStop(0, 'rgba(255,250,210,1)'); r.addColorStop(0.3, 'rgba(255,170,60,.95)'); r.addColorStop(0.7, 'rgba(255,60,20,.4)'); r.addColorStop(1, 'rgba(120,0,0,0)'); x.fillStyle = r; x.beginPath(); x.moveTo(32, 4); x.quadraticCurveTo(62, 70, 32, 124); x.quadraticCurveTo(2, 70, 32, 4); x.fill(); return (_fire = new THREE.CanvasTexture(c)); }
   // 🎁 os móveis de parede vão para um lugar SORTEADO quando você compra (pedido do Rone: arrumar é difícil, e assim
   // é surpresa onde vai estar). Para mudar, fale com a Governanta Clara: ela troca o móvel de lugar.
-  const SLOT = { b0: { w: 'b', v: -3.2 }, b1: { w: 'b', v: 0.6 }, b2: { w: 'b', v: 4.4 }, l0: { w: 'l', v: -1.5 }, l1: { w: 'l', v: 3 }, r0: { w: 'r', v: -4.2 }, r1: { w: 'r', v: -0.2 } };
+  const SLOT = { b0: { w: 'b', v: -3.2 }, b1: { w: 'b', v: 0.6 }, b2: { w: 'b', v: 4.4 }, l1: { w: 'l', v: 3.4 }, r0: { w: 'r', v: -4.2 }, r1: { w: 'r', v: -0.2 } };   // a parede oeste perto do meio fica livre: é a porta dos cômodos
   const FUNDO = { cama: 1.8, estante: 0.4, lareira: 0.6, trofeu: 0.5, estandarte: 0.12 };      // quanto o móvel sai da parede
   const LEGADO = { estante: 'b1', trofeu: 'b2', estandarte: 'b0', lareira: 'l1', cama: 'r0' };   // quem já tinha fica onde estava
   const posOf = () => (S().pos = S().pos || {});

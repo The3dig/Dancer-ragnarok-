@@ -1591,7 +1591,7 @@ function spawnMob(type, area, at) {
 // ---------------------------------------------------------------- efeitos
 const fxGeo = { dot: new THREE.OctahedronGeometry(0.07), ring: new THREE.RingGeometry(0.92, 1, 48) };
 fxGeo.ring.rotateX(-Math.PI / 2);
-function burst(pos, color, n = 12, speed = 4, life = 0.7) {
+function burst(pos, color, n = 12, speed = 4, life = 0.7) { if (running && naoVisto()) return;
   for (let i = 0; i < n; i++) {
     const m = new THREE.Mesh(fxGeo.dot, new THREE.MeshBasicMaterial({ color, transparent: true }));
     m.position.copy(pos); scene.add(m);
@@ -1599,12 +1599,12 @@ function burst(pos, color, n = 12, speed = 4, life = 0.7) {
     fx.push({ m, v: new THREE.Vector3(Math.cos(a) * Math.cos(e) * s, Math.sin(e) * s + 2, Math.sin(a) * Math.cos(e) * s), life, max: life, kind: 'dot' });
   }
 }
-function ring(x, z, r, color, life = 0.5, y) {
+function ring(x, z, r, color, life = 0.5, y) { if (running && naoVisto()) return;
   const m = new THREE.Mesh(fxGeo.ring, new THREE.MeshBasicMaterial({ color, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
   m.position.set(x, (y ?? groundY(x, z)) + 0.15, z); scene.add(m);
   fx.push({ m, life, max: life, kind: 'ring', r });
 }
-function slash(color) {
+function slash(color) { if (running && naoVisto()) return;
   if (typeof VFX !== 'undefined') return VFX.arc(color, false);
   const geo = new THREE.RingGeometry(1.0, 2.6, 24, 1, -Math.PI * 0.45, Math.PI * 0.9);
   geo.rotateX(-Math.PI / 2);
@@ -1640,7 +1640,7 @@ function toScreen(x, y, z) {
   _p.set(x, y, z).project(camera);
   return { x: (_p.x + 1) / 2 * VW, y: (1 - _p.y) / 2 * VH, vis: _p.z < 1 && Math.abs(_p.x) < 1.2 && Math.abs(_p.y) < 1.2 };
 }
-function floater(x, y, z, txt, cls) {
+function floater(x, y, z, txt, cls) { if (running && naoVisto()) return;
   const el = document.createElement('div'); el.className = 'dmg ' + (cls || ''); el.textContent = txt;
   $('labels').appendChild(el); floaters.push({ el, x: x + rand(-0.3, 0.3), y, z, t: 0 });
 }
@@ -2245,8 +2245,32 @@ const ZONES = {
   fundo: { name: 'O Fundo da Cidade', music: 'devorador' },
   valdora: { name: 'Ruínas de Valdora', music: 'valdora' },
 };
+// ❤️ vida baixa (pedido do Rone: "fico concentrado no MVP e nem vejo que estou morrendo"): borda vermelha pulsando,
+// coração batendo e aviso; quanto menos vida, mais forte
+let perigoT = 0, perigoAvisou = false;
+function tickPerigo(dt) {
+  const f = P.dead ? 1 : P.hp / stats.maxHp(), perigo = !P.dead && f < 0.3;
+  document.body.classList.toggle('perigo', perigo); document.body.classList.toggle('perigo2', perigo && f < 0.15);
+  if (!perigo) { perigoAvisou = false; return; }
+  if (!perigoAvisou) { perigoAvisou = true; banner('❤️ VIDA BAIXA!'); log('❤️ <b>Vida baixa!</b> Tome uma poção ou se afaste.', 'bad'); }
+  if ((perigoT -= dt) <= 0) { perigoT = f < 0.15 ? 0.55 : 0.9; Audio8.sfx('hit'); }
+}
+// 🚪 botão de sair das masmorras (pedido do Rone: "botão de sair nas DG, principalmente Torre e Cratera")
+const btnSairDG = (() => { const b = document.createElement('button'); b.id = 'btn-sair-dg'; b.className = 'hidden'; b.innerHTML = '🚪 Sair'; document.body.appendChild(b);
+  b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); Audio8.sfx('click'); const o = ondeDG(); if (!o) return;
+    dialog('🚪 Sair', `Quer mesmo sair de <b>${o.nome}</b>?${o.aviso ? `<br><small>${o.aviso}</small>` : ''}`, [{ label: '✅ Sim, sair', fn: () => { o.sair(); } }, { label: 'Ficar' }]); }); return b; })();
+function ondeDG() {
+  if (!inTower(P.z) || P.dead) return null; const z = zoneOf(P.x, P.z);
+  if (z === 'casa' || /^casa/.test(z) || z === 'castelo') return null;
+  if (typeof MASMORRAS !== 'undefined' && MASMORRAS[z] && MASMORRAS[z].saida) return { nome: 'a masmorra', aviso: 'A corrida desta vez não conta.', sair: () => { const s = MASMORRAS[z].saida; P.x = s.x; P.z = s.z; P.y = groundY(P.x, P.z); P.vy = 0; camS.x = P.x; camS.z = P.z; Audio8.sfx('warp'); } };
+  if (typeof Tower !== 'undefined' && Tower.floor >= 100) return { nome: 'o Abismo', aviso: 'Você volta para a Cratera do Cisma.', sair: () => Tower.enter(99) };
+  if (typeof Tower !== 'undefined' && Tower.floor >= 0) return { nome: 'a Torre do Cisma', aviso: 'Você sai pela porta da Torre.', sair: () => Tower.enter(-1) };
+  return null;
+}
+let sairT = 0;
 function update(dt) {
-  tickAlvo();
+  tickAlvo(); tickPerigo(dt);
+  if ((sairT -= dt) <= 0) { sairT = 0.5; btnSairDG.classList.toggle('hidden', !ondeDG()); }
   time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
   updatePlayer(dt);
   // monstro muito longe (outro mapa): não pensa nem desenha (agora há mais monstros por mapa)
@@ -3406,7 +3430,7 @@ $('statwin').addEventListener('pointerdown', e => {
 });
 const stopHold = () => { clearTimeout(statHold); statHold = null; };
 addEventListener('pointerup', stopHold); addEventListener('pointercancel', stopHold);
-function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); renderStats(); }
+function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); document.body.classList.toggle('ficha-aberta', !$('statwin').classList.contains('hidden')); renderStats(); }   // com a ficha aberta os botões de luta continuam por cima
 
 // ---------------------------------------------------------------- árvore de habilidades
 const SK_MAX = 10;                 // cada habilidade vai até o 10; os pontos (1 por nível) não dão para tudo
@@ -3540,13 +3564,10 @@ function talkBase(n) {
         { label: 'Até logo' }]); break;
     case 'shop': {
       const shop = () => dialog(nm, `${bv}, <b>${eu}</b>! Poções fresquinhas.<br><small>Coroas: <b>${P.zeny} cr</b> · 🧪 ${P.inv.red} · 💧 ${P.inv.blue}</small>`, [
-        { label: `🧪 Poção Vermelha — 25 cr`, fn: () => { buy('red', 1); shop(); return true; } },
-        { label: `🧪×10 — 250 cr`, fn: () => { buy('red', 10); shop(); return true; } },
-        { label: `💧 Poção Azul — 90 cr`, fn: () => { buy('blue', 1); shop(); return true; } },
+        { label: `🧪 Poção Vermelha — 25 cr cada · escolher quantidade (tem ${P.inv.red || 0})`, fn: () => { qty('red', shop); return true; } },
+        { label: `💧 Poção Azul — 90 cr cada · escolher quantidade (tem ${P.inv.blue || 0})`, fn: () => { qty('blue', shop); return true; } },
         { label: `🪰 Asa de Mosca — 300 cr cada (salto no mesmo mapa) · tem ${P.inv.asa_mosca || 0}`, fn: () => { qty('asa_mosca', shop); return true; } },
         { label: `🦋 Asa de Borboleta — 900 cr cada (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { qty('asa_borboleta', shop); return true; } },
-        { label: `🧪 Poção Vermelha — quantidade…`, fn: () => { qty('red', shop); return true; } },
-        { label: `💧 Poção Azul — quantidade…`, fn: () => { qty('blue', shop); return true; } },
         { label: `❤️‍🩹 Poções maiores (Nv 40, 60 e 80)…`, fn: () => { const big = () => dialog(nm, `Poções para quem já foi longe. Curam uma parte da vida ou do SP <b>máximo</b>.<br><small>Dica: na 🎒 mochila, <b>10 poções</b> de um tamanho se <b>fundem</b> em 1 do tamanho seguinte. Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [...['red_m', 'blue_m', 'red_g', 'blue_g', 'red_x', 'blue_x'].map(id => ({ label: `${ITEMS[id].ic} ${ITEMS[id].name} (${Math.round(ITEMS[id].pct * 100)}% ${ITEMS[id].rec === 'hp' ? 'HP' : 'SP'}, Nv ${ITEMS[id].lvMin}+) — ${ITEMS[id].price.toLocaleString('pt-BR')} cr · tem ${P.inv[id] || 0}`, fn: () => { qty(id, big); return true; } })), { label: '← Voltar', fn: () => { shop(); return true; } }]); big(); return true; } },
         { label: `♻️ Resets (habilidades e atributos) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr`, fn: () => { const lj = () => dialog('♻️ Resets', `Todo mundo tem <b>${RESET_GRATIS} resets grátis</b> de habilidades e ${RESET_GRATIS} de atributos (botão ♻️ nas janelas). Depois disso, só com estes itens.<br><small>Grátis: 📜 ${resetGratisRestam('hab')} · 🔄 ${resetGratisRestam('atr')} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [
           { label: `📜 Pergaminho do Esquecimento (habilidades) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_hab || 0}`, fn: () => { buy('reset_hab', 1); lj(); return true; } },
@@ -3591,8 +3612,8 @@ function talkBase(n) {
 }
 // escolher quanto comprar
 function qty(id, back) {
-  const pr = ITEMS[id].price, opts = [1, 5, 10, 25, 50].map(n => ({ label: `${n}× — ${(pr * n).toLocaleString('pt-BR')} cr`, fn: () => { buy(id, n); qty(id, back); return true; } }));
-  const max = Math.floor(P.zeny / pr); if (max > 50) opts.push({ label: `Máximo (${max}×) — ${(pr * max).toLocaleString('pt-BR')} cr`, fn: () => { buy(id, max); qty(id, back); return true; } });
+  const pr = ITEMS[id].price, opts = [1, 5, 10, 25, 50, 100].map(n => ({ label: `${n}× — ${(pr * n).toLocaleString('pt-BR')} cr`, fn: () => { buy(id, n); qty(id, back); return true; } }));
+  const max = Math.floor(P.zeny / pr); if (max > 100) opts.push({ label: `Máximo (${max}×) — ${(pr * max).toLocaleString('pt-BR')} cr`, fn: () => { buy(id, max); qty(id, back); return true; } });
   opts.push({ label: '← Voltar', fn: () => { back(); return true; } });
   dialog(`${ITEMS[id].ic} ${ITEMS[id].name}`, `Quantos? <small>Tem ${P.inv[id] || 0} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, opts);
 }
@@ -3667,7 +3688,12 @@ function tickAlvo() {
 // o que está debaixo do mouse: monstro (o mais perto do cursor na tela) ou NPC
 function soMouse(cx, cy) {
   let best = null, bd = 46;
-  for (const m of mobs) { if (m.dead || m.isPeer) continue; const sp = toScreen(m.x, groundY(m.x, m.z) + (m.model.h || 1.5) * 0.55, m.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < bd) { bd = d; best = { tipo: 'mob', o: m }; } }
+  // vale o corpo todo do bicho, do pé até o nome em cima da cabeça (antes era só 46 px em volta do meio: nos MVPs grandes era quase impossível acertar)
+  for (const m of mobs) { if (m.dead || m.isPeer) continue; const gy = groundY(m.x, m.z), h = m.model.h || 1.5, sp0 = toScreen(m.x, gy, m.z), sp1 = toScreen(m.x, gy + h, m.z); if (!sp0.vis && !sp1.vis) continue;
+    const alto = Math.max(30, sp0.y - sp1.y), larg = Math.max(56, alto * 0.75), mx = (sp0.x + sp1.x) / 2;
+    if (Math.abs(cx - mx) > larg / 2 + 14 || cy < sp1.y - 34 || cy > sp0.y + 18) continue;
+    const d = Math.hypot(cx - mx, cy - (sp0.y + sp1.y) / 2) / Math.max(1, alto / 60); if (d < bd + 200) { if (!best || d < bd) { bd = d; best = { tipo: 'mob', o: m }; } } }
+  if (best) return best; bd = 46;
   if (!best) for (const n of NPCS) { if (n.hidden) continue; const sp = toScreen(n.x, groundY(n.x, n.z) + 1.1, n.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < 40 && d < bd) { bd = d; best = { tipo: 'npc', o: n }; } }
   return best;
 }
@@ -3968,7 +3994,10 @@ const FRAME_MS = TOUCH ? 1000 / 30 : 0; let lastFrame = 0;
 // 🪟 o jogo continua com a janela em segundo plano (pedido do Rone: deixar caçando enquanto trabalha).
 // O navegador para de desenhar quando a janela fica escondida; aí um relógio num Worker (que o navegador não congela)
 // continua rodando a lógica: AUTO, caça, missões, rede. Só não desenha a tela.
-let lastLogic = performance.now();
+let lastLogic = performance.now(), ultimoDesenho = performance.now();
+const naoVisto = () => document.hidden || performance.now() - ultimoDesenho > 500;   // ninguém olhando: não cria números, efeitos nem sons (empilhavam e explodiam na volta)
+let mudo = 0;   // > 0: o que acontece agora é longe de você (luta do grupo a 2 km): sem som
+{ const s0 = Audio8.sfx; Audio8.sfx = function () { if (running && (naoVisto() || mudo > 0)) return; return s0.apply(this, arguments); }; }
 function passoJogo(dt) {
   update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); if (typeof Castelo !== 'undefined') Castelo.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
 }
@@ -3977,14 +4006,17 @@ function passoFundo(dt) {
 }
 (() => { try {
   const w = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),100)'], { type: 'text/javascript' })));
-  w.onmessage = () => {
+  w.onmessage = () => tickFundo();
+} catch (e) { } })();
+function tickFundo() {
+  {
     if (!running || window.VR_ATIVO || (typeof Net !== 'undefined' && Net.pausa)) return;
     const agora = performance.now(), parado = agora - lastLogic; if (parado < 400) return;      // a tela está desenhando: nada a fazer
     let falta = Math.min(2, parado / 1000); lastLogic = agora; last = agora;
     while (falta > 0) { const dt = Math.min(0.05, falta); falta -= dt; try { passoFundo(dt); } catch (e) { console.warn(e); break; } }
     if (typeof AutoCaca !== 'undefined' && AutoCaca._tick) try { AutoCaca._tick(); } catch (e) { }
-  };
-} catch (e) { } })();
+  }
+}
 function loop(now) {
   if (!window.VR_ATIVO) requestAnimationFrame(loop);                  // no VR quem chama é o óculos (vr.js)
   if (document.hidden) return;
@@ -3996,7 +4028,7 @@ function loop(now) {
     Net.update(dt); sky.position.copy(camera.position); draw();
   } else if (running) {
     passoJogo(dt); lastLogic = performance.now();
-    sky.position.copy(camera.position); draw();
+    sky.position.copy(camera.position); draw(); ultimoDesenho = performance.now();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {
     // vitrine na tela de título

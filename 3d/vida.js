@@ -1120,7 +1120,9 @@ const Vida = (() => {
     opts.push({ label: 'Limpar minha oferta', fn: () => { tr.give = {}; tr.ok = false; tradeWin(); return true; } });
     opts.push({ label: tr.ok ? '⏳ Esperando o outro confirmar…' : '✅ Confirmar troca', fn: () => { if (their) tr.ok = keyOf(tr.give, their.give); tradeWin(); return true; } });
     opts.push({ label: '✖ Cancelar troca', fn: () => { tr = null; log('Troca cancelada.', 'sys'); } });
+    const rolT = ($('dialog').querySelector('.dopts') || {}).scrollTop || 0, rolD = $('dialog').scrollTop || 0;   // não volta para o topo quando o outro mexe (pedido do Balhulk)
     dialog(`🤝 Troca com ${pr.n}`, `<div class="trade"><div><b>Você dá</b><br>${offerTxt(tr.give)}</div><div><b>Você recebe</b><br>${their ? offerTxt(their.give) : '<i>esperando aceitar…</i>'}${their && their.ok ? '<br><em>✅ confirmou</em>' : ''}</div></div>`, opts);
+    { const o = $('dialog').querySelector('.dopts'); if (o) o.scrollTop = rolT; $('dialog').scrollTop = rolD; }
   }
   function checkTrade() {
     // convites recebidos
@@ -1145,7 +1147,7 @@ const Vida = (() => {
       for (const [k, n] of Object.entries(tr.give)) if (k === 'z' ? P.zeny < n : !has(k, n)) { tr.ok = false; log('Você não tem mais o que ofereceu.', 'bad'); return; }
       for (const [k, n] of Object.entries(tr.give)) k === 'z' ? P.zeny -= n : add(k, -n);
       for (const [k, n] of Object.entries(their.give || {})) k === 'z' ? P.zeny += n : add(k, n);
-      doneTr.add(tr.id); tr.done = now() + 6000; Audio8.sfx('level');
+      doneTr.add(tr.id); tr.done = now() + 30000; Audio8.sfx('level');   // fica 30 s à mostra (com 6 s, o outro às vezes não via a troca terminar e não recebia nada)
       log(`🤝 Troca com <b>${pr.n}</b> concluída!`, 'gold');
       if (dialogOpen && $('dialog').textContent.includes('Troca com')) closeDialog();
     } else if (dialogOpen && $('dialog').textContent.includes('Troca com')) {
@@ -1393,7 +1395,16 @@ const Vida = (() => {
     return best;
   }
   let tAcc = 0;
+  // 🔨 refino e estrelas são da PEÇA: quando você não tem mais nenhuma (trocou, vendeu, destruiu), somem junto
+  // (antes ficavam guardados pelo nome e a próxima peça igual que você pegava já vinha refinada)
+  let limpaT = 0;
+  function limparRefino() {
+    const banca = (typeof st !== 'undefined' && st.stall && st.stall.it) || {}, bau = (P.casa && P.casa.bau) || {};
+    const usado = id => Object.values(P.equip || {}).includes(id) || (bau[id] > 0) || JSON.stringify(banca).includes('"' + id + '"');
+    for (const o of [P.refine, P.desp]) if (o) for (const id of Object.keys(o)) if (!(P.inv[id] > 0) && !usado(id)) delete o[id];
+  }
   function update(dt) {
+    if ((limpaT -= dt) <= 0) { limpaT = 2; try { limparRefino(); } catch (e) { } }
     tAcc += dt;
     const nearFarm = Math.hypot(P.x - F.x, P.z - F.z) < 70;
     for (const p of PLOTS) p.g.visible = nearFarm;

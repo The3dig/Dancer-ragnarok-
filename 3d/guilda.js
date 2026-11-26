@@ -100,7 +100,7 @@ const Guilda = (() => {
       if (aba === 'castelo') {
         const ag = typeof Castelo !== 'undefined' ? Castelo.agora() : null;
         h += `<div class="gw-card gw-cast"><div class="gw-cast-ic">🏰</div><div><b>Castelo da ${esc(g.nome)}</b><small>O saguão da guilda: só os membros entram e se veem lá dentro.</small></div><button data-a="castelo" class="gw-grande">Entrar no castelo</button></div>`;
-        if (typeof Castelo !== 'undefined') h += `<div class="gw-card${ag && ag.ativo ? ' gw-vivo' : ''}"><div class="gw-sec">🎪 Brincadeiras das 20h</div>${Castelo.info(false)}</div>`;
+        if (typeof Castelo !== 'undefined') h += `<div class="gw-card${ag && ag.ativo ? ' gw-vivo' : ''}"><div class="gw-sec">🎪 Brincadeiras das 21h</div>${Castelo.info(false)}</div>`;
         h += `<div class="gw-card"><div class="gw-sec">🏆 Guerra de Guildas</div><small>Domingo, das 18h às 19h, na Fortaleza das Bandeiras (Comandante Varek, em Solmira). A guilda que mais danificar o Coração ganha +10% de XP e drop na semana.</small></div>`;
       }
       if (aba === 'membros') {

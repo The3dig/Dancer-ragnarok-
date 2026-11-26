@@ -72,7 +72,7 @@ const VFX = (() => {
   const C = c => new THREE.Color(c);
 
   // ---------------- peças básicas
-  function particle(pos, color, o = {}) {
+  function particle(pos, color, o = {}) { if (typeof naoVisto === 'function' && typeof running !== 'undefined' && running && naoVisto()) return;
     if (parts >= PMAX) return;
     parts++;
     const s = new THREE.Sprite(smat(o.map || T.glow, color, { opacity: o.op ?? 1 }));

@@ -90,11 +90,14 @@ const Partilha = (() => {
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
       const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && (Grupo.juntos ? Grupo.juntos(mb.x, mb.z, P.x, P.z) : Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO) ? Grupo.parteDoMatador(mb, m.by) : null;
       const grupo = gq && gq.parte > 0;
+      const longe = Math.hypot(mb.x - P.x, mb.z - P.z) > 35; if (longe && typeof mudo !== 'undefined') mudo++;   // luta longe de você: sem som
+      try {
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
       else if (grupo) killMob(mb, { ajuda: gq.parte, grupo: true, n: gq.n, w: gq.w });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
       else if (gq && gq.leech) killMob(mb, { leech: true, lvK: gq.lvK, de: (Net.peers().find(r => r.peer === m.by) || {}).n });   // 🍼 carona: companheiro bem mais forte matou perto
       else if (parte > 0.02) killMob(mb, { ajuda: parte });
       else killMob(mb, { semPremio: true });
+      } finally { if (longe && typeof mudo !== 'undefined') mudo--; }
     });
     Net.on('dono', m => { const loc = porId(); for (const [id, peer] of m.l) { const mb = loc.get(id); if (mb) { mb.dono = peer; if (peer === me()) { mb.state = 'idle'; mb.tx = mb.x; mb.tz = mb.z; } } } });
     Net.on('nasce', m => {                                                            // eu controlo: escolho onde ele renasce

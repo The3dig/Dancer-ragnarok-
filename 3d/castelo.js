@@ -1,11 +1,11 @@
 // =====================================================================
-//  🏰 Castelo da Guilda e as Brincadeiras das 20h (ideia do Rone, inspirada no Ragnarok Origin).
+//  🏰 Castelo da Guilda e as Brincadeiras das 21h (ideia do Rone, inspirada no Ragnarok Origin).
 //  - No painel 🛡️ Guilda → "Entrar no castelo": vai para o saguão do castelo. Cada guilda só vê os
 //    próprios membros lá dentro (os estandartes têm o emblema e a sigla da sua guilda).
-//  - De segunda a sexta, das 20h às 20h30, acontece uma brincadeira no saguão (sábado e domingo às
+//  - De segunda a sexta, das 21h às 21h30, acontece uma brincadeira no saguão (sábado e domingo às
 //    20h já tem o Kravenox e o Verme):
 //      seg: ⚔️ Caçada no Saguão (monstros saem das paredes; cada um vale ponto)
-//      ter: 🐉 Chefe da Guilda (um chefe só para a guilda inteira; fica até 20h30)
+//      ter: 🐉 Chefe da Guilda (um chefe só para a guilda inteira; fica até 21h30)
 //    O Bobo da Corte joga jokenpô a qualquer hora (NPC, não é mais brincadeira: pedido do Rone)
 //      qua: 🎁 Baús Escondidos (baús pelo saguão; cuidado, alguns são mímicos!)
 //      qui: 🗡️ Duelo da Guilda (PvP em rodadas de 5 min; quem cai volta no saguão)
@@ -14,13 +14,13 @@
 // =====================================================================
 'use strict';
 const Castelo = (() => {
-  const C = CASTELO, R = C.r, INI = 20 * 60, DUR = 30;               // 20:00 às 20:30 (minutos do dia)
+  const C = CASTELO, R = C.r, INI = 21 * 60, DUR = 30;               // 21:00 às 21:30 (minutos do dia) — passou das 20h para as 21h (pedido do Rone, 26/11)
   ZONES.castelo = { name: 'Castelo da Guilda', music: 'fortaleza' };
   // cada dia uma brincadeira DIFERENTE (pedido do Rone: tinha repetida)
   const TIPOS = { 1: 'monstros', 2: 'chefe', 3: 'baus', 4: 'pvp', 5: 'bonecos' };
   const NOME = { monstros: '⚔️ Caçada no Saguão', chefe: '🐉 Chefe da Guilda', baus: '🎁 Baús Escondidos', pvp: '🗡️ Duelo da Guilda (PvP)', bonecos: '🎯 Desafio dos Bonecos' };
-  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio (MVP da guilda) invade o saguão às 20h e fica até 20h30 (um só por noite: se não cair, vai embora). A guilda inteira enfrenta o MESMO chefe. Quem ajudar ganha 6 pontos e sorteia as peças do Conjunto do Campeão Sombrio; e a Carta do Campeão Sombrio é UMA só por vitória, sorteada entre quem bateu', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
-    pvp: 'PvP entre a guilda dentro do castelo com TODOS IGUAIS (nível 100, mesmos atributos, sem equipamento, todas as habilidades no máximo). 3 rodadas (20h00, 20h10 e 20h20): 2 minutos para arrumar a barra e as poções, depois 5 de luta. Cada derrubada vale 1 ponto; quem cai volta no saguão, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
+  const DESC = { monstros: 'monstros saem das paredes do saguão: cada um derrotado vale 1 ponto', chefe: 'o Campeão Sombrio (MVP da guilda) invade o saguão às 21h e fica até 21h30 (um só por noite: se não cair, vai embora). A guilda inteira enfrenta o MESMO chefe. Quem ajudar ganha 6 pontos e sorteia as peças do Conjunto do Campeão Sombrio; e a Carta do Campeão Sombrio é UMA só por vitória, sorteada entre quem bateu', baus: '12 baús escondidos pelo saguão: abra (alguns são mímicos e mordem!)',
+    pvp: 'PvP entre a guilda dentro do castelo com TODOS IGUAIS (nível 100, mesmos atributos, sem equipamento, todas as habilidades no máximo). 3 rodadas (21h00, 21h10 e 21h20): 2 minutos para arrumar a barra e as poções, depois 5 de luta. Cada derrubada vale 1 ponto; quem cai volta no saguão, sem perder nada', bonecos: 'bata nos bonecos de treino do arsenal: cada tanto de dano vale 1 ponto (até 12 pontos)' };
   const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   let forcado = null;   // só para teste: Castelo._forcar('baus')
   function agora() { if (forcado) return { tipo: forcado, ativo: true, falta: 0, resta: 30, dia: new Date().toLocaleDateString('pt-BR') }; const d = new Date(), min = d.getHours() * 60 + d.getMinutes(), tipo = TIPOS[d.getDay()] || null; return { tipo, ativo: !!tipo && min >= INI && min < INI + DUR, falta: (INI - min), resta: INI + DUR - min, dia: d.toLocaleDateString('pt-BR') }; }
@@ -161,7 +161,7 @@ const Castelo = (() => {
     const a = agora(), k = a.tipo + a.ativo + new Date().getDay(); if (k === quadroKey) return; quadroKey = k;
     const c = document.createElement('canvas'); c.width = 1024; c.height = 704; const x = c.getContext('2d'); x.scale(2, 2);   // o dobro de resolução (estava desfocada)
     x.fillStyle = '#2a2018'; x.fillRect(0, 0, 512, 352); x.strokeStyle = '#d9a63a'; x.lineWidth = 8; x.strokeRect(4, 4, 504, 344);
-    x.fillStyle = '#ffd860'; x.font = 'bold 30px Georgia'; x.textAlign = 'center'; x.fillText('Brincadeiras das 20h', 256, 46); x.font = '22px Georgia'; x.textAlign = 'left';
+    x.fillStyle = '#ffd860'; x.font = 'bold 30px Georgia'; x.textAlign = 'center'; x.fillText('Brincadeiras das 21h', 256, 46); x.font = '22px Georgia'; x.textAlign = 'left';
     const hoje = new Date().getDay();
     [1, 2, 3, 4, 5].forEach((d, i) => { x.fillStyle = d === hoje ? '#7dff6a' : '#f0e2c0'; x.fillText(`${DIAS[d].padEnd(8)} ${NOME[TIPOS[d]]}`, 26, 92 + i * 40); });
     x.fillStyle = '#b0a080'; x.font = '18px Georgia'; x.fillText('sábado e domingo às 20h: Kravenox e Verme', 26, 316);
@@ -205,7 +205,7 @@ const Castelo = (() => {
     if (typeof autoStop === 'function') autoStop(''); if (P.montado && typeof Montaria !== 'undefined') Montaria.descer();
     P.x = SAIDA_IN.x; P.z = SAIDA_IN.z - 3; P.y = 0; P.face = Math.PI; P.vy = 0; camS.yaw = 0; camS.x = P.x; camS.z = P.z; camS.y = 0;
     Audio8.sfx('warp'); banner('🏰 CASTELO DA GUILDA'); armada = false;
-    const a = agora(); log(`🏰 <b>Castelo da guilda.</b> ${a.ativo ? `Agora: <b>${NOME[a.tipo]}</b> (${DESC[a.tipo]})!` : a.tipo ? `Hoje às 20h: <b>${NOME[a.tipo]}</b>.` : 'Hoje não tem brincadeira (às 20h é dia de chefe).'} Saia pelo portal ao sul.`, 'gold');
+    const a = agora(); log(`🏰 <b>Castelo da guilda.</b> ${a.ativo ? `Agora: <b>${NOME[a.tipo]}</b> (${DESC[a.tipo]})!` : a.tipo ? `Hoje às 21h: <b>${NOME[a.tipo]}</b>.` : 'Hoje não tem brincadeira (às 20h é dia de chefe).'} Saia pelo portal ao sul.`, 'gold');
   }
   let armada = false;
   function sair() {
@@ -253,7 +253,7 @@ const Castelo = (() => {
   const TROCA = [['lamina_campeao', 25], ['couraca_campeao', 20], ['elmo_campeao', 15], ['manoplas_campeao', 15], ['grevas_campeao', 15]];
   function troca() {
     const n = P.inv.emblema_campeao || 0;
-    dialog('⚔️ Capitão da Guarda de Auren', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 20h), quem ajudou ganha 3 🎖️ <b>Emblemas do Campeão</b>. Junte e troque comigo pelas peças do conjunto. <small>(A carta não se troca: é uma só por vitória, na sorte.)</small><br><small>Seus emblemas: <b>${n}</b></small>`,
+    dialog('⚔️ Capitão da Guarda de Auren', `Trago as relíquias do <b>Campeão Sombrio</b>. Cada vez que a guilda derruba ele (terça, 21h), quem ajudou ganha 3 🎖️ <b>Emblemas do Campeão</b>. Junte e troque comigo pelas peças do conjunto. <small>(A carta não se troca: é uma só por vitória, na sorte.)</small><br><small>Seus emblemas: <b>${n}</b></small>`,
       [...TROCA.map(([id, c]) => ({ label: `${n >= c ? '🎖️' : '🔒'} ${ITEMS[id].ic} ${ITEMS[id].name} — ${c} emblemas`, fn: () => {
         if ((P.inv.emblema_campeao || 0) < c) { Audio8.sfx('miss'); log(`🎖️ Faltam ${c - (P.inv.emblema_campeao || 0)} emblemas.`, 'bad'); return; }
         P.inv.emblema_campeao -= c; P.inv[id] = (P.inv[id] || 0) + 1; Audio8.sfx('level'); banner(`🎖️ ${ITEMS[id].name}`); log(`🎖️ Você trocou ${c} emblemas por <b>${ITEMS[id].ic} ${ITEMS[id].name}</b>!`, 'gold'); try { buildHotbar(); save(); } catch (e) { } } })),
@@ -314,9 +314,9 @@ const Castelo = (() => {
     Audio8.sfx('coin'); burst(new THREE.Vector3(b.x, 0.8, b.z), 0xffd060, 20, 3, 0.8); ponto(2, '🎁');
   }
   // ---------------- 🐉 Chefe da Guilda (terça): o MESMO chefe para todos da guilda (vai para o servidor como dg:castelo:#<guilda>:...)
-  // uma rodada a cada 10 min (20h00, 20h10, 20h20); quem derrubar não vê ele voltar na mesma rodada
+  // uma rodada a cada 10 min (21h00, 21h10, 21h20); quem derrubar não vê ele voltar na mesma rodada
   const ymd = () => { const d = new Date(); return '' + d.getFullYear() + (d.getMonth() + 1) + d.getDate(); };
-  const rodada = () => forcado ? 'T' + Math.floor(Date.now() / 600000) : 'd';                          // um só por noite (pedido do Rone): se não cair até 20h30, vai embora
+  const rodada = () => forcado ? 'T' + Math.floor(Date.now() / 600000) : 'd';                          // um só por noite (pedido do Rone): se não cair até 21h30, vai embora
   let chefeChk = '', chefeT = 0;
   function escalarChefe(o, L) {
     const d0 = o.d, kf = L / d0.lv;
@@ -385,8 +385,8 @@ const Castelo = (() => {
     }
     if ((dpsT -= dt) <= 0) { dpsT = 0.5; for (const o of bonecos) { const dps = Math.round(o.janela.reduce((s2, [, v]) => s2 + v, 0) / 5), sp = o.lab.querySelector('span'); if (sp) sp.innerHTML = `${o.titulo} <small>${dps ? dps.toLocaleString('pt-BR') + ' de dano/s' : 'bata em mim!'}</small>`; } }
   }
-  // ---------------- 🗡️ Duelo da Guilda: PvP dentro do castelo em rodadas de 5 minutos (20h00, 20h10, 20h20)
-  // rodada de 10 min: 2 de preparação (sem PvP) + 5 de luta + 3 de intervalo (20h00, 20h10, 20h20)
+  // ---------------- 🗡️ Duelo da Guilda: PvP dentro do castelo em rodadas de 5 minutos (21h00, 21h10, 21h20)
+  // rodada de 10 min: 2 de preparação (sem PvP) + 5 de luta + 3 de intervalo (21h00, 21h10, 21h20)
   let faseTeste = null;
   function fase() { const a = agora(); if (!a.ativo || a.tipo !== 'pvp') return null; if (forcado) return faseTeste || 'luta'; const m = new Date().getMinutes() % 10; return m < 2 ? 'prep' : m < 7 ? 'luta' : 'pausa'; }
   function pvpAtivo() { return dentro() && fase() === 'luta'; }
@@ -418,14 +418,14 @@ const Castelo = (() => {
     const den = dentro(); g.visible = den; bobo.g.visible = den; for (const n of NPCS_C) n.g.visible = den;
     const a = agora(), e = typeof Guilda !== 'undefined' && Guilda.minha();
     // avisos para a guilda (em qualquer lugar do mapa)
-    if (e && a.tipo && running) { const k = a.dia + (a.ativo ? 'on' : a.falta <= 5 && a.falta > 0 ? 'pre' : ''); if (k !== avisou && (a.ativo || (a.falta <= 5 && a.falta > 0))) { avisou = k; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '🏰', cor: a.ativo ? 'verde' : 'ouro', tag: a.ativo ? 'BRINCADEIRA DA GUILDA · ATÉ 20H30' : 'EM ' + a.falta + ' MINUTOS · GUILDA', titulo: NOME[a.tipo], sub: DESC[a.tipo], botao: 'Ir ao castelo', acao: () => entrar(), seg: 10 }); log(a.ativo ? `🏰 <b>Brincadeira da guilda começou: ${NOME[a.tipo]}!</b> ${DESC[a.tipo]}. Entre pelo 🛡️ Guilda → Castelo (até 20h30).` : `🏰 Em ${a.falta} min, no castelo da guilda: <b>${NOME[a.tipo]}</b>.`, 'gold'); Audio8.sfx('buff'); } }
+    if (e && a.tipo && running) { const k = a.dia + (a.ativo ? 'on' : a.falta <= 5 && a.falta > 0 ? 'pre' : ''); if (k !== avisou && (a.ativo || (a.falta <= 5 && a.falta > 0))) { avisou = k; typeof Anuncio !== 'undefined' && Anuncio.mostrar({ ic: '🏰', cor: a.ativo ? 'verde' : 'ouro', tag: a.ativo ? 'BRINCADEIRA DA GUILDA · ATÉ 20H30' : 'EM ' + a.falta + ' MINUTOS · GUILDA', titulo: NOME[a.tipo], sub: DESC[a.tipo], botao: 'Ir ao castelo', acao: () => entrar(), seg: 10 }); log(a.ativo ? `🏰 <b>Brincadeira da guilda começou: ${NOME[a.tipo]}!</b> ${DESC[a.tipo]}. Entre pelo 🛡️ Guilda → Castelo (até 21h30).` : `🏰 Em ${a.falta} min, no castelo da guilda: <b>${NOME[a.tipo]}</b>.`, 'gold'); Audio8.sfx('buff'); } }
     if (!den) { if (baus.length || vivos().length) limpar(); if (bonecos.length) tirarBonecos(); if (P._duelo) restaurar(); return; }
     bonecosTick(dt);
     { const f = den ? fase() : null; if (f === 'prep' || f === 'luta') igualar(); else if (P._duelo) restaurar();
       if (f) { const k = a.dia + f + Math.floor(new Date().getMinutes() / 10); if (k !== rodadaAvisada) { rodadaAvisada = k;
         if (f === 'prep') { banner('⚖️ PREPARAÇÃO: 2 MINUTOS'); Audio8.sfx('buff'); log('⚖️ <b>Preparação (2 minutos):</b> arrume as habilidades na barra e as poções. Depois a luta vale por 5 minutos.', 'gold'); }
         else if (f === 'luta') { banner('🗡️ DUELO DA GUILDA: VALENDO!'); Audio8.sfx('boom'); log('🗡️ <b>Valendo por 5 minutos!</b> Todo mundo da guilda aqui dentro pode se atacar. Quem cai volta no saguão, sem perder nada.', 'gold'); }
-        else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa às 20h10 / 20h20 (com 2 minutos de preparação).', 'sys'); } } } }
+        else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa às 21h10 / 21h20 (com 2 minutos de preparação).', 'sys'); } } } }
     estandarte(); quadro(); paredesNaFrente();
     if (camS.pitch < 0.6) camS.pitch += (0.6 - camS.pitch) * Math.min(1, dt * 3);   // câmera um pouco por cima: vê a sala inteira
     for (const v of velas) v.material.opacity = 0.75 + Math.sin(time * 9 + v.position.x * 3) * 0.2;
@@ -458,12 +458,12 @@ const Castelo = (() => {
     for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return n.nome === 'Capitão da Guarda de Auren' ? { label: '🎖️ Trocar emblemas com o Capitão da Guarda de Auren', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
     for (const b of baus) if (Math.hypot(P.x - b.x, P.z - b.z) < 2) return { label: '🎁 Abrir o baú', fn: () => abrirBau(b) };
     for (const o of bonecos) if (Math.hypot(P.x - o.x, P.z - o.z) < 2.6) return { label: `⚙️ Nível do ${o.mvp ? 'boneco MVP' : 'boneco'} (Nv ${o.d.lv})`, fn: () => escolherNivelBoneco(o) };
-    if (Math.hypot(P.x - QUADRO.x, P.z - QUADRO.z) < 2.6) return { label: '📜 Brincadeiras das 20h', fn: () => info(true) };
+    if (Math.hypot(P.x - QUADRO.x, P.z - QUADRO.z) < 2.6) return { label: '📜 Brincadeiras das 21h', fn: () => info(true) };
     return null;
   }
   function info(dlg) {
     const a = agora(), e = E();
-    const txt = `${a.ativo ? `🟢 <b>Agora: ${NOME[a.tipo]}</b> (até 20h30)<br><small>${DESC[a.tipo]}.</small>` : a.tipo ? `Hoje às 20h: <b>${NOME[a.tipo]}</b><br><small>${DESC[a.tipo]}.</small>` : 'Hoje não tem brincadeira: às 20h de sábado e domingo acordam o Kravenox e o Verme.'}<br><br><b>Seus pontos hoje: ${e.pts}</b> · prêmios: ${e.prem}/${PREMIOS.length} <small>(a cada 5 pontos)</small><br><small>${[1, 2, 3, 4, 5].map(d => `${DIAS[d]}: ${NOME[TIPOS[d]]}`).join(' · ')}</small>`;
+    const txt = `${a.ativo ? `🟢 <b>Agora: ${NOME[a.tipo]}</b> (até 21h30)<br><small>${DESC[a.tipo]}.</small>` : a.tipo ? `Hoje às 21h: <b>${NOME[a.tipo]}</b><br><small>${DESC[a.tipo]}.</small>` : 'Hoje não tem brincadeira: às 20h de sábado e domingo acordam o Kravenox e o Verme.'}<br><br><b>Seus pontos hoje: ${e.pts}</b> · prêmios: ${e.prem}/${PREMIOS.length} <small>(a cada 5 pontos)</small><br><small>${[1, 2, 3, 4, 5].map(d => `${DIAS[d]}: ${NOME[TIPOS[d]]}`).join(' · ')}</small>`;
     if (dlg) dialog('🏰 Brincadeiras da Guilda', txt, [{ label: 'Fechar' }]);
     return txt;
   }

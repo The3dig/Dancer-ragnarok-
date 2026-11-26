@@ -54,7 +54,22 @@ const Comodos = (() => {
   const madeira = c => PM('madeira.jpg', [4, 4], new THREE.Color(c));
   const box = (w, h, d, m, x, y, z, par) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; par.add(o); return o; };
   const L = c => new THREE.MeshLambertMaterial({ color: c }), PH = (c, e = 0) => new THREE.MeshPhongMaterial({ color: c, emissive: e, shininess: 80 }), B = c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
-  const portaMat = () => new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false, side: THREE.DoubleSide });
+  // 🚪 porta de verdade (pedido do Rone: "a porta não aparece / está zuada"): moldura de madeira com arco, portal enfumaçado
+  // que gira por dentro e a placa com o nome do cômodo do outro lado
+  const FUMO = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); const g = x.createRadialGradient(64, 64, 4, 64, 64, 64); g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(0.45, 'rgba(240,190,110,.85)'); g.addColorStop(1, 'rgba(120,70,160,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    for (let k = 0; k < 40; k++) { x.fillStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.12})`; x.beginPath(); x.arc(64 + (Math.random() - 0.5) * 90, 64 + (Math.random() - 0.5) * 90, 6 + Math.random() * 16, 0, 7); x.fill(); } const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+  const portais = [];
+  function portaMat() { const t = FUMO.clone(); t.center.set(0.5, 0.5); t.needsUpdate = true; return new THREE.MeshBasicMaterial({ map: t, color: 0xffe6b0, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }); }
+  function portaBonita(par, x, y, z, ry, nome) {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; par.add(g);
+    const mad = PM('madeira.jpg', [1, 2], new THREE.Color(0.75, 0.55, 0.38));
+    for (const sx of [-1.25, 1.25]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.2, 0.3), mad); p.position.set(sx, 1.6, 0); g.add(p); }
+    const arco = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.16, 8, 20, Math.PI), mad); arco.position.set(0, 3.1, 0); g.add(arco);
+    for (const k of [0, 1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.6), portaMat()); m.position.set(0, 1.75, 0.02 + k * 0.03); m.userData.k = k; g.add(m); portais.push(m); }
+    if (nome) { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const q = c.getContext('2d'); q.fillStyle = '#3a2a18'; q.fillRect(0, 0, 512, 96); q.strokeStyle = '#d9a63a'; q.lineWidth = 6; q.strokeRect(3, 3, 506, 90); q.fillStyle = '#ffd860'; q.font = 'bold 40px Georgia'; q.textAlign = 'center'; q.fillText(nome, 256, 62);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.5), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 3.75, 0.05); g.add(pl); }
+    return g;
+  }
   function montarSala(R) {
     if (R.g) return; const f = R.f, g = new THREE.Group(); g.position.set(f.x, f.y, f.z); g.visible = false; scene.add(g); R.g = g;
     box(H * 2 + 1, 0.4, H * 2 + 1, madeira(R.piso), 0, -0.2, 0, g);
@@ -69,8 +84,9 @@ const Comodos = (() => {
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const pl = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.75), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 3.2, -H + 0.28); g.add(pl);
     const luz = new THREE.PointLight(R.id === 'observ' ? 0xa0b0ff : 0xffd8a0, 1.2, 24); luz.position.set(0, 3.2, 0); g.add(luz);
     // portas de luz: leste (volta) e oeste (próximo cômodo)
-    R.portaL = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3), portaMat()); R.portaL.position.set(H - 0.15, 1.5, 0); R.portaL.rotation.y = -Math.PI / 2; g.add(R.portaL);
-    R.portaO = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3), portaMat()); R.portaO.position.set(-H + 0.15, 1.5, 0); R.portaO.rotation.y = Math.PI / 2; g.add(R.portaO);
+    const kk = ROOMS.indexOf(R), prox = SALAS[kk + 1];
+    R.portaL = portaBonita(g, H - 0.32, 0, 0, -Math.PI / 2, kk === 0 ? '🏠 Sala' : `${SALAS[kk - 1].ic} ${SALAS[kk - 1].nome}`);
+    R.portaO = portaBonita(g, -H + 0.32, 0, 0, Math.PI / 2, prox ? `${prox.ic} ${prox.nome}` : '');
     mobiliar(R);
   }
   function mobiliar(R) {
@@ -119,7 +135,7 @@ const Comodos = (() => {
   // ---------------- portas entre os cômodos
   // a sala da casa ganha uma porta no lado oeste quando o 1º cômodo existe
   let portaCasa = null;
-  function montarPortaCasa() { if (portaCasa) return; portaCasa = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3), portaMat()); portaCasa.position.set(CASA.x - H + 0.15, 1.5, CASA.z - 0.5); portaCasa.rotation.y = Math.PI / 2; scene.add(portaCasa); }
+  function montarPortaCasa() { if (portaCasa) return; portaCasa = portaBonita(scene, CASA.x - H + 0.32, CASA.y || 0, CASA.z - 0.5, Math.PI / 2, `${SALAS[0].ic} ${SALAS[0].nome}`); }
   const tem = k => !!S().salas[SALAS[k].id];
   let armada = true, chegou = null;
   function ir(x, z, face) { P.x = x; P.z = z; P.y = 0; P.face = face; P.vy = 0; camS.x = x; camS.z = z; camS.yaw = face + Math.PI; Audio8.sfx('warp'); armada = false; chegou = { x, z }; }
@@ -136,7 +152,7 @@ const Comodos = (() => {
     const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); x.fillStyle = '#3a2a18'; x.fillRect(0, 0, 256, 96); x.strokeStyle = '#d9a63a'; x.lineWidth = 6; x.strokeRect(3, 3, 250, 90); x.fillStyle = '#ffd860'; x.font = 'bold 34px Georgia'; x.textAlign = 'center'; x.fillText('🏗️ OBRAS', 128, 60);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.55), new THREE.MeshBasicMaterial({ map: t, toneMapped: false, side: THREE.DoubleSide })); pl.position.set(1.2, 1.6, 0); obra.g.add(pl);
     const poste = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 0.1), new THREE.MeshLambertMaterial({ color: 0x5a3a24 })); poste.position.set(1.2, 0.7, 0); obra.g.add(poste);
-    for (const [dx, dz, h] of [[-1.2, 0.6, 0.5], [-1.5, -0.4, 0.35]]) { const tb = new THREE.Mesh(new THREE.BoxGeometry(1.2, h, 0.4), PM('madeira.jpg', [1, 1], new THREE.Color(1.2, 1, 0.8))); tb.position.set(dx, h / 2, dz); obra.g.add(tb); }   // pilha de tábuas
+    for (const [dx, dz, h] of [[-0.9, -1.4, 0.5], [0.7, -1.6, 0.35]])   /* tábuas atrás dele (na frente parecia que ele estava dentro de uma caixa) */ { const tb = new THREE.Mesh(new THREE.BoxGeometry(1.2, h, 0.4), PM('madeira.jpg', [1, 1], new THREE.Color(1.2, 1, 0.8))); tb.position.set(dx, h / 2, dz); obra.g.add(tb); }   // pilha de tábuas
     addOb(obra.x, obra.z, 0.8);
   }
   let pronto = false;
@@ -251,7 +267,7 @@ const Comodos = (() => {
     const aqui = salaAqui();
     if (aqui >= 0 && aqui !== update.ultima) { montarSala(ROOMS[aqui]); mobiliar(ROOMS[aqui]); if (S().ok && S().ok[ROOMS[aqui].id] && !ROOMS[aqui].placa) placa(ROOMS[aqui]); } update.ultima = aqui;
     for (const R of ROOMS) if (R.g) R.g.visible = aqui === R.k;
-    if (portaCasa) { portaCasa.visible = aqui === -1; portaCasa.material.opacity = 0.4 + Math.sin(time * 2.5) * 0.15; }
+    if (portaCasa) portaCasa.visible = aqui === -1;
     // bônus: saiu de casa → 1 hora Descansado
     const dentro = aqui >= -1;
     if (dentroAntes && !dentro && conforto() > 0) { P.larAte = Date.now() + LAR_MIN * 60000; const b = bonusDe(conforto()); if (typeof addBuff === 'function') addBuff('lar', LAR_MIN * 60, {}, '🏠'); log(`🏠 <b>Descansado</b> por 1 hora (conforto ${conforto()}): +${pct(b.xp)} XP, +${pct(b.drop)} drop, +${pct(b.cr)} coroas.`, 'gold'); }
@@ -271,6 +287,7 @@ const Comodos = (() => {
     if (obra.act) obra.act.update(dt, { face: Math.hypot(P.x - obra.x, P.z - obra.z) < 7 ? Math.atan2(P.x - obra.x, P.z - obra.z) : 0, moving: false });
     // animação dos móveis do cômodo onde você está
     if (aqui >= 0) for (const p of Object.values(ROOMS[aqui].objs)) { const u = p.userData; if (u.gira) u.gira.rotation.y += dt * 0.6; if (u.flutua) u.flutua.position.y = 1.5 + Math.sin(time * 2) * 0.1; if (u.fogo) u.fogo.material.color.setHSL(0.07, 1, 0.5 + Math.sin(time * 12) * 0.08); if (u.bolha) u.bolha.scale.setScalar(1 + Math.sin(time * 6) * 0.04); if (u.agua) u.agua.material.emissive.setHSL(0.55, 0.6, 0.1 + Math.sin(time * 2) * 0.04); if (u.borb) for (const o of u.borb) { const a = time * 1.5 + o.a * 1.1; o.b.position.set(Math.cos(a) * 0.6, 1.2 + Math.sin(a * 1.7) * 0.6, Math.sin(a) * 0.6); o.b.rotation.y = a; o.b.scale.x = 0.5 + Math.abs(Math.sin(time * 18 + o.a)); } }
+    for (const m of portais) { m.material.map.rotation += dt * (m.userData.k ? -0.5 : 0.35); m.material.opacity = 0.75 + Math.sin(time * 2 + m.userData.k) * 0.2; }
     // portas
     if (P.dead) return;
     if (aqui < -1) { armada = true; return; }

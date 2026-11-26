@@ -29,6 +29,7 @@ function salaServidor(url, aoMsg) {
     const souEu = s => !!(s && typeof P !== 'undefined' && P.name && s.n === P.name);
     ws.onmessage = e => {
       if (velha()) return;
+      if (typeof tickFundo === 'function') try { tickFundo(); } catch (er) { }   // janela em segundo plano: cada mensagem do servidor também move o jogo
       uso.in += (e.data.length || 0) + 4;
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
