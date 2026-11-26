@@ -297,7 +297,7 @@ const Vida = (() => {
       if (t.startsWith('alfa_') || ITEMS['carta_' + t] || t === 'vermeColosso') continue;
       const D = MOBDEF[t], h = hs(t), k = KS[h % 6], lv = D.lv || 1, f = D.boss || D.mini ? 1.6 : 1;
       const v = { pow: 2 + lv * 0.18, def: 1 + lv * 0.12, hp: 20 + lv * 5, sp: 10 + lv * 2.5, crit: 0.01 + lv * 0.0003, spd: 0.01 + lv * 0.0003 }[k] * f;
-      ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: SL[(h >>> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };
+      ITEMS['carta_' + t] = { name: 'Carta da ' + D.name, ic: '🃏', kind: 'carta', mods: { [k]: ['crit', 'spd'].includes(k) ? Math.round(v * 1000) / 1000 : Math.round(v) }, mob: t, cslot: ['crit', 'sp', 'spd'].includes(k) && (h >>> 5) % 3 === 0 ? 'anel' : SL[(h >>> 3) % SL.length], sell: D.boss ? 900 : 300, price: 0 };   // metade das cartas de crítico, SP e velocidade vai no anel (antes só existia 1 carta de anel)
       D.drops.push(['carta_' + t, D.boss || D.mini ? 0.04 : 0.004]);
     } }
   // 🃏 carta nova e exclusiva do Campeão Sombrio (só ele dá): forte em tudo, encaixa na armadura

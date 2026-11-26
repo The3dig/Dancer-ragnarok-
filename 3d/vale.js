@@ -74,9 +74,20 @@ const Vale = (() => {
       if (dRoad(x, z) < 3.5 || Math.hypot(x - CAMP.x, z - CAMP.z) < 20 || L.some(o => Math.abs(o.x - x) < 2.2 && Math.abs(o.z - z) < 2.2)) continue;
       L.push({ x, z, r: rand(-0.3, 0.3) + (Math.random() < 0.5 ? 0 : Math.PI / 2), s: rand(0.8, 1.2) });
     }
-    const monte = new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); monte.scale(0.9, 0.6, 1.6);
-    const im = new THREE.InstancedMesh(monte, terraM, L.length); im.frustumCulled = false; im.receiveShadow = true;
-    L.forEach((o, i) => im.setMatrixAt(i, M4(o.x, h(o.x, o.z) - 0.05, o.z, 0, o.r, 0, o.s))); G.add(im);
+    // montes de terra irregulares (pedido do Rone: "muito artificial"): 3 formas com a terra empelotada, cada um
+    // inclinado, de um tamanho e de um tom diferente, e pedrinhas soltas em volta
+    const forma = sd => { const g = new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), n = Math.sin(x * 3.1 + sd) * Math.cos(z * 2.7 + sd * 2) * 0.5 + Math.sin((x + z) * 5.3 + sd * 3) * 0.25, k = 1 + n * 0.22 * Math.min(1, y * 3 + 0.2);
+        p.setXYZ(i, x * k, y * (0.75 + n * 0.25), z * k); }
+      g.scale(0.9, 0.6, 1.6); g.computeVertexNormals(); return g; };
+    const tons = [0x9a8672, 0x86745f, 0xa89580, 0x7a6a58].map(c => new THREE.Color(c)), monteM = PM('terra.jpg', [1, 1], 0xffffff);
+    [0, 1, 2].forEach(v => { const sub = L.filter((_, i) => i % 3 === v); if (!sub.length) return; const im = new THREE.InstancedMesh(forma(v * 1.7 + 0.3), monteM, sub.length); im.frustumCulled = false; im.receiveShadow = true; im.castShadow = !TOUCH;
+      sub.forEach((o, i) => { const q = new THREE.Object3D(); q.position.set(o.x, h(o.x, o.z) - 0.08, o.z); q.rotation.set(rand(-0.08, 0.08), o.r, rand(-0.08, 0.08)); q.scale.set(o.s * rand(0.85, 1.15), o.s * rand(0.7, 1.25), o.s * rand(0.85, 1.15)); q.updateMatrix(); im.setMatrixAt(i, q.matrix); im.setColorAt(i, tons[(i * 7 + v) % tons.length]); });
+      G.add(im); });
+    { const pg = new THREE.IcosahedronGeometry(0.22, 0), pp = pg.attributes.position; for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) * rand(0.8, 1.3), pp.getY(i) * rand(0.5, 0.9), pp.getZ(i) * rand(0.8, 1.3)); pg.computeVertexNormals();
+      const pedras = []; L.forEach((o, i) => { if (i % 2) return; for (let k = 0; k < 3; k++) { const a = rand(0, Math.PI * 2), r = rand(1.4, 2.4); pedras.push([o.x + Math.sin(a) * r, o.z + Math.cos(a) * r]); } });
+      const ipm = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ color: 0x6a6670, flatShading: true }), pedras.length); ipm.frustumCulled = false;
+      pedras.forEach(([x, z], i) => { const q = new THREE.Object3D(); q.position.set(x, h(x, z) + 0.02, z); q.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3)); q.scale.setScalar(rand(0.6, 1.6)); q.updateMatrix(); ipm.setMatrixAt(i, q.matrix); }); G.add(ipm); }
     const estacas = L.filter((_, i) => i % 5 === 0), est = new THREE.CylinderGeometry(0.05, 0.07, 1.1, 5); est.translate(0, 0.5, 0);
     const im2 = new THREE.InstancedMesh(est, madeira, estacas.length); im2.frustumCulled = false;
     estacas.forEach((o, i) => im2.setMatrixAt(i, M4(o.x + Math.sin(o.r) * 1.2, h(o.x, o.z), o.z + Math.cos(o.r) * 1.2, rand(-0.2, 0.2), 0, rand(-0.2, 0.2)))); G.add(im2);
