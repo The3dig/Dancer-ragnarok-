@@ -577,7 +577,7 @@ const Vida = (() => {
   function iconSprite(txt) {
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
     x.font = '44px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 32, 34);
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.setScalar(0.7); s.renderOrder = 9; return s;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true })); s.scale.setScalar(0.7); s.renderOrder = 9; return s;
   }
   const ICONS = {};
   const icon = t => (ICONS[t] = ICONS[t] || iconSprite(t)).clone();

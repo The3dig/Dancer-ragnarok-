@@ -340,13 +340,13 @@ const Modelos3D = (() => {
     r.m3 = true; r.mats = []; r.h = K.h * k + (fl ? 0.5 : 0); r.body = body;
     r.anim = (m, time) => {
       const mv = m.moving, sw = m.swing || 0;
-      const bob = fl ? 0.45 + Math.sin(time * 2.4 + ph) * 0.18 : mv ? Math.abs(Math.sin(time * 9 + ph)) * 0.06 * H : 0;
+      const bob = fl ? 0.45 + Math.sin(time * 2.4 + ph) * 0.18 : mv ? Math.abs(Math.sin(time * 9 + ph)) * 0.022 * H : 0;   // passo curto (era um pulo de 6%: "pulando Atari")
       body.position.y = -K.minY * k + bob;
       const sq = SIDE.has(t) ? (mv ? Math.sin(time * 10 + ph) * 0.06 : Math.sin(time * 2 + ph) * 0.025) : Math.sin(time * 2.2 + ph) * 0.02;
       const hit = m.flash > 0 ? 1.12 : 1;
       body.scale.set(k * (1 - sq * 0.5) * hit, k * (1 + sq) * hit, k * (1 + sq * 0.6) * hit);
       body.position.z = sw * 0.35 * H;                                   // bote do ataque
-      body.rotation.x = sw * 0.25; body.rotation.z = fl ? Math.sin(time * 1.7 + ph) * 0.08 : 0;
+      body.rotation.x = sw * 0.25 + (mv && !fl ? 0.06 : 0); body.rotation.z = fl ? Math.sin(time * 1.7 + ph) * 0.08 : mv ? Math.sin(time * 9 + ph) * 0.07 : 0;   // andando: balança de um lado para o outro e inclina para frente
     };
     return r;
   }

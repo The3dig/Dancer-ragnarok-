@@ -184,8 +184,8 @@ function portaPerto(T) { if (!T) return null; for (const g of PORTAS()) if (Math
 // ---- caminho em volta dos obstáculos (A* numa grade de 1 m, no máximo ~70 m de lado)
 function linhaLivre(ax, az, bx, bz) { const L = Math.hypot(bx - ax, bz - az), n = Math.ceil(L / 0.5); for (let k = 1; k <= n; k++) { const t = k / n; if (blocked(ax + (bx - ax) * t, az + (bz - az) * t, 0.5)) return false; } return true; }
 function acharCaminho(sx, sz, tx, tz) {
-  let gx = tx, gz = tz; const D = Math.hypot(tx - sx, tz - sz); if (D > 30) { gx = sx + (tx - sx) / D * 30; gz = sz + (tz - sz) / D * 30; }   // longe: um pedaço de cada vez
-  const S = 1, M = 14, x0 = Math.floor(Math.min(sx, gx) - M), z0 = Math.floor(Math.min(sz, gz) - M), W = Math.ceil(Math.max(sx, gx) + M) - x0, H = Math.ceil(Math.max(sz, gz) + M) - z0;
+  let gx = tx, gz = tz; const D = Math.hypot(tx - sx, tz - sz); if (D > 45) { gx = sx + (tx - sx) / D * 45; gz = sz + (tz - sz) / D * 45; }   // longe: um pedaço de cada vez (era 30 m: não dava a volta no lago do Oásis)
+  const S = 1, M = 20, x0 = Math.floor(Math.min(sx, gx) - M), z0 = Math.floor(Math.min(sz, gz) - M), W = Math.ceil(Math.max(sx, gx) + M) - x0, H = Math.ceil(Math.max(sz, gz) + M) - z0;
   const N = W * H, livre = new Int8Array(N).fill(-1), g = new Float32Array(N).fill(1e9), de = new Int32Array(N).fill(-1), fech = new Uint8Array(N);
   const idx = (i, j) => j * W + i, cx = i => x0 + i * S + 0.5, cz = j => z0 + j * S + 0.5;
   const ok = (i, j) => { if (i < 0 || j < 0 || i >= W || j >= H) return false; const k = idx(i, j); if (livre[k] < 0) livre[k] = blocked(cx(i), cz(j), 0.5) ? 0 : 1; return livre[k] === 1; };
@@ -193,7 +193,7 @@ function acharCaminho(sx, sz, tx, tz) {
   if (!ok(ti, tj)) { let best = null, bd = 1e9; for (let r = 1; r <= 6 && !best; r++) for (let a = -r; a <= r; a++) for (const [i, j] of [[ti + a, tj - r], [ti + a, tj + r], [ti - r, tj + a], [ti + r, tj + a]]) if (ok(i, j)) { const dd = Math.hypot(i - si, j - sj); if (dd < bd) { bd = dd; best = [i, j]; } } if (!best) return null; [ti, tj] = best; }
   const aberto = [idx(si, sj)]; g[idx(si, sj)] = 0; let exp = 0, fim = -1;
   const h = k => Math.hypot(k % W - ti, Math.floor(k / W) - tj);
-  while (aberto.length && exp < 6000) {
+  while (aberto.length && exp < 9000) {
     let bi = 0, bf = 1e9; for (let q = 0; q < aberto.length; q++) { const f = g[aberto[q]] + h(aberto[q]); if (f < bf) { bf = f; bi = q; } }
     const k = aberto[bi]; aberto[bi] = aberto[aberto.length - 1]; aberto.pop(); if (fech[k]) continue; fech[k] = 1; exp++;
     const i = k % W, j = Math.floor(k / W); if (i === ti && j === tj) { fim = k; break; }
@@ -1433,7 +1433,7 @@ function npcMark(n) {
     n.bang.scale.setScalar(1.9 * p * d); n.beam.material.opacity = 0.32 + Math.sin(time * 3) * 0.12; n.ring.rotation.y += 0.03; n.ring.scale.setScalar(1 + (time * 0.8 % 1) * 0.8); n.ring.material.opacity = 0.9 * (1 - time * 0.8 % 1);
   }
   if (n.markK === k) return; n.markK = k;
-  n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.toneMapped = false; n.bang.material.fog = false; n.bang.material.needsUpdate = true; n.bang.scale.setScalar(live ? 1.9 : 0.6); n.bang.renderOrder = 999; }
+  n.bang.visible = !!k; if (k) { n.bang.material.map = markTex(k); n.bang.material.toneMapped = false; n.bang.material.fog = false; n.bang.material.transparent = true; n.bang.material.needsUpdate = true; n.bang.scale.setScalar(live ? 1.9 : 0.6); n.bang.renderOrder = 999; }
   if (live && !n.beam) {
     const am = () => new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false });
     n.beam = new THREE.Mesh(BEAM_G, am()); n.ring = new THREE.Mesh(RING_G, am()); n.ring.position.y = 0.08; n.g.add(n.beam, n.ring);
@@ -1452,7 +1452,7 @@ function iconeSprite(em) {
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
   x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText('!', 32, 52); x.fillStyle = '#ffcf40'; x.fillText('!', 32, 52);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, fog: false, toneMapped: false })); s.scale.setScalar(0.6); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, fog: false, toneMapped: false, transparent: true })); s.scale.setScalar(0.6); return s;   // transparente: sem ele aparecia um quadrado em volta do medalhão
 }
 for (const n of NPCS) {
   const [cloth, hair, hat] = n.look;
@@ -2404,7 +2404,7 @@ function updatePlayer(dt) {
     if (d) {
       P.sit = false;
       let df = ((Math.atan2(d.x, d.z) - P.face + Math.PI) % TAU + TAU) % TAU - Math.PI;
-      if (P.attackAnim <= 0.3) P.face += df * Math.min(1, dt * 10);
+      if (P.attackAnim <= 0.3) P.face += df * Math.min(1, dt * 16);
       const sp = stats.speed() * (P.attackAnim > 0.5 ? 0.5 : 1); vx = d.x * sp; vz = d.z * sp; P.moving = true;   // golpeando, anda mais devagar
     }
   }
@@ -2717,7 +2717,7 @@ function updateHUD() {
   document.querySelectorAll('.slot[data-skill]').forEach(el => {
     const s = SKILLS[+el.dataset.skill];
     el.querySelector('.cd').style.height = ((P.cds[s.id] || 0) / s.cd * 100) + '%';
-    el.classList.toggle('locked', !(P.skillLv[s.id] > 0)); el.classList.toggle('nosp', P.sp < scaleSkill(s, P.skillLv[s.id] || 1).sp);
+    el.classList.toggle('locked', !(P.skillLv[s.id] > 0 && tierOk(s))); el.classList.toggle('nosp', P.sp < scaleSkill(s, P.skillLv[s.id] || 1).sp);
   });
   let b = '';
   for (const id in P.buffs) b += `<span>${P.buffs[id].icon || '✦'} ${Math.ceil(P.buffs[id].t)}s</span>`;
@@ -3044,7 +3044,7 @@ const BigMap = (() => {
     cv.style.width = Math.round(16 * r) + 'px'; cv.style.height = Math.round(9 * r) + 'px'; cv.style.margin = '0 auto';
     box.classList.remove('hidden'); open = true; draw();
   }
-  let papel = null;
+  let papel = null, fundoCv = null, fundoChave = '';
   function pergaminho(W, H) {
     if (!papel || papel.width !== 256) { papel = document.createElement('canvas'); papel.width = papel.height = 256; const q = papel.getContext('2d'), im = q.createImageData(256, 256);
       for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 70; im.data[i] = v * 1.05; im.data[i + 1] = v * 0.95; im.data[i + 2] = v * 0.78; im.data[i + 3] = 255; } q.putImageData(im, 0, 0); }
@@ -3061,10 +3061,14 @@ const BigMap = (() => {
     const M = vmMap(), B = M.base || base; g.imageSmoothingEnabled = true;
     // 🗺️ zoom no mesmo estilo do Mapa do Mundo (pedido do Rone: o zoom ainda estava do jeito antigo): tons de pergaminho,
     // papel granulado, borda escurecida e os nomes com contorno
-    g.fillStyle = '#ead6a8'; g.fillRect(0, 0, cv.width, cv.height);                       // papel por baixo
-    g.save(); g.globalCompositeOperation = 'multiply'; g.filter = 'saturate(.75) brightness(1.65) contrast(.95)';
-    g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
-    g.restore(); pergaminho(cv.width, cv.height);
+    // o fundo de pergaminho é desenhado UMA vez e guardado (refazer a cada quadro travava o mapa, principalmente no Safari)
+    const chave = [vm, view && view.c && view.c.x, view && view.c && view.c.z, A.x0 | 0, A.z0 | 0, A.w | 0, cv.width, cv.height, B.width].join('|');
+    if (fundoChave !== chave) { fundoChave = chave; fundoCv = fundoCv || document.createElement('canvas'); fundoCv.width = cv.width; fundoCv.height = cv.height; const g0 = g; g = fundoCv.getContext('2d');
+      g.fillStyle = '#ead6a8'; g.fillRect(0, 0, cv.width, cv.height);                       // papel por baixo
+      g.save(); g.globalCompositeOperation = 'multiply'; g.filter = 'saturate(.75) brightness(1.65) contrast(.95)';
+      g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
+      g.restore(); pergaminho(cv.width, cv.height); g = g0; }
+    g.drawImage(fundoCv, 0, 0);
     g.textAlign = 'center';
     if (!view) {
       const fs = Math.round(Math.max(9 * k, 27)); g.font = `800 ${fs}px Cinzel, Georgia, serif`;                // nomes grandes (no celular ficavam miúdos)

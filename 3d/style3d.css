@@ -1055,3 +1055,12 @@ body.ficha-aberta #hud { z-index: 320 !important; pointer-events: none; }
 body.ficha-aberta #hud > *:not(#touch):not(#bottom) { visibility: hidden !important; } body.ficha-aberta #beatcv { visibility: hidden; }
 body.ficha-aberta #touch button, body.ficha-aberta #joy, body.ficha-aberta #hotbar { pointer-events: auto; }
 body.ficha-aberta #statwin .fc { padding-bottom: 120px; }
+
+/* ⚡ habilidade desligada bem clara (pedido do Rone): não aprendida = cinza escuro com cadeado grande; sem SP = azulada com "SP" */
+#hotbar .slot.locked .ic { filter: grayscale(1) brightness(.4); }
+#hotbar .slot.locked { background: rgba(20,20,24,.9) !important; border-color: rgba(120,120,130,.4) !important; }
+#hotbar .slot.locked::after { content: '🔒'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; text-shadow: 0 1px 3px #000; pointer-events: none; }
+#hotbar .slot.locked .cost { display: none; }
+#hotbar .slot.nosp:not(.locked) .ic { filter: saturate(.3) brightness(.6) sepia(.2) hue-rotate(180deg); }
+#hotbar .slot.nosp:not(.locked)::after { content: 'SP'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 900 13px Nunito, sans-serif; color: #8ac4ff; text-shadow: 0 0 4px #000, 0 0 2px #000; pointer-events: none; }
+#hotbar .slot { position: relative; }

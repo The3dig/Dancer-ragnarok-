@@ -73,7 +73,7 @@ const SpriteKit = (() => {
     // fúria: o desenho com aura é só de frente; andando ou de costas usa o desenho da direção certa (com tom vermelho)
     if (st.fury && has(S.base + '_furia') && !st.moving && d === 'down') return S.base + '_furia';
     if (S.kind === 'hero' && st.moving && (d === 'left' || d === 'right')) return `${S.base}_${d}_w${Math.floor(a.t * 9) % 4}`;
-    const f = st.moving ? Math.floor(a.t * 6) % 2 : 0;
+    const f = st.moving ? Math.floor(a.t * 8.5) % 2 : 0;                 // passo mais rápido (6 parecia arrastar)
     return `${S.base}_${d}_${f}`;
   }
 
@@ -85,7 +85,11 @@ const SpriteKit = (() => {
     if (typeof camera !== 'undefined') {
       const A = Math.atan2(camera.position.x - _w.x, camera.position.z - _w.z);
       const rel = norm((st.face ?? 0) - A);
-      a.dir = Math.abs(rel) < Math.PI / 4 ? 'down' : Math.abs(rel) > Math.PI * 3 / 4 ? 'up' : rel > 0 ? 'right' : 'left';
+      // direção com folga (pedido do Rone: "vira de lado toda errada"): perto da divisa entre duas direções o desenho ficava
+      // trocando sem parar; agora só troca quando a virada passa da divisa com sobra
+      const alvo = Math.abs(rel) < Math.PI / 4 ? 'down' : Math.abs(rel) > Math.PI * 3 / 4 ? 'up' : rel > 0 ? 'right' : 'left';
+      if (alvo !== a.dir) { const C = { down: 0, right: Math.PI / 2, up: Math.PI, left: -Math.PI / 2 }, longe = Math.abs(norm(rel - C[a.dir]));
+        if (longe > Math.PI / 4 + 0.18 || !(a.dir in C)) a.dir = alvo; }
       screenRight = rel > 0.15 && rel < Math.PI - 0.15;
     }
     const n = pick(a, st), t = tex(n) || a.mat.map;
@@ -100,8 +104,9 @@ const SpriteKit = (() => {
     sx *= 1 + lunge * 0.12; sy *= 1 - lunge * 0.05;
     let y = 0;
     if (a.opt.float) y += 0.35 + Math.sin(a.t * 2.4) * 0.18;
-    else if (st.moving && a.set.kind === 'one') { const fq = st.freq || 9, am = st.amp ?? 0.14; y += Math.abs(Math.sin(a.t * fq)) * am * a.h; sy *= 1 - Math.abs(Math.sin(a.t * fq)) * am * 0.55; }   // pulinhos de quem anda (desenho de um quadro só)
-    else if (!st.moving) sy *= 1 + Math.sin(a.t * 2.2) * 0.012;          // respiração
+    else if (st.moving && a.set.kind === 'one') { const fq = st.freq || 9, am = Math.min(st.amp ?? 0.05, 0.06), ph = Math.sin(a.t * fq); y += Math.abs(ph) * am * a.h; sy *= 1 - Math.abs(ph) * am * 0.4; a.mat.rotation = ph * 0.07; }   // passinho com balanço (era um pulo de 14% da altura: "pulando muito Atari")
+    else if (st.moving) { const ph = Math.sin(a.t * 17); y += Math.abs(ph) * 0.035 * a.h; sy *= 1 - Math.abs(ph) * 0.025; a.mat.rotation = Math.sin(a.t * 8.5) * 0.025; }   // personagem: sobe e desce a cada passo (antes deslizava)   // pulinhos de quem anda (desenho de um quadro só)
+    else if (!st.moving) { sy *= 1 + Math.sin(a.t * 2.2) * 0.012; if (!st.dead) a.mat.rotation *= 0.8; }          // respiração
     if (st.sleeping) sy *= 0.92 + Math.sin(a.t * 0.8) * 0.02;
     if (st.sit) sy *= 0.78;
     if (st.jump) y += st.jump;

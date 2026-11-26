@@ -103,7 +103,11 @@ const Eventos = (() => {
   function montarOrlo(e) {
     if (orlo && orlo.h === e.h) return;
     tirarOrlo();
-    const x = e.cid.c.x + 7, z = e.cid.c.z + 7, g = new THREE.Group(); g.position.set(x, groundY(x, z), z); scene.add(g);
+    // procura um lugar livre na praça (antes nascia sempre a 7 m do centro, às vezes em cima de casa, banca ou outro NPC)
+    let x = e.cid.c.x + 7, z = e.cid.c.z + 7;
+    achar: for (const r of [7, 9, 5, 11, 13]) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2 + 0.4, px = e.cid.c.x + Math.sin(a) * r, pz = e.cid.c.z + Math.cos(a) * r;
+      if (blocked(px, pz, 2) || NPCS.some(n => !n.hidden && Math.hypot(n.x - px, n.z - pz) < 3.5)) continue; x = px; z = pz; break achar; }
+    const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); scene.add(g);
     if (typeof SpriteKit !== 'undefined' && SpriteKit.ready) { const a = SpriteKit.actor({ kind: 'dir', base: 's_mascate' }); g.add(a.root); }
     const tenda = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.4, 6, 1, true), new THREE.MeshLambertMaterial({ color: 0xc08030, side: THREE.DoubleSide })); tenda.position.y = 2.6; g.add(tenda);
     const ic = iconeSprite('🧳'); ic.position.y = 3.6; g.add(ic);
