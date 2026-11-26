@@ -19,13 +19,28 @@ const SpriteKit = (() => {
       im.src = 'data:image/png;base64,' + S[n];
     }))).then(() => { ready = Object.keys(IMG).length > 0; return ready; });
   }
+  function scale2x(c) {
+    const w = c.width, h = c.height, si = c.getContext('2d').getImageData(0, 0, w, h), sd = new Uint32Array(si.data.buffer);
+    const o = document.createElement('canvas'); o.width = w * 2; o.height = h * 2; const oc = o.getContext('2d'), oi = oc.createImageData(w * 2, h * 2), od = new Uint32Array(oi.data.buffer), W2 = w * 2;
+    const px = (x, y) => sd[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const P = px(x, y), A = px(x, y - 1), B = px(x + 1, y), C = px(x - 1, y), D = px(x, y + 1);
+      const e0 = C === A && C !== D && A !== B ? A : P, e1 = A === B && A !== C && B !== D ? B : P, e2 = D === C && D !== B && C !== A ? C : P, e3 = B === D && B !== A && D !== C ? D : P;
+      const i = y * 2 * W2 + x * 2; od[i] = e0; od[i + 1] = e1; od[i + W2] = e2; od[i + W2 + 1] = e3;
+    }
+    oc.putImageData(oi, 0, 0); return o;
+  }
+  function escala4(im) { try { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return scale2x(scale2x(c)); } catch (e) { return im; } }
   function tex(n) {
     if (TEX[n]) return TEX[n];
     const im = IMG[n]; if (!im) return null;
-    const t = new THREE.Texture(im);
-    t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+    // 🔎 qualidade (pedido do Rone): o desenho pequeno (~32 px) é ampliado 4x com Scale2x duas vezes — as bordas em
+    // escadinha viram curvas limpas, sem borrar — e o mipmap evita o "chiado" quando o personagem fica pequeno na tela
+    const src = (im.width || 0) <= 160 && (im.height || 0) <= 160 ? escala4(im) : im;
+    const t = new THREE.Texture(src);
+    t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true;
     t.encoding = THREE.sRGBEncoding; t.needsUpdate = true;
-    t.userData = { w: im.width, h: im.height };
+    t.userData = { w: im.width, h: im.height };   // o tamanho no mundo continua o do desenho original
     return (TEX[n] = t);
   }
   const has = n => !!IMG[n];
@@ -104,8 +119,8 @@ const SpriteKit = (() => {
     sx *= 1 + lunge * 0.12; sy *= 1 - lunge * 0.05;
     let y = 0;
     if (a.opt.float) y += 0.35 + Math.sin(a.t * 2.4) * 0.18;
-    else if (st.moving && a.set.kind === 'one') { const fq = st.freq || 9, am = Math.min(st.amp ?? 0.05, 0.06), ph = Math.sin(a.t * fq); y += Math.abs(ph) * am * a.h; sy *= 1 - Math.abs(ph) * am * 0.4; a.mat.rotation = ph * 0.07; }   // passinho com balanço (era um pulo de 14% da altura: "pulando muito Atari")
-    else if (st.moving) { const ph = Math.sin(a.t * 17); y += Math.abs(ph) * 0.035 * a.h; sy *= 1 - Math.abs(ph) * 0.025; a.mat.rotation = Math.sin(a.t * 8.5) * 0.025; }   // personagem: sobe e desce a cada passo (antes deslizava)   // pulinhos de quem anda (desenho de um quadro só)
+    else if (st.moving && a.set.kind === 'one') { const fq = st.freq || 9, am = Math.min(st.amp ?? 0.05, 0.06), ph = Math.sin(a.t * fq); y += Math.abs(ph) * am * a.h; sy *= 1 - Math.abs(ph) * am * 0.4; a.mat.rotation = ph * 0.035; }   // passinho com balanço (era um pulo de 14% da altura: "pulando muito Atari")
+    else if (st.moving) { const ph = Math.sin(a.t * 17); y += Math.abs(ph) * 0.035 * a.h; sy *= 1 - Math.abs(ph) * 0.025; a.mat.rotation = 0; }   // sem inclinar (parecia torto)   // personagem: sobe e desce a cada passo (antes deslizava)   // pulinhos de quem anda (desenho de um quadro só)
     else if (!st.moving) { sy *= 1 + Math.sin(a.t * 2.2) * 0.012; if (!st.dead) a.mat.rotation *= 0.8; }          // respiração
     if (st.sleeping) sy *= 0.92 + Math.sin(a.t * 0.8) * 0.02;
     if (st.sit) sy *= 0.78;
