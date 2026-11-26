@@ -164,7 +164,7 @@ const Net = (() => {
       const s = r.s || {};
       const k = Math.min(1, dt * 10);
       const moving = Math.hypot(r.tx - r.x, r.tz - r.z) > 0.05;
-      r.x += (r.tx - r.x) * k; r.z += (r.tz - r.z) * k; r.y += (r.ty - r.y) * k;
+      segueSuave(r, r.tx, r.tz, dt); r.y += (r.ty - r.y) * k;
       let df = ((r.tf - r.f + Math.PI) % TAU + TAU) % TAU - Math.PI; r.f += df * k;
       r.g.position.set(r.x, Math.max(r.y, typeof pisoY === 'function' ? pisoY(r.x, r.z) : groundY(r.x, r.z)), r.z); r.g.rotation.y = r.f;
       if (r.L.sprite) {

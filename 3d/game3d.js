@@ -2572,6 +2572,23 @@ function updateMob(m, dt) {
   const em = m.flash > 0 ? 0xffffff : 0x000000;
   for (const mt of m.model.mats) mt.emissive.setHex(m.flash > 0 ? em : (mt.userData.em || 0));   // brilho próprio (ex.: Kravenox) volta depois do golpe
 }
+// andar suave de quem vem pela rede (outros jogadores e bichos de outro dono). Pedido do Rone: "andam muito mal".
+// Antes corria até o ponto novo e freava (aos trancos, ~7 vezes por segundo); agora anda em velocidade constante,
+// calculada para chegar ao ponto na hora em que o próximo deve chegar. Longe demais (teleporte): pula direto.
+function segueSuave(o, tx, tz, dt) {
+  if (o._ltx !== tx || o._ltz !== tz) {
+    const ag = performance.now(), iv = o._lt ? (ag - o._lt) / 1000 : 0.15;
+    if (iv > 0.04 && iv < 0.5) o._iv = o._iv ? o._iv * 0.75 + iv * 0.25 : iv;
+    o._lt = ag; o._ltx = tx; o._ltz = tz;
+    o._v = Math.hypot(tx - o.x, tz - o.z) / ((o._iv || 0.15) * 1.25);
+  }
+  const dx = tx - o.x, dz = tz - o.z, d = Math.hypot(dx, dz);
+  if (d > 8) { o.x = tx; o.z = tz; return 0; }
+  if (d < 0.001) return 0;
+  const passo = Math.min(d, (o._v || 0) * dt + (d > 1.5 ? d * dt * 2 : 0));   // ficou muito para trás: apressa um pouco
+  o.x += dx / d * passo; o.z += dz / d * passo;
+  return d;
+}
 function stepMob(m, tx, tz, sp, dt) {
   const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
   if (d < 0.01) return;

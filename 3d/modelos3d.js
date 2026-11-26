@@ -346,7 +346,7 @@ const Modelos3D = (() => {
       const hit = m.flash > 0 ? 1.12 : 1;
       body.scale.set(k * (1 - sq * 0.5) * hit, k * (1 + sq) * hit, k * (1 + sq * 0.6) * hit);
       body.position.z = sw * 0.35 * H;                                   // bote do ataque
-      body.rotation.x = sw * 0.25 + (mv && !fl ? 0.06 : 0); body.rotation.z = fl ? Math.sin(time * 1.7 + ph) * 0.08 : mv ? Math.sin(time * 9 + ph) * 0.07 : 0;   // andando: balança de um lado para o outro e inclina para frente
+      body.rotation.x = sw * 0.25 + (mv && !fl ? 0.06 : 0); body.rotation.z = fl ? Math.sin(time * 1.7 + ph) * 0.08 : mv ? Math.sin(time * 9 + ph) * 0.025 : 0;   // andando: balanço leve (0,07 deixava torto) e inclina para frente
     };
     return r;
   }

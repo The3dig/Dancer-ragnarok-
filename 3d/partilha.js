@@ -130,8 +130,8 @@ const Partilha = (() => {
   // monstro de outro jogo: anda suave até a posição que chegou
   function mover(m, dt) {
     if (m.nx == null) return;
-    const dx = m.nx - m.x, dz = m.nz - m.z, d = Math.hypot(dx, dz), k = Math.min(1, dt * 7);
-    m.x += dx * k; m.z += dz * k; m.moving = d > 0.05 || ((m.netSt || 0) & 1) === 1;
+    const d = segueSuave(m, m.nx, m.nz, dt);
+    m.moving = d > 0.05 || ((m.netSt || 0) & 1) === 1;
     if (((m.netSt || 0) & 2) && (m.swing || 0) < 0.2) m.swing = 1;
     m.stun = ((m.netSt || 0) & 4) ? 0.1 : 0;
   }

@@ -128,7 +128,7 @@ const SpriteKit = (() => {
     a.spr.scale.set(sx, sy, 1);
     // morte: deita e some
     if (st.dead) { a.mat.rotation = lerpA(a.mat.rotation, Math.PI / 2 * (sx < 0 ? -1 : 1), dt * 8); }
-    else a.mat.rotation = lerpA(a.mat.rotation, st.moving && a.set.kind === 'one' && !a.opt.float ? Math.sin(a.t * (st.freq || 9)) * 0.13 * ((st.amp ?? 0.14) / 0.14) : 0, dt * 10);   // e gingado de um lado para o outro
+    else a.mat.rotation = lerpA(a.mat.rotation, st.moving && a.set.kind === 'one' && !a.opt.float ? Math.sin(a.t * (st.freq || 9)) * 0.03 : 0, dt * 10);   // gingado bem leve (era até 7,5° de cada lado e deixava os bichos tortos)
     a.spr.center.set(0.5, st.dead ? 0.15 : 0);
     a.spr.position.y = y;
     if (st.gy !== undefined) a.shadow.position.y = st.gy + 0.03;
