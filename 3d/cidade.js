@@ -97,7 +97,7 @@ const Cidade = (() => {
   (function vazio() {
     const N = 900, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const a = rand(0, TAU), e = rand(-1, 1), r = 380; pos.set([B.x0 + B.w / 2 + Math.cos(a) * Math.sqrt(1 - e * e) * r, e * r * 0.6, B.z0 + B.h / 2 + Math.sin(a) * Math.sqrt(1 - e * e) * r], i * 3); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const st = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xd8c8ff, size: 1.6, sizeAttenuation: true, fog: false, transparent: true, opacity: 0.85 })); st.frustumCulled = false; G.add(st);
+    const st = new THREE.Points(g, new THREE.PointsMaterial({ map: pontoTex(), alphaTest: 0.02, color: 0xd8c8ff, size: 1.6, sizeAttenuation: true, fog: false, transparent: true, opacity: 0.85 })); st.frustumCulled = false; G.add(st);
     for (let i = 0; i < 14; i++) brilho(B.x0 + rand(-150, B.w + 150), rand(-80, 40), B.z0 + rand(-150, B.h + 150), [0x5a2a9a, 0x2a1a6a, 0x8a2a6a][i % 3], rand(90, 180), 0.18, false);
     brilho(B.x0 + B.w / 2, -220, B.z0 + B.h / 2, 0xffc860, 260, 0.35, false);                        // a Fonte? lá embaixo, uma luz que pulsa
   })();

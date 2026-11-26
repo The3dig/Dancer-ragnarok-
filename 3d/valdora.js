@@ -252,7 +252,9 @@ const Valdora = (() => {
 
   // ---------------------------------------------------------------- Passagem do Norte (nos dois mapas): arco de pedra com névoa negra
   const SWIRL = ctex(128, 128, g => { g.translate(64, 64); const r = g.createRadialGradient(0, 0, 0, 0, 0, 64); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.45, 'rgba(255,255,255,.55)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(-64, -64, 128, 128); for (let k = 0; k < 5; k++) { g.rotate(TAU / 5); g.beginPath(); for (let t = 0; t < 1; t += 0.02) g.lineTo(Math.cos(t * 5) * t * 60, Math.sin(t * 5) * t * 60); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 4; g.stroke(); } });
-  const swirls = [];
+  const swirls = [], nevoas = [];
+  const NEVOA = ctex(256, 256, g => { g.fillStyle = 'rgba(0,0,0,0)'; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 70; i++) { const x = Math.random() * 256, y = Math.random() * 256, r0 = 20 + Math.random() * 60, r = g.createRadialGradient(x, y, 0, x, y, r0); r.addColorStop(0, `rgba(255,255,255,${0.18 + Math.random() * 0.25})`); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(x - r0, y - r0, r0 * 2, r0 * 2); }
+    const v = g.createRadialGradient(128, 150, 10, 128, 140, 150); v.addColorStop(0, 'rgba(255,255,255,.55)'); v.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = v; g.fillRect(0, 0, 256, 256); });
   function arch(parent, x, z, ry, label, y) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g);
     const sm = PM('pedra.jpg', [1, 3], 0x8a8098);
@@ -262,7 +264,12 @@ const Valdora = (() => {
     for (const sx of [-3, 3]) { const b = new THREE.Mesh(blocoGeo(2, 1, 2.1, 0.12), sm); b.position.set(sx, 0.4, 0); g.add(b); }
     const ped = new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), new THREE.MeshBasicMaterial({ color: 0xb070ff, toneMapped: false })); ped.scale.y = 1.6; ped.position.set(0, 9.4, 0.9); g.add(ped);
     const sw = new THREE.Mesh(new THREE.CircleGeometry(2.6, 32), new THREE.MeshBasicMaterial({ map: SWIRL, color: 0x9a6aff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })); sw.scale.y = 1.4; sw.position.y = 3.8; g.add(sw); swirls.push(sw);
-    const dk = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 7.6), new THREE.MeshBasicMaterial({ color: 0x08040c })); dk.position.set(0, 3.8, -0.25); g.add(dk);
+    // 🌫️ por dentro: a abertura inteira cheia de névoa brilhante que gira (pedido do Rone: "por dentro estão horríveis, deixa cheio e enfumaçado")
+    const ab = new THREE.Shape(); ab.moveTo(-2.3, 0); ab.lineTo(-2.3, 6); ab.quadraticCurveTo(-2.3, 8.2, 0, 8.7); ab.quadraticCurveTo(2.3, 8.2, 2.3, 6); ab.lineTo(2.3, 0); ab.closePath();
+    const abG = new THREE.ShapeGeometry(ab, 16), uv = abG.attributes.uv, ps = abG.attributes.position; for (let i = 0; i < uv.count; i++) uv.setXY(i, (ps.getX(i) + 2.3) / 4.6, ps.getY(i) / 8.7);
+    const fundo = new THREE.Mesh(abG, new THREE.MeshBasicMaterial({ color: 0x3a1a6a, side: THREE.DoubleSide, toneMapped: false })); fundo.position.z = 0; g.add(fundo);
+    for (const [k, cor, op] of [[0, 0xa07aff, 0.9], [1, 0xe0c0ff, 0.45], [2, 0x8a60ff, 0.6]]) { const t = NEVOA.clone(); t.center.set(0.5, 0.5); t.needsUpdate = true;
+      const n = new THREE.Mesh(abG, new THREE.MeshBasicMaterial({ map: t, color: cor, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })); n.position.z = 0.12 + k * 0.14; n.renderOrder = 2 + k; g.add(n); nevoas.push({ m: n, k }); const n2 = n.clone(); n2.material = n.material.clone(); n2.material.map = t; n2.position.z = -n.position.z; g.add(n2); nevoas.push({ m: n2, k }); }   // dos dois lados do arco
     const c = document.createElement('canvas'); c.width = 512; c.height = 96; const x2 = c.getContext('2d'); x2.fillStyle = 'rgba(16,8,24,.8)'; x2.fillRect(0, 0, 512, 96); x2.strokeStyle = '#b070ff'; x2.lineWidth = 4; x2.strokeRect(2, 2, 508, 92); x2.fillStyle = '#f2d8ff'; x2.font = 'bold 40px Georgia'; x2.textAlign = 'center'; x2.fillText(label, 256, 62);
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(6, 1.1, 1); sp.position.y = 11.6; g.add(sp);
     addOb(x + Math.cos(ry) * 3, z - Math.sin(ry) * 3, 1.0); addOb(x - Math.cos(ry) * 3, z + Math.sin(ry) * 3, 1.0);
@@ -297,7 +304,9 @@ const Valdora = (() => {
     const N = TOUCH ? 90 : 180, pos = new Float32Array(N * 3), sd = [];
     for (let i = 0; i < N; i++) sd.push([rand(-22, 22), rand(0, 14), rand(-22, 22), rand(0.4, 1.1)]);
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xb8a8a0, size: 0.14, transparent: true, opacity: 0.7, depthWrite: false })); pts.frustumCulled = false; G.add(pts);
+    // floco redondo e macio (sem textura cada ponto virava um quadradinho: "a fumaça que cai é quadrada")
+    const floco = ctex(32, 32, g => { const r = g.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.45, 'rgba(255,255,255,.6)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); });
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xb8a8a0, size: 0.22, map: floco, transparent: true, opacity: 0.75, depthWrite: false, alphaTest: 0.02 })); pts.frustumCulled = false; G.add(pts);
     return { pts, pos, sd, N };
   })();
 
@@ -347,6 +356,7 @@ const Valdora = (() => {
     const v = inVal(P.z) && P.x < 250 && P.x > -250; if (v !== inside) setInside(v);          // x > 250 é a Floresta Morta
     esconderReino(inVal(P.z) || inTower(P.z));
     for (const s of swirls) { s.rotation.z -= dt * 1.2; s.material.opacity = 0.75 + Math.sin(time * 3) * 0.2; }
+    for (const n of nevoas) { n.m.material.map.rotation += dt * (n.k ? -0.25 : 0.18); n.m.material.map.offset.y = Math.sin(time * 0.4 + n.k) * 0.05; }
     // a passagem só funciona de novo depois que a pessoa se afasta dela
     const dR = Math.hypot(P.x - VGATE_R.x, P.z - VGATE_R.z), dV = Math.hypot(P.x - VGATE_V.x, P.z - VGATE_V.z);
     if (!armada && (v ? dV : dR) > 7) armada = true;

@@ -278,7 +278,7 @@ const Floresta = (() => {
     const N = TOUCH ? 70 : 140, pos = new Float32Array(N * 3), sd = [];
     for (let i = 0; i < N; i++) sd.push([rand(-24, 24), rand(0.5, 9), rand(-24, 24), rand(0, 9)]);
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xb89aff, size: 0.12, transparent: true, opacity: 0.6, depthWrite: false })); pts.frustumCulled = false; G.add(pts);
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: pontoTex(), alphaTest: 0.02, color: 0xb89aff, size: 0.12, transparent: true, opacity: 0.6, depthWrite: false })); pts.frustumCulled = false; G.add(pts);
     return { pts, pos, sd, N };
   })();
   fundir(ARQ);

@@ -1591,6 +1591,9 @@ function spawnMob(type, area, at) {
 // ---------------------------------------------------------------- efeitos
 const fxGeo = { dot: new THREE.OctahedronGeometry(0.07), ring: new THREE.RingGeometry(0.92, 1, 48) };
 fxGeo.ring.rotateX(-Math.PI / 2);
+// ponto redondo e macio para partículas (sem textura cada ponto vira um quadrado)
+let _pontoTex = null;
+function pontoTex() { if (_pontoTex) return _pontoTex; const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'), r = g.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.45, 'rgba(255,255,255,.6)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); _pontoTex = new THREE.CanvasTexture(c); return _pontoTex; }
 function burst(pos, color, n = 12, speed = 4, life = 0.7) { if (running && naoVisto()) return;
   for (let i = 0; i < n; i++) {
     const m = new THREE.Mesh(fxGeo.dot, new THREE.MeshBasicMaterial({ color, transparent: true }));
