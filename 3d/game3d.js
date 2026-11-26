@@ -1643,6 +1643,8 @@ function toScreen(x, y, z) {
   _p.set(x, y, z).project(camera);
   return { x: (_p.x + 1) / 2 * VW, y: (1 - _p.y) / 2 * VH, vis: _p.z < 1 && Math.abs(_p.x) < 1.2 && Math.abs(_p.y) < 1.2 };
 }
+// ✨ nome da magia em cima da cabeça de quem soltou (pedido do Rone)
+function falaMagia(x, y, z, txt) { floater(x, y, z, txt, 'magia'); }
 function floater(x, y, z, txt, cls) { if (running && naoVisto()) return;
   const el = document.createElement('div'); el.className = 'dmg ' + (cls || ''); el.textContent = txt;
   $('labels').appendChild(el); floaters.push({ el, x: x + rand(-0.3, 0.3), y, z, t: 0 });
@@ -1811,7 +1813,7 @@ function hurtPlayer(m, mult = 1) {
   const bruto = m.d.atk * mult * rand(0.85, 1.15), dmg = Math.max(1, Math.round(Math.max(bruto - stats.def(), bruto * (m.d.perfura || 0.4))));   // Abismo e Kravenox atravessam mais a defesa
   P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
   floater(P.x, P.y + 2, P.z, dmg, 'hurt'); Audio8.sfx('ouch'); hurtFlash(dmg / stats.maxHp()); breakCast();
-  if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = 3; P.combo = 0; onDeath(); }
+  if (P.hp <= 0) { P.hp = 0; P.dead = true; P.deadT = typeof Res !== 'undefined' ? Res.espera() : 3; P.combo = 0; onDeath(); }
 }
 // aviso de evolução de classe: grande no topo quando aparece; depois do toque vira um quadrinho
 // embaixo do quadro do Kravenox (e volta a ficar grande quando muda de fase: provação pronta etc.)
@@ -2023,7 +2025,7 @@ function nearestN(r, n) {
   for (let i = 0; l.length && l.length < n; i++) l.push(l[i]);
   return l;
 }
-function useSkill(i) { P.usouSkill = 1;
+function useSkill(i) { const cd0 = SKILLS[i] ? (P.cds[SKILLS[i].id] || 0) : 0; setTimeout(() => { try { const s0 = SKILLS[i]; if (s0 && !P.dead && (P.cds[s0.id] || 0) > cd0 + 0.01) falaMagia(P.x, P.y + 2.9, P.z, s0.icon + ' ' + s0.name); } catch (e) { } }, 0);   // só se a habilidade saiu mesmo (começou a recarga) P.usouSkill = 1;
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
   if (P.montado && typeof Montaria !== 'undefined' && SKILLS[i].type !== 'passiva') Montaria.descer();
@@ -2034,6 +2036,7 @@ function useSkill(i) { P.usouSkill = 1;
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
   if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
+  if (s.type === 'res') { if (typeof Res === 'undefined' || !Res.usar(Math.min(1, 0.25 * L), s.name)) return; P.sp -= s.sp; P.cds[s.id] = s.cd; P.sit = false; P.cast = 1; return; }   // 🪽 ressuscitar um amigo caído
   const targeted = ['strike', 'blast', 'bolt', 'step', 'drain', 'charge'].includes(s.type);
   const range = s.type === 'strike' ? c.range + 0.8 : (s.type === 'step' || s.type === 'charge') ? 12 : Math.max(c.range, 10);
   const tgt = targeted ? nearestMob(range) : null;
@@ -3458,7 +3461,7 @@ function scaleSkill(s, L) {
   return o;
 }
 function reqMet(i) { const s = SKILLS[i]; return tierOk(s) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv) && (!s.pre || (P.skillLv[s.pre[0]] || 0) >= s.pre[1]); }
-function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
+function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < (s.max || SK_MAX) && P.lv >= s.lv && reqMet(i); }
 // ✅ pontos de habilidade só valem depois de CONFIRMAR (pedido do Rone: ele colocou errado e teve que resetar).
 // Enquanto não confirma, dá para desfazer tudo de uma vez.
 let skRasc = null, skSel = 0;
@@ -3502,8 +3505,8 @@ function renderSkills() {
     const novo = skRasc && L > (skRasc.lv[s.id] || 0);
     return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''} ${i === skSel ? 'sel' : ''} ${novo ? 'novo' : ''}" data-sel="${i}">
       <span class="si2">${s.icon}</span>
-      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nv ${L}/${SK_MAX}${novo ? ` <b class="sk-mais">+${L - (skRasc.lv[s.id] || 0)}</b>` : ''}</div>
-      <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
+      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nv ${L}/${s.max || SK_MAX}${novo ? ` <b class="sk-mais">+${L - (skRasc.lv[s.id] || 0)}</b>` : ''}</div>
+      <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < (s.max || SK_MAX) ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
       <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
@@ -3511,7 +3514,7 @@ function renderSkills() {
   const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
   // detalhe da habilidade tocada (as caixas ficam pequenas para caber o caminho todo)
   const det = (() => { const i = Math.min(skSel, SKILLS.length - 1), s = SKILLS[i]; if (!s) return ''; const L = P.skillLv[s.id] || 0, d = document.createElement('div'); d.innerHTML = node(i, ''); const rq = d.querySelector('.req');
-    return `<div class="sk-det"><span class="si2">${s.icon}</span><div><b>${s.name}</b>${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''} <small>· Nível ${L}/${SK_MAX}</small><div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>${rq ? rq.outerHTML : ''}</div>
+    return `<div class="sk-det"><span class="si2">${s.icon}</span><div><b>${s.name}</b>${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''} <small>· Nível ${L}/${s.max || SK_MAX}</small><div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>${rq ? rq.outerHTML : ''}</div>
       <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`; })();
   const usados = skRasc ? skRasc.pts - P.skillPts : 0;
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
@@ -3573,6 +3576,7 @@ function talkBase(n) {
       const shop = () => dialog(nm, `${bv}, <b>${eu}</b>! Poções fresquinhas.<br><small>Coroas: <b>${P.zeny} cr</b> · 🧪 ${P.inv.red} · 💧 ${P.inv.blue}</small>`, [
         { label: `🧪 Poção Vermelha — 25 cr cada · escolher quantidade (tem ${P.inv.red || 0})`, fn: () => { qty('red', shop); return true; } },
         { label: `💧 Poção Azul — 90 cr cada · escolher quantidade (tem ${P.inv.blue || 0})`, fn: () => { qty('blue', shop); return true; } },
+        { label: `🪶 Pena da Fênix — ${ITEMS.pena_fenix ? ITEMS.pena_fenix.price.toLocaleString('pt-BR') : 2500} cr cada (levanta um amigo caído) · tem ${P.inv.pena_fenix || 0}`, fn: () => { qty('pena_fenix', shop); return true; } },
         { label: `🪰 Asa de Mosca — 300 cr cada (salto no mesmo mapa) · tem ${P.inv.asa_mosca || 0}`, fn: () => { qty('asa_mosca', shop); return true; } },
         { label: `🦋 Asa de Borboleta — 900 cr cada (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { qty('asa_borboleta', shop); return true; } },
         { label: `❤️‍🩹 Poções maiores (Nv 40, 60 e 80)…`, fn: () => { const big = () => dialog(nm, `Poções para quem já foi longe. Curam uma parte da vida ou do SP <b>máximo</b>.<br><small>Dica: na 🎒 mochila, <b>10 poções</b> de um tamanho se <b>fundem</b> em 1 do tamanho seguinte. Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [...['red_m', 'blue_m', 'red_g', 'blue_g', 'red_x', 'blue_x'].map(id => ({ label: `${ITEMS[id].ic} ${ITEMS[id].name} (${Math.round(ITEMS[id].pct * 100)}% ${ITEMS[id].rec === 'hp' ? 'HP' : 'SP'}, Nv ${ITEMS[id].lvMin}+) — ${ITEMS[id].price.toLocaleString('pt-BR')} cr · tem ${P.inv[id] || 0}`, fn: () => { qty(id, big); return true; } })), { label: '← Voltar', fn: () => { shop(); return true; } }]); big(); return true; } },

@@ -480,3 +480,7 @@ const EXTRA_SKILLS = {
     { id: 'ultimaPromessa', name: 'Última Promessa', icon: '🤍', tier: 2, lv: 66, sp: 80, cd: 80, type: 'buff', dur: 30, mods: { def: 60, atk: 1.4 }, heal: 0.5, color: 0xffe0f0, pre: ['passosTremem', 3], desc: '30s: +60 de defesa e +40% de ataque; cura 50% (também no grupo).' },
   ],
 };
+
+// 🪽 Ressuscitar (pedido do Rone): as classes de suporte levantam um amigo caído. 4 níveis: 25%, 50%, 75% e 100% da vida.
+// Quem não é dessas classes usa a 🪶 Pena da Fênix (igual ao nível 1). Criado para o jogo.
+for (const c of ['lyra', 'seraphyne', 'erya', 'mae']) (EXTRA_SKILLS[c] = EXTRA_SKILLS[c] || []).push({ id: 'ressuscitar', name: 'Ressuscitar', icon: '🪽', lv: 10, max: 4, sp: 40, cd: 30, type: 'res', color: 0xfff6c0, desc: 'Levanta um amigo caído perto de você (até 10 m). Nv 1: volta com 25% da vida · Nv 2: 50% · Nv 3: 75% · Nv 4: 100%.' });

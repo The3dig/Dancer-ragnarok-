@@ -138,9 +138,9 @@ const Chefes = (() => {
         if (!naRampa && !blocked(tx, tz, 0.45)) { m.x = tx; m.z = tz; } Audio8.sfx('boom'); ring(tx, tz, 4, 0xff6a30, 0.5);
         if (typeof VFX !== 'undefined') { VFX.wave(tx, tz, 4.5, 0xff8a40, 0.5); VFX.flash(new THREE.Vector3(tx, groundY(tx, tz) + 1, tz), 0xff8a40, 4); }
         if (Math.hypot(P.x - tx, P.z - tz) < 4) hurtPlayer(m, 1.8); };
-      warns.push(w); log(`⚠️ <b>${m.d.name}</b> vai saltar! Saia do círculo vermelho!`, 'bad');
+      warns.push(w); log(`⚠️ <b>${m.d.name}</b> vai saltar! Saia do círculo vermelho!`, 'bad'); falaMagia(m.x, groundY(m.x, m.z) + (m.model.h || 2) + 0.8, m.z, '💥 Salto Esmagador!');
     } else {                                                             // pancada em volta
-      const w = warn(m.x, m.z, 6.5, 1.1); m.busy = 1.15;
+      const w = warn(m.x, m.z, 6.5, 1.1); m.busy = 1.15; falaMagia(m.x, groundY(m.x, m.z) + (m.model.h || 2) + 0.8, m.z, '🌋 Tremor da Terra!');
       w.boom = () => { if (m.dead) return; Audio8.sfx('boom'); ring(m.x, m.z, 6.5, 0xe0a050, 0.6);
         if (typeof VFX !== 'undefined') { VFX.wave(m.x, m.z, 7, 0xffa040, 0.55); VFX.flash(new THREE.Vector3(m.x, groundY(m.x, m.z) + 1, m.z), 0xffa040, 4); }
         if (Math.hypot(P.x - m.x, P.z - m.z) < 6.5) hurtPlayer(m, 2.2); };

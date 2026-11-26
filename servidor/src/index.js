@@ -411,11 +411,18 @@ export class Mundo {
       mob.hp -= v; mob.dano[d.peer] = (mob.dano[d.peer] || 0) + v;
       if (mob.hp <= 0) {
         mob.hp = 0; mob.vivo = false; mob.volta = agora + mob.resp * 1000;
+        if (!this.hist) this.hist = new Map(); this.hist.set(mob.id, { matou: String((d.s && d.s.n) || 'alguém').slice(0, 24), quando: agora });   // 👑 painel de MVP: quem matou por último
         this.todos({ t: "morre", id: mob.id, by: d.peer, dano: mob.dano });
         mob.dano = {};
         if (mob.gp !== undefined && !mob.id.endsWith(":chefe")) this.mobs.delete(mob.id);   // o chefe do castelo fica como "morto" até expirar (não renasce na mesma rodada)                // masmorra: não renasce, sai da lista
 
       } else this.todos({ t: "hp", id: mob.id, hp: mob.hp, by: d.peer });
+    } else if (m.t === "mvps" && Array.isArray(m.ids)) {
+      // 👑 painel de MVP (ideia do Ludi): vivo ou não, quando renasce, quem matou por último
+      if (d.mvpT && agora - d.mvpT < 1500) return; d.mvpT = agora; try { ws.serializeAttachment(d); } catch (e) {}
+      const l = []; for (const id of m.ids.slice(0, 120)) { if (typeof id !== "string") continue; const mob = this.mobs.get(id), h = this.hist && this.hist.get(id);
+        l.push({ id, existe: !!mob, vivo: !!(mob && mob.vivo), volta: mob && !mob.vivo ? mob.volta : 0, hp: mob ? Math.round(mob.hp / mob.max * 100) : 0, matou: h ? h.matou : null, quando: h ? h.quando : 0 }); }
+      this.enviar(ws, { t: "mvps", l, agora });
     } else if (m.t === "dgver" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 8) {
       // quem chegou agora na Torre/masmorra pede os monstros que já estão lá (de outros jogadores)
       if (d.dgverT && agora - d.dgverT < 500) return; d.dgverT = agora; try { ws.serializeAttachment(d); } catch (e) {}

@@ -1085,6 +1085,7 @@ const Vida = (() => {
     if (ITEMS[id].use === 'pot') return usePotion(id);
     if (ITEMS[id].use === 'montaria' && typeof Montaria !== 'undefined') { Montaria.alternar(); if (typeof buildHotbar === 'function') buildHotbar(); return; }
     if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
+    if (ITEMS[id].use === 'res') { if (typeof Res !== 'undefined' && Res.usar(0.25, ITEMS[id].name)) { P.inv[id]--; closeInv(); if (typeof buildHotbar === 'function') buildHotbar(); } return; }   // 🪶 Pena da Fênix
     if (ITEMS[id].use === 'isca') { closeInv(); if (typeof Mascotes !== 'undefined') Mascotes.capturar(id); return; }
     if (ITEMS[id].use === 'reset') { closeInv(); return pedirReset(ITEMS[id].alvo, true); }
     if (ITEMS[id].use === 'garrafa') { closeInv(); if (typeof Praia !== 'undefined') Praia.abrirGarrafa(); return; }
