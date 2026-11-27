@@ -3237,7 +3237,7 @@ function questTarget() {
     const aqui = mapaDe(P.x, P.z), la = mapaDe(t.x, t.z); if (aqui === la || la === 'torre') return t;
     // o caminho entre os mapas: Reino ↔ Valdora ↔ Floresta Morta
     if (aqui === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'Passagem para o Reino' };
-    if (aqui === 'reino') return { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' };
+    if (aqui === 'reino') return la === 'praia' ? { x: RGATE_P.x, z: RGATE_P.z, name: 'Passagem para a Praia' } : { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' };   // (antes ia sempre para o norte, mesmo querendo a Praia)
     if (aqui === 'memorias') return { x: MGATE.x + 3, z: MGATE.z, name: 'A luz de volta à Cidade Submersa' };
     if (aqui === 'cidade') return la === 'memorias' ? { x: MGATE_C.x, z: MGATE_C.z, name: 'A queda em O Fundo' } : { x: CGATE.x + 3, z: CGATE.z, name: 'A luz de volta ao Vale' };
     if (aqui === 'vale') return la === 'cidade' || la === 'memorias' ? { x: VGATE_C.x, z: VGATE_C.z + 3, name: 'A queda no fim da Ponte dos Mortos' } : { x: VALE_GATE.x + 4, z: VALE_GATE.z, name: 'Passagem para a Floresta Morta' };

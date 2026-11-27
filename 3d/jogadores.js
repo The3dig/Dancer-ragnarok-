@@ -50,7 +50,7 @@ const Jogadores = (() => {
   // 🚫 lugares que não dá para seguir (Torre, Abismo, masmorras, casa, castelo, arena: ficam "fora do mapa")
   function fechado(r) {
     const NOMES = { reino: 'no Reino de Solmira', valdora: 'em Valdora', floresta: 'na Floresta Morta', vale: 'no Vale dos Mortos', cidade: 'na Cidade', praia: 'na Praia' };
-    if (!inTower(r.z) && !inTower(P.z)) { const a = mapaDe(P.x, P.z), b = mapaDe(r.x, r.z); return a === b ? null : `em outro mapa (${NOMES[b] || b})`; }
+    if (!inTower(r.z) && !inTower(P.z)) return null;   // mapas abertos (Praia, Valdora, Floresta, Vale, Cidade...) não são masmorra: segue passando pelas passagens (pedido da Lady Ingrid)
     if (!inTower(r.z)) return `em outro mapa (${NOMES[mapaDe(r.x, r.z)] || 'lá fora'})`;
     if (inTower(P.z) && Math.hypot(r.x - P.x, r.z - P.z) < 40 && zoneOf(r.x, r.z) === zoneOf(P.x, P.z)) return null;   // estão no mesmo lugar: dá para seguir
     const z = zoneOf(r.x, r.z);
