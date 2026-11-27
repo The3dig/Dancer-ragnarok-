@@ -14,7 +14,11 @@ do próprio Rone, com os pontos de laço de `index.json` de lá.
 | cidade.mp4 | Oásis de Kharum |
 | abismo.mp4 | Cratera do Cisma |
 | fortaleza.mp4 | Cidadela do Cisma |
-| torre_doom.mp4 | Torre do Cisma: doom gótico (versão B de `scripts/compor_torre2.py`, FluidR3 GM, MIT), escolhida pelo Rone |
+| torre_epica.mp4 | Torre do Cisma desde 27/11: épica sombria de `scripts/compor_novas.py` (FluidR3 GM, MIT); o Rone não gostou mais do doom |
+| torre_doom.mp4 | a Torre de 16/11 a 27/11: doom gótico (versão B de `scripts/compor_torre2.py`); guardada |
+| mina.mp4 | Mina da Forja: canção de trabalho com bigorna (`scripts/compor_novas.py`) |
+| cripta.mp4 | Cripta das Cartas: misteriosa, celesta e harpa (`scripts/compor_novas.py`) |
+| arena.mp4 | Arena de Solmira: batalha com taikos e metais (`scripts/compor_novas.py`) |
 | torre_opera.mp4 | a Torre antes (metal ópera de `scripts/compor_torre.py`); guardada |
 | chefe.mp4 | Topo da Torre (Kravenox) |
 | guerra.mp4 | Estrada de Valdora |

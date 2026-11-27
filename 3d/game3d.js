@@ -2227,13 +2227,13 @@ const ZONES = {
   abismo: { name: 'Abismo do Cisma', music: 'abismo' },
   abfundo: { name: 'Ninho do Verme Colossal', music: 'reiVazio' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
-  torre: { name: 'Torre do Cisma', music: 'torre_doom' },          // doom gótico (scripts/compor_torre2.py, versão B); a metal ópera ficou em torre_opera.mp4
+  torre: { name: 'Torre do Cisma', music: 'torre_epica' },         // épica sombria (scripts/compor_novas.py): o Rone não gostou do doom (torre_doom.mp4, guardado) nem da metal ópera (torre_opera.mp4)
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'semNome' },
-  minas: { name: 'Mina da Forja', music: 'masmorra' },
-  cripta: { name: 'Cripta das Cartas', music: 'masmorra' },
+  minas: { name: 'Mina da Forja', music: 'mina' },
+  cripta: { name: 'Cripta das Cartas', music: 'cripta' },
   eco: { name: 'Templo do Eco Selado', music: 'masmorra' },
-  arena: { name: 'Arena de Solmira', music: 'fortaleza' },
+  arena: { name: 'Arena de Solmira', music: 'arena' },
   forte: { name: 'Fortaleza das Bandeiras', music: 'fortaleza' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
   acampamento: { name: 'Acampamento de Valdora', music: 'despedida', town: true },
