@@ -93,7 +93,11 @@ const Comodos = (() => {
     for (const sx of [-1, 1]) { box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, -(H / 2 + 0.6), g); box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, H / 2 + 0.6, g); box(0.5, 0.8, 2.4, parede, sx * H, 3.4, 0, g); }   // portas nos lados leste e oeste
     const viga = madeira(0x5a3a24); for (let k = -3; k <= 3; k++) { box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, -H + 0.35, g); box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, H - 0.35, g); }
     box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, -H + 0.4, g); box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, H - 0.4, g);
-    for (const x of [-4, 4]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), janelaMat(R.id === 'observ')); w.position.set(x, 2.2, H - 0.3); w.rotation.y = Math.PI; g.add(w); }
+    // janelas no meio do vão entre as vigas (±3,3), com moldura, cruz da vidraça e peitoril (antes ficavam em cima de uma viga)
+    for (const x of [-3.3, 3.3]) { const j = new THREE.Group(); j.position.set(x, 0, H - 0.26); j.rotation.y = Math.PI; g.add(j);
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.3), janelaMat(R.id === 'observ')); w.position.set(0, 2.2, 0); j.add(w);
+      box(1.44, 0.12, 0.12, viga, 0, 2.91, 0.05, j); box(0.12, 1.54, 0.12, viga, -0.66, 2.2, 0.05, j); box(0.12, 1.54, 0.12, viga, 0.66, 2.2, 0.05, j);
+      box(0.06, 1.3, 0.05, viga, 0, 2.2, 0.03, j); box(1.2, 0.06, 0.05, viga, 0, 2.2, 0.03, j); box(1.6, 0.1, 0.26, viga, 0, 1.5, 0.1, j); }
     // placa com o nome
     const c = document.createElement('canvas'); c.width = 512; c.height = 96; const x = c.getContext('2d'); x.fillStyle = '#3a2a18'; x.fillRect(0, 0, 512, 96); x.strokeStyle = '#d9a63a'; x.lineWidth = 6; x.strokeRect(3, 3, 506, 90); x.fillStyle = '#ffd860'; x.font = 'bold 44px Georgia'; x.textAlign = 'center'; x.fillText(R.ic + ' ' + R.nome, 256, 64);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const pl = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.75), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 3.2, -H + 0.28); g.add(pl);

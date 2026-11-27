@@ -35,9 +35,14 @@ const Casa = (() => {
   for (const sx of [-1, 1]) box(H - 1.4, 3.6, 0.5, reboco, sx * (H / 2 + 0.85), 1.8, H);        // parede da frente com a porta no meio
   box(2.2, 0.8, 0.5, reboco, 0, 3.2, H);
   for (let k = -3; k <= 3; k++) { box(0.25, 3.6, 0.3, madeiraE, k * 2.2, 1.8, -H + 0.35); box(0.3, 3.6, 0.25, madeiraE, -H + 0.35, 1.8, k * 2.2); box(0.3, 3.6, 0.25, madeiraE, H - 0.35, 1.8, k * 2.2); }
-  for (const [x, z, ry] of [[-H + 0.3, -3, Math.PI / 2], [H - 0.3, -3, -Math.PI / 2], [-3, -H + 0.3, 0], [3, -H + 0.3, 0]]) {
-    const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshBasicMaterial({ color: 0xbfe0ff, toneMapped: false })); w.position.set(x, 2.1, z); w.rotation.y = ry; g.add(w);
-    const fr = box(1.6, 0.15, 0.2, madeiraE, x, 2.85, z); fr.rotation.y = ry;
+  // janelas centralizadas no vão entre duas vigas (vigas a cada 2,2; o meio do vão fica em ±3,3), com moldura inteira e peitoril
+  const JAN = [[-H + 0.26, -3.3, Math.PI / 2], [H - 0.26, -3.3, -Math.PI / 2], [-3.3, -H + 0.26, 0], [3.3, -H + 0.26, 0]];
+  for (const [x, z, ry] of JAN) {
+    const j = new THREE.Group(); j.position.set(x, 0, z); j.rotation.y = ry; g.add(j);
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.3), new THREE.MeshBasicMaterial({ color: 0xbfe0ff, toneMapped: false })); w.position.set(0, 2.1, 0); w.userData.janela = true; j.add(w);
+    box(1.44, 0.12, 0.12, madeiraE, 0, 2.81, 0.05, j); box(0.12, 1.54, 0.12, madeiraE, -0.66, 2.1, 0.05, j); box(0.12, 1.54, 0.12, madeiraE, 0.66, 2.1, 0.05, j);
+    box(0.06, 1.3, 0.05, madeiraE, 0, 2.1, 0.03, j); box(1.2, 0.06, 0.05, madeiraE, 0, 2.1, 0.03, j);      // cruz da vidraça
+    box(1.6, 0.1, 0.26, madeiraE, 0, 1.4, 0.1, j);                                                        // peitoril
   }
   const doorM = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false }); const dg = new THREE.Mesh(new THREE.PlaneGeometry(2, 2.8), doorM); dg.position.set(0, 1.4, H - 0.1); g.add(dg);
   const luz = new THREE.PointLight(0xffd8a0, 1.2, 22); luz.position.set(0, 3, 0); g.add(luz);
@@ -51,13 +56,14 @@ const Casa = (() => {
       for (let i = 0; i < 9; i++) { const ax = 12 + i * 29, ay = 112 + (i % 3) * 6; x.fillStyle = '#3a5a2a'; x.beginPath(); x.arc(ax, ay, 9, 0, 7); x.fill(); x.fillStyle = '#5a3a20'; x.fillRect(ax - 1, ay + 6, 3, 8); }
       x.fillStyle = 'rgba(255,255,255,.8)'; for (const [cx, cy] of [[50, 30], [120, 22]]) { x.beginPath(); x.arc(cx, cy, 10, 0, 7); x.arc(cx + 12, cy + 3, 8, 0, 7); x.arc(cx - 11, cy + 4, 7, 0, 7); x.fill(); } });
     const pM = new THREE.MeshBasicMaterial({ map: paisagem, toneMapped: false });
-    g.traverse(o => { const q = o.isMesh && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters; if (q && q.width === 1.4 && q.height === 1.4) o.material = pM; });   // as janelas mostram a paisagem
+    g.traverse(o => { const q = o.isMesh && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters; if (q && o.userData.janela) o.material = pM; });   // as janelas mostram a paisagem
     const porta = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.5), pM); porta.position.set(0, 2.2, H + 3); porta.rotation.y = Math.PI; g.add(porta);   // e a porta também
     // cortinas presas no alto de cada janela
     const pano = PM('reboco.jpg', [0.5, 1], new THREE.Color(0.75, 0.25, 0.3));
-    for (const [x, z, ry] of [[-H + 0.3, -3, Math.PI / 2], [H - 0.3, -3, -Math.PI / 2], [-3, -H + 0.3, 0], [3, -H + 0.3, 0]]) for (const sd of [-1, 1]) {
+    for (const [x, z, ry] of JAN) {
       const c = new THREE.Group(); c.position.set(x, 0, z); c.rotation.y = ry; g.add(c);
-      box(0.35, 1.9, 0.08, pano, sd * 0.88, 1.95, 0.08, c); box(0.12, 0.12, 0.12, PM('madeira.jpg', [1, 1], new THREE.Color(0.9, 0.7, 0.3)), sd * 0.88, 1.35, 0.12, c); }
+      box(1.9, 0.05, 0.05, PM('madeira.jpg', [1, 1], new THREE.Color(0.9, 0.7, 0.3)), 0, 3.0, 0.18, c);   // varão
+      for (const sd of [-1, 1]) { box(0.24, 1.75, 0.06, pano, sd * 0.8, 2.1, 0.2, c); box(0.1, 0.1, 0.1, PM('madeira.jpg', [1, 1], new THREE.Color(0.9, 0.7, 0.3)), sd * 0.8, 1.55, 0.25, c); } }
     // rodapé e sanca de madeira escura em volta
     for (const [x, z, w, d] of [[0, -H + 0.27, H * 2, 0.06], [-H + 0.27, 0, 0.06, H * 2], [H - 0.27, 0, 0.06, H * 2]]) { box(w || 0.06, 0.28, d || 0.06, madeiraE, x, 0.14, z); box(w || 0.06, 0.22, d || 0.06, madeiraE, x, 3.45, z); }
     for (const sx of [-1, 1]) { box(H - 1.4, 0.28, 0.06, madeiraE, sx * (H / 2 + 0.85), 0.14, H - 0.27); box(H - 1.4, 0.22, 0.06, madeiraE, sx * (H / 2 + 0.85), 3.45, H - 0.27); }
