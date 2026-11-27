@@ -86,7 +86,7 @@ const Partilha = (() => {
       if (String(m.id).startsWith('dg:forte:') && typeof Guerra !== 'undefined') Guerra.coracaoCaiu(m);   // 🏰 o Coração da Fortaleza caiu
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
-      if (m.by === me() && mb.d && (mb.d.boss || mb.d.mini) && /^\d+-\d+$/.test(String(m.id))) Net.send({ t: 'mvpmorte', id: m.id });   // 👑 painel de MVP: eu dei o golpe final num chefe fixo
+      if (m.by === me() && mb.d && (mb.d.boss || mb.d.mini) && /^\d+-\d+$/.test(String(m.id))) Net.send({ t: 'mvpmorte', id: m.id, mvp: !!(mb.d.boss && !mb.d.mini), nome: mb.d.name, lugar: typeof MVP !== 'undefined' && MVP.lugar ? MVP.lugar(mb.x, mb.z) : '', x: Math.round(mb.x), z: Math.round(mb.z) });   // 👑 painel de MVP: eu dei o golpe final num chefe fixo
       mb.danoPor = m.dano || {};                                        // quem bateu (o castelo sorteia a carta do Campeão entre eles)
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
       const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && (Grupo.juntos ? Grupo.juntos(mb.x, mb.z, P.x, P.z) : Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO) ? Grupo.parteDoMatador(mb, m.by) : null;

@@ -26,6 +26,14 @@ const MVP = (() => {
     Net.send({ t: 'mvps', ids: [...lista().map(o => o.id), ...(typeof Chefes !== 'undefined' && Chefes.BOSSES ? Object.keys(Chefes.BOSSES).map(k => 'fb:' + k) : [])] });
   }
   function init() {
+    // 📣 um MVP de verdade caiu em algum lugar do mundo: todos ficam sabendo (pedido do Rone); dá para ir até lá
+    if (typeof Net !== 'undefined' && Net.on) Net.on('mvpcaiu', m => {
+      const eu = m.matou === P.name, nome = String(m.nome || 'Um MVP'), x = +m.x, z = +m.z;
+      log(`👑 <b>${eu ? 'Você' : m.matou}</b> derrotou o MVP <b>${nome}</b>${m.lugar ? ` (${m.lugar})` : ''}!`, 'gold');
+      if (typeof Anuncio === 'undefined') return;
+      Anuncio.mostrar({ ic: '👑', cor: 'sangue', tag: 'MVP DERROTADO', titulo: eu ? `Você derrotou ${nome}!` : `${m.matou} derrotou ${nome}!`, sub: `${m.lugar || ''}${eu ? '' : '. Fora das cidades vale PvP (botão 🗡️): quem quiser disputar, corre!'}`, seg: 9, som: 'boom',
+        ...(eu || !isFinite(x) ? {} : { botao: '🧭 Ir até lá', acao: () => { if (P.dead) return; P.caca = null; P.qGo = { x, z, name: nome }; if (typeof autoStart === 'function') autoStart(); } }) });
+    });
     if (typeof Net !== 'undefined' && Net.on) Net.on('mvps', m => { const dif = Date.now() - (m.agora || Date.now()); estado = {}; for (const o of m.l || []) estado[o.id] = { ...o, volta: o.volta ? o.volta + dif : 0, quando: o.quando ? o.quando + dif : 0 }; if (aberto) render(); });
     const menu = document.getElementById('menu');
     if (menu && !document.getElementById('btn-mvp')) {
@@ -123,5 +131,5 @@ const MVP = (() => {
       [ir(x, z, aqui ? D.name : 'a região do ' + D.name), voltar, fechar]);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500)); else setTimeout(init, 500);
-  return { abrir, lista };
+  return { abrir, lista, lugar: nomeLugar };
 })();

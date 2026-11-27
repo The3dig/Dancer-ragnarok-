@@ -327,6 +327,8 @@ export class Mundo {
     let h = null; try { const r = this.sql && this.sql.exec("SELECT matou, quando, slot FROM mvp_hist WHERE id = ?", id).toArray()[0]; if (r) h = { matou: r.matou, quando: r.quando, slot: r.slot }; } catch (e) {}
     this.hist.set(id, h); return h;
   }
+  // 📣 um MVP de verdade caiu: o jogo todo fica sabendo (pedido do Rone: quem quiser vai lá e rola PvP)
+  avisaMvp(m, quem) { this.todos({ t: "mvpcaiu", id: m.id, matou: quem, nome: String(m.nome || "Um MVP").slice(0, 40), lugar: String(m.lugar || "").slice(0, 40), x: Number(m.x) || 0, z: Number(m.z) || 0 }); }
   marcaMvp(id, matou, quando, slot) {
     if (!this.hist) this.hist = new Map(); this.hist.set(id, { matou, quando, slot });
     try { if (this.sql) this.sql.exec("INSERT OR REPLACE INTO mvp_hist (id, matou, quando, slot) VALUES (?, ?, ?, ?)", id, matou, quando, slot || 0); } catch (e) {}
@@ -432,12 +434,12 @@ export class Mundo {
     } else if (m.t === "mvpmorte" && typeof m.id === "string" && /^\d{1,4}-\d{1,3}$/.test(m.id)) {
       // 👑 chefe fixo do mapa: só vale se foi este jogador que deu o golpe final agora há pouco
       const mob = this.mobs.get(m.id);
-      if (mob && !mob.vivo && mob.ultimoPeer === d.peer && agora - (mob.morreuEm || 0) < 30000) this.marcaMvp(m.id, String((d.s && d.s.n) || 'alguém').slice(0, 24), agora, 0);
+      if (mob && !mob.vivo && mob.ultimoPeer === d.peer && agora - (mob.morreuEm || 0) < 30000 && !mob.avisado) { mob.avisado = 1; setTimeout(() => { mob.avisado = 0; }, 60000); const quem = String((d.s && d.s.n) || 'alguém').slice(0, 24); this.marcaMvp(m.id, quem, agora, 0); if (m.mvp) this.avisaMvp(m, quem); }
     } else if (m.t === "mvpmorte" && typeof m.id === "string" && /^fb:[A-Za-z]{1,30}$/.test(m.id)) {
       // 👑 chefe de campo derrotado (a vida é dividida entre os jogadores, então quem viu cair avisa): fica o 1º aviso de cada aparição
       const slot = Math.floor(Number(m.s) || 0), h = this.histDe(m.id);
       if (!slot || Math.abs(slot - Math.floor(agora / 1200000)) > 1 || (h && h.slot === slot)) return;
-      this.marcaMvp(m.id, String((d.s && d.s.n) || 'alguém').slice(0, 24), agora, slot);
+      { const quem = String((d.s && d.s.n) || 'alguém').slice(0, 24); this.marcaMvp(m.id, quem, agora, slot); if (m.mvp) this.avisaMvp(m, quem); }
     } else if (m.t === "mvps" && Array.isArray(m.ids)) {
       // 👑 painel de MVP (ideia do Ludi): vivo ou não, quando renasce, quem matou por último
       if (d.mvpT && agora - d.mvpT < 1500) return; d.mvpT = agora; try { ws.serializeAttachment(d); } catch (e) {}

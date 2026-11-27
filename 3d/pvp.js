@@ -19,7 +19,8 @@ const PvP = (() => {
   const now = () => Date.now();
   const F = () => (P.flag = P.flag || { pink: 0, red: 0 });
   const duelo = () => typeof Castelo !== 'undefined' && Castelo.pvpAtivo && Castelo.pvpAtivo();      // 🗡️ Duelo da Guilda (quinta às 20h, no castelo)
-  const safe = (x, z) => { const zn = zoneOf(x, z); if (zn === 'castelo' && duelo()) return false; return (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco', 'castelo'].includes(zn); };   // masmorras também são seguras
+  const dentroMuralha = (x, z) => typeof CAPITAL !== 'undefined' && !inTower(z) && x > CAPITAL.x0 && x < CAPITAL.x1 && z > CAPITAL.z0 && z < CAPITAL.z1;   // 🏰 tudo dentro da muralha de Solmira é cidade (protegido)
+  const safe = (x, z) => { const zn = zoneOf(x, z); if (zn === 'castelo' && duelo()) return false; return dentroMuralha(x, z) || (ZONES[zn] && ZONES[zn].town) || ['sitio', 'casa', 'minas', 'cripta', 'eco', 'castelo'].includes(zn); };   // masmorras também são seguras
   const guerra = (x, z) => inTower(z) && (['torre', 'topo', 'abismo', 'abfundo', 'arena', 'forte'].includes(zoneOf(x, z)) || (zoneOf(x, z) === 'castelo' && duelo()));   // Torre, Abismo e Arena: PvP livre (nas masmorras, não)
   const state = () => F().red > now() ? 'r' : F().pink > now() ? 'p' : 'w';
   // cor do nome: vermelho forte no começo, clareando com o tempo; rosa no combate
