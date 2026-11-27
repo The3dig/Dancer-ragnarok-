@@ -4,6 +4,7 @@ Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novida
 
 ## 27/11
 
+- **🏘️ Solmira virou mini cidade**: A **Vila de Solmira** cresceu: **7 casas novas** num segundo anel, uma **torre do sino** com relógio ao norte, **portões de pedra** com torrinhas, estandartes e a placa **SOLMIRA** nas entradas leste e oeste, **rua de pedra** da praça até os portões com **postes de lampião** e bancos, **barracas de feira** dos dois lados da rua e canteiros de flores. Os NPCs continuam todos no mesmo lugar.
 - **⛏️ Mina da Forja com cara de mina**: A **Mina da Forja** deixou de ser um salão de piso e parede lisa. Agora é uma mina de verdade: chão de terra, paredes de rocha bruta, estalactites no teto, pedras soltas, escoras de madeira com lampiões balançando, veios de 🔶 Minério Rúnico e 🔷 Pedra de Têmpera brilhando na rocha, carrinho cheio de minério nos trilhos, barris, caixotes, picareta e poeira no ar.
 
 ## 26/11
