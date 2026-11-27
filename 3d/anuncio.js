@@ -14,6 +14,11 @@ const Anuncio = (() => {
     if (!el) { el = document.createElement('div'); el.id = 'anuncio'; document.body.appendChild(el); el.addEventListener('pointerdown', e => { const b = e.target.closest('[data-ir]'); if (b && el._acao) { e.stopPropagation(); el._acao(); } fechar(); }); }
     el.className = 'an-' + (o.cor || 'ouro'); el._acao = o.acao || null;
     el.innerHTML = `<div class="an-ic">${o.ic || '📣'}</div><div class="an-tx"><small>${o.tag || 'EVENTO'}</small><b>${o.titulo}</b><span>${o.sub || ''}</span></div>${o.acao ? `<button data-ir>${o.botao || 'Ir agora'}</button>` : ''}`;
+    // logo abaixo da barra de cima, seja qual for o tamanho da tela (com top fixo encavalava na barra; pedido da Lady Ingrid)
+    try { const m = document.getElementById('menu'), hud = document.getElementById('hud'); if (m && hud && !hud.classList.contains('hidden')) {
+      const r = m.getBoundingClientRect(), z = parseFloat(hud.style.zoom || '1') || 1, sonda = document.getElementById('enc-sonda'), w = sonda ? sonda.getBoundingClientRect().width : 0;
+      const k = z !== 1 && w > 0 && Math.abs(w - 100) < Math.abs(w - 100 * z) ? z : 1;   // Safari mede sem o zoom do HUD
+      el.style.top = Math.round(Math.max(8, r.bottom * k + 10)) + 'px'; } } catch (e) { }
     el.classList.add('on'); try { Audio8.sfx(o.som || 'level'); } catch (e) { }
     clearTimeout(tHide); tHide = setTimeout(fechar, (o.seg || 7) * 1000);
   }
