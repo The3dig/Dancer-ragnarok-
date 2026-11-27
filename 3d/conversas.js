@@ -50,6 +50,7 @@ const Conversas = (() => {
     const out = [];
     if (typeof NPCS !== 'undefined') for (const n of NPCS) if (!n.hidden && Math.hypot(n.x - P.x, n.z - P.z) < 32) out.push({ o: n, nome: n.name, npc: true });
     if (typeof Solmira !== 'undefined' && Solmira.moradores) for (const m of Solmira.moradores()) if (m.g && m.g.visible && Math.hypot(m.x - P.x, m.z - P.z) < 32) out.push({ o: m });
+    if (typeof Cidades !== 'undefined') for (const m of Cidades.moradores()) if (m.g && m.g.visible && Math.hypot(m.x - P.x, m.z - P.z) < 32) out.push({ o: m });
     return out.filter(f => !ativos.some(c => c.a.o === f.o || c.b.o === f.o));
   }
   function balao(f, txt) {
