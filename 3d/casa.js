@@ -4,6 +4,30 @@
 //  e a bancada de reformas, onde você compra móveis com o tempo.
 // =====================================================================
 'use strict';
+// 🏠 teto e paredes até o teto (pedido do Rone: "coloca teto e arruma a casa"; antes as paredes paravam em 3,6 m
+// e aparecia o céu roxo em cima). Faixa de parede de "base" até ALT_CASA, cornija de madeira na emenda, forro de
+// tábuas virado para baixo (visto de cima some), três vigas e um lustre de velas. A câmera não passa do teto (game3d).
+const ALT_CASA = 6.2;
+function tetoCasa(g, H, base, parede, cor) {
+  const W = H * 2 + 1, alt = ALT_CASA - base, ym = base + alt / 2;
+  const caixa = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.receiveShadow = true; g.add(o); return o; };
+  for (const [x, z, w, d] of [[0, -H, W, 0.5], [0, H, W, 0.5], [-H, 0, 0.5, W], [H, 0, 0.5, W]]) caixa(w, alt, d, parede, x, ym, z);
+  const mad = PM('madeira.jpg', [2, 1], new THREE.Color(cor || 0x9a6a44));
+  for (const [x, z, w, d] of [[0, -H + 0.32, W, 0.25], [0, H - 0.32, W, 0.25], [-H + 0.32, 0, 0.25, W], [H - 0.32, 0, 0.25, W]]) { caixa(w, 0.22, d, mad, x, base, z); caixa(w, 0.3, d, mad, x, ALT_CASA - 0.15, z); }
+  const forro = new THREE.Mesh(new THREE.PlaneGeometry(W, W), PM('madeira.jpg', [5, 5], new THREE.Color(cor || 0x9a6a44).multiplyScalar(1.15)));
+  forro.rotation.x = Math.PI / 2; forro.position.y = ALT_CASA; g.add(forro);
+  for (const z of [-H / 2, 0, H / 2]) caixa(W, 0.35, 0.4, mad, 0, ALT_CASA - 0.2, z);
+  // lustre: aro de ferro com velas acesas, pendurado por uma corrente
+  const ferro = new THREE.MeshLambertMaterial({ color: 0x2a2420 }), vela = new THREE.MeshLambertMaterial({ color: 0xf4ecd8 }), chama = new THREE.MeshBasicMaterial({ color: 0xffc860, toneMapped: false });
+  const lu = new THREE.Group(); lu.position.y = ALT_CASA - 1.5; g.add(lu);
+  const aro = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.04, 6, 24), ferro); aro.rotation.x = Math.PI / 2; lu.add(aro);
+  const cor2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4), ferro); cor2.position.y = 0.75; lu.add(cor2);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, x = Math.cos(a) * 0.7, z = Math.sin(a) * 0.7;
+    const v = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 6), vela); v.position.set(x, 0.12, z); lu.add(v);
+    const c = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), chama); c.scale.y = 1.8; c.position.set(x, 0.28, z); lu.add(c);
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.75, 3), ferro); r.position.set(x / 2, 0.35, z / 2); r.rotation.set(Math.sin(a) * 0.7, 0, -Math.cos(a) * 0.7); lu.add(r); }
+  return lu;
+}
 const Casa = (() => {
   const C = CASA, H = 7.6;                                 // meia-largura da sala
   const OUT_DOOR = { x: FARM.x - 13.6, z: FARM.z - 1 };
@@ -45,7 +69,8 @@ const Casa = (() => {
     box(1.6, 0.1, 0.26, madeiraE, 0, 1.4, 0.1, j);                                                        // peitoril
   }
   const doorM = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false }); const dg = new THREE.Mesh(new THREE.PlaneGeometry(2, 2.8), doorM); dg.position.set(0, 1.4, H - 0.1); g.add(dg);
-  const luz = new THREE.PointLight(0xffd8a0, 1.2, 22); luz.position.set(0, 3, 0); g.add(luz);
+  tetoCasa(g, H, 3.6, reboco, 0xb07a4a);
+  const luz = new THREE.PointLight(0xffd8a0, 1.6, 26); luz.position.set(0, 4.4, 0); g.add(luz);
   // ---------------- acabamento (pedido do Rone: "deixa ela linda, ainda mais com os cômodos novos"). Só nas paredes e
   // no que se vê lá fora, para não brigar com os móveis que se compram. Criado para o jogo.
   { const tx = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };

@@ -2695,7 +2695,8 @@ function updateCamera(dt) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
     if (l && y < groundY(x, z) + 5 && !(inTower(P.z) && zoneOf(P.x, P.z) === 'castelo') && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
-    if (inTower(camS.z) && zoneOf(camS.x, camS.z) !== 'castelo') { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }
+    if (inTower(camS.z) && zoneOf(camS.x, camS.z) !== 'castelo') { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4) || (fc.casa && typeof ALT_CASA !== 'undefined' && y > (fc.y || 0) + ALT_CASA - 0.5)) {   // na casa a câmera fica embaixo do teto
+      want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }
     if (typeof Castelo !== 'undefined' && Castelo.camFora(x, z, y)) { want = Math.max(1.6, camS.dist * (k - 1) / 16); break; }   // 🏰 dentro do castelo a câmera não atravessa parede nem teto   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
   }
   camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 20 : 2.5)));

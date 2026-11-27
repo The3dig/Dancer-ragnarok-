@@ -444,7 +444,7 @@ const Castelo = (() => {
       if (n.para > 0) n.para -= dt;
       else if (!perto) { const [tx, tz] = n.pts[n.i], dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz); if (d < 0.2) { n.i = (n.i + 1) % n.pts.length; n.para = rand(1, 3.5); } else { n.x += dx / d * Math.min(d, n.vel / K * dt); n.z += dz / d * Math.min(d, n.vel / K * dt); n.face = Math.atan2(dx, dz); anda = true; } }
       n.g.position.set(C.x + K * n.x, 0, C.z + K * n.z);
-      n.act.update(dt, { face: perto ? Math.atan2(P.x - (C.x + K * n.x), P.z - (C.z + K * n.z)) : n.face, moving: anda });
+      n.act.update(dt, { face: perto && !anda ? Math.atan2(P.x - (C.x + K * n.x), P.z - (C.z + K * n.z)) : n.face, moving: anda });
     }
     for (const f of g.userData.fogos) f.scale.set(1.1 + Math.sin(time * 11 + f.position.x) * 0.1, 1.5 + Math.sin(time * 8 + f.position.z) * 0.15, 1);
     portal.material.opacity = 0.4 + Math.sin(time * 2.5) * 0.15;

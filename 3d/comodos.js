@@ -82,7 +82,7 @@ const Comodos = (() => {
     const arco = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.16, 8, 20, Math.PI), mad); arco.position.set(0, 3.1, 0); g.add(arco);
     for (const k of [0, 1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.6), portaMat()); m.position.set(0, 1.75, 0.02 + k * 0.03); m.userData.k = k; g.add(m); portais.push(m); }
     if (nome) { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const q = c.getContext('2d'); q.fillStyle = '#3a2a18'; q.fillRect(0, 0, 512, 96); q.strokeStyle = '#d9a63a'; q.lineWidth = 6; q.strokeRect(3, 3, 506, 90); q.fillStyle = '#ffd860'; q.font = 'bold 40px Georgia'; q.textAlign = 'center'; q.fillText(nome, 256, 62);
-      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.5), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 3.75, 0.05); g.add(pl); }
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.5), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 4.85, 0.05); g.add(pl); }
     return g;
   }
   function montarSala(R) {
@@ -91,7 +91,7 @@ const Comodos = (() => {
     const parede = PM('reboco.jpg', [3, 1.2], new THREE.Color(R.parede));
     box(H * 2 + 1, 3.8, 0.5, parede, 0, 1.9, -H, g); box(H * 2 + 1, 3.8, 0.5, parede, 0, 1.9, H, g);
     for (const sx of [-1, 1]) { box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, -(H / 2 + 0.6), g); box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, H / 2 + 0.6, g); box(0.5, 0.8, 2.4, parede, sx * H, 3.4, 0, g); }   // portas nos lados leste e oeste
-    const viga = madeira(0x5a3a24); for (let k = -3; k <= 3; k++) { box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, -H + 0.35, g); box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, H - 0.35, g); }
+    const viga = madeira(0x9a6a40);   // mais clara: a 0x5a3a24 ficava preta ("Quarto Real" com listras pretas) for (let k = -3; k <= 3; k++) { box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, -H + 0.35, g); box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, H - 0.35, g); }
     box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, -H + 0.4, g); box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, H - 0.4, g);
     // janelas no meio do vão entre as vigas (±3,3), com moldura, cruz da vidraça e peitoril (antes ficavam em cima de uma viga)
     for (const x of [-3.3, 3.3]) { const j = new THREE.Group(); j.position.set(x, 0, H - 0.26); j.rotation.y = Math.PI; g.add(j);
@@ -101,11 +101,17 @@ const Comodos = (() => {
     // placa com o nome
     const c = document.createElement('canvas'); c.width = 512; c.height = 96; const x = c.getContext('2d'); x.fillStyle = '#3a2a18'; x.fillRect(0, 0, 512, 96); x.strokeStyle = '#d9a63a'; x.lineWidth = 6; x.strokeRect(3, 3, 506, 90); x.fillStyle = '#ffd860'; x.font = 'bold 44px Georgia'; x.textAlign = 'center'; x.fillText(R.ic + ' ' + R.nome, 256, 64);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const pl = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.75), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 3.2, -H + 0.28); g.add(pl);
-    const luz = new THREE.PointLight(R.id === 'observ' ? 0xa0b0ff : 0xffd8a0, 1.2, 24); luz.position.set(0, 3.2, 0); g.add(luz);
+    tetoCasa(g, H, 3.8, parede, R.id === 'observ' ? 0x3a3a6a : 0xa0704a);
+    const luz = new THREE.PointLight(R.id === 'observ' ? 0xa0b0ff : 0xffd8a0, 1.8, 28); luz.position.set(0, 4.4, 0); g.add(luz);
     // portas de luz: leste (volta) e oeste (próximo cômodo)
     const kk = ROOMS.indexOf(R), prox = SALAS[kk + 1];
     R.portaL = portaBonita(g, H - 0.32, 0, 0, -Math.PI / 2, kk === 0 ? '🏠 Sala' : `${SALAS[kk - 1].ic} ${SALAS[kk - 1].nome}`);
     R.portaO = portaBonita(g, -H + 0.32, 0, 0, Math.PI / 2, prox ? `${prox.ic} ${prox.nome}` : '');
+    { const pf = new THREE.Group(); pf.position.set(-H, 0, 0); g.add(pf); R.portaFechada = pf;            // fecha o vão quando ainda não há próximo cômodo
+      const tab = PM('madeira.jpg', [1, 2], new THREE.Color(0x8a5a34)), ferro = new THREE.MeshLambertMaterial({ color: 0x2a2420 });
+      box(0.2, 3.0, 2.4, tab, 0.05, 1.5, 0, pf); for (const y of [0.6, 2.4]) box(0.26, 0.12, 2.3, ferro, 0.1, y, 0, pf);
+      for (let k = -2; k <= 2; k++) box(0.22, 2.9, 0.03, madeira(0x5a3a24), 0.06, 1.5, k * 0.46, pf);
+      box(0.3, 0.12, 0.12, ferro, 0.2, 1.5, 0.8, pf); }
     mobiliar(R);
   }
   function mobiliar(R) {
@@ -300,7 +306,7 @@ const Comodos = (() => {
       const dx = gov.tx - gov.x, dz = gov.tz - gov.z, d = Math.hypot(dx, dz), anda = d > 0.2;
       if (anda) { const nx = gov.x + dx / d * Math.min(d, 1.1 * dt), nz = gov.z + dz / d * Math.min(d, 1.1 * dt); if (blocked(nx, nz, 0.4)) gov.t = 0; else { gov.x = nx; gov.z = nz; } gov.face = Math.atan2(dx, dz); } else gov.varre += dt;
       gov.g.position.set(gov.x, CASA.y, gov.z);
-      gov.act.update(dt, { face: Math.hypot(P.x - gov.x, P.z - gov.z) < 3 ? Math.atan2(P.x - gov.x, P.z - gov.z) : gov.face, moving: anda });
+      gov.act.update(dt, { face: !anda && Math.hypot(P.x - gov.x, P.z - gov.z) < 3 ? Math.atan2(P.x - gov.x, P.z - gov.z) : gov.face, moving: anda });
       if (gov.vass) { gov.vass.rotation.z = !anda ? Math.sin(gov.varre * 7) * 0.5 : 0.2; if (!anda && Math.random() < dt * 4 && typeof VFX !== 'undefined') VFX.particle(new THREE.Vector3(gov.x + 0.5, CASA.y + 0.15, gov.z + 0.2), 0xc8b89a, { map: VFX.T.smoke, size: 0.5, speed: 0.6, g: -0.3, life: 0.8, op: 0.4 }); }
     }
     if (obra.act) obra.act.update(dt, { face: Math.hypot(P.x - obra.x, P.z - obra.z) < 7 ? Math.atan2(P.x - obra.x, P.z - obra.z) : 0, moving: false });
@@ -317,6 +323,7 @@ const Comodos = (() => {
     if (perto(R.f.x + H - 0.6, R.f.z)) { if (aqui === 0) ir(CASA.x - H + 1.8, CASA.z - 0.5, Math.PI / 2); else { const f = ROOMS[aqui - 1].f; ir(f.x - H + 1.6, f.z, Math.PI / 2); } }
     else if (perto(R.f.x - H + 0.6, R.f.z) && tem(aqui + 1) && ROOMS[aqui + 1]) { montarSala(ROOMS[aqui + 1]); const f = ROOMS[aqui + 1].f; ir(f.x + H - 1.6, f.z, -Math.PI / 2); }
     if (R.portaO) R.portaO.visible = !!ROOMS[aqui + 1] && tem(aqui + 1);
+    if (R.portaFechada) R.portaFechada.visible = !(R.portaO && R.portaO.visible);
   }
   function nearest() {
     if (!inTower(P.z)) { if (Math.hypot(P.x - obra.x, P.z - obra.z) < 3) return { label: '🏗️ Falar com o Mestre de Obras', fn: () => obras() }; return null; }
