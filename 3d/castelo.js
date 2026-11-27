@@ -15,7 +15,7 @@
 'use strict';
 const Castelo = (() => {
   const C = CASTELO, R = C.r, INI = 21 * 60, DUR = 30;               // 21:00 às 21:30 (minutos do dia) — passou das 20h para as 21h (pedido do Rone, 26/11)
-  ZONES.castelo = { name: 'Castelo da Guilda', music: 'fortaleza' };
+  ZONES.castelo = { name: 'Castelo da Guilda', music: 'auren' };
   // cada dia uma brincadeira DIFERENTE (pedido do Rone: tinha repetida)
   const TIPOS = { 1: 'monstros', 2: 'chefe', 3: 'baus', 4: 'pvp', 5: 'bonecos' };
   const NOME = { monstros: '⚔️ Caçada no Saguão', chefe: '🐉 Chefe da Guilda', baus: '🎁 Baús Escondidos', pvp: '🗡️ Duelo da Guilda (PvP)', bonecos: '🎯 Desafio dos Bonecos' };

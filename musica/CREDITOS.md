@@ -40,3 +40,19 @@ Cada lugar tem a sua música (antes vários repetiam a da vila e a do abismo).
 
 `composicoes-geradas/`: as 5 trilhas orquestrais compostas antes por
 `scripts/compor.py` (MuseScore General, MIT). Guardadas, fora de uso.
+
+## Cada lugar com a sua música (27/11, pedido do Rone: "não deixa músicas repetidas")
+
+Antes a Fortaleza, o castelo da guilda e a Cidadela tocavam a mesma; os dois Templos também; e a Cidade Submersa
+dividia a sua com o Rio, as Galerias e a Porta. Agora cada um tem uma trilha do RPG Kravenox que ainda não era usada:
+
+| Arquivo | Onde toca |
+|---|---|
+| batalha.mp4 | Fortaleza das Bandeiras (guerra de guildas) |
+| auren.mp4 | Castelo da guilda |
+| primeiro.mp4 | Templo da Primeira Raiz |
+| silencio.mp4 | Templo do Eco Selado |
+| memoria.mp4 | Margem das Memórias |
+| entre.mp4 | Rio das Memórias |
+| aster.mp4 | Galerias Afogadas |
+| espinhos.mp4 | Porta dos Três Espinhos |
