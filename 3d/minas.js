@@ -30,9 +30,9 @@ function criarMasmorra(C) {
   // ---------------- a caverna (paredes, chão, teto e o arco de luz da saída); o resto vem do tema
   const g = new THREE.Group(); g.position.set(M.x, M.y, M.z); scene.add(g);
   const cor = C.corPedra || new THREE.Color(0.55, 0.45, 0.4);
-  const rocha = PM('pedra.jpg', [8, 8], cor), rochaP = PM('pedra.jpg', [10, 2], cor.clone().multiplyScalar(0.9), { side: THREE.BackSide });
+  const rocha = PM(C.texChao || 'pedra.jpg', [8, 8], C.corChao || cor), rochaP = PM('pedra.jpg', [10, 2], cor.clone().multiplyScalar(0.9), { side: THREE.BackSide });
   const chao = new THREE.Mesh(new THREE.CircleGeometry(R + 1, 48).rotateX(-Math.PI / 2), rocha); chao.receiveShadow = true; g.add(chao);
-  const parede = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.5, R + 3, 9, 32, 1, true), rochaP); parede.position.y = 4.5; g.add(parede);
+  const parede = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.5, R + 3, 9, 32, 1, true), rochaP); parede.position.y = 4.5; g.add(parede); if (C.semParede) parede.visible = false;   // o tema faz a própria parede
   const teto = new THREE.Mesh(new THREE.CircleGeometry(R + 3, 32).rotateX(Math.PI / 2), new THREE.MeshLambertMaterial({ color: C.corTeto || 0x1a1412 })); teto.position.y = 9; g.add(teto);
   const box = (w, h, d, m, x, y, z, ry = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.rotation.y = ry; o.castShadow = o.receiveShadow = true; g.add(o); return o; };
   const tema = C.tema(g, R, box, M) || {};
@@ -209,21 +209,103 @@ const Minas = criarMasmorra({
   msgChefe: '☠ O <b>Capataz da Mina</b> acordou! Ele carrega muito minério e, às vezes, o 🔰 <b>Selo da Forja Eterna</b>.',
   msgLimpa: '✨ <b>Mina limpa!</b> Pegue o que caiu e saia pelo arco de luz. Para descer de novo, fale com o Doran.',
   msgDesabou: '💥 <b>A mina desabou!</b> Você escapou a tempo, com o que já tinha pegado. Fale com o Doran para descer de novo.',
+  texChao: 'terra.jpg', corChao: new THREE.Color(0.62, 0.52, 0.42), corTeto: 0x0c0907, semParede: true,
   tema(g, R, box, M) {
-    // trilhos da carroça, vigas de madeira, cristais de minério brilhando nas paredes
-    const madeira = PM('madeira.jpg', [1, 1], new THREE.Color(0.8, 0.6, 0.45)), ferro = new THREE.MeshPhongMaterial({ color: 0x55555c, shininess: 40 });
+    // Mina de verdade (pedido do Rone: "precisa de um ambiente de mina"): parede de rocha bruta e irregular,
+    // estalactites, pedras soltas, escoras de madeira com lampiões, veios de minério presos na rocha,
+    // carrinho cheio de minério nos trilhos, barris, caixotes, picareta e poeira no ar. Criado para o jogo.
+    const madeira = PM('madeira.jpg', [1, 1], new THREE.Color(0.62, 0.45, 0.32)), ferro = new THREE.MeshPhongMaterial({ color: 0x4a4a50, shininess: 50 });
+    const pedraM = new THREE.MeshLambertMaterial({ map: photo('rocha_clara.jpg', [14, 3]), color: 0xb08a68, vertexColors: true, side: THREE.BackSide, emissive: 0x7a5434, emissiveIntensity: 0.35, emissiveMap: photo('rocha_clara.jpg', [14, 3]) });   // a rocha tem um pouco de luz própria quente: os lampiões não alcançam a parede (rocha.jpg é quase preta)   // (sem flatShading: por dentro ficava preto)
+    const pedraF = new THREE.MeshLambertMaterial({ map: photo('rocha_clara.jpg', [1, 1]), color: 0xa08060, flatShading: true, emissive: 0x6a4a30, emissiveIntensity: 0.3, emissiveMap: photo('rocha_clara.jpg', [1, 1]) });
+    // o raio da parede em cada ângulo e altura (sempre fora de onde o personagem anda: R - 1)
+    const raioP = (a, y) => R + 0.55 + Math.sin(a * 7 + 1.3) * 0.35 + Math.sin(a * 13 + y * 0.9) * 0.25 + Math.sin(a * 3 - y * 0.5) * 0.4 + Math.max(0, y - 6) * 0.25;
+    // parede: cilindro com cada ponto empurrado para dentro ou para fora, e manchas de cor
+    const pg = new THREE.CylinderGeometry(1, 1, 10, 64, 10, true), pp = pg.attributes.position, cores = [];
+    for (let i = 0; i < pp.count; i++) {
+      const x = pp.getX(i), y = pp.getY(i) + 5, z = pp.getZ(i), a = Math.atan2(x, z), r = raioP(a, y);
+      pp.setXYZ(i, Math.sin(a) * r, y, Math.cos(a) * r);
+      const t = 0.55 + 0.25 * Math.sin(a * 11 + y * 1.7) * Math.sin(y * 2.3 + a * 5) + 0.12 * Math.sin(a * 29);
+      cores.push(t * 1.05, t * 0.92, t * 0.8);
+    }
+    pg.setAttribute('color', new THREE.Float32BufferAttribute(cores, 3)); pg.computeVertexNormals();
+    const paredeR = new THREE.Mesh(pg, pedraM); paredeR.receiveShadow = true; g.add(paredeR);
+    // pedras soltas no pé da parede e estalactites no teto (uma peça só para cada, para não pesar)
+    const pedraG = new THREE.IcosahedronGeometry(1, 1); { const q = pedraG.attributes.position; for (let i = 0; i < q.count; i++) { const k = 0.75 + Math.abs(Math.sin(q.getX(i) * 4.1 + q.getY(i) * 3.3 + q.getZ(i) * 5.7)) * 0.4; q.setXYZ(i, q.getX(i) * k, q.getY(i) * k, q.getZ(i) * k); } pedraG.computeVertexNormals(); }
+    const dm = new THREE.Object3D(), cor = new THREE.Color();
+    const pedras = new THREE.InstancedMesh(pedraG, pedraF, 46);
+    for (let k = 0; k < 46; k++) {
+      const a = k / 46 * TAU + Math.sin(k * 7.3) * 0.06, s = 0.5 + Math.abs(Math.sin(k * 3.7)) * 1.1, r = raioP(a, 0.5) - 0.2;
+      dm.position.set(Math.sin(a) * r, s * 0.25, Math.cos(a) * r); dm.scale.set(s * 1.2, s * 0.75, s); dm.rotation.set(k, k * 2.1, k * 0.7); dm.updateMatrix(); pedras.setMatrixAt(k, dm.matrix);
+      const t = 0.5 + Math.abs(Math.sin(k * 5.1)) * 0.3; pedras.setColorAt(k, cor.setRGB(t * 1.05, t * 0.92, t * 0.8));
+    }
+    pedras.castShadow = pedras.receiveShadow = true; g.add(pedras);
+    const estal = new THREE.InstancedMesh(new THREE.ConeGeometry(0.35, 1, 6).rotateX(Math.PI), new THREE.MeshLambertMaterial({ color: 0x6a5848, flatShading: true, emissive: 0x1c130c }), 40);
+    for (let k = 0; k < 40; k++) {
+      const a = k * 2.39996, r = 3 + (k * 0.618 % 1) * (R - 3), h = 0.8 + Math.abs(Math.sin(k * 4.3)) * 1.8;
+      dm.position.set(Math.sin(a) * r, 9 - h / 2, Math.cos(a) * r); dm.scale.set(0.7 + (k % 3) * 0.3, h, 0.7 + (k % 3) * 0.3); dm.rotation.set(0, k, 0); dm.updateMatrix(); estal.setMatrixAt(k, dm.matrix);
+    }
+    g.add(estal);
+    // trilhos da carroça (dormentes escuros)
     for (const sx of [-0.7, 0.7]) box(0.12, 0.08, R * 1.6, ferro, sx, 0.05, 0);
     for (let k = -9; k <= 9; k++) box(1.9, 0.08, 0.3, madeira, 0, 0.02, k * 2);
-    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + 0.2; box(0.5, 8, 0.5, madeira, Math.sin(a) * (R - 0.6), 4, Math.cos(a) * (R - 0.6)); }
-    const cristais = [];
-    for (let k = 0; k < 22; k++) {
-      const a = k / 22 * TAU + (k % 3) * 0.13, r = R - 0.8 - (k % 2) * 0.6, arma = k % 2 === 0;
-      const c = new THREE.Mesh(new THREE.OctahedronGeometry(0.5 + (k % 3) * 0.25), new THREE.MeshBasicMaterial({ color: arma ? 0xffa040 : 0x50b0ff, toneMapped: false }));
-      c.position.set(Math.sin(a) * r, 0.6 + (k % 4) * 1.6, Math.cos(a) * r); c.scale.y = 1.8; c.rotation.z = (k % 5 - 2) * 0.3; g.add(c); cristais.push(c);
+    // escoras: dois esteios encostados na rocha e uma viga por cima, cada uma com um lampião pendurado
+    const vidroM = new THREE.MeshBasicMaterial({ color: 0xffb050, toneMapped: false }), lamp = [];
+    for (let k = 0; k < 8; k++) {
+      const a = k / 8 * TAU + TAU / 16, r = R - 0.6, rot = a + Math.PI / 2;
+      for (const d of [-0.16, 0.16]) box(0.4, 6, 0.4, madeira, Math.sin(a + d) * r, 3, Math.cos(a + d) * r, -a);
+      box(0.45, 0.45, 2 * r * Math.sin(0.16) + 0.8, madeira, Math.sin(a) * r, 6.1, Math.cos(a) * r, rot);
+      const l = new THREE.Group(); l.position.set(Math.sin(a) * (r - 0.5), 5.2, Math.cos(a) * (r - 0.5));
+      const fio = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.7), ferro); fio.position.y = 0.55; l.add(fio);
+      const cx = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.34, 0.26), new THREE.MeshLambertMaterial({ color: 0x2a2420, wireframe: true })); l.add(cx);
+      const vd = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.28, 0.2), vidroM); l.add(vd);
+      const tp = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.14, 4), ferro); tp.position.y = 0.24; tp.rotation.y = Math.PI / 4; l.add(tp);
+      g.add(l); lamp.push(l);
     }
-    box(1.8, 1, 1.2, madeira, 0, 0.7, -R + 6); box(1.5, 0.3, 1, new THREE.MeshLambertMaterial({ color: 0xc07030 }), 0, 1.25, -R + 6);
-    addOb(M.x, M.z - R + 6, 1.1);
-    [[0, 5, 0], [0, 4, R - 6], [0, 4, -R + 8]].forEach(([x, y, z], i) => { const l = new THREE.PointLight(i ? 0xffb060 : 0xffd0a0, 1.3, 30); l.position.set(x, y, z); g.add(l); });
-    return { update: dt => { for (const c of cristais) c.rotation.y += dt * 0.4; } };
+    // veios de minério: grupinhos de cristais saindo da rocha (laranja = Minério Rúnico, azul = Pedra de Têmpera)
+    const cristais = [], cristG = new THREE.OctahedronGeometry(1, 0);
+    const matL = new THREE.MeshBasicMaterial({ color: 0xffa040, toneMapped: false }), matA = new THREE.MeshBasicMaterial({ color: 0x50b0ff, toneMapped: false });
+    for (let v = 0; v < 14; v++) {
+      const a = v / 14 * TAU + 0.21 + Math.sin(v * 2.7) * 0.08; if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.35) continue;   // não tampa a saída
+      const y0 = 0.9 + (v * 0.37 % 1) * 3.4, mat = v % 2 ? matA : matL, rw = raioP(a, y0);
+      const veio = new THREE.Group(); veio.position.set(Math.sin(a) * (rw - 0.15), y0, Math.cos(a) * (rw - 0.15)); veio.rotation.y = a + Math.PI; g.add(veio);
+      const base = new THREE.Mesh(pedraG, pedraF); base.scale.set(0.85, 0.6, 0.4); base.position.z = -0.1; veio.add(base);   // o minério sai de um caroço de rocha (sozinho parecia flutuar)
+      for (let k = 0; k < 5; k++) {
+        const c = new THREE.Mesh(cristG, mat), s = 0.12 + (k * 0.29 % 1) * 0.2;
+        c.scale.set(s, s * 2.4, s); c.position.set((k - 2) * 0.2, Math.sin(k * 2.1) * 0.25, 0.25); c.rotation.set(-0.9 + Math.sin(k) * 0.3, 0, (k - 2) * 0.35); veio.add(c);
+      }
+      cristais.push(veio);
+    }
+    // carrinho de mina cheio de minério nos trilhos (no lugar do caixote de antes)
+    const cz = -R + 6, carro = new THREE.Group(); carro.position.set(0, 0, cz); g.add(carro);
+    const caixa = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 0.78, 0.85, 4, 1, true), new THREE.MeshPhongMaterial({ color: 0x5a3e2a, side: THREE.DoubleSide, flatShading: true }));
+    caixa.rotation.y = Math.PI / 4; caixa.scale.set(1, 1, 1.35); caixa.position.y = 0.75; caixa.castShadow = true; carro.add(caixa);
+    const fundo = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 1.5), ferro); fundo.position.y = 0.34; carro.add(fundo);
+    for (const [x, z] of [[-0.62, -0.5], [0.62, -0.5], [-0.62, 0.5], [0.62, 0.5]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 12).rotateZ(Math.PI / 2), ferro); w.position.set(x, 0.22, z); carro.add(w); }
+    for (let k = 0; k < 9; k++) { const o = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2 + (k % 3) * 0.06), k % 3 ? pedraF : k % 2 ? matA : matL); o.position.set(Math.sin(k * 2.4) * 0.45, 1.05 + (k % 2) * 0.1, Math.cos(k * 2.4) * 0.55); carro.add(o); }
+    addOb(M.x, M.z + cz, 1.1);
+    // barris, caixotes, monte de minério e a picareta encostada (perto da parede, longe da saída)
+    const barril = new THREE.MeshLambertMaterial({ map: photo('madeira.jpg', [1, 2]), color: 0x9a7050 });
+    const coisa = (a, fn) => { const r = R - 2.2, x = Math.sin(a) * r, z = Math.cos(a) * r; fn(x, z); addOb(M.x + x, M.z + z, 0.8); };
+    coisa(1.2, (x, z) => { for (const [dx, dz] of [[0, 0], [0.75, 0.3]]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.95, 12), barril); b.position.set(x + dx, 0.48, z + dz); b.castShadow = true; g.add(b); } });
+    coisa(2.3, (x, z) => { box(0.9, 0.8, 0.9, madeira, x, 0.4, z, 0.3); box(0.7, 0.6, 0.7, madeira, x + 0.1, 1.1, z, 0.9); });
+    coisa(-1.4, (x, z) => { for (let k = 0; k < 7; k++) { const o = new THREE.Mesh(pedraG, k % 3 ? pedraF : matL); const s = 0.25 + (k % 3) * 0.1; o.scale.setScalar(s); o.position.set(x + Math.sin(k * 2.2) * 0.45, s * 0.7 + (k > 4 ? 0.35 : 0), z + Math.cos(k * 2.2) * 0.45); g.add(o); }
+      const cabo = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), madeira); cabo.position.set(x + 0.9, 0.7, z); cabo.rotation.z = 0.35; g.add(cabo);
+      const pa = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 0.1), ferro); pa.position.set(x + 1.15, 1.4, z); pa.rotation.z = 0.35 - 0.15; g.add(pa); });
+    coisa(-2.4, (x, z) => { box(0.9, 0.8, 0.9, madeira, x, 0.4, z, -0.4); for (const dx of [-0.3, 0.3]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.8, 12), barril); b.position.set(x + dx, 0.4, z + 0.85); g.add(b); } });
+    // poeira no ar, bem devagar
+    const NP = 160, pos = new Float32Array(NP * 3);
+    for (let i = 0; i < NP; i++) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * (R - 1); pos[i * 3] = Math.sin(a) * r; pos[i * 3 + 1] = Math.random() * 7; pos[i * 3 + 2] = Math.cos(a) * r; }
+    const pgeo = new THREE.BufferGeometry(); pgeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const poeira = new THREE.Points(pgeo, new THREE.PointsMaterial({ size: 0.09, map: pontoTex(), color: 0xffd8a0, transparent: true, opacity: 0.45, depthWrite: false })); g.add(poeira);
+    // luzes: quentes como os lampiões, e tremem um pouco
+    const luzes = [[0, 5, 0, 1.3], [0, 4, R - 6, 1.2], [0, 4, -R + 8, 1.2], [R * 0.55, 4.5, -2, 0.8], [-R * 0.55, 4.5, -2, 0.8]].map(([x, y, z, i], k) => { const l = new THREE.PointLight(k ? 0xffa850 : 0xffc890, i, 30); l.position.set(x, y, z); l.userData.i = i; g.add(l); return l; });
+    let t = 0;
+    return { update: dt => {
+      t += dt;
+      luzes.forEach((l, k) => { l.intensity = l.userData.i * (0.9 + Math.sin(t * 7 + k * 2) * 0.05 + Math.sin(t * 13.3 + k) * 0.04); });
+      lamp.forEach((l, k) => { l.rotation.z = Math.sin(t * 1.3 + k) * 0.05; });
+      vidroM.color.setHSL(0.09, 1, 0.6 + Math.sin(t * 9) * 0.04); matL.color.setHSL(0.08, 1, 0.6 + Math.sin(t * 1.7) * 0.06); matA.color.setHSL(0.57, 1, 0.62 + Math.sin(t * 1.9 + 1) * 0.06);   // o minério pulsa de leve
+      const q = pgeo.attributes.position; for (let i = 0; i < NP; i++) { let y = q.getY(i) + dt * 0.08; if (y > 7) y = 0; q.setY(i, y); q.setX(i, q.getX(i) + Math.sin(t * 0.5 + i) * dt * 0.05); } q.needsUpdate = true;
+    } };
   },
 });

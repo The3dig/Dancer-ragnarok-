@@ -2,6 +2,10 @@
 
 Tudo o que mudou no jogo, da mais nova para a mais antiga (são as mesmas novidades do botão 📢 Avisos, no menu ❓).
 
+## 27/11
+
+- **⛏️ Mina da Forja com cara de mina**: A **Mina da Forja** deixou de ser um salão de piso e parede lisa. Agora é uma mina de verdade: chão de terra, paredes de rocha bruta, estalactites no teto, pedras soltas, escoras de madeira com lampiões balançando, veios de 🔶 Minério Rúnico e 🔷 Pedra de Têmpera brilhando na rocha, carrinho cheio de minério nos trilhos, barris, caixotes, picareta e poeira no ar.
+
 ## 26/11
 
 - **🚶 Outros jogadores e bichos andando liso**: Os outros jogadores e os bichos andavam aos trancos (corriam e freavam várias vezes por segundo). Agora andam em velocidade constante, lisinho. Os bichos também pararam de andar tortos, balançando de um lado para o outro.
