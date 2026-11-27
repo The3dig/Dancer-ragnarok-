@@ -1099,3 +1099,15 @@ body.ficha-aberta #statwin .fc { padding-bottom: 120px; }
 #dialog .dtext, #dialog .dopts { flex: none; }
 #dialog .wt { background-color: rgba(24, 18, 30, .97); }
 @media (max-height: 520px) { #dialog { max-height: 94vh; } #dialog .dopts { max-height: none; overflow: visible; } }
+
+/* tela de carregamento: aparece antes de tudo (antes aparecia a tela antiga de criar personagem por alguns segundos) */
+#carregando { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: radial-gradient(ellipse at 50% 40%, #2a2244 0%, #120f1e 60%, #07060c 100%); transition: opacity .6s; }
+#carregando.some { opacity: 0; pointer-events: none; }
+#carregando .cg-logo { display: flex; flex-direction: column; align-items: center; font-family: 'Cinzel', Georgia, serif; }
+#carregando small { letter-spacing: 6px; font-size: 13px; color: #c8b890; }
+#carregando b { font-weight: 800; font-size: clamp(32px, 7vw, 60px); color: #f2c86a; letter-spacing: 3px; margin: 4px 0; text-shadow: 0 3px 12px rgba(0,0,0,.7); }
+#carregando span { letter-spacing: 14px; color: #e8dcc0; font-size: 14px; }
+#carregando .cg-barra { width: min(260px, 60vw); height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; }
+#carregando .cg-barra i { display: block; height: 100%; width: 35%; border-radius: 3px; background: linear-gradient(90deg, #8a6a2a, #f2c86a); animation: cgVai 1.3s ease-in-out infinite; }
+#carregando p { color: #c8b890; font: 700 13px 'Nunito', sans-serif; margin: 0; }
+@keyframes cgVai { 0% { transform: translateX(-100%); } 100% { transform: translateX(290%); } }

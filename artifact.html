@@ -18,6 +18,9 @@
 <link rel="stylesheet" href="3d/style3d.css">
 </head>
 <body>
+<!-- cobre a tela antiga (criar personagem) enquanto os scripts carregam; contas.js tira quando a abertura nova entra -->
+<div id="carregando"><div class="cg-logo"><small>Crônicas do</small><b>Reino Quebrado</b><span>ONLINE</span></div><div class="cg-barra"><i></i></div><p>Carregando o reino…</p></div>
+<script>setTimeout(function () { var c = document.getElementById('carregando'); if (c) c.remove(); }, 45000);   // se algo der errado, não prende a tela</script>
 <div id="labels"><div id="pname" class="pname"></div><div id="mybubble" class="bubble hidden"></div></div>
 
 <div id="hud" class="hidden">
@@ -84,7 +87,7 @@
       <button id="btn-new">✨ Novo Jogo</button>
       <button id="btn-cont">▶ Continuar</button>
     </div>
-    <p class="hint"><a href="#" onclick="MaisJogos.mostrar();return false" style="font-weight:800">🎮 Mais jogos</a> · <a href="2d.html">Jogar a versão 2D original</a> · <span class="ver">versão 27/11 · 128</span></p>
+    <p class="hint"><a href="#" onclick="MaisJogos.mostrar();return false" style="font-weight:800">🎮 Mais jogos</a> · <a href="2d.html">Jogar a versão 2D original</a> · <span class="ver">versão 27/11 · 129</span></p>
   </div>
 </div>
 

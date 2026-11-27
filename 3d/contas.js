@@ -25,6 +25,7 @@ const Contas = (() => {
   document.body.appendChild(intro); document.body.appendChild(slots);
   $('title').classList.add('hidden');
   window.INTRO = true;
+  { const cg = document.getElementById('carregando'); if (cg) { cg.classList.add('some'); setTimeout(() => cg.remove(), 700); } }   // a abertura nova entrou: tira a tela de carregamento
 
   function portrait(cls) { const C = CLASSES[cls]; return C && window.SPR && SPR[C.portrait] ? `<img src="data:image/png;base64,${SPR[C.portrait]}">` : '<span class="sl-plus">?</span>'; }
   function renderSlots() {
