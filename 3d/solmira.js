@@ -129,5 +129,50 @@ const Solmira = (() => {
   }
 
   fundir(cid); decor(cid, 40);
-  return {};
+
+  // ---------------- moradores andando pela cidade (pedido do Rone: "muitas pessoas andando")
+  // Cada um vai de ponto em ponto (volta da praça, rua de pedra e a porta das casas), só por caminho livre,
+  // e para um pouco em cada lugar. Cada jogador vê os seus (não passam pelo servidor). Criados para o jogo.
+  const NOS = [];
+  const livre = (x, z) => !blocked(x, z, 0.4);
+  for (let k = 0; k < 18; k++) { const [x, z] = P2(19.5, k * 20); NOS.push({ x, z }); }                  // volta da praça
+  for (const lado of [1, -1]) for (const d of [23, 29, 35]) for (const zz of [-1.6, 1.6]) NOS.push({ x: VIL.x + lado * d, z: VIL.z + zz });   // rua
+  const CASAS = [[-125, -22], [-105, -30], [-84, -24], [-127, 22], [-104, 30], [-84, 22], [-135, -6], ...[[36, -150], [36, -115], [37, -28], [37, 28], [36, 65], [36, 115], [36, 150]].map(([r, g]) => P2(r, g))];
+  for (const [hx, hz] of CASAS) { const d = Math.hypot(VIL.x - hx, VIL.z - hz), k = 4.6 / d; NOS.push({ x: hx + (VIL.x - hx) * k, z: hz + (VIL.z - hz) * k, porta: true }); }   // na frente da porta
+  const caminhoLivre = (a, b) => { const d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 0.6); for (let i = 1; i <= n; i++) if (!livre(a.x + (b.x - a.x) * i / n, a.z + (b.z - a.z) * i / n)) return false; return true; };
+  const ROSTOS = ['s_aldea', 's_aldeao', 's_senhora', 's_mascate', 's_menina', 's_menino', 's_ancia', 's_refugiada', 's_leitor'];
+  let moradores = null;
+  function criar() {
+    const nos = NOS.filter(n => livre(n.x, n.z));
+    // ligações: cada ponto conhece os pontos perto (até 15 m) que dá para alcançar em linha reta
+    for (const n of nos) n.viz = nos.filter(o => o !== n && Math.hypot(o.x - n.x, o.z - n.z) < 15 && caminhoLivre(n, o));
+    const usaveis = nos.filter(n => n.viz.length);
+    moradores = Array.from({ length: 16 }, (_, i) => {
+      const base = ROSTOS[i % ROSTOS.length], crianca = /menin/.test(base), no = usaveis[(i * 7) % usaveis.length];
+      const g = new THREE.Group(); scene.add(g);
+      const act = SpriteKit.actor({ kind: 'dir', base }); g.add(act.root);
+      return { g, act, x: no.x, z: no.z, no, alvo: null, para: Math.random() * 4, face: Math.random() * TAU, vel: crianca ? 2.3 : 1.2 + Math.random() * 0.5 };
+    });
+  }
+  function update(dt) {
+    const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 85 && !inTower(P.z);
+    if (moradores) for (const m of moradores) m.g.visible = perto;
+    if (!perto) return;
+    if (!moradores) { if (typeof SpriteKit === 'undefined' || !SpriteKit.ready) return; criar(); }
+    for (const m of moradores) {
+      let anda = false;
+      if (m.para > 0) m.para -= dt;
+      else {
+        if (!m.alvo) { const v = m.no.viz; m.alvo = v[Math.floor(Math.random() * v.length)]; }
+        const dx = m.alvo.x - m.x, dz = m.alvo.z - m.z, d = Math.hypot(dx, dz), passo = m.vel * dt;
+        if (d <= passo) { m.x = m.alvo.x; m.z = m.alvo.z; m.no = m.alvo; m.alvo = null; m.para = m.no.porta ? 2 + Math.random() * 5 : Math.random() < 0.4 ? 1 + Math.random() * 3 : 0; }
+        else { m.x += dx / d * passo; m.z += dz / d * passo; m.face = Math.atan2(dx, dz); anda = true; }
+      }
+      // parado perto de você: olha para você
+      const pd = Math.hypot(P.x - m.x, P.z - m.z);
+      m.g.position.set(m.x, groundY(m.x, m.z), m.z);
+      m.act.update(dt, { face: !anda && pd < 4 ? Math.atan2(P.x - m.x, P.z - m.z) : m.face, moving: anda });
+    }
+  }
+  return { update, moradores: () => moradores || [] };
 })();
