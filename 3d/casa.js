@@ -289,5 +289,5 @@ const Casa = (() => {
     if (Math.hypot(P.x - BANC.x, P.z - BANC.z) < 2.6) return { label: '🔨 Reformas da casa', fn: () => reformas() };
     return null;
   }
-  return { update, nearest, entrar, sair, furnish, menuMudar, door: OUT_DOOR, MOVEIS };
+  return { update, nearest, entrar, sair, furnish, menuMudar, door: OUT_DOOR, MOVEIS, BUILD };
 })();

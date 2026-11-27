@@ -126,7 +126,7 @@ const Comodos = (() => {
     armario(p, c) { const mad = madeira(c); box(2.2, 3, 0.9, mad, 0, 1.5, 0, p); box(0.04, 2.6, 0.02, L(0x2a1a10), 0, 1.5, 0.46, p); for (const x of [-0.15, 0.15]) box(0.08, 0.3, 0.06, ouro, x, 1.5, 0.48, p); box(2.4, 0.2, 1, mad, 0, 3.1, 0, p); },
     penteadeira(p, c) { const mad = madeira(c); box(1.6, 0.9, 0.7, mad, 0, 0.45, 0, p); const e = new THREE.Mesh(new THREE.CircleGeometry(0.55, 24), PH(0xdfefff, 0x203040)); e.position.set(0, 1.6, -0.3); p.add(e); box(1.3, 1.3, 0.06, ouro, 0, 1.6, -0.34, p); },
     lustre(p, c) { box(0.05, 1, 0.05, L(0x3a3a3a), 0, 3.3, 0, p); const r = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.06, 8, 24), ouro); r.rotation.x = Math.PI / 2; r.position.y = 2.8; p.add(r); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; box(0.08, 0.25, 0.08, L(0xf8f0e0), Math.cos(a) * 0.8, 2.95, Math.sin(a) * 0.8, p); const ch = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), B(c === 0x9ae0ff ? 0xbff2ff : 0xffd070)); ch.position.set(Math.cos(a) * 0.8, 3.12, Math.sin(a) * 0.8); p.add(ch); } p.userData.brilha = true; },
-    estante(p, c) { const mad = madeira(c); box(2.6, 3.2, 0.6, mad, 0, 1.6, 0, p); const cores = [0x8a2a2a, 0x2a4a8a, 0x3a6a2a, 0x8a6a2a, 0x5a2a6a, 0x2a6a6a]; for (let r = 0; r < 4; r++) { box(2.4, 0.06, 0.5, mad, 0, 0.3 + r * 0.75, 0.04, p); for (let k = 0; k < 10; k++) box(0.18, 0.5 + (k % 3) * 0.07, 0.38, L(cores[(k + r) % 6]), -1.05 + k * 0.23, 0.6 + r * 0.75, 0.05, p); } },
+    estante(p, c) { const mad = madeira(c); box(2.6, 3.2, 0.08, mad, 0, 1.6, -0.26, p); for (const x of [-1.25, 1.25]) box(0.1, 3.2, 0.6, mad, x, 1.6, 0, p); box(2.6, 0.12, 0.6, mad, 0, 3.14, 0, p);   /* fundo, laterais e topo: antes era uma caixa maciça e os livros ficavam escondidos dentro */ const cores = [0x8a2a2a, 0x2a4a8a, 0x3a6a2a, 0x8a6a2a, 0x5a2a6a, 0x2a6a6a]; for (let r = 0; r < 4; r++) { box(2.4, 0.06, 0.5, mad, 0, 0.3 + r * 0.75, 0.04, p); for (let k = 0; k < 10; k++) box(0.18, 0.5 + (k % 3) * 0.07, 0.38, L(cores[(k + r) % 6]), -1.05 + k * 0.23, 0.6 + r * 0.75, 0.05, p); } },
     mesaleitura(p, c) { const mad = madeira(c); box(2.4, 0.12, 1.3, mad, 0, 1, 0, p); for (const [x, z] of [[-1, -0.5], [1, -0.5], [-1, 0.5], [1, 0.5]]) box(0.12, 1, 0.12, mad, x, 0.5, z, p); box(0.9, 0.08, 0.6, L(0xf0e6c8), -0.3, 1.1, 0, p); box(0.08, 0.3, 0.08, L(0xf8f0e0), 0.7, 1.21, -0.2, p); const ch = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), B(0xffd070)); ch.position.set(0.7, 1.4, -0.2); p.add(ch); },
     globo(p, c) { box(0.12, 1, 0.12, madeira(0x5a3a24), 0, 0.5, 0, p); const s = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 16), PH(c, 0x0a1a2a)); s.position.y = 1.5; p.add(s); const r = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.04, 6, 24), ouro); r.position.y = 1.5; r.rotation.y = Math.PI / 2; p.add(r); p.userData.gira = s; },
     cristal(p, c) { box(1, 0.6, 1, L(0x5a5a66), 0, 0.3, 0, p); const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), PH(c, new THREE.Color(c).multiplyScalar(0.5))); s.position.y = 1.5; s.scale.y = 1.6; p.add(s); p.userData.gira = s; p.userData.flutua = s; },
@@ -269,16 +269,61 @@ const Comodos = (() => {
   }
   // ---------------- 📖 Livro dos Móveis (pedido do Rone: "a gente tem mania de colecionador")
   // cada linha é um cômodo; linha completa = ★, +1 ponto de atributo e placa dourada
+  // 📸 fotos de verdade dos móveis no Livro (pedido do Rone: "a gente tem mania de colecionador"; no livro só
+  // apareciam emojis apagados). Cada móvel 3D é montado sozinho numa cena pequena, fotografado de 3/4 e guardado.
+  const FOTO = {};
+  let fotoRT = null;
+  function fotoMovel(chave, montar) {
+    if (FOTO[chave]) return FOTO[chave];
+    const N = 128; if (!fotoRT) { fotoRT = new THREE.WebGLRenderTarget(N, N); fotoRT.texture.encoding = THREE.sRGBEncoding; }
+    const cena = new THREE.Scene(); cena.add(new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 0.9)); const sol = new THREE.DirectionalLight(0xfff0dd, 0.9); sol.position.set(3, 5, 6); cena.add(sol); const apoio = new THREE.DirectionalLight(0xd8e0ff, 0.45); apoio.position.set(-5, 2, 3); cena.add(apoio);
+    const p = new THREE.Group(); cena.add(p);
+    const orig = addOb; addOb = () => ({}); try { montar(p); } catch (e) { } finally { addOb = orig; }
+    // madeira escura saía preta na foto: clareia as cores escuras (só na foto; o móvel na casa não muda)
+    const clones = []; p.traverse(o => { if (o.isPoints || o.isSprite) { o.visible = false; return; }
+      if (o.material && o.material.color && !o.material.isMeshBasicMaterial) { const m = o.material.clone(), hsl = {}; m.color.getHSL(hsl); if (hsl.l < 0.4) m.color.setHSL(hsl.h, hsl.s, 0.4 + hsl.l * 0.4); o.material = m; clones.push(m); } });
+    const bx = new THREE.Box3().setFromObject(p); if (bx.isEmpty()) return (FOTO[chave] = '');
+    const ctr = bx.getCenter(new THREE.Vector3()), tam = bx.getSize(new THREE.Vector3()), r = Math.max(tam.x, tam.y, tam.z) * 0.7 + 0.1;
+    const cam = new THREE.PerspectiveCamera(30, 1, 0.05, 100), d = r / Math.sin(Math.PI / 12);
+    const chao = tam.y < 0.25;                                                  // tapete: foto de cima
+    cam.position.set(ctr.x + d * (chao ? 0.15 : 0.55), ctr.y + d * (chao ? 0.95 : 0.28), ctr.z + d * (chao ? 0.3 : 0.8)); cam.lookAt(ctr);
+    const antes = renderer.getRenderTarget(), cor = renderer.getClearColor(new THREE.Color()), alfa = renderer.getClearAlpha();
+    renderer.setRenderTarget(fotoRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(cena, cam);
+    const px = new Uint8Array(N * N * 4); renderer.readRenderTargetPixels(fotoRT, 0, 0, N, N, px);
+    renderer.setRenderTarget(antes); renderer.setClearColor(cor, alfa);
+    const c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = x.createImageData(N, N);
+    for (let y = 0; y < N; y++) im.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4);   // a imagem vem de cabeça para baixo
+    x.putImageData(im, 0, 0);
+    p.traverse(o => { if (o.geometry) o.geometry.dispose(); }); clones.forEach(m => m.dispose());
+    return (FOTO[chave] = c.toDataURL());
+  }
+  // lista de todos os móveis do livro: sala da casa + os 8 cômodos
+  function itensLivro() {
+    const c = S(), sala = typeof Casa !== 'undefined' && Casa.MOVEIS ? Casa.MOVEIS : {}, B = (typeof Casa !== 'undefined' && Casa.BUILD) || {};
+    const linhas = [{ id: 'sala', ic: '🏠', nome: 'Sala da casa', trancada: false, its: Object.entries(sala).map(([k, [nome, ic, cr, mat]]) => ({ chave: 'sala_' + k, nome, ic, cr, mat, conf: 6, tem: !!(c.mov || {})[k], montar: B[k] ? p => B[k](p) : null, onde: 'a Sala da casa (Reformas, na bancada)' })) }];
+    for (const R of ROOMS) linhas.push({ id: R.id, ic: R.ic, nome: R.nome, trancada: !c.salas[R.id], its: MOVEIS[R.id].map(m => ({ chave: m.id, nome: m.nome, ic: m.ic, cr: m.cr, mat: m.mat, conf: m.conf, tem: !!c.mob[m.id], montar: CONSTR[m.tipo] ? p => CONSTR[m.tipo](p, m.cor) : null, onde: `o ${R.nome} (com a Governanta Clara)` })) });
+    return linhas;
+  }
   function livro() {
-    const c = S(), ok = c.ok || {}, sala = typeof Casa !== 'undefined' && Casa.MOVEIS ? Casa.MOVEIS : {};
-    const cel = (ic, nome, tem) => `<span class="lm-c ${tem ? 'tem' : ''}" title="${nome}"><b>${ic}</b><small>${nome}</small>${tem ? '<i>✔</i>' : ''}</span>`;
-    const linha = (ic, nome, itens, feita, trancada) => `<div class="lm-l ${feita ? 'feita' : ''}"><div class="lm-t">${feita ? '★' : trancada ? '🔒' : '☆'} ${ic} <b>${nome}</b> <small>${trancada ? 'cômodo ainda não construído' : `${itens.filter(x => x[2]).length}/${itens.length}${feita ? ' · +1 ponto ganho' : ''}`}</small></div><div class="lm-g">${itens.map(x => cel(...x)).join('')}</div></div>`;
-    const salaIt = Object.values(sala).map(([nome, ic], i) => [ic, nome, !!(c.mov || {})[Object.keys(sala)[i]]]);
-    let total = salaIt.filter(x => x[2]).length, max = salaIt.length;
-    const linhas = [linha('🏠', 'Sala da casa', salaIt, !!ok.sala, false)];
-    for (const R of ROOMS) { const its = MOVEIS[R.id].map(m => [m.ic, m.nome, !!c.mob[m.id]]); total += its.filter(x => x[2]).length; max += its.length; linhas.push(linha(R.ic, R.nome, its, !!ok[R.id], !c.salas[R.id])); }
+    const c = S(), ok = c.ok || {}, linhas = itensLivro();
+    let total = 0, max = 0;
+    const cel = (it, li, ii) => `<span class="lm-c ${it.tem ? 'tem' : ''}" title="${it.nome}" onclick="Comodos.verMovel(${li},${ii})"><span class="lm-f" data-k="${it.chave}">${FOTO[it.chave] ? `<img src="${FOTO[it.chave]}">` : `<b>${it.ic}</b>`}</span><small>${it.nome}</small>${it.tem ? '<i>✔</i>' : '<i class="lm-x">🔒</i>'}</span>`;
+    const html = linhas.map((L0, li) => { const n = L0.its.filter(x => x.tem).length, feita = !!ok[L0.id]; total += n; max += L0.its.length;
+      return `<div class="lm-l ${feita ? 'feita' : ''}"><div class="lm-t">${feita ? '★' : L0.trancada ? '🔒' : '☆'} ${L0.ic} <b>${L0.nome}</b> <small>${L0.trancada ? 'cômodo ainda não construído' : `${n}/${L0.its.length}${feita ? ' · +1 ponto ganho' : ''}`}</small></div><div class="lm-g">${L0.its.map((it, ii) => cel(it, li, ii)).join('')}</div></div>`; }).join('');
     const pts = Object.keys(ok).length;
-    dialog('📖 Livro dos Móveis', `<div class="lm-top">Móveis: <b>${total} / ${max}</b> · Linhas completas: <b>${pts} / ${ROOMS.length + 1}</b> · Pontos de atributo ganhos: <b>+${pts}</b></div><div class="lm">${linhas.join('')}</div><small>Complete uma linha (todos os móveis do cômodo) para ganhar <b>+1 ponto de atributo</b> e a placa dourada. Os que você ainda não tem aparecem apagados.</small>`, [{ label: 'Fechar' }]);
+    dialog('📖 Livro dos Móveis', `<div class="lm-top">Móveis: <b>${total} / ${max}</b> · Linhas completas: <b>${pts} / ${ROOMS.length + 1}</b> · Pontos de atributo ganhos: <b>+${pts}</b></div><div class="lm">${html}</div><small>Toque num móvel para ver o que ele pede. Os que você já tem ficam coloridos com ✔; complete uma linha (todos os móveis do cômodo) para ganhar <b>+1 ponto de atributo</b> e a placa dourada.</small>`, [{ label: 'Fechar' }]);
+    // tira as fotos aos poucos (algumas por quadro) para o livro abrir na hora
+    const fila = linhas.flatMap(L0 => L0.its).filter(it => !FOTO[it.chave] && it.montar);
+    const passo = () => { const dlg = $('dialog'); if (!fila.length || !dlg || dlg.classList.contains('hidden')) return;
+      for (let k = 0; k < 4 && fila.length; k++) { const it = fila.shift(), url = fotoMovel(it.chave, it.montar); const el = dlg.querySelector(`.lm-f[data-k="${it.chave}"]`); if (el && url) el.innerHTML = `<img src="${url}">`; }
+      requestAnimationFrame(passo); };
+    requestAnimationFrame(passo);
+  }
+  function verMovel(li, ii) {
+    const L0 = itensLivro()[li], it = L0 && L0.its[ii]; if (!it) return;
+    Audio8.sfx('click');
+    const url = it.montar ? fotoMovel(it.chave, it.montar) : '';
+    dialog(`${it.ic} ${it.nome}`, `<div class="lm-ver">${url ? `<img src="${url}">` : `<b>${it.ic}</b>`}<div>${it.tem ? '✅ <b>Você já tem este móvel.</b>' : L0.trancada ? `🔒 Primeiro construa o cômodo <b>${L0.nome}</b> com o Mestre de Obras Tibério.` : `Faça em ${it.onde}.`}<br>🏠 +${it.conf} de conforto<br>${P.zeny >= it.cr ? '✅' : '❌'} 💰 <b>${fmt(it.cr)} cr</b> <small>(tem ${fmt(P.zeny)})</small></div></div>${it.tem ? '' : matTxt(it.mat)}`, [{ label: '← Voltar ao livro', fn: () => { livro(); return true; } }, { label: 'Fechar' }]);
   }
   // botão no ☰ Mais
   function botaoLivro() { const m = $('menu'); if (!m || $('btn-moveis')) return; const b = document.createElement('button'); b.id = 'btn-moveis'; b.title = 'Livro dos Móveis'; b.textContent = '📖'; b.style.display = 'none'; b.onclick = () => { Audio8.sfx('click'); livro(); }; m.appendChild(b); }
@@ -331,5 +376,5 @@ const Comodos = (() => {
     return null;
   }
   function init() { for (const R of ROOMS) if (S().salas[R.id]) montarSala(R); if (tem(0)) montarPortaCasa(); completos(); if (P.larAte > Date.now() && typeof addBuff === 'function') addBuff('lar', Math.round((P.larAte - Date.now()) / 1000), {}, '🏠'); }
-  return { faltaTxt, fonte, update, nearest, bonus, conforto, init, completos, livro, qtd, podeMat, tirarMat, matTxt, optPref, SALAS, MOVEIS };
+  return { faltaTxt, fonte, update, nearest, bonus, conforto, init, completos, livro, verMovel, qtd, podeMat, tirarMat, matTxt, optPref, SALAS, MOVEIS };
 })();
