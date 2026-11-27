@@ -1,5 +1,5 @@
 // Service worker: guarda os arquivos do jogo no aparelho (abre rápido e gasta menos internet).
-const CACHE = 'dancarina-v282';
+const CACHE = 'dancarina-v283';
 const FILES = [
   './', './index.html', './2d.html', './manifest.webmanifest', './css/style.css',
   './js/compat.js', './js/audio.js', './js/maps.js', './js/sprites.js', './js/game.js',

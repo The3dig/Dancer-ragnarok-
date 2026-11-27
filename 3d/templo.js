@@ -14,7 +14,7 @@
 'use strict';
 const Templo = (() => {
   const HW = 6, HL = 15, ENTRA = 12.5, PORTA = -13.4, LIMITE = 3;
-  const SAIDA = { x: VIL.x, z: VIL.z - 11.5 };                              // em Solmira, na frente da Ilka
+  const SAIDA = { x: VIL.x + 8, z: VIL.z - 8 };                              // em Solmira, na frente da Ilka (canto nordeste da praça)
   const NOMES = ['O Piso que Lembra', 'O Corredor das Lâminas', 'As Quatro Alavancas', 'A Luz dos Espelhos', 'A Ponte que Desaba', 'O Guardião do Eco'];
   let run = null, salas = [];
   // sorteio com semente (no grupo todos têm o mesmo templo)
@@ -491,14 +491,15 @@ const Templo = (() => {
 
   // ---------------- a Estudiosa Ilka e a entrada da ruína em Solmira
   {
-    const ex = VIL.x, ez = VIL.z - 18, y = groundY(ex, ez), g = new THREE.Group(); g.position.set(ex, y, ez); scene.add(g);
+    // canto nordeste da praça, de frente para a fonte (pedido do Rone: antes ficava no meio da rua que vai para o castelo)
+    const ex = VIL.x + 12.5, ez = VIL.z - 12.5, y = groundY(ex, ez), g = new THREE.Group(); g.position.set(ex, y, ez); g.rotation.y = -Math.PI / 4; scene.add(g);
     const pm = PM('pedra.jpg', [1, 2], new THREE.Color(0.7, 0.66, 0.6));
     const b = (w, h, d, x, yy, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), pm); o.position.set(x, yy, z); o.castShadow = true; g.add(o); return o; };
     b(0.9, 3.6, 0.9, -1.8, 1.8, 0); b(0.9, 3.6, 0.9, 1.8, 1.8, 0); b(4.6, 0.8, 1.0, 0, 3.9, 0);
     const vao = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 3.2), new THREE.MeshBasicMaterial({ color: 0x0a0806 })); vao.position.set(0, 1.6, -0.05); g.add(vao);
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.9), texto(['🏛️ TEMPLO DO ECO SELADO'], 512, 128)); pl.material.side = THREE.FrontSide; pl.position.set(0, 4.75, 0.52); g.add(pl);
     const pl2 = pl.clone(); pl2.position.z = -0.52; pl2.rotation.y = Math.PI; g.add(pl2);   // placa dos dois lados (de trás lia espelhado)
-    addOb(ex - 1.8, ez, 0.7); addOb(ex + 1.8, ez, 0.7); addOb(ex, ez - 0.3, 1.3);
+    addOb(ex - 1.27, ez - 1.27, 0.7); addOb(ex + 1.27, ez + 1.27, 0.7); addOb(ex, ez, 1.3);
   }
   function npc(eu) {
     const outra = corridaDoGrupo();
