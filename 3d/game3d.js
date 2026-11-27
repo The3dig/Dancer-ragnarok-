@@ -3041,7 +3041,7 @@ const BigMap = (() => {
     const list = box.querySelector('.bm-list');
     if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
     else list.style.display = 'none';
-    box.querySelector('.bm-leg').innerHTML = view ? '<span>Toque num morador (lista ou mapa) e o personagem vai sozinho até ele.</span>' : '<span>👆 toque num ponto: o personagem vai sozinho até lá (mesmo em outro mapa) · toque numa cidade: abre o mapa dela</span><span><i style="background:#ffcf40"></i>NPC</span><span><i style="background:#ff8080"></i>monstro</span><span><i style="background:#ff3030"></i>chefe</span><span><i style="background:#6ab0ff"></i>jogador</span>';
+    box.querySelector('.bm-leg').innerHTML = view ? '<span>Toque num morador (lista ou mapa) e o personagem vai sozinho até ele.</span>' : '<span>👆 toque num ponto: o personagem vai sozinho até lá (mesmo em outro mapa) · toque numa cidade: abre o mapa dela</span><span>☠ chefe</span><span>★ chefe de campo</span><span>📍 você</span>';
     const A = area(), listW = view ? Math.min(220, innerWidth * 0.3) : 0;
     const r = Math.min((innerWidth - 40 - listW) / A.w, (innerHeight - 100) / A.h);
     cv.width = Math.round(A.w * r * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * A.h / A.w);
@@ -3077,6 +3077,76 @@ const BigMap = (() => {
     g.strokeStyle = 'rgba(232,206,150,.55)'; g.lineWidth = 1.5; const m = Math.max(9, W / 90); g.strokeRect(m, m, W - m * 2, H - m * 2);
     const R = vm && REG.find(r => r.id === vm); const nome = R ? R.n : (vmMap().nome || ''); if (nome && !view) { const fs = Math.max(16, W / 42); g.font = `800 ${fs}px Cinzel, Georgia, serif`; g.textAlign = 'left'; g.lineWidth = fs * 0.3; g.strokeStyle = 'rgba(20,12,6,.9)'; g.strokeText(nome, m * 2, m * 2 + fs); g.fillStyle = '#f2d28a'; g.fillText(nome, m * 2, m * 2 + fs); if (R) { g.font = `700 ${fs * 0.6}px Nunito, sans-serif`; g.strokeText(R.lv, m * 2, m * 2 + fs * 1.8); g.fillStyle = '#e8dcc0'; g.fillText(R.lv, m * 2, m * 2 + fs * 1.8); } g.textAlign = 'center'; }
   }
+  // 🗺️ mapa da região desenhado como o Mapa do Mundo (pedido do Rone: o mapa ampliado estava "no sistema antigo, feio e
+  // desorganizado"). O chão de cada pedacinho vira um tipo (campo, mata, areia, água, pedra, terra, roxo...) pintado com
+  // as cores de pergaminho, com contorno onde um tipo encontra outro, e com desenhos de árvores, dunas, montanhas e ondas.
+  const PAL_REG = { campo: [176, 190, 112], mata: [96, 128, 72], areia: [226, 200, 146], agua: [118, 166, 196], pedra: [184, 174, 154], rocha: [128, 118, 104], terra: [176, 136, 92], roxo: [134, 108, 156], verm: [180, 104, 84], escuro: [84, 74, 78], neve: [232, 232, 236] };
+  function classe(r, gr, b) {
+    const mx = Math.max(r, gr, b), mn = Math.min(r, gr, b), l = (mx + mn) / 510, sat = mx === mn ? 0 : (mx - mn) / (l > 0.5 ? 510 - mx - mn : mx + mn);
+    let h = 0; if (mx !== mn) { h = mx === r ? (gr - b) / (mx - mn) : mx === gr ? 2 + (b - r) / (mx - mn) : 4 + (r - gr) / (mx - mn); h = (h * 60 + 360) % 360; }
+    if (l < 0.1) return 'escuro';
+    if (l > 0.86 && sat < 0.2) return 'neve';
+    if (b > r + 12 && b >= gr - 8 && sat > 0.18) return 'agua';
+    if (sat < 0.14) return l < 0.36 ? 'rocha' : 'pedra';
+    if (h >= 245 && h < 330) return 'roxo';
+    if (h < 14 || h >= 330) return 'verm';
+    if (h >= 62 && h < 170) return l < 0.2 ? 'mata' : 'campo';
+    if (h >= 14 && h < 62) return l > 0.5 ? 'areia' : 'terra';
+    return 'pedra';
+  }
+  function fundoIlustrado(B, A, M, W, H) {
+    const cel = Math.max(2, Math.round(W / 380)), gw = Math.ceil(W / cel), gh = Math.ceil(H / cel);
+    const src = document.createElement('canvas'); src.width = gw; src.height = gh; const sg = src.getContext('2d'); sg.imageSmoothingEnabled = true;
+    sg.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, gw, gh);
+    const sd = sg.getImageData(0, 0, gw, gh).data, cl = new Array(gw * gh);
+    // o desenho do Reino guarda as cores na escala do 3D (mais escura): converte antes de comparar (senão o capim virava "pedra")
+    const lin = B === base, cv8 = v => (lin ? 255 * Math.pow(v / 255, 1 / 2.2) : v);
+    for (let q = 0; q < gw * gh; q++) cl[q] = classe(cv8(sd[q * 4]), cv8(sd[q * 4 + 1]), cv8(sd[q * 4 + 2]));
+    // tira o "chuvisco": cada ponto fica com o tipo que mais aparece em volta
+    const lim = cl.slice();
+    for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) { const cont = {}; let best = cl[j * gw + i], bn = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const c = cl[(j + dj) * gw + i + di], n = (cont[c] = (cont[c] || 0) + 1); if (n > bn) { bn = n; best = c; } }
+      lim[j * gw + i] = bn >= 4 ? best : cl[j * gw + i]; }
+    const img = sg.createImageData(gw, gh), d = img.data;
+    for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+      const q = j * gw + i, c = lim[q], P0 = PAL_REG[c], som = (fbm(i / gw * 14, j / gh * 14) - 0.5) * 0.35, pap = (Math.random() - 0.5) * 10;
+      let R = P0[0] * (1 + som) + pap, G = P0[1] * (1 + som) + pap, Bc = P0[2] * (1 + som) + pap * 0.8;
+      const viz = [i > 0 && lim[q - 1], i < gw - 1 && lim[q + 1], j > 0 && lim[q - gw], j < gh - 1 && lim[q + gw]];
+      if (viz.some(v => v && v !== c)) { if (c === 'agua' || viz.includes('agua')) { R = 74; G = 54; Bc = 34; } else if ((i + j) % 3) { R *= 0.72; G *= 0.68; Bc *= 0.64; } }   // contorno: litoral marrom, divisa tracejada
+      d[q * 4] = R; d[q * 4 + 1] = G; d[q * 4 + 2] = Bc; d[q * 4 + 3] = 255;
+    }
+    sg.putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = true; g.drawImage(src, 0, 0, W, H);
+    // desenhos por cima (com semente fixa: o mapa não "mexe" toda vez que abre)
+    let sem = 12345; const rn = () => ((sem = (sem * 16807) % 2147483647) / 2147483647);
+    const f = Math.max(10, W / 70), em = (x, y) => lim[Math.min(gh - 1, Math.max(0, Math.floor(y / cel))) * gw + Math.min(gw - 1, Math.max(0, Math.floor(x / cel)))];
+    const pts = []; for (let n = 0; n < 1400; n++) pts.push([rn() * W, rn() * H, rn()]); pts.sort((a, b) => a[1] - b[1]);
+    const ocupado = [];
+    const livreP = (x, y, r) => !ocupado.some(o => Math.hypot(o[0] - x, o[1] - y) < r) && (ocupado.push([x, y]), true);
+    for (const [x, y, r] of pts) {
+      const c = em(x, y), c2 = em(x, y + f * 0.5);
+      if (c !== c2) continue;
+      if (c === 'mata' && livreP(x, y, f * 0.75)) pinheiroR(x, y, f * (0.8 + r * 0.4));
+      else if (c === 'campo' && r < 0.1 && livreP(x, y, f * 1.6)) arvoreR(x, y, f * (0.7 + r * 2));
+      else if (c === 'areia' && r < 0.12 && livreP(x, y, f * 2.2)) dunaR(x, y, f);
+      else if (c === 'rocha' && r < 0.05 && livreP(x, y, f * 2.6)) montanhaR(x, y, f * 1.1);
+      else if (c === 'agua' && r < 0.08 && livreP(x, y, f * 1.5)) { g.strokeStyle = 'rgba(235,245,250,.55)'; g.lineWidth = Math.max(1, f / 9); g.beginPath(); g.arc(x - f * 0.2, y, f * 0.25, Math.PI * 1.1, Math.PI * 1.9); g.arc(x + f * 0.25, y, f * 0.25, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+    }
+  }
+  const sombraR = (x, y, s) => { g.fillStyle = 'rgba(40,30,15,.22)'; g.beginPath(); g.ellipse(x + s * 0.12, y + s * 0.04, s * 0.36, s * 0.1, 0, 0, TAU); g.fill(); };
+  function pinheiroR(x, y, s) { sombraR(x, y, s); g.fillStyle = '#4a2e14'; g.fillRect(x - s * 0.05, y - s * 0.22, s * 0.1, s * 0.22);
+    for (let k = 0; k < 3; k++) { const yy = y - s * (0.2 + k * 0.26), ww = s * (0.38 - k * 0.09); g.fillStyle = k % 2 ? '#3e5a32' : '#34502c'; g.beginPath(); g.moveTo(x - ww, yy); g.lineTo(x, yy - s * 0.36); g.lineTo(x + ww, yy); g.closePath(); g.fill(); g.strokeStyle = 'rgba(30,24,12,.7)'; g.lineWidth = 1; g.stroke(); } }
+  function arvoreR(x, y, s) { sombraR(x, y, s); g.fillStyle = '#4a2e14'; g.fillRect(x - s * 0.06, y - s * 0.36, s * 0.12, s * 0.36);
+    g.fillStyle = '#5a8a38'; g.beginPath(); g.arc(x, y - s * 0.55, s * 0.3, 0, TAU); g.fill(); g.fillStyle = 'rgba(200,230,140,.45)'; g.beginPath(); g.arc(x - s * 0.08, y - s * 0.63, s * 0.12, 0, TAU); g.fill(); g.strokeStyle = 'rgba(30,24,12,.7)'; g.lineWidth = 1; g.beginPath(); g.arc(x, y - s * 0.55, s * 0.3, 0, TAU); g.stroke(); }
+  function dunaR(x, y, s) { g.strokeStyle = 'rgba(140,90,40,.75)'; g.lineWidth = Math.max(1, s / 10); g.beginPath(); g.moveTo(x - s * 0.6, y); g.quadraticCurveTo(x - s * 0.1, y - s * 0.4, x + s * 0.6, y); g.stroke(); }
+  function montanhaR(x, y, s) { g.fillStyle = '#b39470'; g.beginPath(); g.moveTo(x - s * 0.7, y); g.lineTo(x, y - s); g.lineTo(x + s * 0.12, y); g.closePath(); g.fill(); g.fillStyle = '#7a5e42'; g.beginPath(); g.moveTo(x, y - s); g.lineTo(x + s * 0.7, y); g.lineTo(x + s * 0.12, y); g.closePath(); g.fill();
+    g.strokeStyle = '#4a3018'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - s * 0.7, y); g.lineTo(x, y - s); g.lineTo(x + s * 0.7, y); g.stroke(); }
+  function casinhas(x, y, s) {
+    for (const [dx, dy, k] of [[-0.45, 0.1, 0], [0.4, 0.15, 1], [0, -0.2, 2]]) { const cx = x + dx * s, cy = y + dy * s, w = s * 0.32;
+      g.fillStyle = 'rgba(40,30,15,.25)'; g.fillRect(cx - w * 0.5 + 2, cy + 1, w, 2);
+      g.fillStyle = '#e8dcc0'; g.fillRect(cx - w / 2, cy - w * 0.7, w, w * 0.7); g.strokeStyle = '#3a2410'; g.lineWidth = 1; g.strokeRect(cx - w / 2, cy - w * 0.7, w, w * 0.7);
+      g.fillStyle = ['#a85a44', '#8a4a3a', '#b06a48'][k]; g.beginPath(); g.moveTo(cx - w * 0.65, cy - w * 0.68); g.lineTo(cx, cy - w * 1.25); g.lineTo(cx + w * 0.65, cy - w * 0.68); g.closePath(); g.fill(); g.stroke(); }
+  }
   function draw() {
     if (!open) return;
     if (view === 'mundo') return drawMundo();
@@ -3087,26 +3157,28 @@ const BigMap = (() => {
     // o fundo de pergaminho é desenhado UMA vez e guardado (refazer a cada quadro travava o mapa, principalmente no Safari)
     const chave = [vm, view && view.c && view.c.x, view && view.c && view.c.z, A.x0 | 0, A.z0 | 0, A.w | 0, cv.width, cv.height, B.width].join('|');
     if (fundoChave !== chave) { fundoChave = chave; fundoCv = fundoCv || document.createElement('canvas'); fundoCv.width = cv.width; fundoCv.height = cv.height; const g0 = g; g = fundoCv.getContext('2d');
-      g.fillStyle = '#ead6a8'; g.fillRect(0, 0, cv.width, cv.height);                       // papel por baixo
-      g.save(); g.globalCompositeOperation = 'multiply'; g.filter = 'saturate(.75) brightness(1.65) contrast(.95)';
-      g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
-      g.restore(); pergaminho(cv.width, cv.height); g = g0; }
+      fundoIlustrado(B, A, M, cv.width, cv.height); pergaminho(cv.width, cv.height); g = g0; }
     g.drawImage(fundoCv, 0, 0);
     g.textAlign = 'center';
     if (!view) {
-      const fs = Math.round(Math.max(9 * k, 27)); g.font = `800 ${fs}px Cinzel, Georgia, serif`;                // nomes grandes (no celular ficavam miúdos)
-      const usados = [];                                                                         // nomes não ficam um em cima do outro
-      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 6, lx = Math.min(cv.width - w, Math.max(w, X(p.x))); let ly = Math.max(fs * 1.2, Z(p.z) - fs * 0.9);
-        for (let k = 0; k < 6 && usados.some(u => Math.abs(u.x - lx) < u.w + w && Math.abs(u.y - ly) < fs * 1.3); k++) ly += fs * 1.35;
+      // nomes no estilo do Mapa do Mundo: casinhas desenhadas e o nome em letra de mapa antigo, tamanho normal
+      const f = Math.max(12, cv.width / 62), usados = [];
+      for (const c of cities()) casinhas(X(c.c.x), Z(c.c.z), f * 1.3);
+      g.font = `800 ${Math.round(f)}px Cinzel, Georgia, serif`;
+      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))); let ly = Math.min(cv.height - f * 0.5, Math.max(f * 1.2, Z(p.z) + f * 1.9));
+        for (let q = 0; q < 6 && usados.some(o => Math.abs(o.x - lx) < o.w + w && Math.abs(o.y - ly) < f * 1.25); q++) ly += f * 1.3;
         usados.push({ x: lx, y: ly, w });
-        g.lineJoin = 'round'; g.lineWidth = Math.max(4, fs * 0.28); g.strokeStyle = 'rgba(20,12,6,.92)'; g.strokeText(n, lx, ly); g.fillStyle = '#ffe9b8'; g.fillText(n, lx, ly); }
-      for (const c of cities()) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
+        g.lineJoin = 'round'; g.lineWidth = Math.max(3, f * 0.32); g.strokeStyle = 'rgba(246,232,196,.95)'; g.strokeText(n, lx, ly); g.fillStyle = '#3a2410'; g.fillText(n, lx, ly); }
     }
-    for (const m of mobs) { if (m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue; const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k / u * (view ? 1.6 : 1); g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); }
+    // bichos: só os chefes (caveira) e os chefes de campo (estrela); a chuva de pontinhos rosa poluía o mapa
+    { const f = Math.max(12, cv.width / 62); g.font = `${Math.round(f)}px sans-serif`; g.textAlign = 'center';
+      for (const m of mobs) { if (m.dead || !(m.d.boss || m.d.alfa) || m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue;
+        const x = X(m.x), y = Z(m.z); g.fillStyle = m.d.boss ? 'rgba(120,20,20,.85)' : 'rgba(110,80,10,.85)'; g.beginPath(); g.arc(x, y, f * 0.75, 0, TAU); g.fill(); g.strokeStyle = '#f6e8c4'; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = '#fff'; g.fillText(m.d.boss ? '☠' : '★', x, y + f * 0.36); } }
     for (const n of NPCS) {
       if (n.hidden) continue;
       if (view) { const x = X(n.x), z = Z(n.z); g.font = `${Math.round(13 * k / 2.2)}px sans-serif`; g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.arc(x, z, 7 * k / 2.2, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.fillText(ICON[n.id] || '•', x, z + 4 * k / 2.2); }
-      else { g.fillStyle = '#ffcf40'; g.fillRect(X(n.x) - 1.5 * k, Z(n.z) - 1.5 * k, 3 * k, 3 * k); }
+
     }
     if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = r.s && r.s.gp && r.s.gp === P.grupo ? '#7dff6a' : '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k / u, 0, TAU); g.fill(); }
     const qt = questTarget(), px = X(P.x), pz = Z(P.z);
@@ -3117,7 +3189,9 @@ const BigMap = (() => {
       for (let i = 0; i < 10; i++) { const r = (i % 2 ? 2.2 : 5.5) * q, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(tx + Math.cos(a) * r, tz + Math.sin(a) * r); }
       g.closePath(); g.fill(); g.stroke(); g.restore();
     }
-    g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k / u * (view ? 1.8 : 1), k / u * (view ? 1.8 : 1));
+    { const f = Math.max(12, cv.width / 62), pul = 1 + Math.sin(performance.now() / 200) * 0.25; g.fillStyle = 'rgba(220,40,90,.3)'; g.beginPath(); g.arc(px, pz, f * 1.1 * pul, 0, TAU); g.fill();
+      if (!view) { g.font = `800 ${Math.round(f * 0.75)}px Nunito, sans-serif`; g.textAlign = 'center'; const tw = g.measureText('📍 VOCÊ').width / 2 + 6, ly = Math.min(cv.height - 8, pz + f * 2.1); g.fillStyle = 'rgba(224,48,106,.95)'; g.fillRect(px - tw, ly - f * 0.82, tw * 2, f * 1.05); g.fillStyle = '#fff'; g.fillText('📍 VOCÊ', px, ly); } }
+    g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(Math.max(1.6, cv.width / 500) * (view ? 1.3 : 1), Math.max(1.6, cv.width / 500) * (view ? 1.3 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
   return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, get open() { return open; } };
@@ -3718,8 +3792,10 @@ function soMouse(cx, cy) {
   let best = null, bd = 46;
   // vale o corpo todo do bicho, do pé até o nome em cima da cabeça (antes era só 46 px em volta do meio: nos MVPs grandes era quase impossível acertar)
   for (const m of mobs) { if (m.dead || m.isPeer) continue; const gy = groundY(m.x, m.z), h = m.model.h || 1.5, sp0 = toScreen(m.x, gy, m.z), sp1 = toScreen(m.x, gy + h, m.z); if (!sp0.vis && !sp1.vis) continue;
-    const alto = Math.max(30, sp0.y - sp1.y), larg = Math.max(56, alto * 0.75), mx = (sp0.x + sp1.x) / 2;
-    if (Math.abs(cx - mx) > larg / 2 + 14 || cy < sp1.y - 34 || cy > sp0.y + 18) continue;
+    // longe, a área do bicho encolhe junto com ele (antes tinha um mínimo fixo e, perto do horizonte, quase tudo virava "mira": o clique atacava em vez de andar)
+    if (Math.hypot(m.x - P.x, m.z - P.z) > 45) continue;
+    const alto0 = sp0.y - sp1.y, perto = Math.min(1, Math.max(0, (alto0 - 25) / 60)), alto = Math.max(18 + 12 * perto, alto0), larg = Math.max(26 + 30 * perto, alto * 0.75), mx = (sp0.x + sp1.x) / 2, folga = 4 + 10 * perto;
+    if (Math.abs(cx - mx) > larg / 2 + folga || cy < sp1.y - (10 + 24 * perto) || cy > sp0.y + folga) continue;
     const d = Math.hypot(cx - mx, cy - (sp0.y + sp1.y) / 2) / Math.max(1, alto / 60); if (d < bd + 200) { if (!best || d < bd) { bd = d; best = { tipo: 'mob', o: m }; } } }
   if (best) return best; bd = 46;
   if (!best) for (const n of NPCS) { if (n.hidden) continue; const sp = toScreen(n.x, groundY(n.x, n.z) + 1.1, n.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < 40 && d < bd) { bd = d; best = { tipo: 'npc', o: n }; } }
@@ -3734,10 +3810,26 @@ function cliqueMundo(cx, cy) {
   if (alvo && alvo.tipo === 'npc') { const n = alvo.o; P.caca = null; if (Math.hypot(n.x - P.x, n.z - P.z) < 3.2) talk(n); else { P.qGo = { x: n.x, z: n.z, name: n.name }; P.falarCom = n; if (typeof autoStart === 'function') autoStart(); } return; }
   // clicou no chão: anda até lá
   const r = cvEl.getBoundingClientRect(); _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
-  _ray.setFromCamera(_ndc, camera); _plano.constant = -P.y; if (!_ray.ray.intersectPlane(_plano, _pt)) return;
-  if (Math.hypot(_pt.x - P.x, _pt.z - P.z) > 80) return;
+  _ray.setFromCamera(_ndc, camera);
+  if (!pontoNoChao(_ray.ray, _pt)) return;
   P.caca = null; P.qGo = { x: _pt.x, z: _pt.z, name: 'o ponto marcado' }; ring(_pt.x, _pt.z, 0.8, 0xffcf40, 0.4);
   if (typeof autoStart === 'function') autoStart();
+}
+// o ponto do chão debaixo do mouse, seguindo o relevo (antes era um chão plano na altura do personagem: em morro ou
+// perto do horizonte não achava nada, e acima de 80 m o clique era ignorado). Muito longe ou no céu: vai naquela direção, até 70 m.
+function pontoNoChao(ray, out) {
+  const o = ray.origin, d = ray.direction, piso = (x, z) => (inTower(z) ? P.y : groundY(x, z));
+  let t0 = 0;
+  for (let t = 0.5; t <= 160; t += t < 20 ? 0.5 : 1.5) {
+    const x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t;
+    if (y <= piso(x, z)) { for (let k = 0; k < 8; k++) { const tm = (t0 + t) / 2, ym = o.y + d.y * tm; if (ym <= piso(o.x + d.x * tm, o.z + d.z * tm)) t = tm; else t0 = tm; }
+      out.set(o.x + d.x * t, 0, o.z + d.z * t); break; }
+    t0 = t;
+    if (t + 1.5 > 160) { const h = Math.hypot(d.x, d.z); if (h < 0.05) return false; out.set(P.x + d.x / h * 70, 0, P.z + d.z / h * 70); }
+  }
+  const dd = Math.hypot(out.x - P.x, out.z - P.z);
+  if (dd > 70) { out.x = P.x + (out.x - P.x) / dd * 70; out.z = P.z + (out.z - P.z) / dd * 70; }
+  return true;
 }
 // cursor muda em cima de monstro (mira) e de NPC (mão)
 cvEl.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag || !running) return; const a = soMouse(e.clientX, e.clientY); cvEl.style.cursor = !a ? 'default' : a.tipo === 'mob' ? 'crosshair' : 'pointer'; });
