@@ -476,7 +476,8 @@ const Templo = (() => {
     const b = (w, h, d, x, yy, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), pm); o.position.set(x, yy, z); o.castShadow = true; g.add(o); return o; };
     b(0.9, 3.6, 0.9, -1.8, 1.8, 0); b(0.9, 3.6, 0.9, 1.8, 1.8, 0); b(4.6, 0.8, 1.0, 0, 3.9, 0);
     const vao = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 3.2), new THREE.MeshBasicMaterial({ color: 0x0a0806 })); vao.position.set(0, 1.6, -0.05); g.add(vao);
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.9), texto(['🏛️ TEMPLO DO ECO SELADO'], 512, 128)); pl.position.set(0, 4.75, 0.52); g.add(pl);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.9), texto(['🏛️ TEMPLO DO ECO SELADO'], 512, 128)); pl.material.side = THREE.FrontSide; pl.position.set(0, 4.75, 0.52); g.add(pl);
+    const pl2 = pl.clone(); pl2.position.z = -0.52; pl2.rotation.y = Math.PI; g.add(pl2);   // placa dos dois lados (de trás lia espelhado)
     addOb(ex - 1.8, ez, 0.7); addOb(ex + 1.8, ez, 0.7); addOb(ex, ez - 0.3, 1.3);
   }
   function npc(eu) {
