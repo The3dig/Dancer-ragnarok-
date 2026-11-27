@@ -1118,3 +1118,13 @@ body.ficha-aberta #statwin .fc { padding-bottom: 120px; }
 #carregando .cg-barra i { display: block; height: 100%; width: 35%; border-radius: 3px; background: linear-gradient(90deg, #8a6a2a, #f2c86a); animation: cgVai 1.3s ease-in-out infinite; }
 #carregando p { color: #c8b890; font: 700 13px 'Nunito', sans-serif; margin: 0; }
 @keyframes cgVai { 0% { transform: translateX(-100%); } 100% { transform: translateX(290%); } }
+/* 📚 livros do Reino Quebrado */
+.lv-dois { display: flex; gap: 14px; justify-content: center; margin-bottom: 8px; }
+.lv-capa { display: flex; flex-direction: column; align-items: center; width: 130px; cursor: pointer; text-align: center; }
+.lv-capa img { width: 110px; height: 165px; border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,.6); margin-bottom: 4px; }
+.lv-capa small { opacity: .8; }
+.lv-topo { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; } .lv-topo img { width: 70px; height: 105px; border-radius: 3px; box-shadow: 0 3px 10px rgba(0,0,0,.6); flex: none; }
+.lv-sum { margin: 4px 0 6px; padding-left: 26px; columns: 2; column-gap: 18px; font-size: 12px; } .lv-sum li { opacity: .55; } .lv-sum li.tem { opacity: 1; color: #ffe3a0; font-weight: 700; }
+.lv-txt { font-family: Georgia, serif; font-size: 15px; line-height: 1.55; text-align: justify; } .lv-txt p { margin: 0 0 .7em; text-indent: 1.4em; }
+.lv-cr { display: block; margin-top: 6px; opacity: .7; }
+@media (max-width: 640px) { .lv-sum { columns: 1; } }

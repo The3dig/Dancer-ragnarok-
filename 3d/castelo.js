@@ -160,6 +160,7 @@ const Castelo = (() => {
   for (const [mx, mz] of [[-1, -15.5], [2.5, -12.4], [-5.2, -15.8]]) { const mt = nat(mx, mz); box(3, 0.12, 1.5, madeira(0x6a4a2a), 0, 1, 0, mt); for (const [dx, dz] of [[-1.3, -0.6], [1.3, -0.6], [-1.3, 0.6], [1.3, 0.6]]) box(0.12, 1, 0.12, madeira(0x4a2a14), dx, 0.5, dz, mt); box(0.8, 0.06, 0.6, L(0xf0e6c8), -0.5, 1.09, 0, mt); box(0.1, 0.3, 0.1, L(0xf0e6d0), 0.9, 1.21, 0, mt); const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilhoT, color: 0xffc060, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); f.position.set(0.9, 1.5, 0); f.scale.setScalar(0.35); mt.add(f); velas.push(f); for (let k = 0; k < 4; k++) box(0.42, 0.09, 0.3, L(cores[(k + mx * 3 & 7) % 6]), 0.4, 1.11 + k * 0.09, 0.2, mt); obN(mx, mz, 1.9); }
   // (o globo azul num pino foi tirado: pedido do Rone)
   tapete(6, 4, 0, -16, tapeteT('#3a2a4a', '#d9a63a', '#8a6ab8'));
+  if (typeof Livros !== 'undefined') { Livros.pulpito(nat(4.4, -17.6, -0.5)); obN(4.4, -17.6, 0.6); Livros.ponto(C.x + K * 4.4, C.z + K * -17.6, () => dentro()); }   // 📚 os dois livros de verdade (pedido do Rone)
   lustre(0, -15.5, 1);
   // ----- VESTÍBULO (sul): bancos, armaduras de guarda, o quadro das brincadeiras e o portal de saída
   for (const x of [-4.6, 4.6]) { box(0.6, 0.5, 3, madeira(0x5a3a24), x, 0.25, 13.5); ob(x, 13, 0.6); ob(x, 14.5, 0.6); }

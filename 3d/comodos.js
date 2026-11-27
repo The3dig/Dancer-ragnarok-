@@ -113,6 +113,7 @@ const Comodos = (() => {
       for (let k = -2; k <= 2; k++) box(0.22, 2.9, 0.03, madeira(0x5a3a24), 0.06, 1.5, k * 0.46, pf);
       box(0.3, 0.12, 0.12, ferro, 0.2, 1.5, 0.8, pf); }
     mobiliar(R);
+    if (R.id === 'biblio' && typeof Livros !== 'undefined') { Livros.pulpito(g, 0, 5, Math.PI); addOb(f.x, f.z + 5, 0.6); Livros.ponto(f.x, f.z + 5, () => g.visible); }   // 📚 os dois livros de verdade (pedido do Rone)
   }
   function mobiliar(R) {
     for (const m of MOVEIS[R.id]) { if (!S().mob[m.id] || R.objs[m.id]) continue; const p = new THREE.Group(); p.position.set(m.x, 0, m.z); p.rotation.y = m.r; R.g.add(p); try { CONSTR[m.tipo](p, m.cor); } catch (e) { } R.objs[m.id] = p; }
