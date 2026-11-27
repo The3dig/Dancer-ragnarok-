@@ -55,6 +55,7 @@ const Chefes = (() => {
   function onKill(m) {
     const B = BOSSES[m.type]; if (!B) return;
     P.fbDone = m.fbSlot;
+    if (typeof Net !== 'undefined' && Net.send) Net.send({ t: 'mvpmorte', id: 'fb:' + m.type, s: m.fbSlot });   // 👑 painel de MVP: quem derrubou este chefe de campo
     if (Math.random() < 0.1) { const pool = Object.keys(ITEMS).filter(id => ITEMS[id].kind === 'carta' && id !== 'carta_kravenox'); drops.push(makeDrop(pool[Math.floor(Math.random() * pool.length)], 1, m.x, m.z + 1.5)); }
     for (let i = 0; i < 4; i++) drops.push(makeDrop('zeny', irand(...B.zeny) >> 2, m.x + rand(-3, 3), m.z + rand(-3, 3)));
     const n = typeof Net !== 'undefined' ? Net.count : 1;

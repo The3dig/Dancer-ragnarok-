@@ -318,6 +318,18 @@ export class Mundo {
     this.state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
     this.mobs = new Map();       // id -> {id,type,max,hp,resp,x,z,f,st,vivo,volta,dono,dano:{}}
     this.donoT = 0;
+    // 👑 quem matou cada chefe por último fica GUARDADO (antes só na memória: o servidor dormia e esquecia; pedido da Lady Ingrid)
+    try { this.sql = state.storage.sql; this.sql.exec("CREATE TABLE IF NOT EXISTS mvp_hist (id TEXT PRIMARY KEY, matou TEXT, quando INTEGER, slot INTEGER)"); } catch (e) { this.sql = null; }
+  }
+  histDe(id) {
+    if (!this.hist) this.hist = new Map();
+    if (this.hist.has(id)) return this.hist.get(id);
+    let h = null; try { const r = this.sql && this.sql.exec("SELECT matou, quando, slot FROM mvp_hist WHERE id = ?", id).toArray()[0]; if (r) h = { matou: r.matou, quando: r.quando, slot: r.slot }; } catch (e) {}
+    this.hist.set(id, h); return h;
+  }
+  marcaMvp(id, matou, quando, slot) {
+    if (!this.hist) this.hist = new Map(); this.hist.set(id, { matou, quando, slot });
+    try { if (this.sql) this.sql.exec("INSERT OR REPLACE INTO mvp_hist (id, matou, quando, slot) VALUES (?, ?, ?, ?)", id, matou, quando, slot || 0); } catch (e) {}
   }
   vivos() { return this.state.getWebSockets(); }
   dados(ws) { try { return ws.deserializeAttachment() || {}; } catch (e) { return {}; } }
@@ -411,16 +423,25 @@ export class Mundo {
       mob.hp -= v; mob.dano[d.peer] = (mob.dano[d.peer] || 0) + v;
       if (mob.hp <= 0) {
         mob.hp = 0; mob.vivo = false; mob.volta = agora + mob.resp * 1000;
-        if (!this.hist) this.hist = new Map(); this.hist.set(mob.id, { matou: String((d.s && d.s.n) || 'alguém').slice(0, 24), quando: agora });   // 👑 painel de MVP: quem matou por último
+        mob.ultimoPeer = d.peer; mob.morreuEm = agora;   // 👑 se for chefe, o jogo de quem matou avisa (mvpmorte) e o servidor confere aqui
         this.todos({ t: "morre", id: mob.id, by: d.peer, dano: mob.dano });
         mob.dano = {};
         if (mob.gp !== undefined && !mob.id.endsWith(":chefe")) this.mobs.delete(mob.id);   // o chefe do castelo fica como "morto" até expirar (não renasce na mesma rodada)                // masmorra: não renasce, sai da lista
 
       } else this.todos({ t: "hp", id: mob.id, hp: mob.hp, by: d.peer });
+    } else if (m.t === "mvpmorte" && typeof m.id === "string" && /^\d{1,4}-\d{1,3}$/.test(m.id)) {
+      // 👑 chefe fixo do mapa: só vale se foi este jogador que deu o golpe final agora há pouco
+      const mob = this.mobs.get(m.id);
+      if (mob && !mob.vivo && mob.ultimoPeer === d.peer && agora - (mob.morreuEm || 0) < 30000) this.marcaMvp(m.id, String((d.s && d.s.n) || 'alguém').slice(0, 24), agora, 0);
+    } else if (m.t === "mvpmorte" && typeof m.id === "string" && /^fb:[A-Za-z]{1,30}$/.test(m.id)) {
+      // 👑 chefe de campo derrotado (a vida é dividida entre os jogadores, então quem viu cair avisa): fica o 1º aviso de cada aparição
+      const slot = Math.floor(Number(m.s) || 0), h = this.histDe(m.id);
+      if (!slot || Math.abs(slot - Math.floor(agora / 1200000)) > 1 || (h && h.slot === slot)) return;
+      this.marcaMvp(m.id, String((d.s && d.s.n) || 'alguém').slice(0, 24), agora, slot);
     } else if (m.t === "mvps" && Array.isArray(m.ids)) {
       // 👑 painel de MVP (ideia do Ludi): vivo ou não, quando renasce, quem matou por último
       if (d.mvpT && agora - d.mvpT < 1500) return; d.mvpT = agora; try { ws.serializeAttachment(d); } catch (e) {}
-      const l = []; for (const id of m.ids.slice(0, 120)) { if (typeof id !== "string") continue; const mob = this.mobs.get(id), h = this.hist && this.hist.get(id);
+      const l = []; for (const id of m.ids.slice(0, 120)) { if (typeof id !== "string") continue; const mob = this.mobs.get(id), h = this.histDe(id);
         l.push({ id, existe: !!mob, vivo: !!(mob && mob.vivo), volta: mob && !mob.vivo ? mob.volta : 0, hp: mob ? Math.round(mob.hp / mob.max * 100) : 0, matou: h ? h.matou : null, quando: h ? h.quando : 0 }); }
       this.enviar(ws, { t: "mvps", l, agora });
     } else if (m.t === "dgver" && typeof m.pref === "string" && m.pref.startsWith("dg:") && m.pref.length > 8) {
