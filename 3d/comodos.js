@@ -11,6 +11,21 @@
 // =====================================================================
 'use strict';
 const Comodos = (() => {
+  // janelas com paisagem (de dia) e céu estrelado (no Observatório), no lugar do azul liso (27/11)
+  const JANELA = {};
+  function janelaMat(noite) {
+    const k = noite ? 'n' : 'd'; if (JANELA[k]) return JANELA[k];
+    const c = document.createElement('canvas'); c.width = 128; c.height = 128; const x = c.getContext('2d');
+    if (noite) { const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, '#0a0e2a'); g.addColorStop(1, '#2a3a7a'); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 60; i++) { x.fillStyle = `rgba(255,255,230,${0.4 + Math.random() * 0.6})`; const s = Math.random() < 0.15 ? 2 : 1; x.fillRect(Math.random() * 128, Math.random() * 100, s, s); }
+      x.fillStyle = '#f6f0d0'; x.beginPath(); x.arc(92, 30, 12, 0, 7); x.fill(); x.fillStyle = '#0e1430'; x.beginPath(); x.arc(98, 26, 11, 0, 7); x.fill(); }
+    else { const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, '#7ab8e8'); g.addColorStop(0.65, '#d8ecf4'); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      x.fillStyle = '#fff6c0'; x.beginPath(); x.arc(96, 28, 11, 0, 7); x.fill();
+      for (const [y0, cor] of [[84, '#7aa86a'], [100, '#5a8a4a'], [116, '#4a7a3a']]) { x.fillStyle = cor; x.beginPath(); x.moveTo(0, 128); for (let i = 0; i <= 128; i += 8) x.lineTo(i, y0 - Math.sin(i * 0.05 + y0) * 8); x.lineTo(128, 128); x.fill(); }
+      x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(30, 30, 8, 0, 7); x.arc(40, 33, 7, 0, 7); x.arc(21, 34, 6, 0, 7); x.fill(); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+    return (JANELA[k] = new THREE.MeshBasicMaterial({ map: t, toneMapped: false }));
+  }
   const H = 7.6, LAR_MIN = 60;
   const S = () => { const c = (P.casa = P.casa || { mov: {}, bau: {} }); c.salas = c.salas || {}; c.mob = c.mob || {}; return c; };
   const it = id => ITEMS[id] || { name: id, ic: '❔' };
@@ -78,7 +93,7 @@ const Comodos = (() => {
     for (const sx of [-1, 1]) { box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, -(H / 2 + 0.6), g); box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, H / 2 + 0.6, g); box(0.5, 0.8, 2.4, parede, sx * H, 3.4, 0, g); }   // portas nos lados leste e oeste
     const viga = madeira(0x5a3a24); for (let k = -3; k <= 3; k++) { box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, -H + 0.35, g); box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, H - 0.35, g); }
     box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, -H + 0.4, g); box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, H - 0.4, g);
-    for (const x of [-4, 4]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), B(R.id === 'observ' ? 0x2a3a8a : 0xbfe0ff)); w.position.set(x, 2.2, H - 0.3); w.rotation.y = Math.PI; g.add(w); }
+    for (const x of [-4, 4]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), janelaMat(R.id === 'observ')); w.position.set(x, 2.2, H - 0.3); w.rotation.y = Math.PI; g.add(w); }
     // placa com o nome
     const c = document.createElement('canvas'); c.width = 512; c.height = 96; const x = c.getContext('2d'); x.fillStyle = '#3a2a18'; x.fillRect(0, 0, 512, 96); x.strokeStyle = '#d9a63a'; x.lineWidth = 6; x.strokeRect(3, 3, 506, 90); x.fillStyle = '#ffd860'; x.font = 'bold 44px Georgia'; x.textAlign = 'center'; x.fillText(R.ic + ' ' + R.nome, 256, 64);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; const pl = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.75), new THREE.MeshBasicMaterial({ map: t, toneMapped: false })); pl.position.set(0, 3.2, -H + 0.28); g.add(pl);

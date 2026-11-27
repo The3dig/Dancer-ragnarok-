@@ -41,6 +41,42 @@ const Casa = (() => {
   }
   const doorM = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false }); const dg = new THREE.Mesh(new THREE.PlaneGeometry(2, 2.8), doorM); dg.position.set(0, 1.4, H - 0.1); g.add(dg);
   const luz = new THREE.PointLight(0xffd8a0, 1.2, 22); luz.position.set(0, 3, 0); g.add(luz);
+  // ---------------- acabamento (pedido do Rone: "deixa ela linda, ainda mais com os cômodos novos"). Só nas paredes e
+  // no que se vê lá fora, para não brigar com os móveis que se compram. Criado para o jogo.
+  { const tx = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+    // paisagem do Sítio vista de dentro: céu, morros, árvores e o sol
+    const paisagem = tx(256, 160, (x, w, h) => { const cg = x.createLinearGradient(0, 0, 0, h); cg.addColorStop(0, '#7ab8e8'); cg.addColorStop(0.6, '#cfe6f2'); cg.addColorStop(1, '#f2e8c8'); x.fillStyle = cg; x.fillRect(0, 0, w, h);
+      x.fillStyle = '#fff6c0'; x.beginPath(); x.arc(200, 40, 16, 0, 7); x.fill();
+      for (const [y0, cor, amp] of [[100, '#7aa86a', 14], [118, '#5a8a4a', 10], [138, '#4a7a3a', 6]]) { x.fillStyle = cor; x.beginPath(); x.moveTo(0, h); for (let i = 0; i <= w; i += 8) x.lineTo(i, y0 - Math.sin(i * 0.03 + y0) * amp); x.lineTo(w, h); x.fill(); }
+      for (let i = 0; i < 9; i++) { const ax = 12 + i * 29, ay = 112 + (i % 3) * 6; x.fillStyle = '#3a5a2a'; x.beginPath(); x.arc(ax, ay, 9, 0, 7); x.fill(); x.fillStyle = '#5a3a20'; x.fillRect(ax - 1, ay + 6, 3, 8); }
+      x.fillStyle = 'rgba(255,255,255,.8)'; for (const [cx, cy] of [[50, 30], [120, 22]]) { x.beginPath(); x.arc(cx, cy, 10, 0, 7); x.arc(cx + 12, cy + 3, 8, 0, 7); x.arc(cx - 11, cy + 4, 7, 0, 7); x.fill(); } });
+    const pM = new THREE.MeshBasicMaterial({ map: paisagem, toneMapped: false });
+    g.traverse(o => { const q = o.isMesh && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters; if (q && q.width === 1.4 && q.height === 1.4) o.material = pM; });   // as janelas mostram a paisagem
+    const porta = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.5), pM); porta.position.set(0, 2.2, H + 3); porta.rotation.y = Math.PI; g.add(porta);   // e a porta também
+    // cortinas presas no alto de cada janela
+    const pano = PM('reboco.jpg', [0.5, 1], new THREE.Color(0.75, 0.25, 0.3));
+    for (const [x, z, ry] of [[-H + 0.3, -3, Math.PI / 2], [H - 0.3, -3, -Math.PI / 2], [-3, -H + 0.3, 0], [3, -H + 0.3, 0]]) for (const sd of [-1, 1]) {
+      const c = new THREE.Group(); c.position.set(x, 0, z); c.rotation.y = ry; g.add(c);
+      box(0.35, 1.9, 0.08, pano, sd * 0.88, 1.95, 0.08, c); box(0.12, 0.12, 0.12, PM('madeira.jpg', [1, 1], new THREE.Color(0.9, 0.7, 0.3)), sd * 0.88, 1.35, 0.12, c); }
+    // rodapé e sanca de madeira escura em volta
+    for (const [x, z, w, d] of [[0, -H + 0.27, H * 2, 0.06], [-H + 0.27, 0, 0.06, H * 2], [H - 0.27, 0, 0.06, H * 2]]) { box(w || 0.06, 0.28, d || 0.06, madeiraE, x, 0.14, z); box(w || 0.06, 0.22, d || 0.06, madeiraE, x, 3.45, z); }
+    for (const sx of [-1, 1]) { box(H - 1.4, 0.28, 0.06, madeiraE, sx * (H / 2 + 0.85), 0.14, H - 0.27); box(H - 1.4, 0.22, 0.06, madeiraE, sx * (H / 2 + 0.85), 3.45, H - 0.27); }
+    // arandelas acesas nas paredes
+    const chama = new THREE.MeshBasicMaterial({ color: 0xffc060, toneMapped: false }), latao = new THREE.MeshPhongMaterial({ color: 0xb88a3a, shininess: 80 });
+    for (const [x, z, ry] of [[-H + 0.3, 0.8, Math.PI / 2], [H - 0.3, 1.6, -Math.PI / 2], [-1.2, -H + 0.3, 0], [-2.2, H - 0.3, Math.PI], [2.2, H - 0.3, Math.PI]]) {
+      const a = new THREE.Group(); a.position.set(x, 0, z); a.rotation.y = ry; g.add(a);
+      box(0.18, 0.3, 0.06, latao, 0, 2.55, 0.03, a); box(0.06, 0.06, 0.25, latao, 0, 2.6, 0.15, a);
+      const v = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.22, 8), new THREE.MeshLambertMaterial({ color: 0xf2ead8 })); v.position.set(0, 2.75, 0.28); a.add(v);
+      const f = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), chama); f.position.set(0, 2.9, 0.28); f.scale.y = 1.6; a.add(f); }
+    // dois quadros na parede da porta (nenhum móvel encosta ali)
+    const quadroT = (fundo, f) => tx(96, 72, (x, w, h) => { x.fillStyle = fundo; x.fillRect(0, 0, w, h); f(x, w, h); });
+    const Q = [quadroT('#8ac0e0', (x) => { x.fillStyle = '#4a7a3a'; x.beginPath(); x.moveTo(0, 72); x.lineTo(30, 30); x.lineTo(55, 55); x.lineTo(75, 25); x.lineTo(96, 72); x.fill(); x.fillStyle = '#f6f0e0'; x.beginPath(); x.moveTo(30, 30); x.lineTo(24, 38); x.lineTo(36, 38); x.fill(); x.fillStyle = '#ffe080'; x.beginPath(); x.arc(78, 14, 7, 0, 7); x.fill(); }),
+               quadroT('#3a2a3a', (x) => { x.fillStyle = '#d8a8c8'; for (let i = 0; i < 6; i++) { x.beginPath(); x.arc(48 + Math.cos(i) * 14, 36 + Math.sin(i) * 14, 9, 0, 7); x.fill(); } x.fillStyle = '#ffd860'; x.beginPath(); x.arc(48, 36, 8, 0, 7); x.fill(); x.fillStyle = '#4a7a3a'; x.fillRect(46, 50, 4, 22); })];
+    for (const [i, xq] of [[0, -4.3], [1, 4.3]]) { const fr = box(1.5, 1.15, 0.08, PM('madeira.jpg', [1, 1], new THREE.Color(0.7, 0.5, 0.25)), xq, 2.0, H - 0.3);
+      const q = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.95), new THREE.MeshLambertMaterial({ map: Q[i] })); q.position.set(xq, 2.0, H - 0.35); q.rotation.y = Math.PI; g.add(q); }
+    // capacho na entrada
+    const cap = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.9).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: tx(64, 32, (x, w, h) => { x.fillStyle = '#8a6a3a'; x.fillRect(0, 0, w, h); x.strokeStyle = '#5a3a1a'; x.lineWidth = 3; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = '#f2d890'; x.font = 'bold 14px Georgia'; x.textAlign = 'center'; x.fillText('LAR', 32, 22); }) }));
+    cap.position.set(0, 0.025, H - 1.0); g.add(cap); }
   // baú (sempre existe)
   const bau = new THREE.Group(); bau.position.set(-H + 1.6, 0, -H + 1.4); g.add(bau);
   box(1.6, 0.8, 1, madeira, 0, 0.4, 0, bau); const tampa = box(1.65, 0.3, 1.05, madeira, 0, 0.95, 0, bau);
