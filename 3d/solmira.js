@@ -130,6 +130,67 @@ const Solmira = (() => {
 
   fundir(cid); decor(cid, 40);
 
+  // ---------------- lojinhas de enfeite (pedido do Rone: "lojinhas que nem são pra gente", com a cidade acordando
+  // como no começo de um desenho clássico: cada um no seu ofício, gente comprando e se cumprimentando).
+  // Ficam na frente das casas novas; o jogador não compra nelas. Criadas para o jogo.
+  const LOJAS = [
+    { g: -150, nome: 'Padaria', em: '🥖', cor: ['#c8863a', '#f2e0b8'], vend: 's_mascate', fala: ['Pão quentinho, saindo do forno!', 'Broa de milho fresquinha!', 'Bolo de fubá, só hoje!'] },
+    { g: -115, nome: 'Livraria', em: '📚', cor: ['#5a6a8a', '#e8e0c8'], vend: 's_leitor', fala: ['Chegou um livro novo de Auren!', 'Histórias do Reino, quem quer?', 'Ler faz bem, viu?'] },
+    { g: -28, nome: 'Peixaria', em: '🐟', cor: ['#3a7a9a', '#e8f0f2'], vend: 's_aldeao', fala: ['Peixe fresco do rio!', 'Olha a sardinha!', 'Pescado hoje cedinho!'] },
+    { g: 28, nome: 'Floricultura', em: '💐', cor: ['#c05a7a', '#f6e4ea'], vend: 's_ancia', fala: ['Flores para a moça bonita!', 'Rosas do Sítio, cheirosas!', 'Um buquê alegra a casa!'] },
+    { g: 65, nome: 'Alfaiate', em: '🧵', cor: ['#7a4a8a', '#ece0f0'], vend: 's_senhora', fala: ['Costuro capa sob medida!', 'Tecido bom, preço justo!', 'Remendo na hora!'] },
+    { g: 115, nome: 'Quitanda', em: '🍎', cor: ['#5a8a3a', '#eef2d8'], vend: 's_aldea', fala: ['Maçã docinha, freguesa!', 'Abóbora, cenoura e couve!', 'Fruta madura é aqui!'] },
+  ];
+  const listra = (a, b) => { const c = document.createElement('canvas'); c.width = 64; c.height = 8; const x = c.getContext('2d'); for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? b : a; x.fillRect(i * 8, 0, 8, 8); } const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; return t; };
+  const placaLoja = (L) => { const c = document.createElement('canvas'); c.width = 160; c.height = 48; const x = c.getContext('2d');
+    x.fillStyle = '#5a3a22'; x.fillRect(0, 0, 160, 48); x.strokeStyle = '#c8962a'; x.lineWidth = 4; x.strokeRect(3, 3, 154, 42);
+    x.font = '26px sans-serif'; x.textBaseline = 'middle'; x.fillText(L.em, 10, 25); x.fillStyle = '#f2d890'; x.font = 'bold 19px Georgia, serif'; x.fillText(L.nome, 44, 26); return new THREE.CanvasTexture(c); };
+  const mercG = new THREE.Group(); scene.add(mercG);
+  const bolinha = (cor, x, y, z, sx, sy, sz) => { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshLambertMaterial({ color: cor })); m.position.set(x, y, z); m.scale.set(sx, sy, sz); mercG.add(m); return m; };
+  const caixa = (cor, x, y, z, w, h, d, ry = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: cor })); m.position.set(x, y, z); m.rotation.y = ry; mercG.add(m); return m; };
+  for (const L of LOJAS) {
+    const a = L.g * Math.PI / 180, ux = Math.cos(a), uz = Math.sin(a), tx = -uz, tz = ux;        // u: da fonte para a loja; t: ao longo do balcão
+    const em = (r, t) => [VIL.x + ux * r + tx * t, VIL.z + uz * r + tz * t];
+    const ry = Math.atan2(-ux, -uz);                                                              // virado para a praça
+    const [bx, bz] = em(31.6, 0), y0 = gy(bx, bz);
+    // balcão, toldo listrado em dois postes e a placa
+    add(new THREE.BoxGeometry(2.8, 0.95, 0.75), PMc('madeira.jpg', [1, 0.5], 0x8a6040), bx, y0 + 0.48, bz, ry);
+    add(new THREE.BoxGeometry(3, 0.1, 0.9), PMc('madeira.jpg', [1, 0.3], 0xa07850), bx, y0 + 1.0, bz, ry, false);
+    for (const t of [-1.5, 1.5]) { const [px, pz] = em(31.1, t); add(new THREE.CylinderGeometry(0.06, 0.07, 2.7, 6), madeira, px, y0 + 1.35, pz, 0, false); }
+    const toldo = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), new THREE.MeshLambertMaterial({ map: listra(L.cor[0], L.cor[1]), side: THREE.DoubleSide }));
+    const [ax, az] = em(32.1, 0); toldo.position.set(ax, y0 + 2.75, az); toldo.rotation.order = 'YXZ'; toldo.rotation.y = ry; toldo.rotation.x = -Math.PI / 2 + 0.35; cid.add(toldo);
+    const placa = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.48), new THREE.MeshLambertMaterial({ map: placaLoja(L), side: THREE.DoubleSide }));
+    const [sx, sz] = em(30.95, 0); placa.position.set(sx, y0 + 3.25, sz); placa.rotation.y = ry; cid.add(placa);
+    addOb(bx, bz, 1.3);
+    // a mercadoria em cima do balcão
+    const yb = y0 + 1.08, P3 = (t, dr = 0) => em(31.6 + dr, t);
+    if (L.nome === 'Padaria') { for (let k = 0; k < 5; k++) { const [x, z] = P3(-1 + k * 0.5); bolinha(k % 2 ? 0xc8863a : 0xb06a28, x, yb + 0.1, z, 0.22, 0.12, 0.14); } { const [x, z] = P3(0, 0.2); const bg = caixa(0xd8a050, x, yb + 0.05, z, 1.6, 0.08, 0.1, ry); bg.rotation.z = 0.25; } }
+    if (L.nome === 'Livraria') for (let k = 0; k < 4; k++) for (let h = 0; h < 3 - (k % 2); h++) { const [x, z] = P3(-1.05 + k * 0.7); caixa([0x8a2a2a, 0x2a4a7a, 0x3a6a3a, 0x7a5a2a][(k + h) % 4], x, yb + 0.06 + h * 0.13, z, 0.5, 0.12, 0.36, ry + (h - 1) * 0.15); }
+    if (L.nome === 'Peixaria') { const [x, z] = P3(0); caixa(0xeef4f6, x, yb + 0.06, z, 2.4, 0.1, 0.6, ry); for (let k = 0; k < 6; k++) { const [x2, z2] = P3(-1 + k * 0.4); const f = bolinha(0x8aa8b8, x2, yb + 0.16, z2, 0.07, 0.07, 0.22); f.rotation.y = ry + 0.4; } }
+    if (L.nome === 'Floricultura') for (let k = 0; k < 5; k++) { const [x, z] = P3(-1 + k * 0.5); const v = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.1, 0.22, 8), new THREE.MeshLambertMaterial({ color: 0xb8643a })); v.position.set(x, yb + 0.11, z); mercG.add(v); for (let f = 0; f < 3; f++) bolinha([0xe85a6a, 0xf2c040, 0xb070e0, 0xf6f6f6, 0xff8a40][(k + f) % 5], x + (f - 1) * 0.07, yb + 0.33 + (f % 2) * 0.06, z, 0.08, 0.08, 0.08); }
+    if (L.nome === 'Alfaiate') for (let k = 0; k < 4; k++) { const [x, z] = P3(-0.9 + k * 0.6); const r = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.55, 10), new THREE.MeshLambertMaterial({ color: [0x9a3a5a, 0x3a5a9a, 0xd8c070, 0x4a8a6a][k] })); r.position.set(x, yb + 0.11, z); r.rotation.z = Math.PI / 2; r.rotation.y = ry; mercG.add(r); }
+    if (L.nome === 'Quitanda') for (let k = 0; k < 3; k++) { const [x, z] = P3(-0.9 + k * 0.9); caixa(0x9a7048, x, yb + 0.1, z, 0.7, 0.2, 0.45, ry); for (let f = 0; f < 6; f++) bolinha([0xc83a2a, 0xf09a30, 0x6aa83a][k], x + ((f % 3) - 1) * 0.16 * Math.cos(-ry), yb + 0.26, z + ((f % 3) - 1) * 0.16 * Math.sin(-ry) + (f > 2 ? 0.1 : -0.06), 0.08, 0.08, 0.08); }
+    L.vendedor = em(32.7, 0); L.fregues = em(29.8, 0); L.ry = ry;
+  }
+  fundir(mercG); decor(mercG, 30);
+
+  // ---------------- balões de fala (vendedores anunciando e moradores se cumprimentando)
+  const baloes = [];
+  function falar(alvo, txt) {
+    if (baloes.length >= 4 || baloes.some(b => b.alvo === alvo)) return;
+    const el = document.createElement('div'); el.className = 'bubble fala-vila'; el.textContent = txt; document.getElementById('labels').appendChild(el);
+    baloes.push({ el, alvo, t: 3.6 });
+  }
+  function tickBaloes(dt) {
+    for (let i = baloes.length - 1; i >= 0; i--) { const b = baloes[i]; b.t -= dt;
+      const sp = toScreen(b.alvo.x, groundY(b.alvo.x, b.alvo.z) + 2.5, b.alvo.z);
+      if (b.t <= 0) { b.el.remove(); baloes.splice(i, 1); continue; }
+      b.el.style.display = sp.vis ? '' : 'none'; b.el.style.opacity = Math.min(1, b.t * 2);
+      b.el.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`; }
+  }
+  const OI = ['Bom dia!', 'Bom dia, vizinha!', 'Olá!', 'Que dia lindo!', 'Como vai a família?', 'Bom dia, seu Doran!', 'Viu o Kravenox no sábado?'];
+  const COMPRA = ['Dois pães, por favor!', 'Quanto custa?', 'Vou levar este!', 'Me vê um quilo?', 'Está fresquinho?', 'Embrulha para presente?'];
+
   // ---------------- moradores andando pela cidade (pedido do Rone: "muitas pessoas andando")
   // Cada um vai de ponto em ponto (volta da praça, rua de pedra e a porta das casas), só por caminho livre,
   // e para um pouco em cada lugar. Cada jogador vê os seus (não passam pelo servidor). Criados para o jogo.
@@ -138,7 +199,9 @@ const Solmira = (() => {
   for (let k = 0; k < 18; k++) { const [x, z] = P2(19.5, k * 20); NOS.push({ x, z }); }                  // volta da praça
   for (const lado of [1, -1]) for (const d of [23, 29, 35]) for (const zz of [-1.6, 1.6]) NOS.push({ x: VIL.x + lado * d, z: VIL.z + zz });   // rua
   const CASAS = [[-125, -22], [-105, -30], [-84, -24], [-127, 22], [-104, 30], [-84, 22], [-135, -6], ...[[36, -150], [36, -115], [37, -28], [37, 28], [36, 65], [36, 115], [36, 150]].map(([r, g]) => P2(r, g))];
-  for (const [hx, hz] of CASAS) { const d = Math.hypot(VIL.x - hx, VIL.z - hz), k = 4.6 / d; NOS.push({ x: hx + (VIL.x - hx) * k, z: hz + (VIL.z - hz) * k, porta: true }); }   // na frente da porta
+  const ehLoja = (hx, hz) => LOJAS.some(L => { const [lx, lz] = P2(36, L.g); return Math.hypot(lx - hx, lz - hz) < 3; });
+  for (const [hx, hz] of CASAS) { if (ehLoja(hx, hz)) continue; const d = Math.hypot(VIL.x - hx, VIL.z - hz), k = 4.6 / d; NOS.push({ x: hx + (VIL.x - hx) * k, z: hz + (VIL.z - hz) * k, porta: true }); }   // na frente da porta
+  for (const L of LOJAS) NOS.push({ x: L.fregues[0], z: L.fregues[1], loja: L });                     // no balcão das lojinhas
   const caminhoLivre = (a, b) => { const d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 0.6); for (let i = 1; i <= n; i++) if (!livre(a.x + (b.x - a.x) * i / n, a.z + (b.z - a.z) * i / n)) return false; return true; };
   const ROSTOS = ['s_aldea', 's_aldeao', 's_senhora', 's_mascate', 's_menina', 's_menino', 's_ancia', 's_refugiada', 's_leitor'];
   let moradores = null;
@@ -152,7 +215,8 @@ const Solmira = (() => {
       const g = new THREE.Group(); scene.add(g);
       const act = SpriteKit.actor({ kind: 'dir', base }); g.add(act.root);
       return { g, act, x: no.x, z: no.z, no, alvo: null, para: Math.random() * 4, face: Math.random() * TAU, vel: crianca ? 2.3 : 1.2 + Math.random() * 0.5 };
-    });
+    });    for (const L of LOJAS) { const g = new THREE.Group(); scene.add(g); const act = SpriteKit.actor({ kind: 'dir', base: L.vend }); g.add(act.root);
+      L.v = { g, act, x: L.vendedor[0], z: L.vendedor[1], cd: 3 + Math.random() * 10 }; g.position.set(L.v.x, groundY(L.v.x, L.v.z), L.v.z); }
   }
   function update(dt) {
     const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 85 && !inTower(P.z);
@@ -163,16 +227,28 @@ const Solmira = (() => {
       let anda = false;
       if (m.para > 0) m.para -= dt;
       else {
-        if (!m.alvo) { const v = m.no.viz; m.alvo = v[Math.floor(Math.random() * v.length)]; }
+        if (!m.alvo) { const v = m.no.viz, lj = v.filter(n => n.loja); m.alvo = lj.length && Math.random() < 0.45 ? lj[Math.floor(Math.random() * lj.length)] : v[Math.floor(Math.random() * v.length)]; }   // gostam de passar nas lojinhas
         const dx = m.alvo.x - m.x, dz = m.alvo.z - m.z, d = Math.hypot(dx, dz), passo = m.vel * dt;
-        if (d <= passo) { m.x = m.alvo.x; m.z = m.alvo.z; m.no = m.alvo; m.alvo = null; m.para = m.no.porta ? 2 + Math.random() * 5 : Math.random() < 0.4 ? 1 + Math.random() * 3 : 0; }
+        if (d <= passo) { m.x = m.alvo.x; m.z = m.alvo.z; m.no = m.alvo; m.alvo = null; m.para = m.no.loja ? 5 + Math.random() * 5 : m.no.porta ? 2 + Math.random() * 5 : Math.random() < 0.4 ? 1 + Math.random() * 3 : 0;
+          if (m.no.loja) { m.face = m.no.loja.ry + Math.PI; if (Math.random() < 0.6) falar(m, COMPRA[Math.floor(Math.random() * COMPRA.length)]); } }
         else { m.x += dx / d * passo; m.z += dz / d * passo; m.face = Math.atan2(dx, dz); anda = true; }
       }
+      if (anda && Math.random() < dt * 0.25) { const o = moradores.find(o => o !== m && Math.hypot(o.x - m.x, o.z - m.z) < 2.5); if (o) falar(m, OI[Math.floor(Math.random() * OI.length)]); }   // cruzou com alguém: cumprimenta
       // parado perto de você: olha para você
       const pd = Math.hypot(P.x - m.x, P.z - m.z);
       m.g.position.set(m.x, groundY(m.x, m.z), m.z);
       m.act.update(dt, { face: !anda && pd < 4 ? Math.atan2(P.x - m.x, P.z - m.z) : m.face, moving: anda });
     }
   }
-  return { update, moradores: () => moradores || [] };
+  function updateVila(dt) {
+    update(dt);
+    const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 85 && !inTower(P.z);
+    for (const L of LOJAS) if (L.v) { L.v.g.visible = perto;
+      if (!perto) continue;
+      const pd = Math.hypot(P.x - L.v.x, P.z - L.v.z);
+      L.v.act.update(dt, { face: pd < 5 ? Math.atan2(P.x - L.v.x, P.z - L.v.z) : L.ry, moving: false });
+      L.v.cd -= dt; if (L.v.cd <= 0) { L.v.cd = 9 + Math.random() * 12; if (pd < 28) falar(L.v, L.fala[Math.floor(Math.random() * L.fala.length)]); } }   // o vendedor anuncia
+    if (!perto) { for (const b of baloes) b.el.remove(); baloes.length = 0; } else tickBaloes(dt);
+  }
+  return { update: updateVila, moradores: () => moradores || [] };
 })();
