@@ -1334,7 +1334,7 @@ const NPCS = [
   { id: 'guerra', name: 'Comandante Varek', x: VIL.x + 8, z: VIL.z - 15.5, look: [0x3a3a4a, 0x8a2a2a, 'helm'] },   // Guerra de Guildas (guerra.js)
   { id: 'arena', name: 'Mestre Brakus', x: VIL.x + 15, z: VIL.z - 9, look: [0x8a3a2a, 0x3a2a1a, 'helm'] },   // na frente do portão da Arena (arena.js)
   { id: 'templo', name: 'Estudiosa Ilka', x: VIL.x + 10, z: VIL.z - 10, look: [0x4a6a8a, 0x2a2a3a, 'cap'] },   // na frente da entrada do Templo (templo.js)
-  { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 13.5, z: VIL.z + 5, look: [0x5a2a7a, 0x1a1030, 'veil'] },   // na frente da tenda dela (cartas.js)
+  { id: 'cartas', name: 'Cartomante Zaíra', x: VIL.x - 10.9, z: VIL.z + 9.4, look: [0x5a2a7a, 0x1a1030, 'veil'] },   // na frente da tenda dela (cartas.js)
   { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 2, z: VIL.z + 13, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
   { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 20, z: OAS.z - 12, look: [0xb5651d, 0x1a1a1a, 'veil'] },
   { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 12, z: CIT.z - 6, look: [0x3a3442, 0x1a1a1a, 'helm'] },

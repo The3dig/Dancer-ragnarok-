@@ -25,7 +25,7 @@ const Cartas = (() => {
   // ---------------- a Cripta das Cartas (o mesmo molde da Mina da Forja)
   const Cripta = criarMasmorra({
     zona: 'cripta', lugar: CRIPTA, nome: 'Cripta das Cartas', icone: '🃏', tempo: 8 * 60, ondas: [10, 12, 14], minLv: 20, limite: 2,   // 2 por semana
-    saida: { x: VIL.x - 10.5, z: VIL.z + 5 },                            // na frente da tenda da Cartomante, em Solmira
+    saida: { x: VIL.x - 9.3, z: VIL.z + 8 },                            // na frente da tenda da Cartomante, em Solmira
     chefeNome: 'Guardião das Cartas', chefeCurto: 'Guardião', txtOnda: 'saíram das cartas espalhadas',
     corPedra: new THREE.Color(0.42, 0.36, 0.55), corTeto: 0x120a1c, corSaida: 0xd8b8ff, corMapa: '#160e22', corTitulo: '#c89aff',
     moldura: new THREE.MeshLambertMaterial({ color: 0x3a2850 }),
@@ -83,7 +83,8 @@ const Cartas = (() => {
 
   // ---------------- a tenda da Cartomante (a oeste da praça de Solmira): pano roxo, faixas douradas, cartas na entrada
   {
-    const tx = VIL.x - 19, tz = VIL.z + 5, g = new THREE.Group(); g.position.set(tx, groundY(tx, tz), tz); g.rotation.y = Math.PI / 2; scene.add(g);   // a entrada olha para a praça
+    // canto sudoeste da praça, entre a rua do oeste e a do sul (pedido do Rone: antes ficava em cima da rua do portão oeste)
+    const tx = VIL.x - 15, tz = VIL.z + 13, g = new THREE.Group(); g.position.set(tx, groundY(tx, tz), tz); g.rotation.y = Math.atan2(15, -13); scene.add(g);   // a entrada olha para a fonte
     const pano = new THREE.MeshLambertMaterial({ color: 0x5a2a8a, side: THREE.DoubleSide }), ouro = new THREE.MeshLambertMaterial({ color: 0xd8a840 }), madeira = new THREE.MeshLambertMaterial({ color: 0x5a3a24 });
     const teto = new THREE.Mesh(new THREE.ConeGeometry(3.6, 3.2, 8, 1, true), pano); teto.position.y = 4.1; g.add(teto);
     const parede = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.6, 2.5, 8, 1, true, 0.55, TAU - 1.1), pano); parede.position.y = 1.25; parede.rotation.y = -0.45 + Math.PI; g.add(parede);
