@@ -263,6 +263,15 @@ const Casa = (() => {
     const n = Object.keys(S().mov).length;
     dialog('🔨 Reformas da Casa', `Mobilie a casa aos poucos com coroas e o que você junta nas caçadas e no Sítio.<br><small>Móveis: ${n}/${Object.keys(MOVEIS).length} · Coroas: <b>${P.zeny} cr</b></small>`, opts);
   }
+  // 📖 fazer um móvel da sala direto pelo Livro dos Móveis (vai para o lugar dele na casa na hora)
+  function fazer(k) {
+    const M0 = MOVEIS[k]; if (!M0 || S().mov[k]) return false; const [nome, , preco, need] = M0;
+    const CM = typeof Comodos !== 'undefined' && Comodos.qtd, tem = id => CM ? Comodos.qtd(id) : (P.inv[id] || 0);
+    if (P.zeny < preco || !Object.entries(need).every(([id, n]) => tem(id) >= n)) return false;
+    P.zeny -= preco; if (CM) Comodos.tirarMat(need); else for (const [id, n] of Object.entries(need)) P.inv[id] -= n;
+    S().mov[k] = 1; if (FUNDO[k]) posOf()[k] = sortear(k); furnish(); if (typeof Comodos !== 'undefined') Comodos.completos(); Audio8.sfx('anvil');
+    log(`🏠 <b>${nome}</b> chegou e já está no lugar dele na sala da casa!`, 'gold'); try { save(); } catch (e) { } return true;
+  }
   // ---------------- entrar / sair
   let leaveT = 0;
   function entrar() {
@@ -289,5 +298,5 @@ const Casa = (() => {
     if (Math.hypot(P.x - BANC.x, P.z - BANC.z) < 2.6) return { label: '🔨 Reformas da casa', fn: () => reformas() };
     return null;
   }
-  return { update, nearest, entrar, sair, furnish, menuMudar, door: OUT_DOOR, MOVEIS, BUILD };
+  return { update, nearest, entrar, sair, furnish, menuMudar, fazer, door: OUT_DOOR, MOVEIS, BUILD };
 })();

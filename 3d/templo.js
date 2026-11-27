@@ -75,7 +75,7 @@ const Templo = (() => {
   const P1 = { cols: [-4.4, -2.2, 0, 2.2, 4.4], rows: [8.8, 6.6, 4.4, 2.2, 0, -2.2] };
   function montar1(sala) {
     sala.placas = [];
-    for (let r = 0; r < 6; r++) for (let c = 0; c < 5; c++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.12, 2.0), new THREE.MeshLambertMaterial({ color: 0x8a8070, emissive: 0x000000 })); m.position.set(P1.cols[c], 0.06, P1.rows[r]); sala.g.add(m); sala.placas.push({ r, c, m }); }
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 5; c++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.12, 2.0), new THREE.MeshLambertMaterial({ color: 0x8a8070, emissive: 0x000000 })); m.position.set(P1.cols[c], -0.05, P1.rows[r]); sala.g.add(m);   /* rente ao chão: em cima da placa o personagem afundava e tremia (pedido da Lady Ingrid) */ sala.placas.push({ r, c, m }); }
     const dica = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), texto(['Volte aqui para ver de novo'], 512, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function preparar1(sala, rnd) {
@@ -89,7 +89,7 @@ const Templo = (() => {
     for (const p of sala.placas) p.m.material.emissive.setHex(mostra && sala.seguro.has(p.r + ',' + p.c) ? 0x40c0ff : 0x000000);
     if (lz < 9.9 && lz > -3.3) {
       const c = Math.round((lx + 4.4) / 2.2), r = Math.round((8.8 - lz) / 2.2);
-      if (r >= 0 && r < 6 && c >= 0 && c < 5 && Math.abs(lx - P1.cols[c]) < 0.95 && Math.abs(lz - P1.rows[r]) < 0.95 && !sala.seguro.has(r + ',' + c)) { espinhos(sala.S, P1.cols[c], P1.rows[r]); cair('Placa errada! Espinhos saíram do chão.'); }
+      if (r >= 0 && r < 6 && c >= 0 && c < 5 && Math.abs(lx - P1.cols[c]) < 0.85 && Math.abs(lz - P1.rows[r]) < 0.85 && !sala.seguro.has(r + ',' + c)) { espinhos(sala.S, P1.cols[c], P1.rows[r]); cair('Placa errada! Espinhos saíram do chão.'); }
     }
     if (lz < -4) abrir(sala, '🚪 Você atravessou o <b>Piso que Lembra</b>!');
   }
@@ -97,17 +97,17 @@ const Templo = (() => {
   // ================= SALA 2: O Corredor das Lâminas =================
   function montar2(sala) {
     sala.laminas = [7, 2.5, -2, -6.5].map((z, k) => {
-      const piv = new THREE.Group(); piv.position.set(0, 5.6, z); sala.g.add(piv);
-      const haste = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.3, 0.12), ouroM); haste.position.y = -2.15; piv.add(haste);
-      const lam = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.0, 0.12), new THREE.MeshPhongMaterial({ color: 0xc8ccd8, shininess: 80 })); lam.position.y = -4.6; piv.add(lam);
+      const piv = new THREE.Group(); piv.position.set(0, 5.8, z); sala.g.add(piv);
+      const haste = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.6, 0.12), ouroM); haste.position.y = -2.3; piv.add(haste);
+      const lam = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.0, 0.14), new THREE.MeshPhongMaterial({ color: 0xc8ccd8, shininess: 80 })); lam.position.y = -5.1; piv.add(lam);   /* maior: varre o corredor de parede a parede */
       return { z, piv, w: 1.5 + k * 0.25, ph: k * 1.7 };
     });
     const dica = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), texto(['A esquiva atravessa a lâmina'], 512, 128)); dica.position.set(HW - 0.05, 2.6, 7); dica.rotation.y = -Math.PI / 2; sala.g.add(dica);
   }
   function tick2(sala, lx, lz) {
     for (const L of sala.laminas) {
-      const a = Math.sin(time * L.w * (L.vel || 1) + L.ph) * 1.05; L.piv.rotation.z = a; const bx = Math.sin(a) * 4.6;
-      if (Math.abs(lz - L.z) < 0.7 && Math.abs(lx - bx) < 1.15 && !(P.dashT > 0) && !(P.protT && time < P.protT)) { cair('A lâmina te acertou!', 0.2); return; }
+      const a = Math.sin(time * L.w * (L.vel || 1) + L.ph) * 1.2; L.piv.rotation.z = a; const bx = Math.sin(a) * 5.1;   // chega até a parede dos dois lados (antes sobrava um canto seguro)
+      if (Math.abs(lz - L.z) < 0.7 && Math.abs(lx - bx) < 1.35 && !(P.dashT > 0) && !(P.protT && time < P.protT)) { cair('A lâmina te acertou!', 0.2); return; }
     }
     if (lz < -9.5) abrir(sala, '🚪 Você passou pelo <b>Corredor das Lâminas</b>!');
   }
@@ -337,7 +337,7 @@ const Templo = (() => {
       sala.guardiao = m;
     } else { const m = spawnMob(tipoGuardiao(L), null, { x: S.x, z: S.z - 2 }); escalarGuardiao(m, L, 1); sala.guardiao = m; }
     banner('O GUARDIÃO DO ECO'); Audio8.sfx('boom');
-    log('☠ <b>O Guardião do Eco</b> despertou. Ele é <b>imune</b> enquanto os <b>4 pilares</b> não estiverem acesos <b>ao mesmo tempo</b>: fique 1 segundo na placa de cada pilar (cada um fica aceso por 12 segundos). Cuidado com os círculos no chão!', 'bad');
+    log(`☠ <b>O Guardião do Eco</b> despertou. Ele é <b>imune</b> enquanto os <b>4 pilares</b> não estiverem acesos <b>ao mesmo tempo</b>: fique 1 segundo na placa de cada pilar (cada um fica aceso por ${run.grupo ? 12 : 20} segundos; o nome dele mostra quantos estão acesos). Cuidado com os círculos no chão!`, 'bad');
   }
   function criarRemoto(o) {
     const p = String(o.id).split(':'); if (p[1] !== 'eco' || p[2] !== P.grupo) return null;
@@ -356,12 +356,14 @@ const Templo = (() => {
     const outros = membrosNaSala(S.sala).map(r => loc(S, r.x, r.z));
     for (const p of sala.pil) {
       const no = [[lx, lz], ...outros].some(([x, z]) => Math.hypot(x - p.x, z - p.z) < 1.1);
-      if (no && time > p.aceso) { p.t += dt; if (p.t > 1) { p.t = 0; p.aceso = time + 12; Audio8.sfx('buff'); } } else if (!no) p.t = 0;
+      if (no && time > p.aceso) { p.t += dt; if (p.t > 1) { p.t = 0; p.aceso = time + (run.grupo ? 12 : 20); Audio8.sfx('buff'); } } else if (!no) p.t = 0;   // sozinho o pilar fica aceso 20 s (12 s era pouco para correr entre os 4)
       const on = time < p.aceso; p.chama.material.color.setHex(on ? 0xffa030 : 0x404040); p.pad.material.emissive.setHex(no ? 0x403010 : 0);
     }
     if (g && !g.dead) {
       if (sala.pil.every(p => time < p.aceso) && time > sala.vulnAte) { sala.vulnAte = time + 12; for (const p of sala.pil) p.aceso = 0; banner('🔥 O ESCUDO CAIU!'); Audio8.sfx('boom'); log('🔥 Os 4 pilares estão acesos: o Guardião está <b>vulnerável por 12 segundos</b>!', 'gold'); }
-      g.invul = time > sala.vulnAte; if (g.model && g.model.g) g.model.g.traverse(o => { if (o.material && o.material.emissive && o.isMesh) o.material.emissive.setHex(g.invul ? 0x101830 : 0x301000); });
+      g.invul = time > sala.vulnAte;
+      { const acesos = sala.pil.filter(p => time < p.aceso).length, txt = g.invul ? `🛡️ IMUNE · acenda os pilares: <b>${acesos}/4</b>` : `🔥 VULNERÁVEL · ${Math.ceil(sala.vulnAte - time)} s`, sp = g.lab && g.lab.querySelector('span');
+        if (sp && sp.dataset.t !== txt) { sp.dataset.t = txt; sp.innerHTML = `Guardião do Eco <small>${txt}</small>`; } }   // antes só aparecia "Imune" no golpe e não dava para saber o que fazer if (g.model && g.model.g) g.model.g.traverse(o => { if (o.material && o.material.emissive && o.isMesh) o.material.emissive.setHex(g.invul ? 0x101830 : 0x301000); });
       // armadilhas: círculos no chão que explodem
       if ((sala.armT -= dt) <= 0) {
         sala.armT = 2.4;
@@ -406,7 +408,7 @@ const Templo = (() => {
 
   // ---------------- semana, entrar, sair
   const semana = () => Math.floor((Date.now() / 864e5 + 3) / 7);
-  const usadas = () => { const s = P.dgSemana; return s && s.w === semana() ? (s.templo || 0) : 0; };
+  const usadas = () => { const s = P.dgSemana; if (s && s.w === semana() && !s.dev && s.templo) { s.dev = 1; s.templo = 0; setTimeout(() => log('🏛️ As <b>entradas do Templo desta semana foram devolvidas</b>: as placas, as lâminas e o Guardião estavam com defeito. Boa sorte!', 'gold'), 500); } return s && s.w === semana() ? (s.templo || 0) : 0; };
   const restam = () => Math.max(0, LIMITE - usadas());
   function corridaDoGrupo() {
     if (!P.grupo || typeof Grupo === 'undefined') return null;
