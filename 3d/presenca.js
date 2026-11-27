@@ -51,7 +51,7 @@ const Presenca = (() => {
     const prox = PREMIOS[s.n];
     const msg = pode ? `Hoje você recebe o <b>dia ${s.n + 1}</b>: ${prox[0]} <b>${prox[1]}</b>.` : s.n >= h.nDias ? '🏆 Você completou o calendário deste mês!' : `✅ Você já recebeu o prêmio de hoje. Volte amanhã para o <b>dia ${s.n + 1}</b>: ${prox[0]} ${prox[1]}.`;
     const opts = pode ? [{ label: `🎁 Receber o dia ${s.n + 1}`, fn: () => { receber(); return true; } }, { label: 'Depois' }] : [{ label: 'Fechar' }];
-    dialog(`📅 Presença de ${h.nomeMes}`, `${msg}<br><small>Cada dia que você entra vale um prêmio do calendário (não precisa ser seguido). O calendário vale só até o fim do mês: no dia 1 começa outro, do zero. Dias 7, 14, 21 e 28 têm presente especial.</small><div style="margin-top:8px;text-align:center">${grade}</div>`, opts);
+    dialog(`📅 Presença de ${h.nomeMes}`, `${typeof Festas !== 'undefined' ? `<div style="margin-bottom:8px;padding:6px 8px;border:1px solid rgba(242,200,106,.4);border-radius:8px">🎉 ${Festas.resumo()}<br><small>Cada dia uma vila faz festa: ache os objetos da festa espalhados por ela.<br>${Festas.semana()}</small></div>` : ''}${msg}<br><small>Cada dia que você entra vale um prêmio do calendário (não precisa ser seguido). O calendário vale só até o fim do mês: no dia 1 começa outro, do zero. Dias 7, 14, 21 e 28 têm presente especial.</small><div style="margin-top:8px;text-align:center">${grade}</div>`, opts);
   }
   let mostrou = false, t = 0;
   function update(dt) {
