@@ -77,11 +77,11 @@ const Props = (() => {
     // rochas com musgo nas bordas da floresta
     for (let i = 0, k = 0; i < 300 && k < 14; i++) {
       const x = R(-WX + 20, 30), z = R(-WZ + 10, WZ - 10);
-      if (!freeSpot(x, z, 7) || Math.hypot(x - VIL.x, z - VIL.z) < 34) continue;
+      if (!freeSpot(x, z, 7) || Math.hypot(x - VIL.x, z - VIL.z) < 34 || (typeof naCapital === 'function' && naCapital(x, z, 3))) continue;
       place('rock_moss_set_01', x, z, R(0.9, 1.6), R(0, TAU), 1.4); k++;
     }
     // Vila de Solmira: barris, caixotes, lanternas e baldes junto às casas e à praça
-    const villageHouses = [[-125, -22], [-105, -30], [-84, -24], [-127, 22], [-104, 30], [-84, 22], [-135, -6]];
+    const villageHouses = [[-125, -22], [-84, -24], [-127, 22], [-84, 22], [-135, -6]];   // (as do meio, norte e sul, saíram: ali passam as avenidas da capital)
     villageHouses.forEach(([hx, hz], i) => {
       const a = Math.atan2(VIL.x - hx, VIL.z - hz), sx = Math.cos(a) * 3.6, sz = -Math.sin(a) * 3.6;
       const fx = hx + Math.sin(a) * 3.2, fz = hz + Math.cos(a) * 3.2;

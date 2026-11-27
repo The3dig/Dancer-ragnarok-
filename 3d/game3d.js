@@ -396,6 +396,10 @@ function decorTick(dt) {
 // ---------------------------------------------------------------- mundo
 const WX = 220, WZ = 90;
 const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 }, LAIR = { x: -20, z: -64 };
+// 🏰 Solmira, a capital (pedido do Rone: "aumenta a cidade pra valer, tipo Prontera"): a muralha cerca este retângulo
+const CAPITAL = { x0: VIL.x - 38, x1: VIL.x + 38, z0: -84, z1: 84 };
+const foraCapital = (x, z) => Math.max(0, CAPITAL.x0 - x, x - CAPITAL.x1, CAPITAL.z0 - z, z - CAPITAL.z1);   // 0 dentro; metros até a muralha fora
+const naCapital = (x, z, m = 0) => x > CAPITAL.x0 - m && x < CAPITAL.x1 + m && z > CAPITAL.z0 - m && z < CAPITAL.z1 + m;
 // Reino Quebrado (extremo leste): Cidadela do Cisma e a Torre do Cisma
 const CIT = { x: 188, z: 4 }, TOWER = { x: 196, z: -30 };
 // Valdora (livro I, caps. 14–15): mapa novo ao norte, fora do Reino (z < -300), ligado pela Passagem do Norte
@@ -516,7 +520,7 @@ function height(x, z) {
   const des = smooth(42, 58, x);
   h += des * (Math.sin(x * 0.07 + z * 0.035) * 1.6 + Math.cos(z * 0.11) * 0.7);
   let f = smooth(3, 10, dRoad(x, z));
-  f *= smooth(36, 50, Math.hypot(x - VIL.x, z - VIL.z));
+  f *= smooth(2, 14, foraCapital(x, z));   // chão plano dentro da muralha da capital
   f *= smooth(20, 30, Math.hypot(x - FARM.x, z - FARM.z));
   f *= smooth(26, 36, Math.hypot(x - OAS.x, z - OAS.z));
   f *= smooth(14, 22, Math.hypot(x - RUIN.x, z - RUIN.z));
@@ -744,12 +748,12 @@ const trees = [], rocks = [], cacti = [], palms = [];
 // anel de árvores da vila
 for (let a = 0; a < TAU; a += 0.09) {
   const x = VIL.x + Math.cos(a) * rr(44, 50), z = VIL.z + Math.sin(a) * rr(44, 50);
-  if (Math.abs(z) < 7 || x < -WX + 3) continue;
+  if (Math.abs(z) < 7 || x < -WX + 3 || naCapital(x, z, 4)) continue;   // dentro da capital não (a cidade cresceu)
   trees.push({ x, z, s: rr(1, 1.5) });
 }
 for (let i = 0; i < 3200 && trees.length < 470; i++) {
   const x = rr(-WX + 5, 46), z = rr(-WZ + 5, WZ - 5);
-  if (Math.hypot(x - VIL.x, z - VIL.z) < 52 && x < -55) continue;
+  if ((Math.hypot(x - VIL.x, z - VIL.z) < 52 && x < -55) || naCapital(x, z, 6)) continue;
   if (Math.hypot(x - FARM.x, z - FARM.z) < 24) continue;
   if (WHEAT.some(([wx, wz, ww, wd]) => x > wx - 2 && x < wx + ww + 2 && z > wz - 2 && z < wz + wd + 2)) continue;
   if (!freeSpot(x, z, 6)) continue;
@@ -1020,7 +1024,7 @@ function house(x, z, rot, w, d, roofC, style) {
 // Vila de Solmira
 { // as 7 casas viram um conjunto só por material (a vila inteira em poucas chamadas de desenho)
   const casas = new THREE.Group(); scene.add(casas);
-  [[-125, -22, '#7a5546'], [-105, -30, '#5a5e64'], [-84, -24, '#6e5a44'], [-127, 22, '#4e545a'], [-104, 30, '#7a5a40'], [-84, 22, '#5e5048'], [-135, -6, '#585e5e']]
+  [[-125, -22, '#7a5546'], [-84, -24, '#6e5a44'], [-127, 22, '#4e545a'], [-84, 22, '#5e5048'], [-135, -6, '#585e5e']]
     .forEach(([x, z, c]) => casas.attach(house(x, z, Math.atan2(VIL.x - x, VIL.z - z), 5, 4.5, c, 'wood')));
   fundir(casas); decor(casas, 30);
 }

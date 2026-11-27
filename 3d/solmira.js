@@ -191,6 +191,127 @@ const Solmira = (() => {
   const OI = ['Bom dia!', 'Bom dia, vizinha!', 'Olá!', 'Que dia lindo!', 'Como vai a família?', 'Bom dia, seu Doran!', 'Viu o Kravenox no sábado?'];
   const COMPRA = ['Dois pães, por favor!', 'Quanto custa?', 'Vou levar este!', 'Me vê um quilo?', 'Está fresquinho?', 'Embrulha para presente?'];
 
+  // ================= 🏰 A capital (pedido do Rone: "aumenta a cidade pra valer, tipo Prontera no Rag; é a nossa capital,
+  // tem que ser grande"). Muralha em volta de tudo (CAPITAL, em game3d.js), Avenida Real até o Castelo ao norte,
+  // avenida até a Catedral ao sul, bairros de casas, praça de mercado e parque. Criado para o jogo.
+  const capG = new THREE.Group(); scene.add(capG);
+  const addC = (geo, mat, x, y, z, ry = 0, sombra = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = sombra; m.receiveShadow = true; capG.add(m); return m; };
+  const muroM = PMc('pedra.jpg', [2, 1.4], 0xbcb09c), claro = PMc('pedra.jpg', [2, 2], 0xe0d8c8), ardosia = new THREE.MeshLambertMaterial({ color: 0x4a5a78 });
+  const X0 = CAPITAL.x0, X1 = CAPITAL.x1, Z0 = CAPITAL.z0, Z1 = CAPITAL.z1;
+  // ---- muralha (com ameias) e torres
+  function trechoMuro(xa, za, xb, zb) {
+    const L = Math.hypot(xb - xa, zb - za), n = Math.max(1, Math.ceil(L / 3)), ry = Math.atan2(xb - xa, zb - za);
+    for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, x = xa + (xb - xa) * t, z = za + (zb - za) * t, y = gy(x, z);
+      addC(new THREE.BoxGeometry(1.5, 4.8, L / n + 0.05), muroM, x, y + 1.9, z, ry);
+      addC(new THREE.BoxGeometry(1.7, 0.75, 0.9), pedraE, x, y + 4.6, z, ry, false); }
+    for (let d = 0; d <= L; d += 1.5) addOb(xa + (xb - xa) * d / L, za + (zb - za) * d / L, 1.0);
+  }
+  function torreGrande(x, z, r = 2.8, h = 9) {
+    const y = gy(x, z) - 0.4;
+    addC(new THREE.CylinderGeometry(r, r + 0.3, h, 14), PMc('pedra.jpg', [4, 3], 0xc8bca8), x, y + h / 2, z);
+    addC(new THREE.CylinderGeometry(r + 0.35, r + 0.35, 0.5, 14), pedraE, x, y + h + 0.2, z);
+    for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; addC(new THREE.BoxGeometry(0.6, 0.8, 0.6), pedraE, x + Math.cos(a) * (r + 0.1), y + h + 0.8, z + Math.sin(a) * (r + 0.1), -a, false); }
+    addC(new THREE.ConeGeometry(r + 0.6, r * 1.3, 14), telha, x, y + h + 1.2 + r * 0.65, z);
+    addOb(x, z, r + 0.4);
+  }
+  trechoMuro(X0, Z0, X1, Z0); trechoMuro(X0, Z1, X1, Z1);
+  for (const x of [X0, X1]) { trechoMuro(x, Z0, x, VIL.z - 15.5); trechoMuro(x, VIL.z + 15.5, x, Z1); }
+  for (const [x, z] of [[X0, Z0], [X1, Z0], [X0, Z1], [X1, Z1]]) torreGrande(x, z, 3.2, 11);
+  for (const [x, z] of [[X0, -48], [X1, -48], [X0, 48], [X1, 48], [VIL.x - 19, Z0], [VIL.x + 19, Z0], [VIL.x - 19, Z1], [VIL.x + 19, Z1]]) torreGrande(x, z);
+
+  // ---- avenidas de pedra com lampiões e canteiros com árvore
+  const calcA = PMc('calcada.jpg', [1, 1], 0xd8ccb8); calcA.polygonOffset = true; calcA.polygonOffsetFactor = -2;
+  function chaoPedra(xa, xb, za, zb) {
+    const w = xb - xa, d = zb - za, geo = new THREE.PlaneGeometry(w, d, Math.ceil(w / 2), Math.ceil(d / 2)); geo.rotateX(-Math.PI / 2);
+    const q = geo.attributes.position, uv = geo.attributes.uv, cx = (xa + xb) / 2, cz = (za + zb) / 2;
+    for (let i = 0; i < q.count; i++) { const wx = cx + q.getX(i), wz = cz + q.getZ(i); q.setY(i, gy(wx, wz) + 0.05); uv.setXY(i, wx / 3, wz / 3); }
+    geo.computeVertexNormals(); const m = new THREE.Mesh(geo, calcA); m.position.set(cx, 0, cz); m.receiveShadow = true; capG.add(m);
+  }
+  const copa = new THREE.MeshLambertMaterial({ color: 0x4a7a34, flatShading: true });
+  function arvoreCanteiro(x, z) { const y = gy(x, z);
+    addC(new THREE.BoxGeometry(1.3, 0.4, 1.3), pedraE, x, y + 0.2, z, 0, false);
+    addC(new THREE.CylinderGeometry(0.12, 0.16, 1.8, 6), madeira, x, y + 1.2, z);
+    addC(new THREE.IcosahedronGeometry(1.05, 0), copa, x, y + 2.6, z); addOb(x, z, 0.8); }
+  function lampiao(x, z, lado) { const y = gy(x, z);
+    addC(new THREE.CylinderGeometry(0.09, 0.13, 3.4, 8), ferro, x, y + 1.7, z, 0, false);
+    addC(new THREE.BoxGeometry(0.7, 0.08, 0.08), ferro, x + lado * 0.3, y + 3.35, z, 0, false);
+    addC(new THREE.BoxGeometry(0.28, 0.38, 0.28), luz, x + lado * 0.6, y + 3.05, z, 0, false); addOb(x, z, 0.3); }
+  for (const s of [-1, 1]) {
+    chaoPedra(VIL.x - 4, VIL.x + 4, s < 0 ? -62 : 17, s < 0 ? -17 : 62);
+    for (let z = 22; z <= 56; z += 8) { lampiao(VIL.x - 5, s * z, 1); lampiao(VIL.x + 5, s * z, -1); }
+    for (let z = 26; z <= 54; z += 14) { arvoreCanteiro(VIL.x - 6.6, s * z); arvoreCanteiro(VIL.x + 6.6, s * z); }
+  }
+  chaoPedra(VIL.x - 15, VIL.x + 15, -64, -57);          // praça do castelo
+  chaoPedra(VIL.x - 13, VIL.x + 13, 56, 62);            // adro da catedral
+
+  // ---- Castelo de Solmira (norte)
+  { const cx = VIL.x, y = gy(cx, -72), stone = PMc('pedra.jpg', [3, 2], 0xd8d0c0);
+    addC(new THREE.BoxGeometry(18, 11, 11), stone, cx, y + 5.5, -74);                                        // corpo principal
+    for (let k = -8; k <= 8; k += 2) addC(new THREE.BoxGeometry(1, 1, 1), stone, cx + k, y + 11.5, -68.6, 0, false);   // ameias
+    addC(new THREE.BoxGeometry(8, 8, 4), stone, cx, y + 4, -66.6);                                         // portão
+    addC(new THREE.BoxGeometry(3.2, 4.6, 0.2), new THREE.MeshLambertMaterial({ color: 0x2a1c12 }), cx, y + 2.3, -64.5, 0, false);
+    for (let k = -3; k <= 3; k++) addC(new THREE.BoxGeometry(0.12, 4.2, 0.12), ferro, cx + k * 0.45, y + 2.4, -64.35, 0, false);   // grade levadiça
+    for (const k of [-3, -1, 1, 3]) addC(new THREE.BoxGeometry(1, 1, 1), stone, cx + k, y + 8.5, -64.9, 0, false);
+    for (const s of [-1, 1]) { const ban = addC(new THREE.PlaneGeometry(1.4, 4), new THREE.MeshLambertMaterial({ color: 0x9a2a2a, side: THREE.DoubleSide }), cx + s * 2.9, y + 5, -64.45, 0, false);
+      addC(new THREE.PlaneGeometry(0.3, 4), new THREE.MeshLambertMaterial({ color: 0xd8a83a, side: THREE.DoubleSide }), cx + s * 2.9, y + 5, -64.4, 0, false); }
+    for (const [dx, dz] of [[-10, -68], [10, -68], [-10, -80], [10, -80]]) {                              // 4 torres redondas
+      addC(new THREE.CylinderGeometry(2.4, 2.6, 15, 14), stone, cx + dx, y + 7.5, dz);
+      addC(new THREE.ConeGeometry(3, 6, 14), ardosia, cx + dx, y + 18, dz);
+      addC(new THREE.CylinderGeometry(0.04, 0.04, 2), ferro, cx + dx, y + 22, dz, 0, false);
+      addC(new THREE.PlaneGeometry(1, 0.6), new THREE.MeshLambertMaterial({ color: 0x9a2a2a, side: THREE.DoubleSide }), cx + dx + 0.5, y + 22.6, dz, 0, false); }
+    addC(new THREE.BoxGeometry(7, 20, 7), stone, cx, y + 10, -76);                                          // torre central
+    const tp = addC(new THREE.ConeGeometry(5.6, 7, 4), ardosia, cx, y + 23.5, -76); tp.rotation.y = Math.PI / 4;
+    for (const [px, py, pz, ry] of [[-6, 6, -68.45, 0], [-3, 6, -68.45, 0], [3, 6, -68.45, 0], [6, 6, -68.45, 0], [0, 14, -72.45, 0], [-2, 14, -72.45, 0], [2, 14, -72.45, 0]])
+      addC(new THREE.PlaneGeometry(0.8, 1.4), VIDRO, cx + px, y + py, pz, ry, false);
+    for (let x = -117; x <= -93; x += 3) for (let z = -81; z <= -65; z += 3) addOb(x, z, 2.2);
+  }
+
+  // ---- Catedral (sul), de frente para a praça
+  { const cx = VIL.x, y = gy(cx, 72), stone = PMc('pedra.jpg', [3, 2], 0xe4dccc);
+    addC(new THREE.BoxGeometry(11, 9, 19), stone, cx, y + 4.5, 72.5);
+    const tri = new THREE.Shape(); tri.moveTo(-6.2, 0); tri.lineTo(6.2, 0); tri.lineTo(0, 5); tri.closePath();
+    const tg = new THREE.ExtrudeGeometry(tri, { depth: 19.6, bevelEnabled: false }); tg.translate(0, 0, -9.8);
+    addC(tg, ardosia, cx, y + 9, 72.5);
+    for (const s of [-1, 1]) { addC(new THREE.BoxGeometry(3.8, 16, 3.8), stone, cx + s * 4.6, y + 8, 63.2);
+      addC(new THREE.ConeGeometry(2.6, 7, 4), ardosia, cx + s * 4.6, y + 19.5, 63.2).rotation.y = Math.PI / 4;
+      addC(new THREE.PlaneGeometry(0.9, 2.2), VIDRO, cx + s * 4.6, y + 12, 61.28, 0, false); }
+    const vitral = (() => { const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d'); const cores = ['#c83a3a', '#3a6ac8', '#e8c040', '#4aa85a', '#a04ac8', '#e87a30'];
+      for (let k = 0; k < 12; k++) { x.fillStyle = cores[k % 6]; x.beginPath(); x.moveTo(48, 48); x.arc(48, 48, 46, k / 12 * TAU, (k + 1) / 12 * TAU); x.fill(); }
+      x.strokeStyle = '#2a1c12'; x.lineWidth = 4; for (let k = 0; k < 12; k++) { x.beginPath(); x.moveTo(48, 48); x.lineTo(48 + Math.cos(k / 12 * TAU) * 46, 48 + Math.sin(k / 12 * TAU) * 46); x.stroke(); }
+      x.beginPath(); x.arc(48, 48, 46, 0, 7); x.stroke(); x.beginPath(); x.arc(48, 48, 14, 0, 7); x.fillStyle = '#f2e8c0'; x.fill(); x.stroke(); return new THREE.CanvasTexture(c); })();
+    addC(new THREE.CircleGeometry(2.1, 24), new THREE.MeshBasicMaterial({ map: vitral, toneMapped: false }), cx, y + 6.6, 62.94, Math.PI, false);
+    const porta = new THREE.Shape(); porta.moveTo(-1.3, 0); porta.lineTo(-1.3, 2.6); porta.absarc(0, 2.6, 1.3, Math.PI, 0, true); porta.lineTo(1.3, 0); porta.closePath();
+    addC(new THREE.ShapeGeometry(porta, 12), PMc('madeira.jpg', [0.6, 1], 0x5a3a22), cx, y + 0.02, 62.94, Math.PI, false);
+    for (const s of [-1, 1]) for (let z = 66; z <= 80; z += 4.5) addC(new THREE.PlaneGeometry(0.9, 3), VIDRO, cx + s * 5.53, y + 4.6, z, s * Math.PI / 2, false);
+    for (let x = -110; x <= -100; x += 2.5) for (let z = 62; z <= 82; z += 2.5) addOb(x, z, 1.6);
+    for (const s of [-1, 1]) addOb(cx + s * 4.6, 63.2, 2.6);
+  }
+
+  // ---- bairros de casas (de frente para a avenida)
+  const bairro = new THREE.Group(); scene.add(bairro);
+  const CORES = ['#7a5546', '#5a5e64', '#6e5a44', '#4e545a', '#7a5a40', '#5e5048', '#585e5e', '#6a4a3a', '#56606a'];
+  const CASAS_CAP = [];
+  let ci = 0;
+  for (const z of [-47, -58, -69, -79, 47, 58, 69]) for (const x of [-133, -124, -86, -77]) {
+    if (z > 60 && x < -110) continue;                                    // ali fica a praça do mercado
+    if (z === 69 && x === -77) continue;                                 // e ali o parque
+    CASAS_CAP.push([x, z]); bairro.attach(house(x, z, x < VIL.x ? Math.PI / 2 : -Math.PI / 2, 5.2, 4.6, CORES[ci++ % CORES.length], 'wood'));
+  }
+  fundir(bairro); decor(bairro, 45);
+  // praça do mercado (sudoeste) e parque com lago (sudeste)
+  const merc = new THREE.Group(); scene.add(merc);
+  for (const [x, z, r] of [[-136, 67, Math.PI / 2], [-136, 74, Math.PI / 2], [-128, 79, Math.PI], [-121, 79, Math.PI], [-121, 67, -Math.PI / 2]]) merc.attach(house(x, z, r, 3.2, 2.4, null, 'tent'));
+  fundir(merc); decor(merc, 30);
+  chaoPedra(-139, -117, 63, 82);
+  { const y = gy(-80, 77), agua = new THREE.Mesh(new THREE.CircleGeometry(4.2, 24).rotateX(-Math.PI / 2), typeof waterMat !== 'undefined' ? waterMat : new THREE.MeshLambertMaterial({ color: 0x4a8ab8 }));
+    agua.position.set(-80, y + 0.08, 77); capG.add(agua);
+    addC(new THREE.TorusGeometry(4.3, 0.3, 6, 28).rotateX(Math.PI / 2), pedraE, -80, y + 0.15, 77, 0, false); addOb(-80, 77, 4.4);
+    for (const [x, z] of [[-91, 73], [-90, 81], [-72, 72], [-71, 81], [-86, 70]]) arvoreCanteiro(x, z); }
+
+  // ---- guardas nos portões e no castelo (ficam parados, de vigia)
+  const GUARDAS = [[X0 + 2.2, -4], [X0 + 2.2, 4], [X1 - 2.2, -4], [X1 - 2.2, 4], [VIL.x - 3, -62], [VIL.x + 3, -62]].map(([x, z]) => ({ x, z, face: z < -50 ? 0 : x < VIL.x ? -Math.PI / 2 : Math.PI / 2 }));
+  fundir(capG); decor(capG, 70);
+
   // ---------------- moradores andando pela cidade (pedido do Rone: "muitas pessoas andando")
   // Cada um vai de ponto em ponto (volta da praça, rua de pedra e a porta das casas), só por caminho livre,
   // e para um pouco em cada lugar. Cada jogador vê os seus (não passam pelo servidor). Criados para o jogo.
@@ -198,10 +319,16 @@ const Solmira = (() => {
   const livre = (x, z) => !blocked(x, z, 0.4);
   for (let k = 0; k < 18; k++) { const [x, z] = P2(19.5, k * 20); NOS.push({ x, z }); }                  // volta da praça
   for (const lado of [1, -1]) for (const d of [23, 29, 35]) for (const zz of [-1.6, 1.6]) NOS.push({ x: VIL.x + lado * d, z: VIL.z + zz });   // rua
-  const CASAS = [[-125, -22], [-105, -30], [-84, -24], [-127, 22], [-104, 30], [-84, 22], [-135, -6], ...[[36, -150], [36, -115], [37, -28], [37, 28], [36, 65], [36, 115], [36, 150]].map(([r, g]) => P2(r, g))];
+  const CASAS = [[-125, -22], [-84, -24], [-127, 22], [-84, 22], [-135, -6], ...[[36, -150], [36, -115], [37, -28], [37, 28], [36, 65], [36, 115], [36, 150]].map(([r, g]) => P2(r, g))];
   const ehLoja = (hx, hz) => LOJAS.some(L => { const [lx, lz] = P2(36, L.g); return Math.hypot(lx - hx, lz - hz) < 3; });
   for (const [hx, hz] of CASAS) { if (ehLoja(hx, hz)) continue; const d = Math.hypot(VIL.x - hx, VIL.z - hz), k = 4.6 / d; NOS.push({ x: hx + (VIL.x - hx) * k, z: hz + (VIL.z - hz) * k, porta: true }); }   // na frente da porta
   for (const L of LOJAS) NOS.push({ x: L.fregues[0], z: L.fregues[1], loja: L });                     // no balcão das lojinhas
+  // a capital: avenidas, praças do castelo e da catedral, ruas dos bairros, mercado, parque e a porta das casas novas
+  for (const sg of [-1, 1]) { for (const z of [24, 32, 40, 48, 56]) for (const dx of [-2, 2]) NOS.push({ x: VIL.x + dx, z: sg * z });
+    for (const z of [44, 52, 63, 74]) for (const x of [-118, -129, -92, -81]) NOS.push({ x, z: sg * z }); }
+  for (const dx of [-12, -6, 6, 12]) { NOS.push({ x: VIL.x + dx, z: -60 }); NOS.push({ x: VIL.x + dx, z: 59 }); }
+  for (const [x, z] of [[-128, 70], [-130, 76], [-126, 65], [-86, 66], [-74, 76], [-86, 82]]) NOS.push({ x, z });
+  for (const [hx, hz] of CASAS_CAP) NOS.push({ x: hx + (hx < VIL.x ? 3.9 : -3.9), z: hz, porta: true });
   const caminhoLivre = (a, b) => { const d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 0.6); for (let i = 1; i <= n; i++) if (!livre(a.x + (b.x - a.x) * i / n, a.z + (b.z - a.z) * i / n)) return false; return true; };
   const ROSTOS = ['s_aldea', 's_aldeao', 's_senhora', 's_mascate', 's_menina', 's_menino', 's_ancia', 's_refugiada', 's_leitor'];
   let moradores = null;
@@ -210,16 +337,17 @@ const Solmira = (() => {
     // ligações: cada ponto conhece os pontos perto (até 15 m) que dá para alcançar em linha reta
     for (const n of nos) n.viz = nos.filter(o => o !== n && Math.hypot(o.x - n.x, o.z - n.z) < 15 && caminhoLivre(n, o));
     const usaveis = nos.filter(n => n.viz.length);
-    moradores = Array.from({ length: 16 }, (_, i) => {
+    moradores = Array.from({ length: 30 }, (_, i) => {
       const base = ROSTOS[i % ROSTOS.length], crianca = /menin/.test(base), no = usaveis[(i * 7) % usaveis.length];
       const g = new THREE.Group(); scene.add(g);
       const act = SpriteKit.actor({ kind: 'dir', base }); g.add(act.root);
       return { g, act, x: no.x, z: no.z, no, alvo: null, para: Math.random() * 4, face: Math.random() * TAU, vel: crianca ? 2.3 : 1.2 + Math.random() * 0.5 };
-    });    for (const L of LOJAS) { const g = new THREE.Group(); scene.add(g); const act = SpriteKit.actor({ kind: 'dir', base: L.vend }); g.add(act.root);
+    });    for (const G of GUARDAS) { G.g = new THREE.Group(); scene.add(G.g); G.act = SpriteKit.actor({ kind: 'dir', base: 's_aldeao' }); G.g.add(G.act.root); G.g.position.set(G.x, groundY(G.x, G.z), G.z); }
+    for (const L of LOJAS) { const g = new THREE.Group(); scene.add(g); const act = SpriteKit.actor({ kind: 'dir', base: L.vend }); g.add(act.root);
       L.v = { g, act, x: L.vendedor[0], z: L.vendedor[1], cd: 3 + Math.random() * 10 }; g.position.set(L.v.x, groundY(L.v.x, L.v.z), L.v.z); }
   }
   function update(dt) {
-    const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 85 && !inTower(P.z);
+    const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 110 && !inTower(P.z);
     if (moradores) for (const m of moradores) m.g.visible = perto;
     if (!perto) return;
     if (!moradores) { if (typeof SpriteKit === 'undefined' || !SpriteKit.ready) return; criar(); }
@@ -242,12 +370,13 @@ const Solmira = (() => {
   }
   function updateVila(dt) {
     update(dt);
-    const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 85 && !inTower(P.z);
+    const perto = Math.hypot(P.x - VIL.x, P.z - VIL.z) < 110 && !inTower(P.z);
     for (const L of LOJAS) if (L.v) { L.v.g.visible = perto;
       if (!perto) continue;
       const pd = Math.hypot(P.x - L.v.x, P.z - L.v.z);
       L.v.act.update(dt, { face: pd < 5 ? Math.atan2(P.x - L.v.x, P.z - L.v.z) : L.ry, moving: false });
       L.v.cd -= dt; if (L.v.cd <= 0) { L.v.cd = 9 + Math.random() * 12; if (pd < 28) falar(L.v, L.fala[Math.floor(Math.random() * L.fala.length)]); } }   // o vendedor anuncia
+    for (const G of GUARDAS) if (G.act) { G.g.visible = perto; if (perto) G.act.update(dt, { face: Math.hypot(P.x - G.x, P.z - G.z) < 4 ? Math.atan2(P.x - G.x, P.z - G.z) : G.face, moving: false }); }   // guardas de vigia
     if (!perto) { for (const b of baloes) b.el.remove(); baloes.length = 0; } else tickBaloes(dt);
   }
   return { update: updateVila, moradores: () => moradores || [] };
