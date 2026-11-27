@@ -58,7 +58,7 @@ const Casa = (() => {
   for (const [x, z, w, d] of [[0, -H, H * 2 + 1, 0.5], [-H, 0, 0.5, H * 2 + 1], [H, 0, 0.5, H * 2 + 1]]) box(w, 3.6, d, reboco, x, 1.8, z);
   for (const sx of [-1, 1]) box(H - 1.4, 3.6, 0.5, reboco, sx * (H / 2 + 0.85), 1.8, H);        // parede da frente com a porta no meio
   box(2.2, 0.8, 0.5, reboco, 0, 3.2, H);
-  for (let k = -3; k <= 3; k++) { box(0.25, 3.6, 0.3, madeiraE, k * 2.2, 1.8, -H + 0.35); box(0.3, 3.6, 0.25, madeiraE, -H + 0.35, 1.8, k * 2.2); box(0.3, 3.6, 0.25, madeiraE, H - 0.35, 1.8, k * 2.2); }
+  for (let k = -3; k <= 3; k++) { box(0.25, 3.6, 0.3, madeiraE, k * 2.2, 1.8, -H + 0.35); if (k !== 0) box(0.3, 3.6, 0.25, madeiraE, -H + 0.35, 1.8, k * 2.2);   /* na parede oeste a viga do meio cortava a porta do Quarto Real */ box(0.3, 3.6, 0.25, madeiraE, H - 0.35, 1.8, k * 2.2); }
   // janelas centralizadas no vão entre duas vigas (vigas a cada 2,2; o meio do vão fica em ±3,3), com moldura inteira e peitoril
   const JAN = [[-H + 0.26, -3.3, Math.PI / 2], [H - 0.26, -3.3, -Math.PI / 2], [-3.3, -H + 0.26, 0], [3.3, -H + 0.26, 0]];
   for (const [x, z, ry] of JAN) {
@@ -94,7 +94,7 @@ const Casa = (() => {
     for (const sx of [-1, 1]) { box(H - 1.4, 0.28, 0.06, madeiraE, sx * (H / 2 + 0.85), 0.14, H - 0.27); box(H - 1.4, 0.22, 0.06, madeiraE, sx * (H / 2 + 0.85), 3.45, H - 0.27); }
     // arandelas acesas nas paredes
     const chama = new THREE.MeshBasicMaterial({ color: 0xffc060, toneMapped: false }), latao = new THREE.MeshPhongMaterial({ color: 0xb88a3a, shininess: 80 });
-    for (const [x, z, ry] of [[-H + 0.3, 0.8, Math.PI / 2], [H - 0.3, 1.6, -Math.PI / 2], [-1.2, -H + 0.3, 0], [-2.2, H - 0.3, Math.PI], [2.2, H - 0.3, Math.PI]]) {
+    for (const [x, z, ry] of [[-H + 0.3, 3.3, Math.PI / 2], [H - 0.3, 1.6, -Math.PI / 2], [-1.2, -H + 0.3, 0], [-2.2, H - 0.3, Math.PI], [2.2, H - 0.3, Math.PI]]) {
       const a = new THREE.Group(); a.position.set(x, 0, z); a.rotation.y = ry; g.add(a);
       box(0.18, 0.3, 0.06, latao, 0, 2.55, 0.03, a); box(0.06, 0.06, 0.25, latao, 0, 2.6, 0.15, a);
       const v = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.22, 8), new THREE.MeshLambertMaterial({ color: 0xf2ead8 })); v.position.set(0, 2.75, 0.28); a.add(v);
