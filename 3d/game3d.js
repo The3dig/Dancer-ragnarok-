@@ -2746,7 +2746,7 @@ function updateHUD() {
   document.querySelectorAll('.slot[data-skill]').forEach(el => {
     const s = SKILLS[+el.dataset.skill];
     const resta = P.cds[s.id] || 0; el.querySelector('.cd').style.height = (resta / ((P.cdMax && P.cdMax[s.id]) || s.cd) * 100) + '%';
-    { let n = el.querySelector('.cdn'); if (resta > 0.05) { if (!n) { n = document.createElement('span'); n.className = 'cdn'; el.appendChild(n); } n.textContent = resta >= 10 ? Math.ceil(resta) : resta.toFixed(1).replace('.', ','); } else if (n) n.remove(); }   // os segundos que faltam em cima do ícone
+    { let n = el.querySelector('.cdn'); if (resta > 0.05) { if (!n) { n = document.createElement('span'); n.className = 'cdn'; el.appendChild(n); } n.textContent = (resta >= 10 ? Math.ceil(resta) : resta.toFixed(1).replace('.', ',')) + 's'; } else if (n) n.remove(); el.classList.toggle('recarga', resta > 0.05); }   // os segundos que faltam em cima do ícone
     el.classList.toggle('locked', !(P.skillLv[s.id] > 0 && tierOk(s))); el.classList.toggle('nosp', P.sp < scaleSkill(s, P.skillLv[s.id] || 1).sp);
   });
   let b = '';

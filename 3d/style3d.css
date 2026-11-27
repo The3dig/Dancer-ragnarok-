@@ -1087,7 +1087,8 @@ body.ficha-aberta #statwin .fc { padding-bottom: 120px; }
 .bubble.fala-vila::after { border-top-color: rgba(255,248,230,.95); }
 
 /* segundos de recarga em cima do ícone da habilidade (pedido do Wesley) */
-.slot .cdn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 900 15px 'Nunito', sans-serif; color: #fff; text-shadow: 0 0 3px #000, 0 0 6px #000; pointer-events: none; z-index: 3; }
+.slot.recarga .ic { filter: grayscale(.75) brightness(.5); }
+.slot .cdn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 900 15px 'Nunito', sans-serif; letter-spacing: -0.5px; color: #fff; text-shadow: 0 0 3px #000, 0 0 6px #000; pointer-events: none; z-index: 3; }
 
 /* seções do painel de MVP */
 .mvp-sec { margin: 10px 0 2px; font: 800 14px 'Cinzel', Georgia, serif; color: #f2c86a; }
