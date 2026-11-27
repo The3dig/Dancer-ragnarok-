@@ -1093,3 +1093,9 @@ body.ficha-aberta #statwin .fc { padding-bottom: 120px; }
 /* seções do painel de MVP */
 .mvp-sec { margin: 10px 0 2px; font: 800 14px 'Cinzel', Georgia, serif; color: #f2c86a; }
 .mvp-exp { display: block; opacity: .75; margin-bottom: 4px; }
+/* janela de conversa: rola inteira (o texto comprido ficava escondido atrás dos botões e os últimos botões, cortados);
+   o título com o ✕ fica sempre no alto */
+#dialog { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#dialog .dtext, #dialog .dopts { flex: none; }
+#dialog .wt { background-color: rgba(24, 18, 30, .97); }
+@media (max-height: 520px) { #dialog { max-height: 94vh; } #dialog .dopts { max-height: none; overflow: visible; } }

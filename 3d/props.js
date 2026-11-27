@@ -101,7 +101,7 @@ const Props = (() => {
     // Forja do Ferreiro Doran
     place('wooden_barrels_01', VIL.x - 13.1, VIL.z - 11.2, 1.0, 0.3, 0.8); place('wooden_crate_01', VIL.x - 16.4, VIL.z - 8, 0.6, 0.5, 0.5);
     // Sítio
-    place('wooden_crate_01', FARM.x - 12, FARM.z - 5, 0.7, 0.2, 0.6); place('wooden_bucket_01', FARM.x - 3, FARM.z + 3.3, 0.45, 0, 0);
+    place('wooden_crate_01', FARM.x - 13.2, FARM.z - 7.6, 0.7, 0.2, 0.6);/* era em cima do Mestre de Obras: ele parecia preso numa caixa */ place('wooden_bucket_01', FARM.x - 3, FARM.z + 3.3, 0.45, 0, 0);
     place('wooden_barrels_01', FARM.x - 14, FARM.z + 4, 1.1, 1.2, 0.9);
     // Oásis de Kharum
     [[106, 35], [124, 34], [131, 37]].forEach(([x, z], i) => { place('wooden_crate_01', x + 2, z + 1, 0.7, i, 0.6); place('wine_barrel_01', x - 2.2, z + 1.2, 0.95, 0, 0.6); });

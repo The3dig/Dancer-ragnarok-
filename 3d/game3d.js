@@ -3921,7 +3921,7 @@ function showHelp() {
   Caminho: Solmira → Campos Dourados → Areias Rubras → Cidadela do Cisma. O jogo salva sozinho.`, HELP_OPTS());
 }
 // ---------------- uma janela de cada vez: abrir uma fecha as outras (antes ficavam empilhadas: mochila + diário + guilda + loja...)
-const JANELAS = ['statwin', 'skillwin', 'invwin', 'bestwin', 'coswin', 'guildwin', 'bauwin', 'chatbox', 'dialog', 'bigmap', 'avisos', 'kvx', 'grupowin'];
+const JANELAS = ['statwin', 'skillwin', 'invwin', 'bestwin', 'coswin', 'guildwin', 'bauwin', 'chatbox', 'dialog', 'bigmap', 'avisos', 'kvx', 'grupowin', 'autowin', 'gaveta'];
 function fecharJanelas(exceto) {
   for (const id of JANELAS) {
     if (id === exceto) continue; const el = $(id); if (!el) continue;
@@ -3932,6 +3932,21 @@ function fecharJanelas(exceto) {
     el.classList.add('hidden');
   }
 }
+// 🪟 regra geral (pedido do Rone: "fui clicando um monte de janela e nenhuma foi fechando"): quando qualquer janela
+// abre, as outras fecham sozinhas, menos a janela onde você acabou de tocar (assim a confirmação de "resetar" continua
+// por cima das habilidades, e a mochila aberta pelo baú continua ao lado dele)
+let _toqueJanela = null;
+document.addEventListener('pointerdown', e => { _toqueJanela = e.target.closest ? e.target.closest(JANELAS.map(i => '#' + i).join(',')) : null; }, true);
+new MutationObserver(ms => {
+  for (const m of ms) {
+    const el = m.target; if (!JANELAS.includes(el.id) || el.classList.contains('hidden') || !(m.oldValue || '').split(' ').includes('hidden')) continue;
+    for (const id of JANELAS) {
+      if (id === el.id || id === 'chatbox' || id === 'kvx' || id === 'bigmap') continue;
+      const o = $(id); if (!o || o.classList.contains('hidden') || o === _toqueJanela || (_toqueJanela && o.contains(_toqueJanela))) continue;
+      if (id === 'dialog') closeDialog(); else o.classList.add('hidden');
+    }
+  }
+}).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
 // qual janela cada botão abre (as outras fecham antes)
 const JANELA_DO_BOTAO = { 'btn-tarefas': 'dialog', 'btn-masmorras': 'dialog', 'btn-recordes': 'dialog', 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'grupowin' };
 document.addEventListener('click', e => {
