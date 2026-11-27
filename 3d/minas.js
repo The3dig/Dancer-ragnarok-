@@ -262,17 +262,39 @@ const Minas = criarMasmorra({
       g.add(l); lamp.push(l);
     }
     // veios de minério: grupinhos de cristais saindo da rocha (laranja = Minério Rúnico, azul = Pedra de Têmpera)
-    const cristais = [], cristG = new THREE.OctahedronGeometry(1, 0);
-    const matL = new THREE.MeshBasicMaterial({ color: 0xffa040, toneMapped: false }), matA = new THREE.MeshBasicMaterial({ color: 0x50b0ff, toneMapped: false });
+    // desenhados em pixel art, como os personagens (pedido do Rone: os octaedros de cor pura ficaram "horríveis")
+    const cristais = [];
+    const PAL = { L: ['#3a2010', '#8a4a1c', '#c07a34', '#e8b468', '#fff0c8'], A: ['#18222c', '#36546a', '#6688a2', '#a6c4d6', '#eef6fa'] };
+    function texCristal(tipo, semente) {
+      const N = 24, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), [cont, esc, med, cla, bri] = PAL[tipo];
+      // 3 lascas de cristal saindo do pé (cada uma: lado de sombra, lado claro e um fio de brilho)
+      const lascas = [[12, 3, 3.2, -0.5], [7, 9, 2.6, -2.5], [17, 8, 2.6, 2.2]].map(([px, topo, l, inc], i) => [px + ((semente + i) % 3) - 1, topo + ((semente * 3 + i) % 3), l, inc]);
+      for (const [px, topo, l, inc] of lascas) {
+        const base = 21, pts = [[px - l + inc * 0.3, base], [px - l + inc, topo + 3], [px + inc, topo], [px + l + inc, topo + 3], [px + l + inc * 0.3, base]];
+        x.fillStyle = med; x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.fill();
+        x.fillStyle = esc; x.beginPath(); x.moveTo(pts[0][0], base); x.lineTo(pts[1][0], pts[1][1]); x.lineTo(pts[2][0], pts[2][1]); x.lineTo(px + inc * 0.3, base); x.fill();
+        x.fillStyle = cla; x.fillRect(Math.round(px + inc * 0.6 + 1), topo + 4, 1, Math.max(2, base - topo - 8));
+        x.fillStyle = bri; x.fillRect(Math.round(px + inc), topo + 1, 1, 2);
+      }
+      // pixel duro (sem borda borrada) e contorno escuro de 1 pixel, como nos desenhos do jogo
+      const im = x.getImageData(0, 0, N, N), d = im.data, cheio = i => d[i * 4 + 3] > 0;
+      for (let i = 0; i < N * N; i++) d[i * 4 + 3] = d[i * 4 + 3] > 110 ? 255 : 0;
+      const borda = [], [r, g2, b2] = [1, 3, 5].map(k => parseInt(cont.slice(k, k + 2), 16));
+      for (let yy = 0; yy < N; yy++) for (let xx = 0; xx < N; xx++) { const i = yy * N + xx; if (cheio(i)) continue;
+        if ((xx > 0 && cheio(i - 1)) || (xx < N - 1 && cheio(i + 1)) || (yy > 0 && cheio(i - N)) || (yy < N - 1 && cheio(i + N))) borda.push(i); }
+      for (const i of borda) { d[i * 4] = r; d[i * 4 + 1] = g2; d[i * 4 + 2] = b2; d[i * 4 + 3] = 255; }
+      x.putImageData(im, 0, 0);
+      const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.encoding = THREE.sRGBEncoding; return t;
+    }
+    const matCrist = ['L', 'A'].map(tp => [0, 1, 2].map(sm => { const t = texCristal(tp, sm); return new THREE.MeshLambertMaterial({ map: t, alphaTest: 0.5, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.35, side: THREE.DoubleSide }); }));
+    // minério solto (carrinho e monte): pedra com tom de cobre ou de aço, sem brilho de neon
+    const matL = new THREE.MeshLambertMaterial({ color: 0xb8783a, flatShading: true, emissive: 0x2a1608 }), matA = new THREE.MeshLambertMaterial({ color: 0x6a8aa8, flatShading: true, emissive: 0x0c1620 });
     for (let v = 0; v < 14; v++) {
       const a = v / 14 * TAU + 0.21 + Math.sin(v * 2.7) * 0.08; if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.35) continue;   // não tampa a saída
-      const y0 = 0.9 + (v * 0.37 % 1) * 3.4, mat = v % 2 ? matA : matL, rw = raioP(a, y0);
+      const y0 = 0.9 + (v * 0.37 % 1) * 3.4, rw = raioP(a, y0);
       const veio = new THREE.Group(); veio.position.set(Math.sin(a) * (rw - 0.15), y0, Math.cos(a) * (rw - 0.15)); veio.rotation.y = a + Math.PI; g.add(veio);
       const base = new THREE.Mesh(pedraG, pedraF); base.scale.set(0.85, 0.6, 0.4); base.position.z = -0.1; veio.add(base);   // o minério sai de um caroço de rocha (sozinho parecia flutuar)
-      for (let k = 0; k < 5; k++) {
-        const c = new THREE.Mesh(cristG, mat), s = 0.12 + (k * 0.29 % 1) * 0.2;
-        c.scale.set(s, s * 2.4, s); c.position.set((k - 2) * 0.2, Math.sin(k * 2.1) * 0.25, 0.25); c.rotation.set(-0.9 + Math.sin(k) * 0.3, 0, (k - 2) * 0.35); veio.add(c);
-      }
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 1.25), matCrist[v % 2 ? 1 : 0][v % 3]); c.position.set(0, 0.25, 0.32); veio.add(c);
       cristais.push(veio);
     }
     // carrinho de mina cheio de minério nos trilhos (no lugar do caixote de antes)
@@ -304,7 +326,7 @@ const Minas = criarMasmorra({
       t += dt;
       luzes.forEach((l, k) => { l.intensity = l.userData.i * (0.9 + Math.sin(t * 7 + k * 2) * 0.05 + Math.sin(t * 13.3 + k) * 0.04); });
       lamp.forEach((l, k) => { l.rotation.z = Math.sin(t * 1.3 + k) * 0.05; });
-      vidroM.color.setHSL(0.09, 1, 0.6 + Math.sin(t * 9) * 0.04); matL.color.setHSL(0.08, 1, 0.6 + Math.sin(t * 1.7) * 0.06); matA.color.setHSL(0.57, 1, 0.62 + Math.sin(t * 1.9 + 1) * 0.06);   // o minério pulsa de leve
+      vidroM.color.setHSL(0.09, 1, 0.6 + Math.sin(t * 9) * 0.04);
       const q = pgeo.attributes.position; for (let i = 0; i < NP; i++) { let y = q.getY(i) + dt * 0.08; if (y > 7) y = 0; q.setY(i, y); q.setX(i, q.getX(i) + Math.sin(t * 0.5 + i) * dt * 0.05); } q.needsUpdate = true;
     } };
   },
