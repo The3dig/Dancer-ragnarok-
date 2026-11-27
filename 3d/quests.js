@@ -335,19 +335,66 @@ const Quests = (() => {
     if (bausGerados || typeof running === 'undefined' || !running || typeof Memorias === 'undefined' || typeof Praia === 'undefined') return;
     bausGerados = true; const antes = SECRETS.length; try { gerarBaus(); } catch (e) { } for (const s of SECRETS.slice(antes)) montarBau(s);
   }
+  // papéis do quadro (criados para o jogo; nomes de lugares do mundo)
+  const AVISOS = [
+    ['PROCURA-SE', 'Larva da Essência', 'recompensa em coroas', '#efe4c8', '#7a2a1a', 'larva'],
+    ['AVISO', 'Não entre na Floresta', 'Morta depois do anoitecer', '#f2e8b8', '#2a3a6a', 'olho'],
+    ['VENDE-SE', 'Arado quase novo', 'falar com o Sítio', '#e8eed8', '#2a5a2a', 'arado'],
+    ['PERDIDO', 'Gato cinza, atende', 'por Bolota', '#f0e0e0', '#6a2a4a', 'gato'],
+    ['FESTA', 'Hoje na praça!', 'traga seu jarro', '#fff0c0', '#8a4a0a', 'estrela'],
+    ['RECOMPENSA', 'Quem achar o anel', 'da Dona Marta', '#efe4c8', '#7a5a0a', 'anel'],
+    ['PRECISA-SE', 'Ajudante na forja', 'paga bem', '#e0e8f0', '#2a3a5a', 'martelo'],
+    ['CUIDADO', 'Raízes na estrada', 'de Kharum', '#f4e0c8', '#8a2a0a', 'raiz'],
+    ['ACHADO', 'Uma bota, pé esquerdo', 'procurar a guarda', '#eceadc', '#4a4a3a', 'bota'],
+    ['CARAVANA', 'Sai ao nascer do sol', 'para a Cidadela', '#f2e4c0', '#5a3a1a', 'roda'],
+  ];
+  const AVTEX = {};
+  function avisoTex(i) {
+    if (AVTEX[i]) return AVTEX[i];
+    const [tit, l1, l2, fundo, tinta, des] = AVISOS[i], c = document.createElement('canvas'); c.width = 128; c.height = 160; const x = c.getContext('2d');
+    x.fillStyle = fundo; x.fillRect(0, 0, 128, 160); x.fillStyle = 'rgba(120,90,50,.12)'; for (let k = 0; k < 40; k++) x.fillRect(Math.random() * 128, Math.random() * 160, 2 + Math.random() * 6, 1);
+    x.strokeStyle = 'rgba(90,60,30,.5)'; x.lineWidth = 3; x.strokeRect(4, 4, 120, 152);
+    x.fillStyle = tinta; x.textAlign = 'center'; x.font = 'bold 19px Georgia, serif'; x.fillText(tit, 64, 30);
+    // desenhinho no meio
+    x.save(); x.translate(64, 76); x.strokeStyle = tinta; x.fillStyle = tinta; x.lineWidth = 3;
+    const D = { larva: () => { for (let k = 0; k < 4; k++) { x.beginPath(); x.arc(-24 + k * 15, 0, 9 - k, 0, 7); x.fill(); } },
+      olho: () => { x.beginPath(); x.ellipse(0, 0, 26, 13, 0, 0, 7); x.stroke(); x.beginPath(); x.arc(0, 0, 7, 0, 7); x.fill(); },
+      arado: () => { x.beginPath(); x.moveTo(-26, -10); x.lineTo(14, 8); x.lineTo(26, 14); x.stroke(); x.beginPath(); x.moveTo(10, 4); x.lineTo(16, 18); x.lineTo(28, 16); x.fill(); },
+      gato: () => { x.beginPath(); x.arc(0, 4, 14, 0, 7); x.fill(); x.beginPath(); x.moveTo(-12, -4); x.lineTo(-8, -20); x.lineTo(-2, -8); x.moveTo(12, -4); x.lineTo(8, -20); x.lineTo(2, -8); x.fill(); },
+      estrela: () => { x.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 9 : 22, a = k / 10 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.fill(); },
+      anel: () => { x.lineWidth = 5; x.beginPath(); x.arc(0, 4, 14, 0, 7); x.stroke(); x.beginPath(); x.moveTo(-6, -12); x.lineTo(0, -20); x.lineTo(6, -12); x.fill(); },
+      martelo: () => { x.fillRect(-4, -6, 8, 30); x.fillRect(-18, -18, 36, 13); },
+      raiz: () => { x.beginPath(); x.moveTo(0, -20); x.quadraticCurveTo(-14, 0, -24, 18); x.moveTo(0, -20); x.quadraticCurveTo(6, 4, 4, 20); x.moveTo(0, -20); x.quadraticCurveTo(16, -2, 26, 14); x.stroke(); },
+      bota: () => { x.fillRect(-8, -20, 16, 28); x.fillRect(-8, 4, 30, 12); },
+      roda: () => { x.beginPath(); x.arc(0, 0, 20, 0, 7); x.stroke(); for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI; x.beginPath(); x.moveTo(Math.cos(a) * 20, Math.sin(a) * 20); x.lineTo(-Math.cos(a) * 20, -Math.sin(a) * 20); x.stroke(); } } };
+    (D[des] || D.estrela)(); x.restore();
+    x.fillStyle = 'rgba(40,30,20,.85)'; x.font = 'bold 12px Georgia, serif'; x.fillText(l1, 64, 124); x.font = '11px Georgia, serif'; x.fillText(l2, 64, 141);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+    return (AVTEX[i] = new THREE.MeshLambertMaterial({ map: t }));
+  }
   function build() {
     for (const [city, b] of Object.entries(BOARDS)) {
       const g = new THREE.Group(); g.position.set(b.x, groundY(b.x, b.z), b.z); g.rotation.y = Math.atan2(P.x - b.x, P.z - b.z) * 0; scene.add(g);
       // quadro de caça: postes roliços, telhadinho de duas águas, moldura e papéis tortos presos com tachinhas
-      const wood = PM('madeira.jpg', [0.3, 1], 0x8a6a50), tabua = PM('madeira.jpg', [1, 0.6], 0xa08060), escuro = PM('madeira.jpg', [0.3, 1], 0x5a4030);
+      const wood = PM('madeira.jpg', [0.3, 1], 0x8a6a50), tabua = PM('madeira.jpg', [1, 0.6], 0xc8a478), escuro = PM('madeira.jpg', [0.3, 1], 0x5a4030);
       [-1.05, 1.05].forEach(x => { mesh(new THREE.CylinderGeometry(0.09, 0.11, 2.9, 8), wood, x, 1.45, 0, g); mesh(new THREE.SphereGeometry(0.13, 8, 6), escuro, x, 2.92, 0, g); });
       mesh(new THREE.BoxGeometry(2.0, 1.25, 0.08), tabua, 0, 1.65, 0, g);
       for (const [w, h, x, y] of [[2.2, 0.1, 0, 2.3], [2.2, 0.1, 0, 1.0], [0.1, 1.4, -1.05, 1.65], [0.1, 1.4, 1.05, 1.65]]) mesh(new THREE.BoxGeometry(w, h, 0.14), escuro, x, y, 0.02, g, false);
       const tel = new THREE.Shape(); tel.moveTo(-1.35, 0); tel.lineTo(1.35, 0); tel.lineTo(0, 0.55); tel.closePath();
       const tj = new THREE.Mesh(new THREE.ExtrudeGeometry(tel, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 }), PM('telha.jpg', [2, 1], 0x9a5a48)); tj.position.set(0, 2.42, -0.25); tj.castShadow = true; g.add(tj);
-      const papel = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 80; const x = c.getContext('2d'); x.fillStyle = '#efe4c8'; x.fillRect(0, 0, 64, 80); x.fillStyle = '#7a3a2a'; x.font = 'bold 14px serif'; x.fillText('PROCURA-SE', 3, 16); x.fillStyle = '#5a4a3a'; for (let i = 0; i < 6; i++) x.fillRect(6, 26 + i * 8, 40 + (i * 13) % 16, 2); x.strokeStyle = '#a08a60'; x.strokeRect(1, 1, 62, 78); return new THREE.CanvasTexture(c); })();
-      const pm = new THREE.MeshLambertMaterial({ map: papel }), tach = new THREE.MeshLambertMaterial({ color: 0xc03030 });
-      [[-0.55, 1.75, 0.08], [0.05, 1.5, -0.06], [0.6, 1.8, 0.12]].forEach(([x, y, r]) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.58), pm); p.position.set(x, y, 0.05); p.rotation.z = r; g.add(p); mesh(new THREE.SphereGeometry(0.035, 6, 4), tach, x, y + 0.25, 0.07, g, false); });
+      // avisos dos dois lados (pedido do Rone: "coloca uns avisos aleatórios; de um lado tem, do outro não"): cada quadro sorteia
+      // 5 papéis na frente e 4 atrás, de tamanhos, cores e inclinações diferentes, com tachinhas coloridas
+      const sorte = (() => { let h = 0; for (const ch of city) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296); })();
+      const tachs = [0xc03030, 0x3060c0, 0xd0a020, 0x30a050].map(c => new THREE.MeshLambertMaterial({ color: c }));
+      const ordem = AVISOS.map((_, i) => i).sort(() => sorte() - 0.5); let prox = 0;   // sem repetir aviso no mesmo quadro
+      for (const lado of [1, -1]) {
+        const vagas = lado > 0 ? [[-0.6, 1.95], [0.05, 1.98], [0.65, 1.9], [-0.42, 1.35], [0.45, 1.38]] : [[-0.55, 1.9], [0.35, 1.95], [-0.2, 1.38], [0.6, 1.4]];
+        for (const [x0, y0] of vagas) {
+          const tx = avisoTex(ordem[prox++ % ordem.length]), w = 0.42 + sorte() * 0.14, x = x0 + (sorte() - 0.5) * 0.12, y = y0 + (sorte() - 0.5) * 0.08;
+          const pp = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 1.25), tx); pp.position.set(x, y, lado * 0.05); pp.rotation.set(0, lado > 0 ? 0 : Math.PI, (sorte() - 0.5) * 0.3); g.add(pp);
+          mesh(new THREE.SphereGeometry(0.03, 6, 4), tachs[Math.floor(sorte() * 4)], x, y + w * 0.55, lado * 0.07, g, false);
+        }
+      }
       const tag = bangSprite(); tag.material = tag.material.clone(); tag.material.map = markTex('!:#7dff9a'); tag.material.fog = false; tag.material.toneMapped = false; tag.position.y = 3.1; tag.scale.setScalar(1.1); g.add(tag);
       addOb(b.x, b.z, 1.1);
     }
