@@ -420,8 +420,76 @@ const VFX = (() => {
     for (let i = 0; i <= steps; i++) { const k = i / steps, px = x0 + (x1 - x0) * k, pz = z0 + (z1 - z0) * k; particle(new THREE.Vector3(px, groundY(px, pz) + 1, pz), c, { size: 1.2, speed: 0.2, life: 0.35 + k * 0.2, op: 0.5 }); puff(new THREE.Vector3(px, groundY(px, pz) + 0.2, pz), 0xb8a890, 1, { map: T.smoke, size: 0.8, speed: 1, op: 0.35 }); }
     arc(c, true, 0, 1); flash(me(1), c, 2.4, 0.25);
   }
+  // ================= assinaturas: cada buff e cada cura com a sua FORMA (pedido do Rone: "as skills ainda estão todas iguais").
+  // Os guias de efeitos de jogos (League of Legends, World of Warcraft) ensinam: reconhecer pela forma, não só pela cor.
+  // Antes os 32 buffs e as 10 curas eram a mesma runa no chão com uma coluna de luz.
+  T.coin = tex(64, 64, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(32, 32, 26, 0, 7); g.fill(); g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(32, 32, 18, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = 'bold 26px serif'; g.textAlign = 'center'; g.fillText('¢', 32, 42); });
+  T.heart = tex(64, 64, (g) => { g.fillStyle = '#fff'; g.shadowColor = '#fff'; g.shadowBlur = 6; g.beginPath(); g.moveTo(32, 54); g.bezierCurveTo(4, 34, 10, 8, 32, 22); g.bezierCurveTo(54, 8, 60, 34, 32, 54); g.fill(); });
+  T.leaf = tex(48, 64, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.moveTo(24, 4); g.quadraticCurveTo(46, 30, 24, 60); g.quadraticCurveTo(2, 30, 24, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.3)'; g.lineWidth = 2; g.beginPath(); g.moveTo(24, 8); g.lineTo(24, 58); g.stroke(); });
+  T.eye = tex(128, 64, (g) => { g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); g.moveTo(6, 32); g.quadraticCurveTo(64, -10, 122, 32); g.quadraticCurveTo(64, 74, 6, 32); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 32, 15, 0, 7); g.fill(); g.fillStyle = 'rgba(0,0,0,.7)'; g.beginPath(); g.arc(64, 32, 6, 0, 7); g.fill(); });
+  T.clock = tex(128, 128, (g) => { g.translate(64, 64); g.strokeStyle = '#fff'; g.lineWidth = 5; g.beginPath(); g.arc(0, 0, 58, 0, 7); g.stroke(); g.lineWidth = 3; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; g.beginPath(); g.moveTo(Math.cos(a) * 46, Math.sin(a) * 46); g.lineTo(Math.cos(a) * 56, Math.sin(a) * 56); g.stroke(); } g.lineWidth = 5; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -40); g.moveTo(0, 0); g.lineTo(28, 10); g.stroke(); });
+  T.hex = tex(128, 128, (g) => { g.translate(64, 64); g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); for (let i = 0; i <= 6; i++) { const a = i / 6 * 6.283; g.lineTo(Math.cos(a) * 56, Math.sin(a) * 56); } g.stroke(); g.globalAlpha = .25; g.fillStyle = '#fff'; g.fill(); });
+  // um objeto que acompanha o personagem: f(k) devolve a posição relativa e a escala
+  function segue(map, color, life, f, size = 0.6) {
+    const s = new THREE.Sprite(smat(map, color)); s.scale.setScalar(size);
+    add(s, life, (k, dt) => { const o = f(k, dt) || {}; s.position.set(P.x + (o.x || 0), P.y + (o.y || 0), P.z + (o.z || 0)); s.scale.setScalar(size * (o.s ?? 1)); s.material.opacity = (o.op ?? 1) * Math.min(1, (1 - k) * 4) * Math.min(1, k * 8); if (o.rot !== undefined) s.material.rotation = o.rot; });
+  }
+  const orbita = (map, color, n, r, y, life, vel = 3, size = 0.4, dy = 0) => { for (let i = 0; i < n; i++) segue(map, color, life, (k) => { const a = i / n * TAU + k * life * vel; return { x: Math.cos(a) * r, y: y + Math.sin(k * 10 + i) * dy, z: Math.sin(a) * r }; }, size); };
+  const chuva = (map, color, n, life, size = 0.4) => { for (let i = 0; i < n; i++) setTimeout(() => particle(new THREE.Vector3(P.x + rand(-1.4, 1.4), P.y + 3.2 + rand(0, 1), P.z + rand(-1.4, 1.4)), color, { map, size, v: new THREE.Vector3(rand(-.3, .3), -1.6, rand(-.3, .3)), drag: 0, life, spin: true }), i * 60); };
+  const sobe = (map, color, n, size = 0.35) => { for (let i = 0; i < n; i++) setTimeout(() => particle(new THREE.Vector3(P.x + rand(-.9, .9), P.y + rand(0, .5), P.z + rand(-.9, .9)), color, { map, size, v: new THREE.Vector3(0, rand(1.5, 3), 0), drag: .3, life: rand(.9, 1.4) }), i * 45); };
+  function aneisSobe(color, n = 3) { for (let i = 0; i < n; i++) setTimeout(() => { const m = new THREE.Mesh(G.plane, mat(T.wave, color)); add(m, 0.7, k => { m.position.set(P.x, P.y + 0.2 + k * 2.4, P.z); const sc = 2.6 - k * 1.2; m.scale.set(sc, 1, sc); m.material.opacity = 1 - k; }); }, i * 140); }
+  const ESTILO = [
+    [/escudo|barreira|muralha|faith|barrier|barreira|muralha|prote/i, 'escudo'],
+    [/pele de pedra|stoneskin/i, 'pedra'],
+    [/brisa|asas|breeze|asas/i, 'asas'],
+    [/falcão|olho|hawk/i, 'olho'],
+    [/grito|fúria|furia|ira|rage|rugido|cry/i, 'furia'],
+    [/veneno|envenen|venom/i, 'veneno'],
+    [/bênção|bencao|bless|santuário|santuario/i, 'bencao'],
+    [/pacto|manto do vazio|vazio|pact/i, 'vazio'],
+    [/tesouro|treasure/i, 'tesouro'],
+    [/sobrecarga|overload/i, 'raios'],
+    [/canção|cancao/i, 'cancao'],
+    [/espírito|espirito|eco da vida|eco/i, 'espiritos'],
+    [/eternidade|antes de tudo|despertar/i, 'tempo'],
+    [/promessa|mãe|mae|escolha/i, 'coracao'],
+  ];
+  function estiloDe(s) { const t = s.id + ' ' + s.name; for (const [rx, e] of ESTILO) if (rx.test(t)) return e; return null; }
+  function assinaturaBuff(s) {
+    const c = s.color, e = estiloDe(s);
+    if (!e) return false;
+    if (e === 'escudo') { for (let i = 0; i < 6; i++) segue(T.hex, c, 1.4, k => { const a = i / 6 * TAU + k * 2; const r = 1.4 - Math.min(1, k * 3) * 0.4; return { x: Math.cos(a) * r, y: 1 + Math.sin(i) * .3, z: Math.sin(a) * r }; }, 0.9); wave(P.x, P.z, 1.6, c, 0.6); }
+    else if (e === 'pedra') { for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(G.rock, new THREE.MeshLambertMaterial({ color: 0x9a8a78, flatShading: true })); const a0 = i / 8 * TAU; add(m, 1.1, k => { const r = 2.2 - Math.min(1, k * 2.2) * 1.5; m.position.set(P.x + Math.cos(a0 + k * 3) * r, P.y + 0.6 + (i % 3) * .4, P.z + Math.sin(a0 + k * 3) * r); m.scale.setScalar(.45 * (1 - Math.max(0, k - .7) * 3)); m.rotation.set(k * 5, k * 3, 0); }); } }
+    else if (e === 'asas') { for (const sd of [-1, 1]) for (let j = 0; j < 4; j++) segue(T.feather, c, 1.3, k => { const ab = Math.sin(k * 18) * .25; return { x: sd * (.45 + j * .28) * Math.cos(P.face), y: 1.3 + j * .12 + ab * (j + 1) * .3, z: -sd * (.45 + j * .28) * Math.sin(P.face) - Math.cos(P.face) * .3, rot: sd * (0.9 + j * .25) }; }, 0.7 - j * .08); chuva(T.feather, 0xffffff, 6, 1.0, .3); }
+    else if (e === 'olho') { segue(T.eye, c, 1.6, k => ({ y: 2.9, s: 1 + Math.sin(k * 20) * .05 }), 1.4); for (let i = 0; i < 10; i++) particle(new THREE.Vector3(P.x, P.y + 2.9, P.z), c, { map: T.spark, size: .25, speed: 3, life: .6 }); }
+    else if (e === 'furia') { aneisSobe(0xff3020, 4); for (let i = 0; i < 26; i++) setTimeout(() => particle(new THREE.Vector3(P.x + rand(-.6, .6), P.y + rand(0, 1.8), P.z + rand(-.6, .6)), i % 2 ? 0xff4010 : 0xffa020, { map: T.smoke, size: .7, v: new THREE.Vector3(0, rand(2.5, 4), 0), grow: .8, op: .7, life: .7 }), i * 30); }
+    else if (e === 'veneno') { for (let i = 0; i < 16; i++) setTimeout(() => particle(new THREE.Vector3(P.x + rand(-.5, .5), P.y + rand(1, 1.6), P.z + rand(-.5, .5)), 0x6aff3a, { map: T.glow, size: .28, v: new THREE.Vector3(0, -.5, 0), g: 6, life: .8 }), i * 50); orbita(T.spark, 0x6aff3a, 5, .9, 1, 1.2, 4, .3); }
+    else if (e === 'bencao') { segue(T.wave, 0xffe8a0, 1.6, k => ({ y: 2.35, s: 1.2, rot: k * 3 }), 1.1); chuva(T.feather, 0xfff6d0, 12, 1.4, .32); pillar(P.x, P.z, .8, 6, 0xffe8a0, .8, true, .3); }
+    else if (e === 'vazio') { orbita(T.glow, 0x8a40ff, 6, 1.1, 1, 1.4, 5, .45, .3); puff(me(1), 0x200030, 10, { map: T.smoke, size: 1.1, grow: 1.4, speed: 1.5, op: .6 }); }
+    else if (e === 'tesouro') { orbita(T.coin, 0xffd040, 8, 1, 1.2, 1.3, 6, .35, .2); chuva(T.coin, 0xffd040, 10, 1.0, .3); }
+    else if (e === 'raios') { for (let i = 0; i < 6; i++) setTimeout(() => { const a = rand(0, TAU); bolt(me(2.6), new THREE.Vector3(P.x + Math.cos(a) * 1.6, P.y + .2, P.z + Math.sin(a) * 1.6), 0xa0d8ff, .25, .6); }, i * 90); }
+    else if (e === 'cancao') { orbita(T.note, c, 6, 1.2, 1.4, 1.6, 2.5, .45, .35); }
+    else if (e === 'espiritos') { orbita(T.ghost, 0xd8f0ff, 4, 1.3, 1.2, 1.8, 2.2, .7, .25); }
+    else if (e === 'tempo') { const m = new THREE.Mesh(G.plane, mat(T.clock, c)); add(m, 1.4, (k, dt) => { m.position.set(P.x, P.y + .1, P.z); m.rotation.y -= dt * 3; const sc = 3.6 * Math.min(1, k * 5); m.scale.set(sc, 1, sc); m.material.opacity = Math.min(1, (1 - k) * 3); }); sobe(T.spark, c, 10, .3); }
+    else if (e === 'coracao') { orbita(T.heart, 0xff7aa8, 5, 1.1, 1.3, 1.5, 3, .45, .3); sobe(T.heart, 0xffa0c0, 6, .3); }
+    return true;
+  }
+  const CURA = { cure: 'cruz', luz: 'sol', aurora: 'aurora', memoria: 'agua', aguasMem: 'agua', abraco: 'coracao', renovar: 'folha', renascer: 'fenix', quintaMarca: 'marca', escolhaVida: 'marca' };
+  function assinaturaCura(s) {
+    const e = CURA[s.id]; if (!e) return false;
+    if (e === 'cruz') { segue(T.plus, 0x8affb8, 1.2, k => ({ y: 1 + k * 2, s: 1 + k }), 1); sobe(T.plus, 0x8affb8, 10); }
+    else if (e === 'sol') { segue(T.glow, 0xffd860, 1.4, k => ({ y: 3.2, s: 2 + Math.sin(k * 12) * .2 }), 1.3); for (let i = 0; i < 8; i++) setTimeout(() => pillar(P.x + rand(-.6, .6), P.z + rand(-.6, .6), .25, 4, 0xffe8a0, .5, false, .6), i * 70); }
+    else if (e === 'agua') { for (let i = 0; i < 18; i++) segue(T.glow, 0x6ad8ff, 1.3, k => { const a = i / 18 * TAU * 2 + k * 8; const r = 1.1 - k * .5; return { x: Math.cos(a) * r, y: (i / 18) * 2 + k, z: Math.sin(a) * r }; }, .3); }
+    else if (e === 'coracao') { orbita(T.heart, 0xff7aa8, 6, 1.0, 1.2, 1.5, 3, .5, .3); sobe(T.heart, 0xffb0c8, 8, .35); }
+    else if (e === 'aurora') { const cores = [0xff6a6a, 0xffd060, 0x6aff9a, 0x6ab0ff, 0xc08aff]; cores.forEach((cc, j) => { for (let i = 0; i < 6; i++) segue(T.glow, cc, 1.5, k => { const a = -1.3 + i / 5 * 2.6; return { x: Math.sin(a) * (1.4 + j * .15), y: 1.2 + Math.cos(a) * (1.2 + j * .15), z: 0 }; }, .4); }); }
+    else if (e === 'folha') { for (let i = 0; i < 14; i++) setTimeout(() => { const a = i / 14 * TAU; particle(new THREE.Vector3(P.x + Math.cos(a) * .9, P.y + .1, P.z + Math.sin(a) * .9), i % 2 ? 0x6ad84a : 0x9aff6a, { map: T.leaf, size: .35, v: new THREE.Vector3(Math.cos(a) * .3, 2.2, Math.sin(a) * .3), drag: .5, life: 1.1, spin: true }); }, i * 40); }
+    else if (e === 'fenix') { for (let i = 0; i < 20; i++) setTimeout(() => particle(new THREE.Vector3(P.x + rand(-.4, .4), P.y + .3, P.z + rand(-.4, .4)), i % 3 ? 0xff8a20 : 0xffe060, { map: T.feather, size: .45, v: new THREE.Vector3(rand(-1.5, 1.5), rand(3, 5), rand(-1.5, 1.5)), drag: 1, life: 1.2, spin: true }), i * 35); wave(P.x, P.z, 2.4, 0xff8a20, .6); }
+    else if (e === 'marca') { segue(T.rune, 0xd8b0ff, 1.4, k => ({ y: 2.6, s: 1.4, rot: k * 4 }), 1.2); sobe(T.spark, 0xd8b0ff, 10); }
+    return true;
+  }
   function buff(s) {
     const e = elem(s), c = s.color;
+    if (assinaturaBuff(s)) return;   // forma própria
     rune(P.x, P.z, 1.8, c, 1.2, true); pillar(P.x, P.z, 0.9, 3.5, c, 0.9, true, 0.35);
     const ic = e === 'vento' ? T.feather : e === 'danca' ? T.note : T.spark;
     for (let i = 0; i < 18; i++) { const a = rand(0, TAU); particle(new THREE.Vector3(P.x + Math.cos(a) * 1.1, P.y + rand(0, 0.6), P.z + Math.sin(a) * 1.1), c, { map: ic, size: e === 'vento' ? 0.35 : 0.3, v: new THREE.Vector3(0, rand(2, 4), 0), drag: 0.8, life: rand(0.7, 1.1), spin: true }); }
@@ -429,6 +497,7 @@ const VFX = (() => {
     if (e === 'terra' || /pele de pedra|escudo|barreira|muralha|promessa/i.test(s.name)) { const sh = new THREE.Mesh(new THREE.SphereGeometry(1.3, 20, 14), mat(T.wave, c)); add(sh, 0.9, k => { sh.position.set(P.x, P.y + 1, P.z); const q = 0.6 + k * 0.6; sh.scale.set(q, q * 1.15, q); sh.material.opacity = 1 - k; }, () => sh.geometry.dispose()); }
   }
   function heal(s, area) {
+    if (!area && assinaturaCura(s)) { rune(P.x, P.z, 1.2, 0x7dffb0, 0.8, true); return; }
     const c = elem(s) === 'luz' ? 0xffe8a0 : 0x7dffb0;
     pillar(P.x, P.z, 0.9, 5, c, 1.0, true, 0.45); rune(P.x, P.z, area ? (s.r || 3) : 1.6, c, 1.1, true);
     for (let i = 0; i < 12; i++) particle(new THREE.Vector3(P.x + rand(-1, 1), P.y + rand(0, 1), P.z + rand(-1, 1)), c, { map: T.plus, size: 0.35, v: new THREE.Vector3(0, rand(1.5, 3), 0), drag: 0.5, life: rand(0.8, 1.2) });
