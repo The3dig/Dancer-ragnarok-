@@ -13,7 +13,7 @@ function tetoCasa(g, H, base, parede, cor) {
   const caixa = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.receiveShadow = true; g.add(o); return o; };
   for (const [x, z, w, d] of [[0, -H, W, 0.5], [0, H, W, 0.5], [-H, 0, 0.5, W], [H, 0, 0.5, W]]) caixa(w, alt, d, parede, x, ym, z);
   const mad = PM('madeira.jpg', [2, 1], new THREE.Color(cor || 0x9a6a44));
-  for (const [x, z, w, d] of [[0, -H + 0.32, W, 0.25], [0, H - 0.32, W, 0.25], [-H + 0.32, 0, 0.25, W], [H - 0.32, 0, 0.25, W]]) { caixa(w, 0.22, d, mad, x, base, z); caixa(w, 0.3, d, mad, x, ALT_CASA - 0.15, z); }
+  for (const [x, z, w, d] of [[0, -H + 0.32, W, 0.25], [0, H - 0.32, W, 0.25], [-H + 0.32, 0, 0.25, W], [H - 0.32, 0, 0.25, W]]) { caixa(w, 0.22, d, mad, x, ALT_CASA - 0.85, z); caixa(w, 0.3, d, mad, x, ALT_CASA - 0.15, z); }   // a faixa de baixo fica acima do arco das portas (antes cortava o arco)
   const forro = new THREE.Mesh(new THREE.PlaneGeometry(W, W), PM('madeira.jpg', [5, 5], new THREE.Color(cor || 0x9a6a44).multiplyScalar(1.15)));
   forro.rotation.x = Math.PI / 2; forro.position.y = ALT_CASA; g.add(forro);
   for (const z of [-H / 2, 0, H / 2]) caixa(W, 0.35, 0.4, mad, 0, ALT_CASA - 0.2, z);

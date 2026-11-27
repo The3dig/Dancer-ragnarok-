@@ -90,7 +90,7 @@ const Comodos = (() => {
     box(H * 2 + 1, 0.4, H * 2 + 1, madeira(R.piso), 0, -0.2, 0, g);
     const parede = PM('reboco.jpg', [3, 1.2], new THREE.Color(R.parede));
     box(H * 2 + 1, 3.8, 0.5, parede, 0, 1.9, -H, g); box(H * 2 + 1, 3.8, 0.5, parede, 0, 1.9, H, g);
-    for (const sx of [-1, 1]) { box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, -(H / 2 + 0.6), g); box(0.5, 3.8, H - 1.2, parede, sx * H, 1.9, H / 2 + 0.6, g); box(0.5, 0.8, 2.4, parede, sx * H, 3.4, 0, g); }   // portas nos lados leste e oeste
+    for (const sx of [-1, 1]) box(0.5, 3.8, H * 2 + 1, parede, sx * H, 1.9, 0, g);   // paredes leste e oeste inteiras: as portas são de luz (antes tinha um vão e atrás da porta aparecia o roxo de fora)
     const viga = madeira(0x9a6a40);   // mais clara: a 0x5a3a24 ficava preta ("Quarto Real" com listras pretas) for (let k = -3; k <= 3; k++) { box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, -H + 0.35, g); box(0.25, 3.8, 0.3, viga, k * 2.2, 1.9, H - 0.35, g); }
     box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, -H + 0.4, g); box(H * 2 + 1, 0.3, 0.4, viga, 0, 3.75, H - 0.4, g);
     // janelas no meio do vão entre as vigas (±3,3), com moldura, cruz da vidraça e peitoril (antes ficavam em cima de uma viga)
