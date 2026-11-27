@@ -1515,7 +1515,7 @@ const CLS = () => CLASSES[P.cls] || CLASSES.dancarina;
 let SKILLS = [];
 function refreshSkills() { SKILLS = [...CLS().skills, ...((typeof TIER_SKILLS !== 'undefined' && TIER_SKILLS[P.cls]) || []), ...((typeof EXTRA_SKILLS !== 'undefined' && EXTRA_SKILLS[P.cls]) || [])].map((s, i) => ({ ...s, key: String(i + 1) })); }
 // passivas: soma de cada bônus × nível aprendido (sempre ligado)
-function pas(k) { let v = 0; for (const s of SKILLS) if (s.type === 'passiva' && s.pas && s.pas[k] && tierOk(s)) v += s.pas[k] * ((P.skillLv && P.skillLv[s.id]) || 0); return v; }
+function pas(k) { let v = (typeof Renascer !== 'undefined' && (k === 'hp' || k === 'sp')) ? Renascer.bonus(k) : 0; for (const s of SKILLS) if (s.type === 'passiva' && s.pas && s.pas[k] && tierOk(s)) v += s.pas[k] * ((P.skillLv && P.skillLv[s.id]) || 0); return v; }
 const tierOk = s => (s.tier || 0) <= (P.tier || 0);
 const tierName = () => (typeof TIERS !== 'undefined' && TIERS[P.cls] ? TIERS[P.cls][P.tier || 0] : className(P.cls, P.gender));
 refreshSkills();
@@ -1524,7 +1524,7 @@ function bmul(k) { let v = 1 + (['atk', 'matk', 'aspd', 'speed'].includes(k) && 
 function badd(k) { let v = ['def', 'crit', 'regen'].includes(k) && typeof pas === 'function' ? pas(k) : 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
-const gBon = k => (typeof Vida !== 'undefined' && Vida.cartaBonus && running ? Vida.cartaBonus(k) : 0) + (typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0) + (typeof Guerra !== 'undefined' && running ? Guerra.bonus(k) : 0) + (typeof Comodos !== 'undefined' && running ? Comodos.bonus(k) : 0);   // + 🏠 Descansado (conforto da casa)   // + a Fortaleza (guilda que venceu a guerra)
+const gBon = k => (k === 'dano' && typeof Renascer !== 'undefined' ? Renascer.bonus('dano') : 0) + (typeof Vida !== 'undefined' && Vida.cartaBonus && running ? Vida.cartaBonus(k) : 0) + (typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0) + (typeof Guerra !== 'undefined' && running ? Guerra.bonus(k) : 0) + (typeof Comodos !== 'undefined' && running ? Comodos.bonus(k) : 0);   // + 🏠 Descansado (conforto da casa)   // + a Fortaleza (guilda que venceu a guerra)
 const stats = {
   atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
   matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
@@ -1818,6 +1818,7 @@ function makeDrop(id, n, x, z) {
   return { id, n, x, z, m, t: 0 };
 }
 function gainXp(n) {
+  if (typeof Renascer !== 'undefined' && n > 0) n = Math.max(1, Math.round(n * Renascer.xpMul()));   // 🔥 renascido: o XP vale 40%
   P.xp += n;
   while (P.xp >= xpNeed(P.lv) && P.lv < LV_MAX) {
     P.xp -= xpNeed(P.lv); P.lv++;
@@ -3537,7 +3538,7 @@ function fazerReset(t) {
   if (t === 'atr') {
     const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0);   // + pontos dos cômodos completos da casa
+    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0) + (P.ptsRen || 0);   // + pontos dos cômodos completos da casa e do renascimento
   } else {
     let tot = 0; for (const id in P.skillLv) tot += P.skillLv[id] || 0;
     const primeira = SKILLS[0].id; P.skillLv = { [primeira]: 1 }; P.skillPts += Math.max(0, tot - 1);
@@ -3628,7 +3629,7 @@ function renderSkills() {
     const reqs = [];
     if (P.lv < s.lv) reqs.push(`nível ${s.lv}`);
     if (s.pre && (P.skillLv[s.pre[0]] || 0) < s.pre[1]) { const ps = SKILLS.find(o => o.id === s.pre[0]); if (ps) reqs.push(`${ps.name} Nv ${s.pre[1]}`); }
-    if (!tierOk(s)) reqs.push(`${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
+    if (!tierOk(s)) reqs.push(s.tier >= 3 ? `4ª classe (${TIERS[P.cls][s.tier]}): renascer no Grande Ciclo e chegar de novo ao 110` : `${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
     for (const [j, lv] of (SK_REQ[i] || [])) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
     const novo = skRasc && L > (skRasc.lv[s.id] || 0);
     return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''} ${i === skSel ? 'sel' : ''} ${novo ? 'novo' : ''}" data-sel="${i}">
@@ -4051,7 +4052,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['dgSemana', 'ecoOuro', 'forjaSemAnim', 'tarefas', 'festa', 'bars', 'barIdx', 'usouSkill', 'dicaSkill', 'dicaSkill2', 'grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['ptsExtra', 'ptsRen', 'ciclo', 'renasceu', 'dgSemana', 'ecoOuro', 'forjaSemAnim', 'tarefas', 'festa', 'bars', 'barIdx', 'usouSkill', 'dicaSkill', 'dicaSkill2', 'grupoLider', 'dueloBars', 'tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   const src = P._duelo ? { ...P, ...P._duelo } : P;   // ⚖️ no Duelo da Guilda salva o personagem de verdade, não o igualado
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, src[k]])))); } catch (e) { }
 }
@@ -4078,7 +4079,7 @@ function start(fromSave) {
   if (fromSave && P.statV !== 2) {
     const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0); P.statV = 2;
+    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0) + (P.ptsRen || 0); P.statV = 2;
     setTimeout(() => { P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
       dialog('📊 Atributos novos', `O jogo agora vai até o <b>nível 200</b>. Para isso, os atributos mudaram como no Ragnarok: menos pontos por nível, e <b>cada ponto custa mais</b> quanto mais alto o atributo (do 1 ao 10 custa 1, do 11 ao 20 custa 2…).<br>Seus pontos foram <b>devolvidos</b>: você tem <b>${P.statPts}</b> para distribuir de novo.`,
         [{ label: '📊 Distribuir agora', fn: () => { toggleStats(); } }, { label: 'Depois' }]); }, 3500);
