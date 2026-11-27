@@ -35,7 +35,13 @@ const Encolher = (() => {
       const r = el.getBoundingClientRect(), vis = r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
       if (fech) document.body.classList.add('enc-' + q.id);
       if (!vis) { b.style.display = 'none'; return; }
-      pos[q.id] = { top: r.top, l: r.left, r: r.right };
+      // o HUD tem "zoom" (tamanho da tela, barra.js). O Safari mede o quadro SEM o zoom e as setas iam parar no lugar
+      // errado quando a janela mudava de tamanho (pedido da Lady Ingrid). Se a medida veio sem o zoom, corrige aqui.
+      const z = parseFloat((hud && hud.style.zoom) || '1') || 1; let semZoom = false;
+      if (z !== 1 && hud) { let pr = document.getElementById('enc-sonda'); if (!pr) { pr = document.createElement('div'); pr.id = 'enc-sonda'; pr.style.cssText = 'position:absolute;left:0;top:0;width:100px;height:1px;visibility:hidden;pointer-events:none'; hud.appendChild(pr); }
+        const wv = pr.getBoundingClientRect().width; semZoom = wv > 0 && Math.abs(wv - 100) < Math.abs(wv - 100 * z); }   // sonda de 100 px: mede se o navegador já conta o zoom
+      const k = semZoom ? z : 1;
+      pos[q.id] = { top: r.top * k, l: r.left * k, r: r.right * k };
     }
     const p = pos[q.id]; if (!p || some) { b.style.display = 'none'; return; }
     b.style.display = ''; b.style.top = Math.max(0, p.top) + 'px';
