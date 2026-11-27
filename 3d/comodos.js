@@ -198,6 +198,21 @@ const Comodos = (() => {
   // de onde vem o material (pedido do Rone: "não sei o que precisa para ativar a compra dos móveis")
   const fonte = id => { const I = ITEMS[id] || {}; const de = Object.entries(MOBDEF).filter(([t, D]) => (D.drops || []).some(([i]) => i === id) && !t.startsWith('alfa_') && !D.boss).sort((a, b) => a[1].lv - b[1].lv).slice(0, 2).map(([, D]) => `${D.name} (Nv ${D.lv})`);
     return de.length ? `cai de ${de.join(' ou ')}` : ['semente', 'colheita', 'racao', 'comida'].includes(I.kind) || /lã|leite|ovo|flor/i.test(I.name || '') ? 'vem do Sítio' : I.price ? 'compra nas lojas' : 'missões e baús'; };
+  // 🧭 "ir buscar" o material que falta (pedido da Lady Ingrid: "marcar para seguir ou que bicho dropa pra gente ir lá matar"):
+  // anda sozinho até onde o monstro que solta nasce (ou até o Sítio), e avisa quando juntar o que precisa
+  function irBuscar(id, precisa) {
+    const I = ITEMS[id] || {}, de = Object.entries(MOBDEF).filter(([t, D]) => (D.drops || []).some(([i]) => i === id) && !t.startsWith('alfa_') && !D.boss).sort((a, b) => a[1].lv - b[1].lv);
+    let alvo = null;
+    for (const [t, D] of de) { const sp = SPAWNS.find(o => o.type === t && (o.area || o.at)); if (sp) { alvo = { x: sp.at ? sp.at.x : (sp.area[0] + sp.area[1]) / 2, z: sp.at ? sp.at.z : (sp.area[2] + sp.area[3]) / 2, name: `${D.name} (Nv ${D.lv})` }; break; } }
+    if (!alvo && /Sítio/.test(fonte(id))) alvo = { x: FARM.x, z: FARM.z, name: 'o Sítio' };
+    if (!alvo) { log(`🧭 Não achei um lugar para buscar <b>${I.name || id}</b> (${fonte(id)}).`, 'bad'); return; }
+    P.caca = null; P.qGo = { x: alvo.x, z: alvo.z, name: alvo.name }; if (typeof autoStart === 'function') autoStart(true);
+    buscando = { id, n: precisa }; closeDialog();
+    log(`🧭 Indo até <b>${alvo.name}</b> buscar <b>${I.ic || ''} ${I.name || id}</b>: faltam <b>${fmt(Math.max(0, precisa - qtd(id)))}</b>. Eu aviso quando você tiver tudo.`, 'gold');
+  }
+  let buscando = null;
+  setInterval(() => { if (!buscando || typeof running === 'undefined' || !running) return; if (qtd(buscando.id) >= buscando.n) { const I = ITEMS[buscando.id] || {}; log(`✅ Você já tem <b>${fmt(buscando.n)} ${I.ic || ''} ${I.name || buscando.id}</b>! Volte ao Livro dos Móveis para fazer.`, 'gold'); if (typeof banner === 'function') banner(`✅ ${String(I.name || '').toUpperCase()} COMPLETO`); Audio8.sfx('level'); buscando = null; } }, 2000);
+  const botoesBuscar = mat => Object.entries(mat).filter(([id, n]) => qtd(id) < n).map(([id, n]) => ({ label: `🧭 Ir buscar ${it(id).ic} ${it(id).name} (faltam ${fmt(n - qtd(id))} · ${fonte(id)})`, fn: () => { irBuscar(id, n); } }));
   const matTxt = mat => Object.entries(mat).map(([id, n]) => { const t = qtd(id), ok = t >= n; return `${ok ? '✅' : '❌'} <b>${it(id).ic} ${it(id).name}</b>: tem <b>${fmt(t)}</b> de ${fmt(n)}${ok ? '' : ` · <b style="color:#ff9a8a">faltam ${fmt(n - t)}</b>`} <small>(🎒 ${fmt(naMochila(id))} · 📦 ${fmt(noBau(id))} · ${fonte(id)})</small>`; }).join('<br>');
   const faltaTxt = (cr, mat) => { const f = []; if (P.zeny < cr) f.push(`${fmt(cr - P.zeny)} cr`); for (const [id, n] of Object.entries(mat)) if (qtd(id) < n) f.push(`${fmt(n - qtd(id))} ${it(id).name}`); return f.length ? 'falta: ' + f.join(', ') : 'já dá para fazer!'; };
   const pref = () => S().pref === 'bau' ? 'bau' : 'mochila';
@@ -248,6 +263,7 @@ const Comodos = (() => {
             { label: ok ? '🔨 Fazer' : '🔒 Falta material ou coroas', fn: () => { if (!ok) { Audio8.sfx('miss'); moveis(R); return true; }
               P.zeny -= m.cr; tirarMat(m.mat); S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil');
               log(`🏠 <b>${m.nome}</b> está na ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } completos(); moveis(R); return true; } },
+            ...botoesBuscar(m.mat),
             optPref(() => moveis(R)),
             { label: '← Voltar', fn: () => { moveis(R); return true; } }]);
           return true; } }; }),
@@ -301,8 +317,8 @@ const Comodos = (() => {
   // lista de todos os móveis do livro: sala da casa + os 8 cômodos
   function itensLivro() {
     const c = S(), sala = typeof Casa !== 'undefined' && Casa.MOVEIS ? Casa.MOVEIS : {}, B = (typeof Casa !== 'undefined' && Casa.BUILD) || {};
-    const linhas = [{ id: 'sala', ic: '🏠', nome: 'Sala da casa', trancada: false, its: Object.entries(sala).map(([k, [nome, ic, cr, mat]]) => ({ chave: 'sala_' + k, nome, ic, cr, mat, conf: 6, tem: !!(c.mov || {})[k], montar: B[k] ? p => B[k](p) : null, onde: 'a Sala da casa (Reformas, na bancada)', fazer: () => typeof Casa !== 'undefined' && Casa.fazer && Casa.fazer(k) })) }];
-    for (const R of ROOMS) linhas.push({ id: R.id, ic: R.ic, nome: R.nome, trancada: !c.salas[R.id], its: MOVEIS[R.id].map(m => ({ chave: m.id, nome: m.nome, ic: m.ic, cr: m.cr, mat: m.mat, conf: m.conf, tem: !!c.mob[m.id], montar: CONSTR[m.tipo] ? p => CONSTR[m.tipo](p, m.cor) : null, onde: `o ${R.nome} (com a Governanta Clara)`, fazer: () => { if (S().mob[m.id] || !c.salas[R.id] || P.zeny < m.cr || !podeMat(m.mat)) return false; P.zeny -= m.cr; tirarMat(m.mat); S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil'); log(`🏠 <b>${m.nome}</b> está no lugar dele no ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } completos(); return true; } })) });
+    const linhas = [{ id: 'sala', ic: '🏠', nome: 'Sala da casa', trancada: false, its: Object.entries(sala).map(([k, [nome, ic, cr, mat]]) => ({ chave: 'sala_' + k, nome, ic, cr, mat, conf: 6, tem: !!(c.mov || {})[k], montar: B[k] ? p => B[k](p) : null, onde: 'na Sala da casa (Reformas, na bancada)', fazer: () => typeof Casa !== 'undefined' && Casa.fazer && Casa.fazer(k) })) }];
+    for (const R of ROOMS) linhas.push({ id: R.id, ic: R.ic, nome: R.nome, trancada: !c.salas[R.id], its: MOVEIS[R.id].map(m => ({ chave: m.id, nome: m.nome, ic: m.ic, cr: m.cr, mat: m.mat, conf: m.conf, tem: !!c.mob[m.id], montar: CONSTR[m.tipo] ? p => CONSTR[m.tipo](p, m.cor) : null, onde: `no ${R.nome} (com a Governanta Clara)`, fazer: () => { if (S().mob[m.id] || !c.salas[R.id] || P.zeny < m.cr || !podeMat(m.mat)) return false; P.zeny -= m.cr; tirarMat(m.mat); S().mob[m.id] = 1; montarSala(R); mobiliar(R); Audio8.sfx('anvil'); log(`🏠 <b>${m.nome}</b> está no lugar dele no ${R.nome}! Conforto agora: <b>${conforto()}</b>.`, 'gold'); try { save(); } catch (e) { } completos(); return true; } })) });
     return linhas;
   }
   function livro() {
@@ -324,7 +340,7 @@ const Comodos = (() => {
     const L0 = itensLivro()[li], it = L0 && L0.its[ii]; if (!it) return;
     Audio8.sfx('click');
     const url = it.montar ? fotoMovel(it.chave, it.montar) : '';
-    dialog(`${it.ic} ${it.nome}`, `<div class="lm-ver">${url ? `<img src="${url}">` : `<b>${it.ic}</b>`}<div>${it.tem ? '✅ <b>Você já tem este móvel.</b>' : L0.trancada ? `🔒 Primeiro construa o cômodo <b>${L0.nome}</b> com o Mestre de Obras Tibério.` : `Faça em ${it.onde}.`}<br>🏠 +${it.conf} de conforto<br>${P.zeny >= it.cr ? '✅' : '❌'} 💰 <b>${fmt(it.cr)} cr</b> <small>(tem ${fmt(P.zeny)})</small></div></div>${it.tem ? '' : matTxt(it.mat)}`, [...(!it.tem && !L0.trancada ? [{ label: P.zeny >= it.cr && podeMat(it.mat) ? '🔨 Fazer agora (vai direto para o lugar dele)' : '🔒 Ainda falta material ou coroas', fn: () => { if (it.fazer && it.fazer()) { banner(`🏠 ${it.nome.toUpperCase()}`); verMovel(li, ii); } else { Audio8.sfx('miss'); verMovel(li, ii); } return true; } }] : []), { label: '← Voltar ao livro', fn: () => { livro(); return true; } }, { label: 'Fechar' }]);
+    dialog(`${it.ic} ${it.nome}`, `<div class="lm-ver">${url ? `<img src="${url}">` : `<b>${it.ic}</b>`}<div>${it.tem ? '✅ <b>Você já tem este móvel.</b>' : L0.trancada ? `🔒 Primeiro construa o cômodo <b>${L0.nome}</b> com o Mestre de Obras Tibério.` : `Faça ${it.onde}.`}<br>🏠 +${it.conf} de conforto<br>${P.zeny >= it.cr ? '✅' : '❌'} 💰 <b>${fmt(it.cr)} cr</b> <small>(tem ${fmt(P.zeny)})</small></div></div>${it.tem ? '' : matTxt(it.mat)}`, [...(!it.tem ? botoesBuscar(it.mat) : []), ...(!it.tem && !L0.trancada ? [{ label: P.zeny >= it.cr && podeMat(it.mat) ? '🔨 Fazer agora (vai direto para o lugar dele)' : '🔒 Ainda falta material ou coroas', fn: () => { if (it.fazer && it.fazer()) { banner(`🏠 ${it.nome.toUpperCase()}`); verMovel(li, ii); } else { Audio8.sfx('miss'); verMovel(li, ii); } return true; } }] : []), { label: '← Voltar ao livro', fn: () => { livro(); return true; } }, { label: 'Fechar' }]);
   }
   // botão no ☰ Mais
   function botaoLivro() { const m = $('menu'); if (!m || $('btn-moveis')) return; const b = document.createElement('button'); b.id = 'btn-moveis'; b.title = 'Livro dos Móveis'; b.textContent = '📖'; b.style.display = 'none'; b.onclick = () => { Audio8.sfx('click'); livro(); }; m.appendChild(b); }
