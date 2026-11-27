@@ -421,9 +421,197 @@ const Modelos3D = (() => {
     };
     return r;
   }
+  // ---------------- ⚔️ cavaleiros de armadura (pedido do Rone: os Sentinelas, Soldados e Guardiões eram "tudo igual quadrado")
+  // Corpo de verdade: peitoral arredondado, ombreiras, joelheiras, elmo com viseira, capa e arma na mão.
+  // É UMA malha só com esqueleto (cada peça presa a um osso): um desenho por monstro, mas com pernas que dobram
+  // o joelho ao andar, braços que balançam e golpe com preparo (ergue a arma, desce, volta). Criado no jogo; as cores
+  // e as armas seguem o que o livro diz de cada um (Guardião Branco com lança e máscara, Primeiro Guardião com cajado).
+  const CAV = {
+    sentinela: { c1: 0x4a4458, c2: 0x24202c, eye: 0xb26bff, arma: 'espada', escudo: 0x2a2434 },
+    sentinelaMuralha: { c1: 0x5a4a4e, c2: 0x2a2024, eye: 0xff3a3a, arma: 'machado', capa: 0x5a1414, crista: 0x8a1a1a },
+    sentinelaSubmersa: { c1: 0x2a5a6a, c2: 0x12303a, eye: 0x5affd0, arma: 'tridente', crista: 0x1a6a5a, algas: 0x2a5a3a },
+    soldadoMemoria: { c1: 0x8ab0c0, c2: 0x3a5a68, eye: 0xd8ffff, trim: 0x9af0ff, arma: 'espada', escudo: 0x3a6a80, capa: 0x1e4a66 },
+    guardaEspinhos: { c1: 0x34343c, c2: 0x16161a, eye: 0xffd040, trim: 0xffd040, arma: 'alabarda', espinhos: true, capa: 0x3a1010 },
+    guardiao: { c1: 0x3a3444, c2: 0x1c1824, eye: 0xb26bff, semRosto: true, arma: 'montante', larg: 1.15, capa: 0x241a30 },
+    carrasco: { c1: 0x3a2a2c, c2: 0x1a1214, eye: 0xff3030, semRosto: true, arma: 'machado', grande: true, larg: 1.2, chifres: true, capa: 0x4a0a0a },
+    guardiaoBranco: { c1: 0xdcdce4, c2: 0xa4a4b2, eye: 0x7ad8ff, trim: 0x7ad8ff, semRosto: true, arma: 'lanca', capa: 0xe8e8f0, larg: 1.1 },
+    guardiaoBrancoRio: { c1: 0xf4f4fa, c2: 0xc0c4d0, eye: 0x9af0ff, trim: 0xffe9a8, semRosto: true, arma: 'lanca', capa: 0xf0ece0, larg: 1.1 },
+    primeiroGuardiao: { c1: 0xf4f4f8, c2: 0xc8c8d4, eye: 0xffd040, trim: 0xffd040, arma: 'cajado', capa: 0xc89a30, crista: 0xffd040, larg: 1.1 },
+  };
+  const ALTURA_CAV = 1.95;                                                  // topo do elmo no molde
+  function bakeCav(t) {
+    if (cache['cav_' + t]) return cache['cav_' + t];
+    const o = CAV[t], L = o.larg || 1, PI = Math.PI;
+    const OSSOS = [['quadril', -1, 0, 1.0, 0], ['peito', 0, 0, 1.22, 0], ['cabeca', 1, 0, 1.6, 0],
+      ['ombroD', 1, -.33 * L, 1.5, 0], ['cotoveloD', 3, -.36 * L, 1.2, 0], ['ombroE', 1, .33 * L, 1.5, 0], ['cotoveloE', 5, .36 * L, 1.2, 0],
+      ['coxaD', 0, -.13, .96, 0], ['joelhoD', 7, -.13, .54, 0], ['coxaE', 0, .13, .96, 0], ['joelhoE', 9, .13, .54, 0], ['capa', 1, 0, 1.52, -.2]];
+    const idx = {}; OSSOS.forEach((b, i) => idx[b[0]] = i);
+    const root = new THREE.Group();
+    const p = (osso, geo, mat, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); m.userData.osso = idx[osso]; root.add(m); return m; };
+    const a1 = M(o.c1, { metalness: .6, roughness: .35 }), a2 = M(o.c2, { metalness: .4, roughness: .6 }), couro = M(0x4a3424, { roughness: .9 });
+    const glow = B(o.eye), tr = o.trim ? B(o.trim) : a2, aco = M(0xc8ccd4, { metalness: .8, roughness: .25 }), ouro = M(0xd8b048, { metalness: .8, roughness: .3 });
+    const meia = new THREE.SphereGeometry(1, 14, 8, 0, PI * 2, 0, PI / 2);
+    // tronco: peitoral arredondado (mais largo no peito, fino na cintura), faixas do abdômen e o cinto
+    const perfil = [[.15, .98], [.19, 1.06], [.2, 1.15], [.24, 1.3], [.27, 1.42], [.25, 1.5], [.16, 1.56], [.08, 1.58]].map(([r, y]) => new THREE.Vector2(r, y));
+    p('peito', new THREE.LatheGeometry(perfil, 16), a1, 0, 0, 0, L, 1, .72);
+    for (const y of [1.08, 1.16]) p('peito', new THREE.TorusGeometry(.205, .022, 6, 18), a2, 0, y, 0, L, .72, 1, PI / 2);
+    p('peito', GEO.box, tr, 0, 1.32, .195, .03, .34, .03, -.12);
+    if (o.trim) p('peito', GEO.crystal, glow, 0, 1.38, .2, .5, .7, .3);
+    p('quadril', new THREE.TorusGeometry(.19, .03, 6, 18), couro, 0, .98, 0, L, .75, 1, PI / 2);
+    p('quadril', GEO.box, ouro, 0, .98, .145, .08, .07, .03);
+    // saiote de placas e, nos que têm capa, o tabardo na frente
+    p('quadril', new THREE.CylinderGeometry(.2, .29, .3, 14, 1, true), a2, 0, .84, 0, L, 1, .8);
+    if (o.capa) p('quadril', GEO.box, M(o.capa, { roughness: .9 }), 0, .78, .23, .17, .42, .015, .08);
+    // pescoço e ombreiras em camadas (inclinadas para fora)
+    p('peito', GEO.cyl, a2, 0, 1.6, 0, .09, .08, .09);
+    for (const s of [-1, 1]) {
+      p('peito', meia, a1, s * .34 * L, 1.49, 0, .17, .13, .18, 0, 0, -s * .45);
+      p('peito', meia, a2, s * .38 * L, 1.42, 0, .15, .1, .16, 0, 0, -s * .55);
+      if (o.trim) p('peito', GEO.box, tr, s * .4 * L, 1.47, 0, .015, .015, .3, 0, 0, -s * .5);
+      if (o.espinhos) for (const z of [-.08, 0, .08]) p('peito', GEO.cone, ouro, s * .4 * L, 1.6, z, .03, .2, .03, 0, 0, -s * .6);
+      if (o.algas) p('peito', GEO.box, M(o.algas, { roughness: 1 }), s * .3 * L, 1.32, .12, .03, .3, .01, .1, 0, s * .2);
+      const ob = s < 0 ? 'D' : 'E';
+      // braço: manga de malha, cotoveleira, manopla que alarga no punho e a mão
+      p('ombro' + ob, GEO.cyl, a2, s * .345 * L, 1.36, 0, .062, .3, .062);
+      p('cotovelo' + ob, GEO.sph, a1, s * .36 * L, 1.2, -.01, .075, .075, .075);
+      p('cotovelo' + ob, new THREE.CylinderGeometry(.08, .058, .26, 12), a1, s * .365 * L, 1.05, 0);
+      p('cotovelo' + ob, GEO.sph, a2, s * .37 * L, .9, .01, .062, .07, .065);
+      // perna: coxa, joelheira, caneleira e bota com bico de metal
+      p('coxa' + ob, new THREE.CylinderGeometry(.095, .08, .42, 12), a2, s * .13, .76, 0);
+      p('joelho' + ob, GEO.sph, a1, s * .13, .54, .04, .088, .085, .08);
+      p('joelho' + ob, new THREE.CylinderGeometry(.082, .062, .42, 12), a1, s * .13, .32, 0);
+      p('joelho' + ob, GEO.sph, a2, s * .13, .07, .04, .09, .07, .16);
+      p('joelho' + ob, GEO.sph, a1, s * .13, .07, .15, .07, .055, .07);
+    }
+    // cabeça: elmo redondo; com rosto = viseira com a fenda dos olhos brilhando; sem rosto = máscara lisa com uma marca
+    p('cabeca', GEO.sph, a1, 0, 1.76, 0, .165, .18, .175);
+    if (o.semRosto) {
+      p('cabeca', GEO.sph, M(0xe8e4dc, { roughness: .3 }), 0, 1.74, .05, .14, .16, .14);
+      p('cabeca', GEO.box, glow, 0, 1.77, .19, .02, .13, .01);
+    } else {
+      p('cabeca', GEO.box, a2, 0, 1.75, .14, .3, .07, .09);
+      p('cabeca', GEO.box, glow, 0, 1.755, .185, .2, .024, .01);
+      p('cabeca', GEO.box, a2, 0, 1.67, .15, .02, .1, .04);
+    }
+    p('cabeca', GEO.box, o.crista ? M(o.crista) : tr, 0, 1.93, -.01, .035, .06, .32);
+    if (o.crista) p('cabeca', GEO.sph, M(o.crista, { roughness: 1 }), 0, 1.95, -.16, .045, .07, .2, .5);
+    if (o.chifres) for (const s of [-1, 1]) p('cabeca', GEO.cone, M(0x2a1a1a, { roughness: .6 }), s * .2, 1.9, 0, .055, .34, .055, 0, 0, -s * .7);
+    // capa presa nos ombros (alarga embaixo e mexe com o vento)
+    if (o.capa) {
+      const cg = new THREE.PlaneGeometry(.5 * L, .95, 2, 6); cg.translate(0, -.475, 0);
+      const ps = cg.attributes.position; for (let i = 0; i < ps.count; i++) { const y = ps.getY(i); ps.setX(i, ps.getX(i) * (1 - y * .55)); ps.setZ(i, -Math.abs(ps.getX(i)) * .25 + y * .05); }
+      cg.computeVertexNormals(); p('capa', cg, M(o.capa, { roughness: .9, side: THREE.DoubleSide }), 0, 1.52, -.2);
+    }
+    // arma na mão direita (aponta para a frente; o cotovelo dobrado a deixa erguida)
+    const hx = -.37 * L, hy = .9, A = o.arma, brilho = o.trim ? tr : glow;
+    const lamina = (len, w, z0, guarda) => {
+      p('cotoveloD', GEO.cyl, couro, hx, hy, z0 - .02, .024, .22, .024, PI / 2);
+      p('cotoveloD', GEO.sph, ouro, hx, hy, z0 - .14, .04, .04, .04);
+      p('cotoveloD', GEO.box, ouro, hx, hy, z0 + .1, guarda, .04, .05);
+      p('cotoveloD', GEO.box, aco, hx, hy, z0 + .12 + len / 2, w, .016, len);
+      p('cotoveloD', GEO.cone, aco, hx, hy, z0 + .12 + len + .07, w / 2, .14, .008, PI / 2);
+      p('cotoveloD', GEO.box, brilho, hx, hy, z0 + .12 + len * .45, .014, .02, len * .8);
+    };
+    const haste = (z0, z1, r, mat) => p('cotoveloD', GEO.cyl, mat, hx, hy, (z0 + z1) / 2, r, z1 - z0, r, PI / 2);
+    const lamMachado = (z, raio) => { p('cotoveloD', new THREE.CylinderGeometry(raio, raio, .03, 16, 1, false, 0, PI), aco, hx, hy + .02, z, 1, 1, 1, 0, 0, PI / 2); p('cotoveloD', GEO.box, brilho, hx, hy + raio * .55, z, .035, .02, raio * 1.4); };
+    if (A === 'espada') lamina(.85, .075, 0, .26);
+    else if (A === 'montante') lamina(1.35, .11, 0, .36);
+    else if (A === 'machado') { const g = o.grande ? 1.4 : 1; haste(-.2, .95 * g, .03, couro); lamMachado(.8 * g, .24 * g); p('cotoveloD', GEO.cone, aco, hx, hy - .1, .8 * g, .03, .2, .03, PI); }
+    else if (A === 'lanca' || A === 'alabarda' || A === 'tridente') {
+      haste(-.75, 1.65, .03, A === 'lanca' ? M(0xd8c8a0, { roughness: .4 }) : couro);
+      p('cotoveloD', new THREE.TorusGeometry(.05, .015, 6, 12), brilho, hx, hy, 1.6);
+      if (A === 'tridente') { p('cotoveloD', GEO.box, aco, hx, hy, 1.66, .26, .03, .03); for (const dx of [-.11, 0, .11]) p('cotoveloD', GEO.cone, aco, hx + dx, hy, 1.85, .03, .36, .03, PI / 2); }
+      else p('cotoveloD', GEO.cone, aco, hx, hy, 1.86, .07, .44, .02, PI / 2);
+      if (A === 'alabarda') lamMachado(1.5, .2);
+    } else if (A === 'cajado') {
+      haste(-.6, 1.4, .035, ouro);
+      p('cotoveloD', GEO.sph, glow, hx, hy, 1.55, .13, .13, .13);
+      for (let k = 0; k < 2; k++) p('cotoveloD', new THREE.TorusGeometry(.19, .015, 6, 18), ouro, hx, hy, 1.55, 1, 1, 1, k ? 1.1 : .3, k ? .5 : 1.2, 0);
+    }
+    // escudo pontudo no braço esquerdo, com o emblema brilhando
+    if (o.escudo) {
+      const sh = new THREE.Shape(); sh.moveTo(-.2, .26); sh.lineTo(.2, .26); sh.quadraticCurveTo(.24, .02, .0, -.38); sh.quadraticCurveTo(-.24, .02, -.2, .26);
+      const eg = new THREE.ExtrudeGeometry(sh, { depth: .035, bevelEnabled: true, bevelThickness: .015, bevelSize: .015, bevelSegments: 1, curveSegments: 6 });
+      p('cotoveloE', eg, M(o.escudo, { metalness: .5, roughness: .45 }), .37 * L + .05, 1.02, .08, 1, 1, 1, 0, .45, 0);
+      p('cotoveloE', GEO.crystal, brilho, .37 * L + .1, 1.04, .16, .35, .45, .2, 0, .45, 0);
+    }
+    // junta tudo numa malha com cor por vértice, o brilho na emissão e o osso de cada peça
+    root.updateMatrixWorld(true);
+    const lista = []; let n = 0;
+    root.traverse(m => { if (!m.isMesh) return; const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrixWorld); lista.push({ g, mat: m.material, b: m.userData.osso }); n += g.attributes.position.count; });
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), em = new Float32Array(n * 3), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    let off = 0;
+    for (const { g, mat, b } of lista) {
+      const c = g.attributes.position.count; pos.set(g.attributes.position.array, off * 3); nor.set(g.attributes.normal.array, off * 3);
+      let cor = new THREE.Color(0), e;
+      // cor própria (o lit() geral satura os brancos: o Guardião Branco ficava azul): só clareia o que é muito escuro
+      if (mat.isMeshBasicMaterial) e = mat.color; else { const hsl = {}; cor = mat.color.clone().convertLinearToSRGB(); cor.getHSL(hsl); cor.setHSL(hsl.h, Math.min(hsl.s, .7) * (hsl.l > .75 ? .3 : 1), Math.max(.4, Math.min(.84, hsl.l * 1.2 + .1))); cor.convertSRGBToLinear(); e = cor.clone().multiplyScalar(.34); }
+      for (let i = 0; i < c; i++) { const j = off + i; col[j * 3] = cor.r; col[j * 3 + 1] = cor.g; col[j * 3 + 2] = cor.b; em[j * 3] = e.r; em[j * 3 + 1] = e.g; em[j * 3 + 2] = e.b; si[j * 4] = b; sw[j * 4] = 1; }
+      off += c; g.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('aEm', new THREE.BufferAttribute(em, 3)); geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+    geo.computeBoundingBox(); geo.computeBoundingSphere(); geo.boundingSphere.radius *= 1.3;   // folga para os braços e a arma em movimento
+    return (cache['cav_' + t] = { geo, OSSOS });
+  }
+  // poses do braço da arma no golpe: [ombro x, cotovelo x, giro do peito] — descanso, preparo e golpe
+  const GOLPE = {
+    corte: [[0, -.6, 0], [-2.7, -.5, .4], [-.7, .15, -.35]],
+    estocada: [[0, -.6, 0], [.5, -1.5, .3], [-1.25, .85, -.25]],
+    magia: [[0, -1.1, 0], [-1.0, -1.3, .2], [-1.7, .5, -.1]],
+  };
+  const TIPO_GOLPE = { espada: 'corte', montante: 'corte', machado: 'corte', lanca: 'estocada', alabarda: 'estocada', tridente: 'estocada', cajado: 'magia' };
+  const suave = x => x * x * (3 - 2 * x);
+  function cavMob(type, t, r) {
+    const K = bakeCav(t), o = CAV[t], d = SPR_MOBS[type] || SPR_MOBS[t] || { h: 3 }, H = d.h || 3, k = H / ALTURA_CAV;
+    const ossos = K.OSSOS.map(() => new THREE.Bone());
+    K.OSSOS.forEach(([, pai, x, y, z], i) => { if (pai < 0) ossos[i].position.set(x, y, z); else { const q = K.OSSOS[pai]; ossos[i].position.set(x - q[2], y - q[3], z - q[4]); ossos[pai].add(ossos[i]); } });
+    const sk = new THREE.SkinnedMesh(K.geo, LITM); sk.add(ossos[0]); sk.bind(new THREE.Skeleton(ossos));
+    sk.castShadow = !TOUCH || !!(MOBDEF[type] && (MOBDEF[type].boss || MOBDEF[type].alfa));
+    const body = new THREE.Group(); body.add(sk); body.scale.setScalar(k); r.g.add(body);
+    const [quadril, peito, cabeca, ombroD, cotoveloD, ombroE, cotoveloE, coxaD, joelhoD, coxaE, joelhoE, capa] = ossos;
+    const G = GOLPE[TIPO_GOLPE[o.arma] || 'corte'], ph = Math.random() * 10, base = quadril.position.y;
+    const doisMaos = o.arma === 'montante' || (o.arma === 'machado' && o.grande);
+    r.m3 = true; r.mats = []; r.h = H; r.body = body;
+    let fase = ph, ultimo = null;
+    r.anim = (m, time) => {
+      const dt = ultimo === null ? 0 : Math.min(0.1, time - ultimo); ultimo = time;
+      const mv = m.moving; fase += dt * (mv ? 7.5 : 0);
+      const s = Math.sin(fase), c = Math.cos(fase), a = mv ? 1 : 0;
+      // pernas: a coxa vai e volta e o joelho dobra quando a perna passa para a frente
+      coxaD.rotation.x = -s * .6 * a; coxaE.rotation.x = s * .6 * a;
+      joelhoD.rotation.x = (Math.max(0, c) * .95 + .05) * a; joelhoE.rotation.x = (Math.max(0, -c) * .95 + .05) * a;
+      // quadril sobe no meio do passo e gira um pouco; o peito gira ao contrário (andar de gente, não de boneco)
+      const resp = Math.sin(time * 1.8 + ph);
+      quadril.position.y = base + (mv ? Math.abs(c) * .035 - .02 : resp * .006);
+      quadril.rotation.y = s * .1 * a; peito.rotation.set(mv ? .08 : resp * .015, -s * .16 * a, 0);
+      cabeca.rotation.set(0, mv ? s * .06 : Math.sin(time * .6 + ph) * .18, 0);
+      // braços balançam ao contrário das pernas, um pouco abertos
+      ombroE.rotation.set(-s * .5 * a + resp * .02, 0, .12); cotoveloE.rotation.x = -.35 - Math.max(0, -s) * .3 * a;
+      ombroD.rotation.set(s * .3 * a, 0, -.12); cotoveloD.rotation.x = G[0][1];
+      // golpe: ergue (ou recua) a arma, desce rápido e volta ao descanso
+      const sw = m.swing || 0;
+      if (sw > 0.01) {
+        const pp = 1 - sw; let pose;
+        if (pp < .35) { const f = suave(pp / .35); pose = G[0].map((v, i) => v + (G[1][i] - v) * f); }
+        else if (pp < .55) { const f = suave((pp - .35) / .2); pose = G[1].map((v, i) => v + (G[2][i] - v) * f); }
+        else { const f = suave((pp - .55) / .45); pose = G[2].map((v, i) => v + (G[0][i] - v) * f); }
+        ombroD.rotation.x = pose[0]; cotoveloD.rotation.x = pose[1]; peito.rotation.y += pose[2];
+        const forca = pp > .35 && pp < .7 ? Math.sin((pp - .35) / .35 * Math.PI) : 0;
+        peito.rotation.x += forca * .25; body.position.z = forca * .12 * H;
+        if (doisMaos) { ombroE.rotation.x = pose[0] * .9; ombroE.rotation.z = -.25; cotoveloE.rotation.x = pose[1]; }
+      } else body.position.z = 0;
+      // capa: voa para trás ao andar e balança devagar parada
+      capa.rotation.x = mv ? .45 + Math.sin(fase * 2) * .08 : .06 + Math.sin(time * 1.3 + ph) * .04;
+      body.scale.setScalar(k * (m.flash > 0 ? 1.08 : 1));
+    };
+    return r;
+  }
   // ---------------- um monstro no mundo
   function mob(type, r) {
     if (CRAB[baseOf(type)]) return crabMob(type, baseOf(type), r);
+    if (CAV[baseOf(type)]) return cavMob(type, baseOf(type), r);
     const t = baseOf(type), K = bake(t), d = SPR_MOBS[type] || SPR_MOBS[t] || { h: 1.5 };
     const H = (d.h || 1.5) * (SIDE.has(t) ? 0.85 : 1), k = SIDE.has(t) ? (d.h || 1.5) * 1.45 / K.len : H / K.h;
     const body = new THREE.Group(); body.scale.setScalar(k); body.position.y = -K.minY * k; r.g.add(body);
