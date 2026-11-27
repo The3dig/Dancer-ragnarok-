@@ -42,17 +42,40 @@ const Cartas = (() => {
       // colunas de pedra roxa, velas e cartas gigantes flutuando e girando
       const pedra = new THREE.MeshLambertMaterial({ color: 0x4a3a60 });
       for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + 0.2; box(0.9, 8, 0.9, pedra, Math.sin(a) * (R - 1), 4, Math.cos(a) * (R - 1)); }
-      const tex = (() => {
-        const c = document.createElement('canvas'); c.width = 64; c.height = 96; const x = c.getContext('2d');
-        x.fillStyle = '#f0e2c0'; x.fillRect(0, 0, 64, 96); x.strokeStyle = '#8a5ac8'; x.lineWidth = 6; x.strokeRect(4, 4, 56, 88);
-        x.fillStyle = '#6a3aa8'; x.font = 'bold 40px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('✦', 32, 50);
-        const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
-      })();
-      const matC = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false });
-      const geoC = new THREE.PlaneGeometry(1.1, 1.65), cartas = [];
-      for (let k = 0; k < 14; k++) { const a = k / 14 * TAU, r = R - 3 - (k % 3) * 2.5; if (Math.cos(a) * r > R - 9) continue; /* nenhuma perto da porta (tampava a câmera) */ const c = new THREE.Mesh(geoC, matC); c.position.set(Math.sin(a) * r, 2.2 + (k % 4) * 1.3, Math.cos(a) * r); c.userData.f = k; g.add(c); cartas.push(c); }
-      const chama = new THREE.MeshBasicMaterial({ color: 0xffc060, toneMapped: false }), cera = new THREE.MeshLambertMaterial({ color: 0xeee0d0 });
-      for (let k = 0; k < 16; k++) { const a = k / 16 * TAU + 0.1, x = Math.sin(a) * (R - 2.2), z = Math.cos(a) * (R - 2.2); box(0.18, 0.7, 0.18, cera, x, 0.35, z); const f = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 4), chama); f.position.set(x, 0.8, z); g.add(f); }
+      // cartas gigantes de verdade (pedido do Rone: "tira o desenho pixel art feio e troca por objeto de verdade"):
+      // placas com espessura e borda dourada, frente pintada em alta resolução (moldura e naipe) e verso decorado
+      const pintar = (f) => { const c = document.createElement('canvas'); c.width = 256; c.height = 384; f(c.getContext('2d')); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; };
+      const NAIPE = [['✦', '#6a3aa8'], ['☾', '#2a4a9a'], ['❀', '#a83a6a'], ['♛', '#9a6a10']];
+      const frente = NAIPE.map(([sim, cor]) => pintar(x => {
+        const gr = x.createLinearGradient(0, 0, 0, 384); gr.addColorStop(0, '#fbf1da'); gr.addColorStop(1, '#e6d2a8'); x.fillStyle = gr; x.fillRect(0, 0, 256, 384);
+        x.strokeStyle = '#b8862a'; x.lineWidth = 10; x.strokeRect(12, 12, 232, 360); x.strokeStyle = cor; x.lineWidth = 3; x.strokeRect(26, 26, 204, 332);
+        for (const [cx, cy] of [[26, 26], [230, 26], [26, 358], [230, 358]]) { x.fillStyle = '#b8862a'; x.beginPath(); x.arc(cx, cy, 9, 0, 7); x.fill(); }
+        const rg = x.createRadialGradient(128, 192, 10, 128, 192, 95); rg.addColorStop(0, 'rgba(255,255,255,.9)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = rg; x.fillRect(30, 90, 196, 200);
+        x.fillStyle = cor; x.font = 'bold 150px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(sim, 128, 200);
+        x.font = 'bold 44px serif'; x.fillText(sim, 52, 62); x.save(); x.translate(204, 322); x.rotate(Math.PI); x.fillText(sim, 0, 0); x.restore(); }));
+      const verso = pintar(x => {
+        x.fillStyle = '#2a1840'; x.fillRect(0, 0, 256, 384); x.strokeStyle = '#d8a840'; x.lineWidth = 10; x.strokeRect(12, 12, 232, 360);
+        x.strokeStyle = 'rgba(216,168,64,.55)'; x.lineWidth = 2; for (let k = -384; k < 384; k += 22) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 384, 384); x.moveTo(k + 384, 0); x.lineTo(k, 384); x.stroke(); }
+        x.fillStyle = '#2a1840'; x.beginPath(); x.arc(128, 192, 58, 0, 7); x.fill(); x.strokeStyle = '#d8a840'; x.lineWidth = 5; x.stroke();
+        x.fillStyle = '#e8c060'; x.font = 'bold 70px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('👁', 128, 196); });
+      const borda = new THREE.MeshPhongMaterial({ color: 0xd8a840, specular: 0xfff0c0, shininess: 90, emissive: 0x3a2400 });
+      const matV = new THREE.MeshLambertMaterial({ map: verso, emissive: 0xffffff, emissiveMap: verso, emissiveIntensity: 0.35 });
+      const matF = frente.map(t => new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.45 }));
+      const geoC = new THREE.BoxGeometry(1.1, 1.65, 0.06), cartas = [];
+      for (let k = 0; k < 14; k++) { const a = k / 14 * TAU, r = R - 3 - (k % 3) * 2.5; if (Math.cos(a) * r > R - 9) continue; /* nenhuma perto da porta (tampava a câmera) */
+        const c = new THREE.Mesh(geoC, [borda, borda, borda, borda, matF[k % 4], matV]); c.position.set(Math.sin(a) * r, 2.2 + (k % 4) * 1.3, Math.cos(a) * r); c.rotation.z = Math.sin(k) * 0.15; c.userData.f = k; c.castShadow = true; g.add(c); cartas.push(c); }
+      // velas de cera em castiçais de ferro (eram caixinhas) e sarcófagos de pedra junto das paredes
+      const chama = new THREE.MeshBasicMaterial({ color: 0xffc060, toneMapped: false }), cera = new THREE.MeshLambertMaterial({ color: 0xeee0d0 }), ferroC = new THREE.MeshPhongMaterial({ color: 0x2a2630, shininess: 40 });
+      const geoVela = new THREE.CylinderGeometry(0.07, 0.08, 0.5, 10), geoChama = new THREE.ConeGeometry(0.05, 0.16, 8), geoPe = new THREE.CylinderGeometry(0.04, 0.2, 0.9, 8), geoPrato = new THREE.CylinderGeometry(0.2, 0.16, 0.06, 12);
+      for (let k = 0; k < 16; k++) { const a = k / 16 * TAU + 0.1, x = Math.sin(a) * (R - 2.2), z = Math.cos(a) * (R - 2.2);
+        const pe = new THREE.Mesh(geoPe, ferroC); pe.position.set(x, 0.45, z); g.add(pe); const pr = new THREE.Mesh(geoPrato, ferroC); pr.position.set(x, 0.92, z); g.add(pr);
+        const v = new THREE.Mesh(geoVela, cera); v.position.set(x, 1.2, z); g.add(v); const f = new THREE.Mesh(geoChama, chama); f.position.set(x, 1.53, z); g.add(f); }
+      const pedraS = new THREE.MeshLambertMaterial({ color: 0x5a4c6e }), pedraT = new THREE.MeshLambertMaterial({ color: 0x6e5e84 });
+      for (const a of [1.1, 2.3, 3.9, 5.1]) { const r = R - 4.2, sg = new THREE.Group(); sg.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); sg.rotation.y = a; g.add(sg);
+        const bs = (w, h, d, m, y) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.y = y; o.castShadow = o.receiveShadow = true; sg.add(o); };
+        bs(1.3, 0.9, 2.5, pedraS, 0.45); bs(1.45, 0.22, 2.65, pedraT, 1.0); bs(0.9, 0.12, 1.9, pedraS, 1.17);
+        const cruz = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.14), borda); cruz.position.set(0, 1.25, -0.4); sg.add(cruz); const cz = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.06, 0.8), borda); cz.position.set(0, 1.25, -0.25); sg.add(cz);
+        addOb(M.x + sg.position.x, M.z + sg.position.z, 1.4); }
       [[0, 5, 0], [0, 4, R - 6], [0, 4, -R + 8]].forEach(([x, y, z], i) => { const l = new THREE.PointLight(i ? 0xb080ff : 0xffd0a0, 1.3, 30); l.position.set(x, y, z); g.add(l); });
       return { update: dt => { for (const c of cartas) { c.rotation.y += dt * (0.5 + (c.userData.f % 3) * 0.2); c.position.y += Math.sin(time * 1.5 + c.userData.f) * dt * 0.3; } } };
     },

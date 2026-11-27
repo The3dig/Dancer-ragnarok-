@@ -120,11 +120,30 @@ const Templo = (() => {
     ['Na sombra tudo começa; o sol rasga a sombra;', 'a lua o substitui; a estrela fecha o ciclo.', [3, 0, 1, 2]],
     ['A estrela guia a noite; a noite chama a sombra;', 'a sombra foge do sol, que vem por último.', [2, 1, 3, 0]],
   ];
+  // símbolos de verdade em 3D (eram emojis desenhados: pedido do Rone de trocar o pixel art por objetos)
+  function simbolo3D(k) {
+    const g = new THREE.Group(), brilho = (c, e) => new THREE.MeshPhongMaterial({ color: c, emissive: e, shininess: 90, specular: 0xffffff });
+    if (k === 0) {                // Sol: esfera dourada com raios
+      const m = brilho(0xffc840, 0x8a5000); g.add(new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 14), m));
+      for (let i = 0; i < 10; i++) { const r = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 6), m); const a = i / 10 * Math.PI * 2; r.position.set(Math.cos(a) * 0.48, Math.sin(a) * 0.48, 0); r.rotation.z = a - Math.PI / 2; g.add(r); }
+    } else if (k === 1) {         // Lua: crescente prateada
+      const m = brilho(0xd8e4ff, 0x2a3a6a); const t = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.13, 10, 24, Math.PI * 1.25), m); t.rotation.z = Math.PI * 0.375; g.add(t);
+    } else if (k === 2) {         // Estrela de 5 pontas
+      const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + Math.PI / 2, r = i % 2 ? 0.22 : 0.52; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 2 }); geo.center();
+      g.add(new THREE.Mesh(geo, brilho(0xfff0a0, 0x7a6010)));
+    } else {                      // Sombra: esfera escura com anel roxo
+      g.add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 14), new THREE.MeshPhongMaterial({ color: 0x1a1024, emissive: 0x0a0010, shininess: 120, specular: 0x8a60c0 })));
+      const an = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.035, 8, 32), brilho(0x9a60ff, 0x4a20a0)); an.rotation.x = 1.2; g.add(an);
+    }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
   function montar3(sala) {
     sala.pads = PADS3.map(([x, z], k) => {
       const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.15, 20), new THREE.MeshLambertMaterial({ color: 0x6a6050, emissive: 0x000000 })); base.position.set(x, 0.08, z); sala.g.add(base);
       const al = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.2, 0.14), ouroM); al.position.set(x + (x > 0 ? 0.9 : -0.9), 0.6, z); al.rotation.z = 0.5; sala.g.add(al);
-      const sp = iconeSprite(SIMB[k]); sp.position.set(x, 2.2, z); sp.scale.setScalar(1.3); sala.g.add(sp);
+      const sp = simbolo3D(k); sp.position.set(x, 2.2, z); sala.g.add(sp); (sala.simbs || (sala.simbs = [])).push(sp);
       return { x, z, k, base, al, t: 0 };
     });
   }
@@ -149,6 +168,7 @@ const Templo = (() => {
   }
   function reiniciar3(sala) { sala.prox = 0; sala.feitos = new Set(); for (const p of sala.pads) { p.base.material.emissive.setHex(0); p.al.rotation.z = p.x > 0 ? -0.5 : 0.5; p.t = 0; } }
   function tick3(sala, lx, lz, dt) {
+    if (sala.simbs) sala.simbs.forEach((s, i) => { s.rotation.y += dt * 0.8; s.position.y = 2.2 + Math.sin(time * 1.6 + i) * 0.12; });   // os símbolos giram e flutuam
     const S = sala.S, grupo = !!(run.grupo), outros = membrosNaSala(S.sala).map(r => loc(S, r.x, r.z));
     const ocupado = p => [[lx, lz], ...outros].some(([x, z]) => Math.hypot(x - p.x, z - p.z) < 1.1);
     if (sala.aberta) return;
@@ -488,7 +508,7 @@ const Templo = (() => {
       { label: '🏆 Ranking do Templo', fn: () => { Ranking.mostrar('templo', () => npc(eu)); return true; } },
       { label: 'Até mais' }]);
   }
-  const api = { update, minimap, saida: SAIDA, pres, criarRemoto, entrar, sair, corridaDoGrupo, restam, npc, bloqueia, get run() { return run; }, _salas: () => salas, _t: { tracar, preparar3, preparar4, preparar5 } };
+  const api = { update, minimap, saida: SAIDA, pres, criarRemoto, entrar, sair, corridaDoGrupo, restam, npc, bloqueia, get run() { return run; }, _salas: () => salas, _t: { tracar, preparar3, preparar4, preparar5, simbolo3D } };
   MASMORRAS.eco = api;
   return api;
 })();
