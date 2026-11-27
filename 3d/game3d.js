@@ -165,8 +165,21 @@ function autoStart(quieto) {
   if (!quieto) log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
 }
 function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.classList.remove('walking'); if (msg) log(msg, 'sys'); $('quest').dataset.h = ''; }
+// 🏰 muralha de Solmira (pedido do Rone: o AUTO ficava indo e voltando no muro): se você e o alvo estão de lados diferentes
+// do muro, passa pelo portão (leste ou oeste) que der o caminho mais curto: primeiro até a frente dele, depois atravessa
+function capitalWp(T) {
+  const C = CAPITAL, den = (x, z) => x > C.x0 && x < C.x1 && z > C.z0 && z < C.z1;
+  if (!T || inTower(P.z) || inTower(T.z)) return null;
+  const a = den(P.x, P.z), b = den(T.x, T.z); if (a === b) return null;
+  const custo = o => Math.hypot(P.x - o.x, P.z - VIL.z) + Math.hypot(T.x - o.x, T.z - VIL.z);
+  const g = [{ x: C.x0, s: -1 }, { x: C.x1, s: 1 }].reduce((m, o) => custo(o) < custo(m) ? o : m);
+  const zc = Math.max(VIL.z - 8, Math.min(VIL.z + 8, P.z)), dentro = { x: g.x - g.s * 4, z: zc }, fora = { x: g.x + g.s * 4, z: zc };
+  const ini = a ? dentro : fora, fim = a ? fora : dentro;
+  return Math.hypot(P.x - ini.x, P.z - ini.z) > 2.5 && Math.abs(P.x - g.x) > 3 ? ini : fim;
+}
 // próximo ponto do caminho: se o rio estiver no meio, passa pela ponte mais perto
 function autoWaypoint(T) {
+  { const cw = capitalWp(T); if (cw) return cw; }
   // Templo da Primeira Raiz: para sair ou entrar, passa pela boca do túnel (a sala redonda só tem saída ao sul;
   // antes o AUTO ia reto até a Lira e ficava dando cabeçada na parede da sala)
   if (typeof Floresta !== 'undefined' && Floresta.noTemplo) { const a = Floresta.noTemplo(P.x, P.z), b = Floresta.noTemplo(T.x, T.z), e = Floresta.entrada;
@@ -2399,15 +2412,15 @@ function updatePlayer(dt) {
     else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range - (CLS().ranged ? 0.3 : 0.6) + (m.d.rad ?? (m.d.boss ? 1.6 : 0));   // chega um pouco DENTRO do alcance (antes parava 20 cm fora e batia no vento para sempre)
       if (d > alc) {
         // contorna árvore, carroça e cerca até o bicho (antes ia em linha reta e ficava empurrando o obstáculo para sempre)
-        let tx = m.x, tz = m.z;
-        if (!linhaLivre(P.x, P.z, m.x, m.z)) {
-          const R = P.cacaRota; if (!R || R.m !== m || time - R.t > 1.5) P.cacaRota = { m, t: time, pts: acharCaminho(P.x, P.z, m.x, m.z) || [] };
+        let tx = m.x, tz = m.z; const cw = capitalWp(m); if (cw) { tx = cw.x; tz = cw.z; P.cacaChk = null; }   // do outro lado do muro de Solmira: vai pelo portão
+        if (!linhaLivre(P.x, P.z, tx, tz)) {
+          const R = P.cacaRota; if (!R || R.m !== m || time - R.t > 1.5) P.cacaRota = { m, t: time, pts: acharCaminho(P.x, P.z, tx, tz) || [] };
           const pts = P.cacaRota.pts; while (pts.length > 1 && (Math.hypot(pts[0].x - P.x, pts[0].z - P.z) < 0.9 || linhaLivre(P.x, P.z, pts[1].x, pts[1].z))) pts.shift();
           if (pts[0]) { tx = pts[0].x; tz = pts[0].z; }
         }
         const dd = Math.hypot(tx - P.x, tz - P.z) || 1, sp = stats.speed(); vx = (tx - P.x) / dd * sp; vz = (tz - P.z) / dd * sp; P.face = Math.atan2(vx, vz); P.moving = true; P.sit = false;
         // não chega de jeito nenhum (outro lado do rio, cercado): larga esse e a caça automática escolhe outro
-        const C = P.cacaChk; if (!C || C.m !== m) P.cacaChk = { m, t: time, d };
+        const C = P.cacaChk; if (cw) { } else if (!C || C.m !== m) P.cacaChk = { m, t: time, d };
         else if (time - C.t > 3) { if (d > C.d - 0.8) { m.inalcancavel = time; P.caca = null; P.cacaRota = null; } else P.cacaChk = { m, t: time, d }; }
       } else { P.cacaChk = null; attack(); } }
   }
