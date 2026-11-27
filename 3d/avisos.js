@@ -249,3 +249,30 @@ const Avisos = (() => {
   function seTiverNovo(feito) { if (novas().length) mostrar(false, feito); else feito(); }
   return { mostrar, seTiverNovo };
 })();
+
+// 🔄 versão nova no ar (pedido do Rone: a aba aberta ficava na versão velha e ninguém sabia): a cada 3 minutos e
+// sempre que a aba volta a aparecer, confere a versão da página no site; se mudou, mostra uma faixa no alto
+// "Saiu uma versão nova! Toque para atualizar" (salva o jogo e recarrega).
+(() => {
+  const atual = () => { const el = document.querySelector('.ver'); return el ? el.textContent.trim() : ''; };
+  let avisado = false, ultimo = 0;
+  async function conferir() {
+    if (avisado || Date.now() - ultimo < 60e3) return; ultimo = Date.now();
+    const minha = atual(); if (!minha) return;
+    try {
+      const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+      const m = (await r.text()).match(/class="ver">([^<]+)</); if (!m || m[1].trim() === minha) return;
+      avisado = true; mostrarFaixa(m[1].trim());
+    } catch (e) { }
+  }
+  function mostrarFaixa(v) {
+    const f = document.createElement('div'); f.id = 'versao-nova';
+    f.innerHTML = `✨ Saiu uma <b>versão nova</b> do jogo (${v.replace('versão ', '')}). <u>Toque aqui para atualizar</u>`;
+    f.style.cssText = 'position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);z-index:9999;background:linear-gradient(90deg,#8a5a10,#d9a63a);color:#fff;font:800 14px Nunito,sans-serif;padding:9px 16px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.5);cursor:pointer;max-width:92vw;text-align:center';
+    f.onclick = () => { f.textContent = '🔄 Salvando e atualizando...'; try { if (typeof save === 'function') save(); } catch (e) { } const ir = () => location.reload(); try { if (typeof Nuvem !== 'undefined' && Nuvem.enviar && typeof Contas !== 'undefined' && typeof running !== 'undefined' && running) { Nuvem.enviar(Contas.slot, true).finally(ir); setTimeout(ir, 4000); return; } } catch (e) { } setTimeout(ir, 300); };   // manda o progresso para a nuvem antes de recarregar
+    document.body.appendChild(f);
+  }
+  setInterval(conferir, 3 * 60e3);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) conferir(); });
+  addEventListener('focus', conferir);
+})();
