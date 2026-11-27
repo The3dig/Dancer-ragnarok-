@@ -113,6 +113,99 @@ const Modelos3D = (() => {
     const pol = addS(inner, GEO.cyl, pele, .22, 1.06, .02, .03, .2, .03); pol.rotation.z = -.9;
     return { g, inner };
   }
+  // ================= formas novas (pedido do Rone: "tem muito bicho igual que deveria ter formas diferentes").
+  // Antes 11 bichos eram o mesmo fantasma de capuz trocando só a cor. Cada um ganhou silhueta própria. Criadas para o jogo.
+  const novo = () => { const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner); return { g, inner }; };
+  const tubo = (par, pts, r, mat) => add(par, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 24, r, 7), mat);
+  // Eco Faminto: uma boca enorme que flutua, cheia de dentes, com um rabinho de fumaça
+  function makeBoca(o) { const r = novo(), pele = M(o.c1, { roughness: .8 }), dente = M(0xf2ead8, { roughness: .5 }), goela = B(0x2a0610);
+    const cima = add(r.inner, new THREE.SphereGeometry(.55, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), pele, 0, .75, 0); cima.rotation.x = -.35;
+    const baixo = add(r.inner, new THREE.SphereGeometry(.5, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), pele, 0, .62, .05); baixo.rotation.x = .3;
+    addS(r.inner, GEO.sph, goela, 0, .7, .08, .4, .14, .36);
+    for (let k = 0; k < 9; k++) { const a = -1.2 + k * 0.3; const d1 = addS(r.inner, GEO.cone, dente, Math.sin(a) * .42, .72, Math.cos(a) * .42, .06, .16, .06); d1.rotation.x = Math.PI;
+      const d2 = addS(r.inner, GEO.cone, dente, Math.sin(a + .15) * .38, .63, Math.cos(a + .15) * .38, .05, .13, .05); }
+    for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(o.eye), s * .2, 1.05, .32, .07, .09, .05);
+    const rabo = addS(r.inner, GEO.cone, M(o.c1, { transparent: true, opacity: .7 }), 0, .2, -.35, .22, .7, .22); rabo.rotation.x = 2.4;
+    return r; }
+  // Sombra Errante: uma serpente de sombra ondulando no ar
+  function makeSerpe(o) { const r = novo(), pele = M(o.c1, { roughness: .6, emissive: o.c1, emissiveIntensity: .15 }), pts = [];
+    for (let k = 0; k <= 10; k++) pts.push([Math.sin(k * .9) * .35, .35 + k * .02, -1 + k * .2]);
+    tubo(r.inner, pts, .13, pele);
+    const cab = addS(r.inner, GEO.sph, pele, pts[10][0], pts[10][1] + .05, pts[10][2] + .1, .2, .17, .3);
+    for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(o.eye), pts[10][0] + s * .1, pts[10][1] + .12, pts[10][2] + .28, .04, .05, .04);
+    for (let k = 2; k < 10; k += 2) { const p = pts[k], e = addS(r.inner, GEO.cone, B(o.eye), p[0], p[1] + .14, p[2], .04, .14, .04); }
+    return r; }
+  // Eco das Cinzas: um núcleo de brasa com pedaços de cinza girando em volta
+  function makeCinzas(o) { const r = novo(), cinza = M(0x3a3434, { roughness: 1, flatShading: true }), brasa = M(0x2a0a04, { emissive: o.eye, emissiveIntensity: 1.2 });
+    addS(r.inner, new THREE.IcosahedronGeometry(1, 0), brasa, 0, .7, 0, .26, .26, .26);
+    for (let k = 0; k < 14; k++) { const a = k * 2.399, h = .2 + (k % 5) * .2, rr = .38 + (k % 3) * .14; const c = addS(r.inner, new THREE.IcosahedronGeometry(1, 0), cinza, Math.cos(a) * rr, h, Math.sin(a) * rr, .07 + (k % 3) * .03, .06, .08); c.rotation.set(k, k * 2, 0); }
+    for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(0xffe0a0), s * .08, .76, .22, .035, .035, .03);
+    return r; }
+  // Memória Aprisionada: um cristal alto com um vulto preso dentro
+  function makePrisao(o) { const r = novo(), cr = M(o.c1, { transparent: true, opacity: .45, roughness: .1, metalness: .2, emissive: o.c1, emissiveIntensity: .25, flatShading: true });
+    addS(r.inner, new THREE.OctahedronGeometry(1, 0), cr, 0, .9, 0, .38, .9, .38);
+    const vulto = M(0x1a1420, { roughness: 1 }); addS(r.inner, GEO.sph, vulto, 0, 1.1, 0, .1, .11, .1); addS(r.inner, GEO.cone, vulto, 0, .8, 0, .13, .4, .13);
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, c = addS(r.inner, new THREE.OctahedronGeometry(1, 0), cr, Math.cos(a) * .4, .12, Math.sin(a) * .4, .1, .22, .1); c.rotation.z = Math.cos(a) * .4; }
+    return r; }
+  // Eco da Cidade: lampião vivo, chama azul presa numa gaiola, pano rasgado embaixo
+  function makeLampiao(o) { const r = novo(), ferro = M(0x2a2a30, { metalness: .6, roughness: .4 }), chama = M(0x0a1a2a, { emissive: o.eye, emissiveIntensity: 1.3, transparent: true, opacity: .9 });
+    for (const [x, z] of [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]]) addS(r.inner, GEO.cyl, ferro, x, 1.0, z, .02, .55, .02);
+    addS(r.inner, GEO.box, ferro, 0, 1.3, 0, .5, .05, .5); addS(r.inner, GEO.box, ferro, 0, .72, 0, .5, .05, .5);
+    addS(r.inner, GEO.cone, ferro, 0, 1.45, 0, .32, .25, .32); addS(r.inner, GEO.sph, ferro, 0, 1.6, 0, .05, .05, .05);
+    addS(r.inner, GEO.cone, chama, 0, 1.02, 0, .13, .4, .13);
+    const pano = M(o.c1, { side: THREE.DoubleSide, transparent: true, opacity: .8 });
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, p = addS(r.inner, GEO.cone, pano, Math.cos(a) * .15, .35, Math.sin(a) * .15, .12, .7, .05); p.rotation.set(Math.PI + Math.sin(a) * .2, a, 0); }
+    return r; }
+  // Memória Afogada: cabeça curvada e cabelo comprido flutuando como na água
+  function makeAfogada(o) { const r = novo(), pele = M(o.c1, { transparent: true, opacity: .8, emissive: o.c1, emissiveIntensity: .2 }), cabelo = M(0x0a2a34, { roughness: .9 });
+    addS(r.inner, GEO.sph, pele, 0, 1.0, 0, .22, .25, .22); addS(r.inner, GEO.cone, pele, 0, .62, 0, .25, .6, .2);
+    for (const s of [-1, 1]) { const b = addS(r.inner, GEO.cyl, pele, s * .28, .6, .08, .04, .5, .04); b.rotation.z = s * .35; }
+    for (let k = 0; k < 9; k++) { const a = k / 9 * Math.PI * 2, x = Math.cos(a) * .18, z = Math.sin(a) * .18 - .05; tubo(r.inner, [[x, 1.1, z], [x * 1.6, .8, z * 1.6 - .1], [x * 2.2 + Math.sin(k) * .1, .4, z * 2 - .25]], .025, cabelo); }
+    for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(o.eye), s * .08, 1.0, .19, .03, .015, .02);
+    return r; }
+  // Lume Errante: chama viva com faíscas em volta
+  function makeLume(o) { const r = novo(), f1 = M(0x2a1a04, { emissive: 0xffb040, emissiveIntensity: 1.4 }), f2 = M(0x2a2008, { emissive: 0xfff0a0, emissiveIntensity: 1.5 });
+    addS(r.inner, GEO.sph, f1, 0, .45, 0, .3, .3, .3); addS(r.inner, GEO.cone, f1, 0, .85, 0, .26, .7, .26); addS(r.inner, GEO.cone, f2, 0, .72, .02, .14, .45, .14);
+    for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2; addS(r.inner, GEO.sph, f2, Math.cos(a) * .55, .4 + (k % 3) * .25, Math.sin(a) * .55, .04, .04, .04); }
+    for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(0x3a1a04), s * .09, .55, .27, .04, .05, .03);
+    return r; }
+  // Sussurro da Névoa: nuvem de névoa cheia de olhinhos
+  function makeNevoa(o) { const r = novo(), nv = M(o.c1, { transparent: true, opacity: .55, roughness: 1 });
+    for (let k = 0; k < 7; k++) { const a = k * 2.1; addS(r.inner, GEO.sph, nv, Math.cos(a) * .3, .55 + (k % 3) * .15, Math.sin(a) * .25, .32, .26, .3); }
+    for (let k = 0; k < 9; k++) { const a = -0.9 + k * .22; addS(r.inner, GEO.sph, B(o.eye), Math.sin(a) * .48, .5 + (k % 3) * .17, Math.cos(a) * .4, .035, .035, .02); }
+    return r; }
+  // Dama sem Olhos: vestido longo, véu e um rosto liso, sem olhos
+  function makeDama(o) { const r = novo(), vest = M(o.c1, { side: THREE.DoubleSide, roughness: .7 }), pele = M(0xe8e4dc, { roughness: .4 }), veu = M(0xf8f6f0, { transparent: true, opacity: .5, side: THREE.DoubleSide });
+    add(r.inner, new THREE.ConeGeometry(.55, 1.2, 16, 1, true), vest, 0, .6, 0); addS(r.inner, GEO.cyl, vest, 0, 1.35, 0, .16, .35, .13);
+    addS(r.inner, GEO.sph, pele, 0, 1.68, 0, .15, .19, .15);
+    add(r.inner, new THREE.ConeGeometry(.28, .9, 14, 1, true), veu, 0, 1.45, -.02);
+    for (const s of [-1, 1]) { const b = addS(r.inner, GEO.cyl, vest, s * .22, 1.15, .05, .04, .6, .04); b.rotation.z = s * .25; addS(r.inner, GEO.sph, pele, s * .3, .85, .08, .05, .06, .05); }
+    addS(r.inner, GEO.box, B(0x050505), 0, 1.66, .14, .12, .015, .01);   // só a marca onde seriam os olhos
+    return r; }
+  // Sombra do Vale: um vulto alto e magro, de braços compridos até o chão
+  function makeAlto(o) { const r = novo(), sb = M(o.c1, { roughness: 1 });
+    for (const s of [-1, 1]) { addS(r.inner, GEO.cyl, sb, s * .1, .5, 0, .035, 1.0, .035); const b = addS(r.inner, GEO.cyl, sb, s * .24, 1.05, .05, .03, 1.1, .03); b.rotation.z = s * .18; for (let d = 0; d < 3; d++) { const dd = addS(r.inner, GEO.cone, sb, s * .34 + (d - 1) * .03, .45, .08, .015, .14, .015); dd.rotation.x = Math.PI; } }
+    addS(r.inner, GEO.cone, sb, 0, 1.4, 0, .17, .9, .12); addS(r.inner, GEO.sph, sb, 0, 1.92, 0, .13, .16, .13);
+    for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(o.eye), s * .05, 1.94, .11, .025, .03, .02);
+    return r; }
+  // Serpente das Ondas: serpente do mar com barbatanas e escamas brilhando
+  function makeSerpMar(o) { const r = novo(), pele = M(o.c1, { roughness: .35, metalness: .3 }), barb = M(o.c2, { side: THREE.DoubleSide, transparent: true, opacity: .8 }), pts = [];
+    for (let k = 0; k <= 10; k++) pts.push([Math.sin(k * .8) * .3, .12 + Math.max(0, k - 6) * .14, -1 + k * .18]);
+    tubo(r.inner, pts, .16, pele); const h = pts[10];
+    addS(r.inner, GEO.sph, pele, h[0], h[1] + .05, h[2] + .12, .2, .17, .32);
+    for (const s of [-1, 1]) { addS(r.inner, GEO.sph, B(o.eye), h[0] + s * .11, h[1] + .12, h[2] + .26, .04, .04, .04); const f = addS(r.inner, GEO.cone, barb, h[0] + s * .22, h[1] + .1, h[2], .03, .3, .16); f.rotation.z = -s * 1.2; }
+    for (let k = 1; k < 10; k++) { const p = pts[k], f = addS(r.inner, GEO.cone, barb, p[0], p[1] + .16, p[2], .02, .2, .1); }
+    return r; }
+  // Guarda de Ossos: esqueleto de guarda com costelas, escudo e lança
+  function makeEsqueleto(o) { const r = novo(), osso = M(o.c1, { roughness: .6 }), ferro = M(0x5a5a62, { metalness: .5, roughness: .5 });
+    for (const s of [-1, 1]) { addS(r.inner, GEO.cyl, osso, s * .1, .3, 0, .035, .6, .035); addS(r.inner, GEO.cyl, osso, s * .26, .95, 0, .03, .55, .03); }
+    addS(r.inner, GEO.cyl, osso, 0, .95, -.05, .035, .65, .035);
+    for (let k = 0; k < 4; k++) add(r.inner, new THREE.TorusGeometry(.16 - k * .015, .018, 5, 14, Math.PI * 1.4), osso, 0, 1.12 - k * .1, 0).rotation.set(Math.PI / 2, 0, Math.PI * .8);
+    addS(r.inner, GEO.box, osso, 0, .65, 0, .28, .06, .14);
+    addS(r.inner, GEO.sph, osso, 0, 1.48, 0, .15, .16, .15); for (const s of [-1, 1]) addS(r.inner, GEO.sph, B(o.eye), s * .055, 1.49, .12, .035, .04, .02);
+    addS(r.inner, GEO.cyl, ferro, -.32, 1.0, .1, .2, .03, .2).rotation.x = Math.PI / 2;
+    addS(r.inner, GEO.cyl, ferro, .32, 1.1, .08, .02, 1.7, .02); addS(r.inner, GEO.cone, ferro, .32, 2.0, .08, .05, .2, .05);
+    return r; }
   // ---------------- receitas: tipo do MMO → modelo
   const R = {
     pompom: () => makeLarva({ c1: 0x5c6650, c2: 0x8a9476 }),
@@ -121,8 +214,8 @@ const Modelos3D = (() => {
     verme: () => makeLarva({ c1: 0x5c6650, c2: 0x8a9476, armor: true, long: true }),
     larvaMae: () => makeLarva({ c1: 0x5a3a66, c2: 0x8a6a9a, core: 0xff7ad0, long: true, armor: true }),
     larvaFogo: () => makeLarva({ c1: 0x5a2a1a, c2: 0x8a4a2a, core: 0xff7828, long: true }),
-    zunzum: () => makeGhost({ c1: 0x7a6a90, eye: 0xff5a2a }),
-    serpe: () => makeGhost({ c1: 0x2a2030, eye: 0xc18bff }),
+    zunzum: () => makeBoca({ c1: 0x7a6a90, eye: 0xff5a2a }),
+    serpe: () => makeSerpe({ c1: 0x2a2030, eye: 0xc18bff }),
     esfera: () => makeGhost({ c1: 0x5a3a8a, eye: 0xff5a2a, crystal: true }),
     sentinela: () => makeSentinel({ c1: 0x2a2632, c2: 0x16131c, eye: 0xb26bff }),
     guardiao: () => makeSemRosto(),
@@ -131,7 +224,7 @@ const Modelos3D = (() => {
     cristalizado: () => makeCrystalman(),
     // Valdora
     raizNegra: () => makeRoot({ c1: 0x120a0e, c2: 0x241418, eye: 0xff6a20, eyes: 2, n: 9, mouth: true }),
-    ecoCinza: () => makeGhost({ c1: 0x6a6266, eye: 0xff8a3a }),
+    ecoCinza: () => makeCinzas({ c1: 0x6a6266, eye: 0xff8a3a }),
     larvaCinza: () => makeLarva({ c1: 0x4a4446, c2: 0x6e6668, core: 0xff7a3a, long: true, armor: true }),
     sentinelaMuralha: () => makeSentinel({ c1: 0x3a3238, c2: 0x1a1418, eye: 0xff3a3a }),
     // Floresta Morta (livro I, cap. 4): larvas maiores, de membros alongados; umas com cristais crescendo na carne,
@@ -140,7 +233,7 @@ const Modelos3D = (() => {
     larvaCristal: () => { const r = makeLarva({ c1: 0x2c2638, c2: 0x544468, core: 0xd070ff, long: true, crystal: true }); r.g.scale.setScalar(1.7); return r; },
     larvaAntiga: () => { const r = makeLarva({ c1: 0x4a4238, c2: 0x9a907e, core: 0xffd070, long: true, armor: true }); r.g.scale.setScalar(1.85); return r; },
     raizOssuda: () => { const r = makeRoot({ c1: 0xcfc4a8, c2: 0x8a7e68, eye: 0x9a6aff, eyes: 2, n: 10, mouth: true }); r.g.scale.setScalar(1.3); return r; },
-    memoria: () => makeGhost({ c1: 0xd8c078, eye: 0xffffff, crystal: true }),
+    memoria: () => makePrisao({ c1: 0xd8c078, eye: 0xffffff }),
     guardiaoBranco: () => {                                                   // armadura branca rachada, máscara e lança (a Ordem da Essência)
       const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
       const S = makeSentinel({ c1: 0xdcdce4, c2: 0xa4a4b2, eye: 0x7ad8ff, faceless: true }); S.g.scale.setScalar(2.1); inner.add(S.g);
@@ -156,11 +249,11 @@ const Modelos3D = (() => {
     reiCaranguejo: () => makeCaranguejo({ c1: 0x9a1a3a, c2: 0xe07a6a, coroa: true }),
     medusa: () => makeMedusa({ c1: 0x8ad8ff, c2: 0xff8ad8 }),
     tartaruga: () => makeTartaruga({ c1: 0x4a6a3a, c2: 0x8aa070 }),
-    serpenteOnda: () => { const r = makeLarva({ c1: 0x1a6a7a, c2: 0x5ad0c0, core: 0x9affff, long: true }); r.g.scale.set(1.4, 1.2, 1.4); return r; },
+    serpenteOnda: () => makeSerpMar({ c1: 0x1a6a7a, c2: 0x5ad0c0, eye: 0x9affff }),
     // Cidade Submersa (livro I, caps. 9 e 10)
     raizSuspensa: () => makeRoot({ c1: 0x120a1a, c2: 0x2a1a3a, eye: 0xc070ff, eyes: 2, n: 11, mouth: true }),
     cristalVivo: () => makeCrystalman(),
-    ecoCidade: () => makeGhost({ c1: 0x3a6a9a, eye: 0xaaffff, glow: true }),
+    ecoCidade: () => makeLampiao({ c1: 0x3a6a9a, eye: 0x6affff }),
     sentinelaSubmersa: () => makeSentinel({ c1: 0x1a3a4a, c2: 0x0a1a24, eye: 0x5affd0 }),
     larvaAbismo: () => makeLarva({ c1: 0x1a1030, c2: 0x3a2060, core: 0xb070ff, long: true, crystal: true }),
     sombraFonte: () => {                                                    // a sombra atrás da Fonte: manto negro, olhos dourados e raízes
@@ -171,8 +264,8 @@ const Modelos3D = (() => {
       return r;
     },
     // Rio das Memórias (livro I, cap. 11): nomes do jogo
-    memoriaAfogada: () => makeGhost({ c1: 0x4ab0c8, eye: 0xd8ffff, glow: true }),
-    lumeErrante: () => { const r = makeGhost({ c1: 0xffe6a0, eye: 0xffffff, glow: true, crystal: true }); r.g.scale.setScalar(0.85); return r; },
+    memoriaAfogada: () => makeAfogada({ c1: 0x4ab0c8, eye: 0xd8ffff }),
+    lumeErrante: () => makeLume({ c1: 0xffe6a0, eye: 0xffffff }),
     raizRio: () => makeRoot({ c1: 0x0a1c22, c2: 0x1a3a44, eye: 0x6affff, eyes: 3, n: 12, mouth: true }),
     soldadoMemoria: () => makeSentinel({ c1: 0x8ab0c0, c2: 0x3a5a68, eye: 0xd8ffff, trim: 0x9af0ff }),
     guardaEspinhos: () => makeSentinel({ c1: 0x2a2a30, c2: 0x141418, eye: 0xffd040, trim: 0xffd040 }),
@@ -187,10 +280,10 @@ const Modelos3D = (() => {
     },
     // Vale dos Mortos e Ponte dos Mortos
     maoPalida: () => makeMao({ c1: 0xd8d4cc }),
-    sussurro: () => makeGhost({ c1: 0xa8b0bc, eye: 0x9ad8ff, glow: true }),
-    damaSemOlhos: () => makeGhost({ c1: 0xf0eee8, eye: 0x050505, glow: true }),
-    sombraVale: () => makeGhost({ c1: 0x14101a, eye: 0xff3030 }),
-    guardaOssos: () => makeSentinel({ c1: 0xd8ccb0, c2: 0x8a7e68, eye: 0x9affd8 }),
+    sussurro: () => makeNevoa({ c1: 0xa8b0bc, eye: 0x9ad8ff }),
+    damaSemOlhos: () => makeDama({ c1: 0x3a3440 }),
+    sombraVale: () => makeAlto({ c1: 0x14101a, eye: 0xff3030 }),
+    guardaOssos: () => makeEsqueleto({ c1: 0xe0d6be, eye: 0x9affd8 }),
     primeiroGuardiao: () => {                                               // armadura branca, cajado e olhos dourados (livro I, cap. 8)
       const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
       const S = makeSentinel({ c1: 0xf4f4f8, c2: 0xc8c8d4, eye: 0xffd040 }); S.g.scale.setScalar(2.2); inner.add(S.g);
@@ -202,8 +295,8 @@ const Modelos3D = (() => {
     },
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
-  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'serpenteOnda', 'larvaAbismo']);   // larvas olham para +x
-  const FLOAT = new Set(['memoriaAfogada', 'lumeErrante', 'zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'sombraVale', 'ecoCidade', 'sombraFonte']);
+  const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'larvaAbismo']);   // larvas olham para +x
+  const FLOAT = new Set(['memoriaAfogada', 'lumeErrante', 'zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'ecoCidade', 'sombraFonte']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];
