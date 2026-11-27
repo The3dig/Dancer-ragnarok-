@@ -93,6 +93,7 @@ const AutoCaca = (() => {
     for (const m of mobs) {
       if (typeof naCidadeXZ === 'function' && naCidadeXZ(m.x, m.z) && !m.invasor) continue;
       if (m.state !== 'chase' && m.z > -300 && P.z > -300 && typeof riverX === 'function' && !inTower(m.z) && Math.sign(m.x - riverX(m.z)) !== Math.sign(P.x - riverX(P.z))) continue;   // do outro lado do rio: não escolhe (ia até a margem e ficava parado)   // dentro da cidade não dá para bater: ficava parado do lado da Raiz na Vila de Solmira
+      if (m.state !== 'chase' && typeof CAPITAL !== 'undefined' && !inTower(m.z) && !inTower(P.z)) { const den = (x, z) => x > CAPITAL.x0 && x < CAPITAL.x1 && z > CAPITAL.z0 && z < CAPITAL.z1; if (den(m.x, m.z) !== den(P.x, P.z)) continue; }   // do outro lado do muro de Solmira: não escolhe (ficava empurrando o muro)
       if (m.dead || m.isPeer || m.d.world || (m.inalcancavel && time - m.inalcancavel < 30 && !(m.state === 'chase' && Math.hypot(m.x - P.x, m.z - P.z) < 4))) continue;   // não deu para chegar: tenta outro por 30 s
       const dP = Math.hypot(m.x - P.x, m.z - P.z), dC = Math.hypot(m.x - centro.x, m.z - centro.z);
       const ameaca = m.state === 'chase' && dP < 6, quero = C.bichos.includes(m.type) && dC < C.raio;

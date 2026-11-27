@@ -286,6 +286,15 @@ function dayCycle() {
   return { t, light, night, dusk, sunDir: DAYC.sunDir, sunC: DAYC.sunC, hemiC: DAYC.hemiC, horizon: DAYC.horizon, top: DAYC.top,
     mixH: Math.max(dusk * 0.7, night * 0.92), mixT: Math.max(dusk * 0.45, night * 0.95), sunI: 0.25 + 1.45 * light, hemiI: 0.42 + 0.22 * light };
 }
+// 📏 posição real de um elemento dentro do HUD (que tem "zoom", barra.js): o Safari mede SEM o zoom, e o clique no mapa
+// ia parar no lugar errado ("não dá para chegar aí" no Rei Caranguejo). Corrige quando o navegador não contou o zoom.
+function rectReal(el) {
+  const r = el.getBoundingClientRect(), hud = document.getElementById('hud'), z = parseFloat((hud && hud.style.zoom) || '1') || 1;
+  if (z === 1 || !hud || !hud.contains(el)) return r;
+  let pr = document.getElementById('enc-sonda'); if (!pr) { pr = document.createElement('div'); pr.id = 'enc-sonda'; pr.style.cssText = 'position:absolute;left:0;top:0;width:100px;height:1px;visibility:hidden;pointer-events:none'; hud.appendChild(pr); }
+  const wv = pr.getBoundingClientRect().width; if (!(wv > 0) || Math.abs(wv - 100 * z) <= Math.abs(wv - 100)) return r;
+  return { left: r.left * z, top: r.top * z, width: r.width * z, height: r.height * z, right: r.right * z, bottom: r.bottom * z };
+}
 let lastFit = '';
 function fitScreen() {
   const ae = document.activeElement; if (ae && ae.tagName === 'INPUT' && running) return;   // teclado aberto: mantém o tamanho
@@ -1286,7 +1295,7 @@ const SPR_MOBS = {
   zunzum:    { img: 'e_eco', h: 1.9, float: true },
   fungolino: { img: 'e_raizRast', h: 1.9 },
   besouro:   { img: 'e_larvaCristal', h: 1.5 },
-  serpe:     { img: 'e_sombra', h: 2.1, float: true },
+  serpe:     { img: 'e_sombra', h: 1.2 },
   guardiao:  { img: 'e_semRosto', h: 5.2 },
   larva:     { img: 'e_larvaLonga', h: 1.7 },
   verme:     { img: 'e_larvaArmor', h: 1.9 },
@@ -2055,7 +2064,7 @@ function useSkill(i) { const cd0 = SKILLS[i] ? (P.cds[SKILLS[i].id] || 0) : 0; s
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
   if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
-  if (s.type === 'res') { if (typeof Res === 'undefined' || !Res.usar(Math.min(1, 0.25 * L), s.name)) return; P.sp -= s.sp; P.cds[s.id] = s.cd * stats.cdMul(); (P.cdMax || (P.cdMax = {}))[s.id] = P.cds[s.id]; P.sit = false; P.cast = 1; return; }   // 🪽 ressuscitar um amigo caído
+  if (s.type === 'res') { if (typeof Res === 'undefined' || !Res.usar(Math.min(1, 0.25 * L), s.name)) return; P.sp -= s.sp; P.cds[s.id] = s.cd * stats.cdMul(); (P.cdMax || (P.cdMax = {}))[s.id] = P.cds[s.id]; P.sit = false; P.cast = 1; return; }   // 🕊️ ressuscitar um amigo caído
   const targeted = ['strike', 'blast', 'bolt', 'step', 'drain', 'charge'].includes(s.type);
   const range = s.type === 'strike' ? c.range + 0.8 : (s.type === 'step' || s.type === 'charge') ? 12 : Math.max(c.range, 10);
   const tgt = targeted ? nearestMob(range) : null;
@@ -2412,7 +2421,7 @@ function updatePlayer(dt) {
     else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range - (CLS().ranged ? 0.3 : 0.6) + (m.d.rad ?? (m.d.boss ? 1.6 : 0));   // chega um pouco DENTRO do alcance (antes parava 20 cm fora e batia no vento para sempre)
       if (d > alc) {
         // contorna árvore, carroça e cerca até o bicho (antes ia em linha reta e ficava empurrando o obstáculo para sempre)
-        let tx = m.x, tz = m.z; const cw = capitalWp(m); if (cw) { tx = cw.x; tz = cw.z; P.cacaChk = null; }   // do outro lado do muro de Solmira: vai pelo portão
+        let tx = m.x, tz = m.z; const cw = capitalWp(m); if (cw) { tx = cw.x; tz = cw.z; }   // do outro lado do muro de Solmira: vai pelo portão
         if (!linhaLivre(P.x, P.z, tx, tz)) {
           const R = P.cacaRota; if (!R || R.m !== m || time - R.t > 1.5) P.cacaRota = { m, t: time, pts: acharCaminho(P.x, P.z, tx, tz) || [] };
           const pts = P.cacaRota.pts; while (pts.length > 1 && (Math.hypot(pts[0].x - P.x, pts[0].z - P.z) < 0.9 || linhaLivre(P.x, P.z, pts[1].x, pts[1].z))) pts.shift();
@@ -2420,8 +2429,8 @@ function updatePlayer(dt) {
         }
         const dd = Math.hypot(tx - P.x, tz - P.z) || 1, sp = stats.speed(); vx = (tx - P.x) / dd * sp; vz = (tz - P.z) / dd * sp; P.face = Math.atan2(vx, vz); P.moving = true; P.sit = false;
         // não chega de jeito nenhum (outro lado do rio, cercado): larga esse e a caça automática escolhe outro
-        const C = P.cacaChk; if (cw) { } else if (!C || C.m !== m) P.cacaChk = { m, t: time, d };
-        else if (time - C.t > 3) { if (d > C.d - 0.8) { m.inalcancavel = time; P.caca = null; P.cacaRota = null; } else P.cacaChk = { m, t: time, d }; }
+        const C = P.cacaChk, dz2 = cw ? Math.hypot(tx - P.x, tz - P.z) : d; if (!C || C.m !== m) P.cacaChk = { m, t: time, d: dz2 };
+        else if (time - C.t > 3) { if (dz2 > C.d - 0.8) { m.inalcancavel = time; P.caca = null; P.cacaRota = null; } else P.cacaChk = { m, t: time, d: dz2 }; }
       } else { P.cacaChk = null; attack(); } }
   }
   if (!ix && !iz && AUTO.on && !dialogOpen) {                      // andando sozinho até o objetivo da missão
@@ -2745,6 +2754,10 @@ function updateLabels() {
   floaters = floaters.filter(f => f.t <= 1);
   const ps = toScreen(P.x, P.y + 2.2, P.z);
   $('pname').style.transform = `translate(${ps.x | 0}px,${ps.y | 0}px) translate(-50%,-100%)`;
+  // o seu nome igual ao dos outros (pedido da Lady Ingrid): [guilda] nome, nível, classe e título
+  { const G = typeof Guilda !== 'undefined' && Guilda.pres ? Guilda.pres() : {}, el = $('pname'), cor = el.querySelector('span') ? el.querySelector('span').style.color : '';
+    const tit = P.title ? ` · « ${P.title} »` : '', h = [G.gt, P.name, P.lv, tierName(), tit, cor].join('|');
+    if (el.dataset.meu !== h) { el.dataset.meu = h; el.innerHTML = `<span style="${cor ? 'color:' + cor : ''}">${G.gt ? `<em class="gtag aliada">[${G.gt}]</em> ` : ''}${P.name}</span> <span class="lv">Nv ${P.lv}</span><small>${tierName()}${tit}</small>`; } }
 }
 function updateHUD() {
   $('btn-stat').classList.toggle('badge', P.statPts > 0); $('btn-skill').classList.toggle('badge', P.skillPts > 0);
@@ -2764,7 +2777,9 @@ function updateHUD() {
     el.classList.toggle('locked', !(P.skillLv[s.id] > 0 && tierOk(s))); el.classList.toggle('nosp', P.sp < scaleSkill(s, P.skillLv[s.id] || 1).sp);
   });
   let b = '';
-  for (const id in P.buffs) b += `<span>${P.buffs[id].icon || '✦'} ${Math.ceil(P.buffs[id].t)}s</span>`;
+  const NB = { lar: '🏠 Descansado: bônus de XP, drop e coroas por ter saído de casa (cresce com o conforto dos móveis)' };
+  const tempoB = t => t >= 3600 ? `${Math.floor(t / 3600)}h${String(Math.floor(t % 3600 / 60)).padStart(2, '0')}` : t >= 90 ? `${Math.ceil(t / 60)} min` : `${Math.ceil(t)}s`;   // 3470s virou "58 min"
+  for (const id in P.buffs) b += `<span title="${NB[id] || ''}">${P.buffs[id].icon || '✦'} ${tempoB(P.buffs[id].t)}</span>`;
   if (P.sit) b += '<span>🧘 Descansando</span>';
   if (typeof Guilda !== 'undefined') b += Guilda.hud();
   $('buffs').innerHTML = b;
@@ -3039,8 +3054,8 @@ const BigMap = (() => {
         const it = e.target.closest('[data-npc]'); if (it) { const n = NPCS[+it.dataset.npc]; go(n.x, n.z, n.name); return; }
       });
       cv.addEventListener('click', e => {
-        if (view === 'mundo') { const r = cv.getBoundingClientRect(); cliqueMundo((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); return; }
-        const r = cv.getBoundingClientRect(), A = area(), wx = A.x0 + (e.clientX - r.left) / r.width * A.w, wz = A.z0 + (e.clientY - r.top) / r.height * A.h;
+        if (view === 'mundo') { const r = rectReal(cv); cliqueMundo((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); return; }
+        const r = rectReal(cv), A = area(), wx = A.x0 + (e.clientX - r.left) / r.width * A.w, wz = A.z0 + (e.clientY - r.top) / r.height * A.h;
         if (!view) { const c = cities().find(c => Math.hypot(wx - c.c.x, wz - c.c.z) < 14); if (c) { Audio8.sfx('click'); show(c); return; } }
         if (view) { const n = npcsOf(view).find(n => Math.hypot(n.x - wx, n.z - wz) < 2.5); if (n) { go(n.x, n.z, n.name); return; } }
         const aqui = regDe(), la = vm || aqui;
@@ -3820,7 +3835,12 @@ function soMouse(cx, cy) {
     if (Math.abs(cx - mx) > larg / 2 + folga || cy < sp1.y - (10 + 24 * perto) || cy > sp0.y + folga) continue;
     const d = Math.hypot(cx - mx, cy - (sp0.y + sp1.y) / 2) / Math.max(1, alto / 60); if (d < bd + 200) { if (!best || d < bd) { bd = d; best = { tipo: 'mob', o: m }; } } }
   if (best) return best; bd = 46;
-  if (!best) for (const n of NPCS) { if (n.hidden) continue; const sp = toScreen(n.x, groundY(n.x, n.z) + 1.1, n.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < 40 && d < bd) { bd = d; best = { tipo: 'npc', o: n }; } }
+  // NPC: vale o corpo todo, do pé até o nome (antes era um círculo de 40 px no meio do corpo e o clique "não pegava" — pedido da Lady Ingrid)
+  if (!best) for (const n of NPCS) { if (n.hidden) continue; const gy = groundY(n.x, n.z), s0 = toScreen(n.x, gy, n.z), s1 = toScreen(n.x, gy + 2.4, n.z); if (!s0.vis && !s1.vis) continue;
+    if (Math.hypot(n.x - P.x, n.z - P.z) > 40) continue;
+    const alto = Math.max(30, s0.y - s1.y), larg = Math.max(34, alto * 0.7), mx = (s0.x + s1.x) / 2;
+    if (Math.abs(cx - mx) > larg / 2 + 8 || cy < s1.y - 16 || cy > s0.y + 10) continue;
+    const d = Math.hypot(cx - mx, cy - (s0.y + s1.y) / 2); if (d < bd + 400 && (!best || d < bd)) { bd = d; best = { tipo: 'npc', o: n }; } }
   return best;
 }
 const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _pt = new THREE.Vector3();
@@ -3895,7 +3915,7 @@ const joy = { x: 0, y: 0, id: null };
 {
   const base = $('joy'), knob = $('knob');
   const setJoy = e => {
-    const r = base.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, max = r.width / 2;
+    const r = rectReal(base), cx = r.left + r.width / 2, cy = r.top + r.height / 2, max = r.width / 2;
     let dx = e.clientX - cx, dy = e.clientY - cy; const l = Math.hypot(dx, dy);
     if (l > max) { dx *= max / l; dy *= max / l; }
     knob.style.transform = `translate(${dx}px,${dy}px)`;

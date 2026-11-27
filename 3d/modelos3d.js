@@ -296,7 +296,7 @@ const Modelos3D = (() => {
     carrasco: () => { const r = makeSemRosto(); r.g.traverse(o => { if (o.material && o.material.color && o.material.color.getHex() === 0xb26bff) o.material = o.material.clone(), o.material.color.set(0xff3030); }); return r; },
   };
   const SIDE = new Set(['pompom', 'besouro', 'larva', 'verme', 'larvaMae', 'larvaFogo', 'larvaCinza', 'larvaPernalta', 'larvaCristal', 'larvaAntiga', 'larvaAbismo']);   // larvas olham para +x
-  const FLOAT = new Set(['memoriaAfogada', 'lumeErrante', 'zunzum', 'serpe', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'ecoCidade', 'sombraFonte']);
+  const FLOAT = new Set(['memoriaAfogada', 'lumeErrante', 'zunzum', 'esfera', 'ecoCinza', 'memoria', 'medusa', 'sussurro', 'damaSemOlhos', 'ecoCidade', 'sombraFonte']);
   const baseOf = t => (MOBDEF[t] && MOBDEF[t].base) || t;
   let on = true; try { on = localStorage.getItem('monstros3d') !== '0'; } catch (e) { }
   const has = t => on && !!R[baseOf(t)];
@@ -627,6 +627,7 @@ const Modelos3D = (() => {
       const hit = m.flash > 0 ? 1.12 : 1;
       body.scale.set(k * (1 - sq * 0.5) * hit, k * (1 + sq) * hit, k * (1 + sq * 0.6) * hit);
       body.position.z = sw * 0.35 * H;                                   // bote do ataque
+      if (t === 'serpe') body.rotation.y = Math.sin(time * (mv ? 7 : 2) + ph) * (mv ? 0.22 : 0.06);   // 🐍 serpenteia rente à areia (antes flutuava e parecia passar por cima do mapa)
       body.rotation.x = sw * 0.25 + (mv && !fl ? 0.06 : 0); body.rotation.z = fl ? Math.sin(time * 1.7 + ph) * 0.08 : mv ? Math.sin(time * 9 + ph) * 0.025 : 0;   // andando: balanço leve (0,07 deixava torto) e inclina para frente
     };
     return r;

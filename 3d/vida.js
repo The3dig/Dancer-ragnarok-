@@ -27,11 +27,11 @@ const Vida = (() => {
     // ---- materiais novos (como no Ragnarok: cada monstro solta várias coisas, do comum ao raro)
     // Campos Dourados
     pele_larva: ['Pele de Larva', '🟫', 6, 0, 'mat'], nucleo_lumen: ['Núcleo Luminoso', '✨', 180, 0, 'mat'],
-    asa_eco: ['Asa Translúcida', '🪽', 14, 0, 'mat'], olho_eco: ['Olho de Eco', '👁️', 200, 0, 'mat'],
+    asa_eco: ['Asa Translúcida', '🕊️', 14, 0, 'mat'], olho_eco: ['Olho de Eco', '👁️', 200, 0, 'mat'],
     casca: ['Casca Grossa', '🟤', 11, 0, 'mat'], muda: ['Muda Viva', '🌿', 220, 0, 'mat'],
     // Areias Rubras
     areia_rubra: ['Areia Rubra', '⏳', 16, 0, 'mat'], carapaca: ['Carapaça Partida', '🐚', 30, 0, 'mat'], cristal_puro: ['Cristal Puro', '💠', 400, 0, 'mat'],
-    veu: ['Véu de Sombra', '🕸️', 34, 0, 'mat'], lagrima: ['Lágrima Sombria', '🩶', 420, 0, 'mat'],
+    veu: ['Véu de Sombra', '🕸️', 34, 0, 'mat'], lagrima: ['Lágrima Sombria', '🖤', 420, 0, 'mat'],
     // Torre do Cisma
     presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
     estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
@@ -44,30 +44,30 @@ const Vida = (() => {
     presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
-    seiva: ['Seiva Negra', '🫗', 62, 0, 'mat'], espinho_negro: ['Espinho Negro', '🥀', 700, 0, 'mat'],
+    seiva: ['Seiva Negra', '🍶', 62, 0, 'mat'], espinho_negro: ['Espinho Negro', '🥀', 700, 0, 'mat'],
     brasa: ['Brasa Viva', '🔥', 66, 0, 'mat'], sino: ['Sino Rachado', '🔔', 800, 0, 'mat'],
     pele_cinza: ['Pele Chamuscada', '🧥', 60, 0, 'mat'], ovo_cinza: ['Ovo de Cinza', '🥚', 750, 0, 'mat'],
     brasao: ['Brasão de Valdora', '🎖️', 140, 0, 'mat'], aco_valdora: ['Aço de Valdora', '🔩', 900, 0, 'mat'],
     lamina_carrasco: ['Lâmina do Carrasco', '🪓', 2500, 0, 'mat'],
     // Floresta Morta e Templo da Primeira Raiz (níveis 40–55)
-    membrana: ['Membrana Alongada', '🫧', 70, 0, 'mat'], osso_raiz: ['Raiz-Osso', '🦴', 75, 0, 'mat'], cristal_carne: ['Cristal de Carne', '🔷', 85, 0, 'mat'],
+    membrana: ['Membrana Alongada', '🔵', 70, 0, 'mat'], osso_raiz: ['Raiz-Osso', '🦴', 75, 0, 'mat'], cristal_carne: ['Cristal de Carne', '🔷', 85, 0, 'mat'],
     placa_antiga: ['Placa Antiga', '🪙', 90, 0, 'mat'], lembranca: ['Lembrança Presa', '💭', 110, 0, 'mat'],
     coracao_floresta: ['Coração da Floresta', '🫀', 1500, 0, 'mat'], runa_ordem: ['Runa da Ordem', '🔹', 1800, 0, 'mat'], fragmento_dourado: ['Fragmento Dourado', '✴️', 2000, 0, 'mat'],
     seiva_branca: ['Seiva Branca', '🥛', 30, 0, 'comida', { heal: 0.25 }],
     // Cidade Submersa (Nv 70–86)
-    lume_memoria: ['Lume de Memória', '🫧', 175, 0, 'mat'], agua_memoria: ['Água do Rio das Memórias', '💧', 180, 0, 'mat'], raiz_rio: ['Raiz do Rio', '🪢', 185, 0, 'mat'], placa_lembrada: ['Placa Lembrada', '🔩', 195, 0, 'mat'], espinho_porta: ['Espinho da Porta', '🌵', 210, 0, 'mat'],
+    lume_memoria: ['Lume de Memória', '🔵', 175, 0, 'mat'], agua_memoria: ['Água do Rio das Memórias', '💧', 180, 0, 'mat'], raiz_rio: ['Raiz do Rio', '🪢', 185, 0, 'mat'], placa_lembrada: ['Placa Lembrada', '🔩', 195, 0, 'mat'], espinho_porta: ['Espinho da Porta', '🌵', 210, 0, 'mat'],
     raiz_suspensa: ['Raiz Suspensa', '🪢', 140, 0, 'mat'], estilhaco_vivo: ['Estilhaço Vivo', '💠', 150, 0, 'mat'], eco_cidade: ['Eco da Cidade', '🏛️', 155, 0, 'mat'],
     placa_submersa: ['Placa Submersa', '🛡️', 165, 0, 'mat'], ovo_abismo: ['Ovo do Abismo', '🥚', 170, 0, 'mat'],
     cristal_tres: ['Cristal dos Três Irmãos', '🔱', 3500, 0, 'mat'], raiz_fonte: ['Raiz da Fonte', '🌑', 6000, 0, 'mat'],
     luz_suspensa: ['Luz Suspensa', '🕯️', 60, 0, 'comida', { heal: 0.35, spH: 0.15 }],
     // Vale dos Mortos e Ponte dos Mortos (Nv 55–72)
-    unha_palida: ['Unha Pálida', '🫳', 95, 0, 'mat'], eco_voz: ['Eco de Voz', '🗣️', 100, 0, 'mat'], veu_branco: ['Véu Branco', '🤍', 120, 0, 'mat'],
+    unha_palida: ['Unha Pálida', '🤲', 95, 0, 'mat'], eco_voz: ['Eco de Voz', '🗣️', 100, 0, 'mat'], veu_branco: ['Véu Branco', '🤍', 120, 0, 'mat'],
     sombra_densa: ['Sombra Densa', '🌑', 125, 0, 'mat'], osso_ponte: ['Osso da Ponte', '🦴', 130, 0, 'mat'],
     cristal_memoria: ['Cristal de Memória', '🔮', 2200, 0, 'mat'], lasca_cajado: ['Lasca do Cajado Dourado', '✨', 4000, 0, 'mat'],
     flor_tumulo: ['Flor de Túmulo', '🥀', 40, 0, 'comida', { heal: 0.3, spH: 0.1 }],
     // Praia de Cômodo (Nv 18–34)
-    garra: ['Garra Rubra', '🦀', 40, 0, 'mat'], tentaculo: ['Tentáculo Brilhante', '🪼', 48, 0, 'mat'], casco: ['Casco Espinhoso', '🐢', 60, 0, 'mat'],
-    escama_mar: ['Escama do Mar', '🌊', 70, 0, 'mat'], coral: ['Coral Rubro', '🪸', 900, 0, 'mat'], coroa_caranguejo: ['Coroa do Rei Caranguejo', '👑', 2500, 0, 'mat'],
+    garra: ['Garra Rubra', '🦀', 40, 0, 'mat'], tentaculo: ['Tentáculo Brilhante', '🎐', 48, 0, 'mat'], casco: ['Casco Espinhoso', '🐢', 60, 0, 'mat'],
+    escama_mar: ['Escama do Mar', '🌊', 70, 0, 'mat'], coral: ['Coral Rubro', '🌺', 900, 0, 'mat'], coroa_caranguejo: ['Coroa do Rei Caranguejo', '👑', 2500, 0, 'mat'],
     agua_coco: ['Água de Coco', '🥥', 12, 30, 'comida', { heal: 0.12, spH: 0.08 }],
     // frutas e ervas (curam na hora, como as do Ragnarok)
     maca: ['Maçã Silvestre', '🍎', 4, 0, 'comida', { heal: 0.08 }], mel: ['Mel Escuro', '🍯', 12, 0, 'comida', { heal: 0.15 }],
@@ -205,7 +205,7 @@ const Vida = (() => {
     zunzum: [['asa_eco', 0.3], ['mel', 0.06], ['olho_eco', 0.01]],
     fungolino: [['casca', 0.3], ['folha', 0.2], ['muda', 0.012]],
     besouro: [['areia_rubra', 0.3], ['carapaca', 0.14], ['figo', 0.1], ['cristal_puro', 0.01]],
-    serpe: [['veu', 0.18], ['areia_rubra', 0.2], ['erva_azul', 0.08], ['lagrima', 0.01]],
+    serpe: [['veu', 0.18], ['areia_rubra', 0.2], ['erva_azul', 0.08], ['lagrima', 0.06]],
     larva: [['presa', 0.22], ['pele_larva', 0.3], ['erva_vermelha', 0.1]],
     verme: [['escama', 0.25], ['presa', 0.12], ['nucleo_ferro', 0.02]],
     esfera: [['estilhaco', 0.22], ['erva_azul', 0.1], ['po_estelar', 0.015]],
@@ -1218,7 +1218,11 @@ const Vida = (() => {
     // o próprio item (poção, bota, espada...) desenhado grande, com contorno escuro para ler no chão
     const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
     g.font = '96px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.shadowColor = 'rgba(0,0,0,.95)'; g.shadowBlur = 10; g.fillText(ic, 64, 70); g.shadowBlur = 3; g.fillText(ic, 64, 70);
+    // emoji que o aparelho não tem (aparecia um quadrado no chão, pedido da Lady Ingrid): troca por uma pedrinha brilhante
+    const semEmoji = (() => { try { const k = document.createElement('canvas'); k.width = k.height = 32; const q = k.getContext('2d'); q.font = '28px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; q.textBaseline = 'middle';
+      const px = ch => { q.clearRect(0, 0, 32, 32); q.fillText(ch, 2, 16); return q.getImageData(0, 0, 32, 32).data.join(','); }; return px(ic) === px('\uFFFF'); } catch (e) { return false; } })();
+    const ic2 = semEmoji ? '💠' : ic;
+    g.shadowColor = 'rgba(0,0,0,.95)'; g.shadowBlur = 10; g.fillText(ic2, 64, 70); g.shadowBlur = 3; g.fillText(ic2, 64, 70);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return (iconTex[ic] = t);
   }
   // moedas e poções em 3D; o resto mostra o próprio item
