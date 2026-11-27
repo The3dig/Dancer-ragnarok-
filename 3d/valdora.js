@@ -232,7 +232,7 @@ const Valdora = (() => {
   const ARO = new THREE.TorusGeometry(0.5, 0.03, 4, 18).rotateX(Math.PI / 2);
   (function camp() {
     const tentM = [0x8a7a5a, 0x6a5a48, 0x7a4a3a, 0x5a6a5a].map(c => new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide }));
-    [[-12, -8, 0.4], [12, -9, -0.6], [-14, 8, 2.6], [14, 10, 3.6]].forEach(([dx, dz, r], i) => {
+    [[-12, -8, 0.4], [14, -6.5, -0.6], [-14, 8, 2.6], [14, 10, 3.6]].forEach(([dx, dz, r], i) => {   /* a do nordeste encostava na estrada */
       const x = CAMP.x + dx, z = CAMP.z + dz, y = h(x, z);
       const tg = new THREE.Group(); tg.position.set(x, y, z); tg.rotation.y = r; ARQ.add(tg);
       // tenda de pano caído: perfil curvo, barra ondulada e uma aba aberta na frente
@@ -247,7 +247,7 @@ const Valdora = (() => {
     const fx = CAMP.x, fz = CAMP.z + 2;
     for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3, 0), stoneD); s.position.set(fx + Math.cos(a) * 0.9, h(fx, fz) + 0.15, fz + Math.sin(a) * 0.9); ARQ.add(s); }
     fire(fx, h(fx, fz) - 0.2, fz, 0.9); addOb(fx, fz, 1.0);
-    [[-5, 12], [6, -12], [9, -10]].forEach(([dx, dz]) => { const x = CAMP.x + dx, z = CAMP.z + dz; const b = new THREE.Mesh(BARRIL, woodM); b.position.set(x, h(x, z), z); b.rotation.y = rand(0, 3); ARQ.add(b); for (const yy of [0.2, 0.9]) { const a2 = new THREE.Mesh(ARO, charM2); a2.position.set(x, h(x, z) + yy, z); ARQ.add(a2); } addOb(x, z, 0.8); });
+    [[-5, 12], [-7, -12.5], [-9, -12]].forEach(([dx, dz]) => {   /* dois barris ficavam em cima da estrada */ const x = CAMP.x + dx, z = CAMP.z + dz; const b = new THREE.Mesh(BARRIL, woodM); b.position.set(x, h(x, z), z); b.rotation.y = rand(0, 3); ARQ.add(b); for (const yy of [0.2, 0.9]) { const a2 = new THREE.Mesh(ARO, charM2); a2.position.set(x, h(x, z) + yy, z); ARQ.add(a2); } addOb(x, z, 0.8); });
   })();
 
   // ---------------------------------------------------------------- Passagem do Norte (nos dois mapas): arco de pedra com névoa negra
