@@ -185,7 +185,7 @@ const Solmira = (() => {
     for (let i = baloes.length - 1; i >= 0; i--) { const b = baloes[i]; b.t -= dt;
       const sp = toScreen(b.alvo.x, groundY(b.alvo.x, b.alvo.z) + 2.5, b.alvo.z);
       if (b.t <= 0) { b.el.remove(); baloes.splice(i, 1); continue; }
-      b.el.style.display = sp.vis ? '' : 'none'; b.el.style.opacity = Math.min(1, b.t * 2);
+      b.el.style.display = sp.vis && !(typeof dialogOpen !== 'undefined' && dialogOpen) ? '' : 'none';   // com janela aberta, os balões somem b.el.style.opacity = Math.min(1, b.t * 2);
       b.el.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`; }
   }
   const OI = ['Bom dia!', 'Bom dia, vizinha!', 'Olá!', 'Que dia lindo!', 'Como vai a família?', 'Bom dia, seu Doran!', 'Viu o Kravenox no sábado?'];

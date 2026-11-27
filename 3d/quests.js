@@ -261,7 +261,15 @@ const Quests = (() => {
     return `<div class="wt">📜 Missões${typeof AUTO !== 'undefined' && AUTO.on ? ' <small>🚶 andando</small>' : ' <small>📖 diário</small>'}</div><div class="wb">` + pegar + act.map(q => q !== fq && act.length > 2 ? compact(q) : `<div class="qi${q.id === focusId() && !G ? ' focus' : ''}" data-q="${q.id}"><b style="color:${colorOf(q)}">${TYPE[q.type].dot} ${q.title}</b><br>${ready(q) ? `✅ Volte a ${q.board ? 'o Quadro de Caça' : (q.to || q.giver)}` : q.steps.length ? q.steps.map((st, i) => `${stepTxt(st, i, q)} <b>${prog(q, i)}/${need(st)}</b>`).join('<br>') : `Fale com ${q.to || q.giver}`}</div>`).join('') + (more > 0 ? `<div class="qi qmore">+${more} ${more > 1 ? 'missões' : 'missão'} </div>` : '') + `</div>`;
   }
   // destino da seta: missão principal ativa (ou a primeira)
+  // destino em outra região (painel de MVP, missão, qualquer "ir até"): vai passagem por passagem.
+  // Antes ia em linha reta, entrava numa passagem errada, voltava e ficava nesse vai-e-volta (relato do Wesley, Rei Caranguejo).
   function target() {
+    const t = target0(); if (!t || inTower(P.z) || inTower(t.z) || typeof mapaDe !== 'function' || typeof BigMap === 'undefined' || !BigMap.rota) return t;
+    const aqui = mapaDe(P.x, P.z), la = mapaDe(t.x, t.z);
+    if (!aqui || !la || aqui === la) return t;
+    const w = BigMap.rota(aqui, la); return { x: w.x, z: w.z, name: `${w.name}, caminho para ${t.name || 'o destino'}` };
+  }
+  function target0() {
     if (P.qGo && P.qGo.reg) {                        // indo para outro mapa (Mapa do Mundo): passagem por passagem até chegar
       const G = P.qGo, aqui = inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
       if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { if (G.fim && Math.hypot(P.x - G.fim.x, P.z - G.fim.z) > 4) { G.x = G.fim.x; G.z = G.fim.z; G.name = `o ponto marcado (${G.regN})`; return G; } log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }

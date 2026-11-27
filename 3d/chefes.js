@@ -148,7 +148,16 @@ const Chefes = (() => {
     }
     return true;
   }
-  return { ai, update, onKill, status, addDmg, BOSSES };
+  // agenda de cada chefe para o painel 👑 (é a mesma para todos os jogadores): vivo agora? quando aparece de novo? onde?
+  function agenda() {
+    const s0 = slotNow(), t = tIn(), agora = Date.now();
+    return KEYS.map(k => {
+      const B = BOSSES[k], p0 = plan(s0), vivo = p0.k === k && t >= START && t < START + LIFE && P.fbDone !== s0;
+      let prox = null; for (let s = s0 + (p0.k === k && t >= START ? 1 : 0); s < s0 + 400; s++) { const q = plan(s); if (q.k === k) { prox = { em: s * SLOT + START - agora, spot: q.spot }; break; } }
+      return { k, B, vivo, fim: vivo ? s0 * SLOT + START + LIFE - agora : 0, spot: vivo ? p0.spot : prox ? prox.spot : B.spots[0], prox, hp: vivo && cur && !cur.dead && cur.type === k ? Math.max(0, Math.round(sharedHp(cur, s0) / cur.maxHp * 100)) : 0 };
+    });
+  }
+  return { ai, update, onKill, status, addDmg, BOSSES, agenda };
 })();
 
 // =====================================================================
@@ -205,5 +214,5 @@ const Alfas = (() => {
     P.alfaKills = (P.alfaKills || 0) + 1;
     if (cur === m) { cur = null; wait = EVERY; }
   }
-  return { update, onKill, get cur() { return cur; } };
+  return { update, onKill, BASE, get cur() { return cur; } };
 })();

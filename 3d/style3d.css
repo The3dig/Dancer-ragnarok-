@@ -1085,3 +1085,10 @@ body.ficha-aberta #statwin .fc { padding-bottom: 120px; }
 /* balões dos moradores e vendedores de Solmira (menores que os dos jogadores) */
 .bubble.fala-vila { font-size: 11px; padding: 4px 8px; background: rgba(255,248,230,.95); color: #3a2410; pointer-events: none; }
 .bubble.fala-vila::after { border-top-color: rgba(255,248,230,.95); }
+
+/* segundos de recarga em cima do ícone da habilidade (pedido do Wesley) */
+.slot .cdn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 900 15px 'Nunito', sans-serif; color: #fff; text-shadow: 0 0 3px #000, 0 0 6px #000; pointer-events: none; z-index: 3; }
+
+/* seções do painel de MVP */
+.mvp-sec { margin: 10px 0 2px; font: 800 14px 'Cinzel', Georgia, serif; color: #f2c86a; }
+.mvp-exp { display: block; opacity: .75; margin-bottom: 4px; }

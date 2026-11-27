@@ -1506,6 +1506,8 @@ const stats = {
   maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp')) * (1 + pas('hp'))),
   maxSp: () => Math.round(((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')) * (1 + pas('sp'))),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
+  // recarga das habilidades (pedido do Wesley: "tipo a DEX servia pra isso" no Ragnarok): DEX tira 0,3% por ponto, INT 0,1%; no máximo 40% a menos
+  cdMul: () => Math.max(0.6, 1 - P.dex * 0.003 - P.int * 0.001),
   speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')) * (typeof Montaria !== 'undefined' ? Montaria.mult() : 1),
   flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003 + pas('flee')),
   crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit') + gearB('crit')),
@@ -2036,12 +2038,12 @@ function useSkill(i) { const cd0 = SKILLS[i] ? (P.cds[SKILLS[i].id] || 0) : 0; s
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
   if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
-  if (s.type === 'res') { if (typeof Res === 'undefined' || !Res.usar(Math.min(1, 0.25 * L), s.name)) return; P.sp -= s.sp; P.cds[s.id] = s.cd; P.sit = false; P.cast = 1; return; }   // 🪽 ressuscitar um amigo caído
+  if (s.type === 'res') { if (typeof Res === 'undefined' || !Res.usar(Math.min(1, 0.25 * L), s.name)) return; P.sp -= s.sp; P.cds[s.id] = s.cd * stats.cdMul(); (P.cdMax || (P.cdMax = {}))[s.id] = P.cds[s.id]; P.sit = false; P.cast = 1; return; }   // 🪽 ressuscitar um amigo caído
   const targeted = ['strike', 'blast', 'bolt', 'step', 'drain', 'charge'].includes(s.type);
   const range = s.type === 'strike' ? c.range + 0.8 : (s.type === 'step' || s.type === 'charge') ? 12 : Math.max(c.range, 10);
   const tgt = targeted ? nearestMob(range) : null;
   if (targeted && !tgt) { log('Nenhum alvo ao alcance.', 'bad'); return; }
-  P.sp -= s.sp; P.cds[s.id] = s.cd; P.sit = false;
+  P.sp -= s.sp; P.cds[s.id] = s.cd * stats.cdMul(); (P.cdMax || (P.cdMax = {}))[s.id] = P.cds[s.id]; P.sit = false;
   if ((s.lv >= 12 || s.tier) && !['passiva', 'bolt', 'drain'].includes(s.type) && typeof VFX !== 'undefined' && VFX.supremo) VFX.supremo(s);   /* projéteis (fantasminhas da Erya, lanças) já têm o efeito deles: o círculo e a coluna em volta atrapalhavam */   // ✨ as habilidades fortes ficaram mais bonitas
   if (s.hpCost) { const c2 = Math.round(stats.maxHp() * s.hpCost); P.hp -= c2; floater(P.x, P.y + 2, P.z, c2, 'hurt'); }
   if (tgt) P.face = Math.atan2(tgt.x - P.x, tgt.z - P.z);
@@ -2739,7 +2741,8 @@ function updateHUD() {
   if (!$('skillwin').classList.contains('hidden')) renderSkills();
   document.querySelectorAll('.slot[data-skill]').forEach(el => {
     const s = SKILLS[+el.dataset.skill];
-    el.querySelector('.cd').style.height = ((P.cds[s.id] || 0) / s.cd * 100) + '%';
+    const resta = P.cds[s.id] || 0; el.querySelector('.cd').style.height = (resta / ((P.cdMax && P.cdMax[s.id]) || s.cd) * 100) + '%';
+    { let n = el.querySelector('.cdn'); if (resta > 0.05) { if (!n) { n = document.createElement('span'); n.className = 'cdn'; el.appendChild(n); } n.textContent = resta >= 10 ? Math.ceil(resta) : resta.toFixed(1).replace('.', ','); } else if (n) n.remove(); }   // os segundos que faltam em cima do ícone
     el.classList.toggle('locked', !(P.skillLv[s.id] > 0 && tierOk(s))); el.classList.toggle('nosp', P.sp < scaleSkill(s, P.skillLv[s.id] || 1).sp);
   });
   let b = '';
@@ -3409,7 +3412,7 @@ function buildHotbar() {
       const k = `<span class="k">${BAR_KEYS[i]}</span>`;
       if (e && e.startsWith('s:') && SKILLS.some(s => s.id === e.slice(2))) {
         const si = SKILLS.findIndex(s => s.id === e.slice(2)), s = SKILLS[si], lv = P.skillLv[s.id] || 0;
-        el.dataset.skill = si; el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP)\n${s.desc}`;
+        el.dataset.skill = si; el.title = `${s.name} (Nv ${s.lv}, ${s.sp} SP, recarga ${(Math.round(s.cd * stats.cdMul() * 10) / 10).toString().replace('.', ',')}s)\n${s.desc}`;
         el.innerHTML = `<span class="ic">${s.icon}</span>${k}${lv ? `<span class="slv">${lv}</span>` : ''}<span class="cost">${lv && tierOk(s) ? scaleSkill(s, lv).sp : '🔒'}</span><div class="cd"></div>`;
       } else if (e && e.startsWith('i:') && ITEMS[e.slice(2)]) {
         const id = e.slice(2); el.className = 'slot pot ' + id; el.title = ITEMS[id].name;
@@ -3431,7 +3434,7 @@ function buildHotbar() {
 const fmtN = v => Math.round(v || 0).toLocaleString('pt-BR');
 function fichaEstilo() {
   const tot = STAT_KEYS.reduce((a, k) => a + P[k], 0) || 1, ord = [...STAT_KEYS].sort((a, b) => P[b] - P[a]);
-  const EST = { str: 'golpes pesados', agi: 'velocidade e esquiva', vit: 'resistência', int: 'magia e SP', dex: 'precisão e pontaria', luk: 'sorte e crítico' };
+  const EST = { str: 'golpes pesados', agi: 'velocidade e esquiva', vit: 'resistência', int: 'magia e SP', dex: 'precisão, pontaria e recarga das habilidades', luk: 'sorte e crítico' };
   const igual = P[ord[0]] - P[ord[STAT_KEYS.length - 1]] <= 3;
   return { tot, ord, txt: igual ? 'Equilibrado: um pouco de tudo' : `Focado em ${EST[ord[0]]}${P[ord[1]] >= P[ord[0]] * 0.6 ? ` e ${EST[ord[1]]}` : ''}` };
 }
@@ -3582,6 +3585,7 @@ function describe(s, L) {
   if (e.heal) bits.push(`cura ${Math.round(e.heal * 100)}%`);
   if (e.life) bits.push(`dura ${e.life}s`);
   bits.push(`${e.sp} SP`);
+  if (s.cd) { const m = stats.cdMul(), f = v => (Math.round(v * 10) / 10).toString().replace('.', ','); bits.push(m < 0.995 ? `⏱️ recarga ${f(s.cd)}s → <b>${f(s.cd * m)}s</b> com a sua DEX` : `⏱️ recarga ${f(s.cd)}s`); }
   return bits.join(' · ');
 }
 function renderSkills() {

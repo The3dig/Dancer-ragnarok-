@@ -56,16 +56,39 @@ const MVP = (() => {
     if (aberto === 'lista') {
       const L = lista(), linhas = L.map(o => { const st = statusDe(o), s = estado[o.id];
         return `<div class="mvp-l${st.vivo ? ' vivo' : ''}" data-mvp="${o.id}"><span class="mvp-ic">${o.mvp ? '👑' : '⭐'}</span><span class="mvp-n"><b>${o.D.name}</b> <small>Nv ${o.D.lv} · ${o.mapa}</small><br><small>${st.txt}${s && s.matou ? ` · último: <b>${s.matou}</b>` : ''}</small></span></div>`; }).join('');
-      dialog('👑 MVP e chefes', `<small>👑 MVP · ⭐ mini-chefe. Toque num deles para ver os drops e ir até lá.</small><div class="mvp-lista">${linhas || '<i>Nenhum chefe no mapa.</i>'}</div><small>🗓️ Kravenox: sábado 20h · Verme Colossal: de 15 em 15 dias · Campeão Sombrio: terça 21h (castelo da guilda).</small>`, [{ label: 'Fechar', fn: () => { aberto = null; } }]);
+      // 👑 chefes de campo (os MVPs de verdade: aparecem para todos, a cada 20 min, no mesmo horário) e ⭐ alfas (pedido do Wesley)
+      const AG = typeof Chefes !== 'undefined' && Chefes.agenda ? Chefes.agenda() : [];
+      const campo = AG.sort((a, b) => (b.vivo - a.vivo) || ((a.prox ? a.prox.em : 9e9) - (b.prox ? b.prox.em : 9e9))).map(o => `<div class="mvp-l${o.vivo ? ' vivo' : ''}" data-mvp="fb:${o.k}"><span class="mvp-ic">👑</span><span class="mvp-n"><b>${o.B.name}</b> <small>Nv ${o.B.lv} · ${o.B.where}</small><br><small>${o.vivo ? `🟢 <b>Vivo agora</b>${o.hp ? ` · ${o.hp}% de vida` : ''} · vai embora em <b>${tempo(o.fim)}</b>` : o.prox ? `⏳ Aparece em <b>${tempo(o.prox.em)}</b> · ${nomeLugar(o.prox.spot[0], o.prox.spot[1])}` : '❔'}</small></span></div>`).join('');
+      const ALF = typeof Alfas !== 'undefined' && Alfas.BASE ? Alfas.BASE.filter(t => MOBDEF['alfa_' + t]) : [], ac = typeof Alfas !== 'undefined' ? Alfas.cur : null;
+      const alfas = ALF.map(t => { const D = MOBDEF['alfa_' + t], sp = SPAWNS.find(o => o.type === t && o.area), lug = sp ? nomeLugar((sp.area[0] + sp.area[1]) / 2, (sp.area[2] + sp.area[3]) / 2) : '?', aqui = ac && !ac.dead && ac.type === 'alfa_' + t;
+        return `<div class="mvp-l${aqui ? ' vivo' : ''}" data-mvp="al:${t}"><span class="mvp-ic">⭐</span><span class="mvp-n"><b>${D.name}</b> <small>Nv ${D.lv} · ${lug}</small><br><small>${aqui ? `🟢 <b>Está perto de você agora!</b> (${Math.round(Math.hypot(ac.x - P.x, ac.z - P.z))} m)` : '✨ Aparece perto de quem caça na região, de 4 em 4 minutos'}</small></span></div>`; }).join('');
+      dialog('👑 MVP e chefes', `<small>Toque num deles para ver os drops e ir até lá.</small><div class="mvp-lista"><h4 class="mvp-sec">👑 Chefes de campo (MVP)</h4><small class="mvp-exp">Aparecem para todos, no mesmo lugar e hora, e ficam 15 min. Vida enorme: junte um grupo.</small>${campo || '<i>—</i>'}<h4 class="mvp-sec">⭐ Alfas</h4><small class="mvp-exp">Versões maiores dos bichos comuns, só para você. Dá para vencer sozinho e soltam equipamento e carta com mais chance.</small>${alfas || '<i>—</i>'}<h4 class="mvp-sec">📍 Chefes fixos do mapa</h4>${linhas || '<i>Nenhum chefe no mapa.</i>'}</div><small>🗓️ Kravenox: sábado 20h · Verme Colossal: de 15 em 15 dias · Campeão Sombrio: terça 21h (castelo da guilda).</small>`, [{ label: 'Fechar', fn: () => { aberto = null; } }]);
       document.querySelectorAll('#dialog [data-mvp]').forEach(el => el.addEventListener('click', () => { Audio8.sfx('click'); aberto = el.dataset.mvp; render(); }));
       return;
     }
+    if (/^(fb|al):/.test(aberto)) return detalheNovo();
     const o = lista().find(x => x.id === aberto); if (!o) { aberto = 'lista'; render(); return; }
     const st = statusDe(o), s = estado[o.id], D = o.D;
     const drops = (D.drops || []).filter(([id]) => ITEMS[id] && !/^(red|blue)$/.test(id)).slice(0, 12).map(([id, ch]) => `<span class="mvp-d">${ITEMS[id].ic || '•'} ${ITEMS[id].name} <small>${ch >= 1 ? '100' : (ch * 100).toFixed(ch < 0.01 ? 2 : 1).replace('.', ',')}%</small></span>`).join('');
     dialog(`${o.mvp ? '👑' : '⭐'} ${D.name}`, `<b>Nível ${D.lv}</b> · ${o.mapa}<br>❤️ ${D.hp.toLocaleString('pt-BR')} de vida · ⚔️ ${D.atk} de ataque<br>${st.txt}<br>${s && s.matou ? `🗡️ Último a derrotar: <b>${s.matou}</b>${s.quando ? `, há ${tempo(Date.now() - s.quando)}` : ''}` : '🗡️ Ninguém derrotou desde que o servidor acordou.'}<br>⏱️ Renasce ${Math.round((D.respawn || 0) / 60) || '?'} min depois de cair.<br><br><b>Pode soltar:</b><div class="mvp-drops">${drops || '<i>—</i>'}</div>`,
       [{ label: '🧭 Ir até lá', fn: () => { aberto = null; P.qGo = { x: o.x, z: o.z, name: D.name }; if (typeof autoStart === 'function') autoStart(); log(`🧭 Indo até <b>${D.name}</b> (${o.mapa}).`, 'sys'); } },
        { label: '← Voltar', fn: () => { aberto = 'lista'; render(); return true; } }, { label: 'Fechar', fn: () => { aberto = null; } }]);
+  }
+  function detalheNovo() {
+    const [tp, k] = aberto.split(':'), voltar = { label: '← Voltar', fn: () => { aberto = 'lista'; render(); return true; } }, fechar = { label: 'Fechar', fn: () => { aberto = null; } };
+    const dropsDe = D => (D.drops || []).filter(([id]) => ITEMS[id] && !/^(red|blue)$/.test(id)).slice(0, 12).map(([id, ch]) => `<span class="mvp-d">${ITEMS[id].ic || '•'} ${ITEMS[id].name} <small>${ch >= 1 ? '100' : (ch * 100).toFixed(ch < 0.01 ? 2 : 1).replace('.', ',')}%</small></span>`).join('');
+    const ir = (x, z, nome) => ({ label: '🧭 Ir até lá', fn: () => { aberto = null; P.qGo = { x, z, name: nome }; if (typeof autoStart === 'function') autoStart(); log(`🧭 Indo até <b>${nome}</b> (${nomeLugar(x, z)}).`, 'sys'); } });
+    if (tp === 'fb') {
+      const o = (Chefes.agenda() || []).find(a => a.k === k); if (!o) { aberto = 'lista'; return render(); }
+      const D = MOBDEF[k], [x, z] = o.spot;
+      dialog(`👑 ${o.B.name}`, `<b>Chefe de campo · Nível ${o.B.lv}</b> · ${o.B.where}<br>❤️ ${o.B.hp.toLocaleString('pt-BR')} de vida (dividida entre todos) · ⚔️ ${o.B.atk} de ataque<br>${o.vivo ? `🟢 <b>Vivo agora</b> em ${nomeLugar(x, z)}${o.hp ? ` · ${o.hp}% de vida` : ''}. Vai embora em <b>${tempo(o.fim)}</b>.` : o.prox ? `⏳ Aparece em <b>${tempo(o.prox.em)}</b>, em ${nomeLugar(x, z)}, e fica 15 min.` : ''}<br>🗡️ Quem causar dano leva o saque.<br><br><b>Pode soltar:</b><div class="mvp-drops">${dropsDe(D) || '<i>—</i>'}</div>`,
+        [ir(x, z, o.B.name), voltar, fechar]);
+      return;
+    }
+    const D = MOBDEF['alfa_' + k], sp = SPAWNS.find(o => o.type === k && o.area), ac = Alfas.cur, aqui = ac && !ac.dead && ac.type === 'alfa_' + k;
+    const x = aqui ? ac.x : sp ? (sp.area[0] + sp.area[1]) / 2 : P.x, z = aqui ? ac.z : sp ? (sp.area[2] + sp.area[3]) / 2 : P.z;
+    dialog(`⭐ ${D.name}`, `<b>Alfa · Nível ${D.lv}</b> · ${nomeLugar(x, z)}<br>❤️ ${D.hp.toLocaleString('pt-BR')} de vida · ⚔️ ${D.atk} de ataque<br>${aqui ? '🟢 <b>Está perto de você agora!</b>' : '✨ Cace os bichos dessa região: de 4 em 4 minutos um alfa aparece perto de quem está caçando ali (fica 8 min).'}<br><br><b>Pode soltar:</b><div class="mvp-drops">${dropsDe(D) || '<i>—</i>'}</div>`,
+      [ir(x, z, aqui ? D.name : 'a região do ' + D.name), voltar, fechar]);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500)); else setTimeout(init, 500);
   return { abrir, lista };
