@@ -3034,8 +3034,8 @@ const BigMap = (() => {
   const shade = (hex, d) => { const n = parseInt(hex.slice(1), 16), cl = v => Math.max(0, Math.min(255, v)); return `rgb(${cl((n >> 16) + d)},${cl(((n >> 8) & 255) + d)},${cl((n & 255) + d)})`; };
   function drawMundo() {
     const W = cv.width, H = cv.height, aqui = regDe(), t = performance.now() / 1000, f = Math.max(14, W / 60);
-    if (!fundoMundo || fundoMundo.width !== W || fundoMundo.height !== H) fundoMundo = desenharFundo(W, H);
-    g.drawImage(fundoMundo, 0, 0);
+    if (!fundoMundo) fundoMundo = desenharFundo(1600, 900);   // tamanho fixo e ampliado (na tela Retina do iMac desenhava 3.600 px ponto a ponto e demorava a abrir)
+    g.imageSmoothingEnabled = true; g.drawImage(fundoMundo, 0, 0, W, H);
     const L = layout(W, H), T = L[aqui];
     const pxy = aqui === 'torre' ? [L.torre.cx, L.torre.cy] : T ? ptQ(T, P.x, P.z) : null;
     if (pxy) { const [px, py] = pxy, pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(220,40,90,.3)'; g.beginPath(); g.arc(px, py, f * 1.1 * pul, 0, TAU); g.fill(); g.fillStyle = '#e0306a'; g.beginPath(); g.arc(px, py, f * 0.4, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
@@ -3100,7 +3100,7 @@ const BigMap = (() => {
     box.querySelector('.bm-list').style.display = 'none';
     box.querySelector('.bm-leg').innerHTML = '<span>👆 Toque num lugar para abrir o mapa dele ampliado e escolher para onde ir · 🚪 passagens · 🧭 Guias de Viagem levam entre cidades</span>';
     const r = Math.min((innerWidth - 40) / 16, (innerHeight - 110) / 9);
-    cv.width = Math.round(16 * r * (devicePixelRatio > 1 ? 2 : 1)); cv.height = Math.round(cv.width * 9 / 16);
+    cv.width = Math.min(2400, Math.round(16 * r * (devicePixelRatio > 1 ? 2 : 1))); cv.height = Math.round(cv.width * 9 / 16);
     cv.style.width = Math.round(16 * r) + 'px'; cv.style.height = Math.round(9 * r) + 'px'; cv.style.margin = '0 auto';
     box.classList.remove('hidden'); open = true; draw();
   }
@@ -3231,6 +3231,8 @@ const BigMap = (() => {
     g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(Math.max(1.6, cv.width / 500) * (view ? 1.3 : 1), Math.max(1.6, cv.width / 500) * (view ? 1.3 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
+  // prepara o mapa do mundo em segundo plano, um pouco depois que o jogo abre (assim ele abre na hora)
+  setTimeout(function pre() { if (typeof running === 'undefined' || !running) return setTimeout(pre, 3000); if (!fundoMundo) try { fundoMundo = desenharFundo(1600, 900); } catch (e) { } }, 12000);
   return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, fundo: (W, H) => desenharFundo(W, H), get open() { return open; } };
 })();
 function entradaDe(t) {
