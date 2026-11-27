@@ -467,7 +467,7 @@ const MASMORRAS = {};
 // Templo do Eco Selado (templo.js): 6 salas retangulares em fila, fora do mapa (uma de cada vez é desenhada)
 const FORTE = { i: 'forte', mina: true, zona: 'forte', x: 1400, z: TZ, y: 0, r: 26 };          // 🏰 Fortaleza das Bandeiras (guerra.js)
 const ARENA = { i: 'arena', mina: true, zona: 'arena', x: 1300, z: TZ, y: 0, r: 22 };
-const CASTELO = { i: 'castelo', mina: true, zona: 'castelo', x: 1520, z: TZ, y: 0, r: 28 };   // 🏰 castelo da guilda (castelo.js): cada guilda só vê os seus          // ⚔️ Arena de Solmira (arena.js)
+const CASTELO = { i: 'castelo', mina: true, zona: 'castelo', x: 1600, z: TZ, y: 0, r: 68 };   // r = 28 × 2,4 (castelo maior, 27/11)   // 🏰 castelo da guilda (castelo.js): cada guilda só vê os seus          // ⚔️ Arena de Solmira (arena.js)
 const TEMPLO = Array.from({ length: 6 }, (_, i) => ({ i: 'templo' + i, mina: true, templo: true, zona: 'eco', sala: i, x: 900 + i * 50, z: TZ, y: 0, r: 17 }));                                                                           // masmorras "escape" (minas.js) registradas pela zona
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
@@ -2694,7 +2694,7 @@ function updateCamera(dt) {
   for (let k = 1; k <= 16; k++) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
-    if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
+    if (l && y < groundY(x, z) + 5 && !(inTower(P.z) && zoneOf(P.x, P.z) === 'castelo') && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
     if (inTower(camS.z) && zoneOf(camS.x, camS.z) !== 'castelo') { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }
     if (typeof Castelo !== 'undefined' && Castelo.camFora(x, z, y)) { want = Math.max(1.6, camS.dist * (k - 1) / 16); break; }   // 🏰 dentro do castelo a câmera não atravessa parede nem teto   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
   }

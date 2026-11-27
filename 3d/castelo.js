@@ -14,6 +14,9 @@
 // =====================================================================
 'use strict';
 const Castelo = (() => {
+  // K: o castelo inteiro (paredes, móveis, salas, rotas) fica K vezes maior, inclusive a altura; as pessoas continuam do mesmo
+  // tamanho. Pedido do Rone: "muito, mas muito maior, para a gente poder correr dentro dele na hora das brincadeiras" (27/11)
+  const K = 2.4;
   const C = CASTELO, R = C.r, INI = 21 * 60, DUR = 30;               // 21:00 às 21:30 (minutos do dia) — passou das 20h para as 21h (pedido do Rone, 26/11)
   ZONES.castelo = { name: 'Castelo da Guilda', music: 'auren' };
   // cada dia uma brincadeira DIFERENTE (pedido do Rone: tinha repetida)
@@ -31,7 +34,7 @@ const Castelo = (() => {
   // e com mais acabamento: pedra com rejunte, madeira, tapetes e tapeçarias desenhados, vitrais, lustres)
   // Planta (x para o leste, z para o sul; o centro do castelo é o meio do saguão):
   //   Biblioteca (norte, atrás do trono) · Arsenal (oeste) · SAGUÃO · Banquete (leste) · Vestíbulo (sul, com a saída)
-  const g = new THREE.Group(); g.position.set(C.x, 0, C.z); g.visible = false; scene.add(g);
+  const g = new THREE.Group(); g.position.set(C.x, 0, C.z); g.scale.setScalar(K); g.visible = false; scene.add(g);
   const SALAS = { saguao: [-11, 11, -9, 9], vest: [-6, 6, 9, 19], arsenal: [-25, -11, -7, 7], banquete: [11, 25, -7, 7], biblio: [-8, 8, -22, -9] };
   const PORTAS = [['x', -11, 0, 3.8], ['x', 11, 0, 3.8], ['z', 9, 0, 4.2], ['z', -9, 5.5, 3.4]];   // portas mais largas   // eixo, posição, centro, largura (a da biblioteca fica ao lado do trono)
   const tex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
@@ -42,7 +45,7 @@ const Castelo = (() => {
   const paredeM = PM('pedra.jpg', [6, 2], new THREE.Color(0.72, 0.66, 0.6)), rodape = madeira(0x5a3a24);
   const box = (w, h, d, mat, x, y, z, par = g, ry = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); o.position.set(x, y, z); o.rotation.y = ry; o.castShadow = o.receiveShadow = true; par.add(o); return o; };
   const cil = (rt, rb, h, mat, x, y, z, seg = 14, par = g) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
-  const ob = (x, z, r) => addOb(C.x + x, C.z + z, r);
+  const ob = (x, z, r) => addOb(C.x + K * x, C.z + K * z, r * K);
   // tapetes com borda e desenho (canvas), nada de cor lisa
   const tapeteT = (base, borda, motivo) => tex(256, 512, (x, w, h) => { x.fillStyle = base; x.fillRect(0, 0, w, h); x.strokeStyle = borda; x.lineWidth = 14; x.strokeRect(10, 10, w - 20, h - 20); x.lineWidth = 3; x.strokeRect(28, 28, w - 56, h - 56);
     x.fillStyle = motivo; for (let y = 70; y < h - 60; y += 70) { x.beginPath(); x.moveTo(w / 2, y - 22); x.lineTo(w / 2 + 26, y); x.lineTo(w / 2, y + 22); x.lineTo(w / 2 - 26, y); x.fill(); } for (let k = 0; k < 900; k++) { x.fillStyle = `rgba(0,0,0,${Math.random() * 0.08})`; x.fillRect(Math.random() * w, Math.random() * h, 2, 2); } });
@@ -151,9 +154,9 @@ const Castelo = (() => {
   // ----- VESTÍBULO (sul): bancos, armaduras de guarda, o quadro das brincadeiras e o portal de saída
   for (const x of [-4.6, 4.6]) { box(0.6, 0.5, 3, madeira(0x5a3a24), x, 0.25, 13.5); ob(x, 13, 0.6); ob(x, 14.5, 0.6); }
   tapete(3, 9, 0, 14, tapeteT('#7a0e1c', '#d9a63a', '#b8862a'));
-  const SAIDA_IN = { x: C.x, z: C.z + 18.2 };
-  const portal = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.8), new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false, side: THREE.DoubleSide })); portal.position.set(0, 1.9, 18.75); g.add(portal);
-  const QUADRO = { x: C.x - 4.6, z: C.z + 10.4 };
+  const SAIDA_IN = { x: C.x, z: C.z + K * 18.2 };
+  const portal = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.8), new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.55, toneMapped: false, side: THREE.FrontSide, depthWrite: false })); portal.rotation.y = Math.PI;   // só se vê de dentro (de fora deixava o personagem 'fantasma') portal.position.set(0, 1.9, 18.75); g.add(portal);
+  const QUADRO = { x: C.x - K * 4.6, z: C.z + K * 10.4 };
   const quadroMat = new THREE.MeshBasicMaterial({ toneMapped: false, side: THREE.DoubleSide });
   { const q = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.8), quadroMat); q.position.set(-4.6, 1.9, 9.46); g.add(q); box(2.8, 2, 0.12, madeira(0x6a4a2a), -4.6, 1.9, 9.36); }   // encostada na parede
   let quadroKey = '';
@@ -180,9 +183,9 @@ const Castelo = (() => {
     { base: 's_mascate', nome: 'Cozinheiro Godofredo', fala: 'Hoje tem javali assado! Se a guilda vencer a guerra, tem dobrado.', pts: [[20, -5.5], [23, 4], [16, 5]], vel: 0.9, ic: '🍗' },
     { base: 's_bibliotecario', nome: 'Bibliotecário Anselmo', fala: 'Silêncio, por favor. Os livros desta biblioteca contam a história de cada guilda do Reino.', pts: [[-4, -19], [3, -19], [5, -14], [-4, -13]], vel: 0.7, ic: '📚' },
   ].map(n => ({ ...n, g: new THREE.Group(), act: null, i: 0, x: n.pts[0][0], z: n.pts[0][1], para: 0, face: 0 }));
-  for (const n of NPCS_C) { n.g.position.set(C.x + n.x, 0, C.z + n.z); n.g.visible = false; scene.add(n.g); }
+  for (const n of NPCS_C) { n.g.position.set(C.x + K * n.x, 0, C.z + K * n.z); n.g.visible = false; scene.add(n.g); }
   // o Bobo da Corte (jokenpô), perto do trono
-  const bobo = { g: new THREE.Group(), act: null, x: C.x - 3.5, z: C.z - 5.5 }; bobo.g.position.set(bobo.x, 0, bobo.z); scene.add(bobo.g); bobo.g.visible = false; addOb(bobo.x, bobo.z, 0.6);
+  const bobo = { g: new THREE.Group(), act: null, x: C.x - K * 3.5, z: C.z - K * 5.5 }; bobo.g.position.set(bobo.x, 0, bobo.z); scene.add(bobo.g); bobo.g.visible = false; addOb(bobo.x, bobo.z, 0.6);
   // paredes que tapam a câmera ficam quase transparentes
   const _ray = new THREE.Ray(), _cam = new THREE.Vector3(), _alvo = new THREE.Vector3(), _bx = new THREE.Box3(), _hit = new THREE.Vector3();
   // (antes as paredes ficavam meio transparentes e o castelo parecia bugado; agora a câmera não sai da sala,
@@ -222,7 +225,7 @@ const Castelo = (() => {
     if ((ondaT -= dt) > 0 || vivos().length >= 8) return; ondaT = 6;
     const L = Math.max(5, Math.min(120, P.lv)), tipos = BASE().sort((a, b) => Math.abs(MOBDEF[a].lv - L) - Math.abs(MOBDEF[b].lv - L)).slice(0, 3);
     for (let k = 0; k < 3; k++) {
-      const pt = SPAWNS[Math.floor(Math.random() * SPAWNS.length)], x = C.x + pt[0] + rand(-1, 1), z = C.z + pt[1] + rand(-1, 1); if (blocked(x, z)) continue;
+      const pt = SPAWNS[Math.floor(Math.random() * SPAWNS.length)], x = C.x + K * pt[0] + rand(-1, 1), z = C.z + K * pt[1] + rand(-1, 1); if (blocked(x, z)) continue;
       const o = spawnMob(tipos[k % tipos.length], null, { x, z }), d0 = o.d, kf = L / d0.lv;
       o.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.5)), atk: Math.round(d0.atk * kf * 0.8), def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf), aggro: 30, respawn: 1e9, drops: [['frag_carta', 0.05]] };
       o.d.name = 'Invasor do Castelo'; o.hp = o.maxHp = o.d.hp; o.noRespawn = true; o.castelo = true; o.towerFloor = 'castelo'; o.state = 'chase';
@@ -298,7 +301,7 @@ const Castelo = (() => {
     const ordem = [...ESCONDERIJOS.keys()].sort(() => Math.random() - 0.5).slice(0, 12);    // 12 dos 16 esconderijos, sorteados
     for (const k of ordem) {
       if (e.baus.includes(k)) continue;
-      const a = Math.random() * Math.PI * 2, x = C.x + ESCONDERIJOS[k][0], z = C.z + ESCONDERIJOS[k][1];
+      const a = Math.random() * Math.PI * 2, x = C.x + K * ESCONDERIJOS[k][0], z = C.z + K * ESCONDERIJOS[k][1];
       const bg = new THREE.Group(); bg.position.set(x, 0, z); bg.rotation.y = a; scene.add(bg);
       const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.6), madeira); c1.position.y = 0.25; bg.add(c1); const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.2, 0.62), madeira); c2.position.y = 0.6; bg.add(c2); const fe = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.05), aro); fe.position.set(0, 0.5, 0.32); bg.add(fe);
       baus.push({ k, g: bg, x, z, mimico: Math.random() < 0.18 });
@@ -337,7 +340,7 @@ const Castelo = (() => {
     if (time < chefeT) return;
     chefeChk = pref; chefeT = 0;
     if (mobs.some(m => m.chefeG && m.nid && m.nid.startsWith(pref)) || [...Partilha.dgMortos].some(id => id.startsWith(pref))) return;   // já está aqui, ou já caiu nesta rodada
-    const L = Math.max(20, Math.min(150, P.lv)), id = `${pref}:${L}:chefe`, m = spawnMob('guardiao', null, { x: C.x, z: C.z - 3 }); escalarChefe(m, L);
+    const L = Math.max(20, Math.min(150, P.lv)), id = `${pref}:${L}:chefe`, m = spawnMob('guardiao', null, { x: C.x, z: C.z - K * 3 }); escalarChefe(m, L);
     m.nid = id; m.dg = pref; m.dono = Net.me; m.nx = m.x; m.nz = m.z;
     Net.send({ t: 'semente+', l: [{ id, type: m.type, max: m.maxHp, hp: m.hp, resp: 3600, x: +m.x.toFixed(2), z: +m.z.toFixed(2) }] });
     banner('🐉 O CAMPEÃO SOMBRIO INVADIU O CASTELO!'); Audio8.sfx('boom'); log('🐉 <b>O Campeão Sombrio</b> invadiu o saguão! A guilda inteira enfrenta o <b>mesmo</b> chefe: chame todo mundo!', 'bad');
@@ -368,7 +371,7 @@ const Castelo = (() => {
     if (bonecos.length) return;
     const t = BASE()[0]; if (!t) return;
     BONECOS.forEach(([bx, bz], i) => {
-      const o = spawnMob(t, null, { x: C.x + bx, z: C.z + bz }); scene.remove(o.model.g);   // o boneco é o manequim do arsenal; o bicho por baixo some
+      const o = spawnMob(t, null, { x: C.x + K * bx, z: C.z + K * bz }); scene.remove(o.model.g);   // o boneco é o manequim do arsenal; o bicho por baixo some
       o.d = { ...o.d, name: 'Boneco de Treino', hp: 1e9, atk: 0, xp: 0, zeny: [0, 0], aggro: 0, speed: 0, respawn: 1e9, drops: [] }; o.hp = o.maxHp = 1e9;
       o.boneco = true; o.mvp = i === 0; o.noRespawn = true; o.bx = o.x; o.bz = o.z; o.dano = 0; o.janela = [];
       ajustarBoneco(o); bonecos.push(o);
@@ -410,7 +413,7 @@ const Castelo = (() => {
     try { buildHotbar(); save(); } catch (e) { } log('⚖️ Seu personagem voltou ao normal.', 'sys');
   }
   function pvpKill(nome) { ponto(1, '🗡️'); log(`🗡️ Você derrubou <b>${nome}</b> no Duelo da Guilda! +1 ponto.`, 'gold'); }
-  const volta = () => ({ x: C.x + rand(-6, 6), z: C.z + rand(-2, 5) });
+  const volta = () => ({ x: C.x + K * rand(-6, 6), z: C.z + K * rand(-2, 5) });
   let rodadaAvisada = '';
   // ---------------- laço
   let avisou = '';
@@ -426,20 +429,22 @@ const Castelo = (() => {
         if (f === 'prep') { banner('⚖️ PREPARAÇÃO: 2 MINUTOS'); Audio8.sfx('buff'); log('⚖️ <b>Preparação (2 minutos):</b> arrume as habilidades na barra e as poções. Depois a luta vale por 5 minutos.', 'gold'); }
         else if (f === 'luta') { banner('🗡️ DUELO DA GUILDA: VALENDO!'); Audio8.sfx('boom'); log('🗡️ <b>Valendo por 5 minutos!</b> Todo mundo da guilda aqui dentro pode se atacar. Quem cai volta no saguão, sem perder nada.', 'gold'); }
         else { banner('🗡️ INTERVALO'); log('🗡️ Fim da rodada. A próxima começa às 21h10 / 21h20 (com 2 minutos de preparação).', 'sys'); } } } }
+    if (!g.userData.luzK) { g.userData.luzK = 1; g.traverse(o => { if (o.isLight && o.distance) { o.distance *= K; o.intensity *= 1.15; } }); }   // as luzes alcançam o castelo maior
     estandarte(); quadro(); paredesNaFrente();
-    if (camS.pitch < 0.6) camS.pitch += (0.6 - camS.pitch) * Math.min(1, dt * 3);   // câmera um pouco por cima: vê a sala inteira
+    if (camS.pitch < 0.6) camS.pitch += (0.6 - camS.pitch) * Math.min(1, dt * 3);
+    if (camS.dist > 11) camS.dist = 11;   // com o castelo maior, a câmera muito longe saía da sala e a parede tapava tudo   // câmera um pouco por cima: vê a sala inteira
     for (const v of velas) v.material.opacity = 0.75 + Math.sin(time * 9 + v.position.x * 3) * 0.2;
     if (g.userData.globo) g.userData.globo.rotation.y += dt * 0.3;
     // gente andando pelo castelo (param um pouco em cada ponto e olham para você quando passa perto)
     for (const n of NPCS_C) {
       if (!n.act && typeof SpriteKit !== 'undefined' && SpriteKit.ready) { n.act = SpriteKit.actor({ kind: 'dir', base: n.base }); n.g.add(n.act.root); }
       if (!n.act) continue;
-      const perto = Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4;
+      const perto = Math.hypot(P.x - (C.x + K * n.x), P.z - (C.z + K * n.z)) < 2.4;
       let anda = false;
       if (n.para > 0) n.para -= dt;
-      else if (!perto) { const [tx, tz] = n.pts[n.i], dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz); if (d < 0.2) { n.i = (n.i + 1) % n.pts.length; n.para = rand(1, 3.5); } else { n.x += dx / d * Math.min(d, n.vel * dt); n.z += dz / d * Math.min(d, n.vel * dt); n.face = Math.atan2(dx, dz); anda = true; } }
-      n.g.position.set(C.x + n.x, 0, C.z + n.z);
-      n.act.update(dt, { face: perto ? Math.atan2(P.x - (C.x + n.x), P.z - (C.z + n.z)) : n.face, moving: anda });
+      else if (!perto) { const [tx, tz] = n.pts[n.i], dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz); if (d < 0.2) { n.i = (n.i + 1) % n.pts.length; n.para = rand(1, 3.5); } else { n.x += dx / d * Math.min(d, n.vel / K * dt); n.z += dz / d * Math.min(d, n.vel / K * dt); n.face = Math.atan2(dx, dz); anda = true; } }
+      n.g.position.set(C.x + K * n.x, 0, C.z + K * n.z);
+      n.act.update(dt, { face: perto ? Math.atan2(P.x - (C.x + K * n.x), P.z - (C.z + K * n.z)) : n.face, moving: anda });
     }
     for (const f of g.userData.fogos) f.scale.set(1.1 + Math.sin(time * 11 + f.position.x) * 0.1, 1.5 + Math.sin(time * 8 + f.position.z) * 0.15, 1);
     portal.material.opacity = 0.4 + Math.sin(time * 2.5) * 0.15;
@@ -455,7 +460,7 @@ const Castelo = (() => {
   function nearest() {
     if (!dentro()) return null;
     if (Math.hypot(P.x - bobo.x, P.z - bobo.z) < 2.6) return { label: '🃏 Jogar jokenpô com o Bobo', fn: () => jokenpo() };
-    for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + n.x), P.z - (C.z + n.z)) < 2.4) return n.nome === 'Capitão da Guarda de Auren' ? { label: '🎖️ Trocar emblemas com o Capitão da Guarda de Auren', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
+    for (const n of NPCS_C) if (Math.hypot(P.x - (C.x + K * n.x), P.z - (C.z + K * n.z)) < 2.4) return n.nome === 'Capitão da Guarda de Auren' ? { label: '🎖️ Trocar emblemas com o Capitão da Guarda de Auren', fn: () => troca() } : { label: `💬 Falar com ${n.nome}`, fn: () => dialog(`${n.ic} ${n.nome}`, n.fala, [{ label: 'Até mais' }]) };
     for (const b of baus) if (Math.hypot(P.x - b.x, P.z - b.z) < 2) return { label: '🎁 Abrir o baú', fn: () => abrirBau(b) };
     for (const o of bonecos) if (Math.hypot(P.x - o.x, P.z - o.z) < 2.6) return { label: `⚙️ Nível do ${o.mvp ? 'boneco MVP' : 'boneco'} (Nv ${o.d.lv})`, fn: () => escolherNivelBoneco(o) };
     if (Math.hypot(P.x - QUADRO.x, P.z - QUADRO.z) < 2.6) return { label: '📜 Brincadeiras das 21h', fn: () => info(true) };
