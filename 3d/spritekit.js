@@ -133,6 +133,22 @@ const SpriteKit = (() => {
       const ox = Math.round(X0 + Wd / 2 - 4), oy = Math.round(Y0 + Ht - 8 - 1);         // olho de 8 de altura alinhado embaixo
       T.forEach((lin, ly) => { for (let lx = 0; lx < 8; lx++) { const ch = lin[esp ? 7 - lx : lx]; if (ch !== '.') pix(ox + lx, oy + ly - 3, cor[ch]); } });
     });
+    // 👤 de lado (pedido do Rone: "de lado estão estranhos"): o olho vai para perto da frente do rosto, com nariz e boca de perfil
+    if (R.olhos.length === 1 && (dir === 'left' || dir === 'right')) {
+      const g = R.olhos[0], s = dir === 'left' ? -1 : 1, ey = (g.y1 + 1) * 4 - 2, base0 = R.base || g.pele;
+      // a borda da frente do rosto na altura do olho (último pixel de pele para o lado que ele olha)
+      const W4 = cx.canvas.width, linha = cx.getImageData(0, ey, W4, 1).data, pele = spec.pele || PELE, ehPele = i => pele.some(c => mesma(linha, i * 4, c)) || mesma(linha, i * 4, base0);
+      let fx = Math.round((g.x0 + g.x1 + 1) * 2); while (fx + s >= 0 && fx + s < W4 && ehPele(fx + s)) fx += s;
+      // apaga o olho que foi desenhado no meio e redesenha encostado na frente (4 px de folga)
+      const ox0 = g.x0 * 4, Wd = (g.x1 - g.x0 + 1) * 4; cx.fillStyle = rgb(base0); cx.fillRect(ox0 - 1, g.y0 * 4 - 12, Wd + 2, (g.y1 - g.y0 + 1) * 4 + 14);
+      const T2 = OLHO[expr] || OLHO.normal, ox = s < 0 ? fx + 5 : fx - 12, oy = ey - 9;
+      T2.forEach((lin, ly) => { for (let lx = 0; lx < 7; lx++) { const ch = lin[s < 0 ? 7 - lx : lx + 1]; if (ch !== '.') pix(ox + lx, oy + ly - 3, cor[ch]); } });
+      // nariz: um degrauzinho de pele saindo da borda, com a ponta escura; boca curta perto da frente
+      const nz = ey + 6; cx.fillStyle = rgb(base0); cx.fillRect(s < 0 ? fx - 2 : fx + 1, nz, 2, 4); pix(s < 0 ? fx - 3 : fx + 3, nz + 2, [200, 140, 120]); pix(s < 0 ? fx - 3 : fx + 3, nz + 3, [200, 140, 120]);
+      const bm = BOCA[expr] && expr !== 'normal' ? expr : 'normal', by2 = ey + 14, bx2 = s < 0 ? fx + 2 : fx - 6;
+      if (bm === 'brava' || bm === 'dor') { for (let k = 0; k < 4; k++) pix(bx2 + k, by2 + (k % 2), L); } else if (bm === 'feliz') { pix(bx2, by2, L); for (let k = 1; k < 4; k++) pix(bx2 + k, by2 + 1, L); } else { for (let k = 0; k < 4; k++) pix(bx2 + k, by2, cor.M); }
+      return;
+    }
     const B = BOCA[expr] || (expr === 'fechado' ? BOCA.normal : null);
     if (B && R.boca && R.olhos.length === 2) {                               // de lado a boca fica na borda: mantém a do desenho
       const bx = R.boca.x * 4 + 2, by = R.boca.y * 4 + 2, bw = B[0].length;
