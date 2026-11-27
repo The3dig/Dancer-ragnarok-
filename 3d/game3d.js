@@ -2684,7 +2684,7 @@ let TREMOR = 0;                                                   // tremor da t
 function updateCamera(dt) {
   if (window.VR_ATIVO && typeof VR !== 'undefined') { VR.cameraVR(); return; }   // 🥽 câmera maquete
   const big = inTower(P.z) && (Tower.floor === TOP || Tower.floor === AB_FUNDO);                   // topo da torre: câmera para o gigante
-  camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
+  camS.pitch = clamp(camS.pitch, -0.45, 1.25);   // dá para olhar de baixo para cima (antes parava em 0,08) camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
   // a câmera nunca gira sozinha: só quem joga vira a câmera (antes ela se alinhava nas escadarias da Torre e trocava a direção do joystick)
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
@@ -3202,7 +3202,7 @@ const BigMap = (() => {
     g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(Math.max(1.6, cv.width / 500) * (view ? 1.3 : 1), Math.max(1.6, cv.width / 500) * (view ? 1.3 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
-  return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, get open() { return open; } };
+  return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, fundo: (W, H) => desenharFundo(W, H), get open() { return open; } };
 })();
 function entradaDe(t) {
   const z = zoneOf(t.x, t.z), quem = t.name ? ` (${t.name} está lá dentro)` : '';
@@ -3214,7 +3214,7 @@ function entradaDe(t) {
 }
 function questTarget() {
   if (typeof Quests !== 'undefined') {
-    if (inTower(P.z)) return P.qGo && P.qGo.seguir && inTower(P.qGo.z) ? P.qGo : null;   // seguindo alguém dentro da Torre: anda até ele no mesmo andar
+    if (inTower(P.z)) return P.qGo && (P.qGo.seguir || P.qGo.clique) && inTower(P.qGo.z) ? P.qGo : null;   // seguindo alguém, ou o ponto clicado no chão (no castelo, na casa e nas masmorras o clique não andava)   // seguindo alguém dentro da Torre: anda até ele no mesmo andar
     let t = Quests.target(); if (!t) return null;
     // o alvo está dentro da Torre, do Abismo, de uma masmorra ou de uma casa (lugares "fora do mapa"): vai até a ENTRADA
     // (antes andava em linha reta até a posição lá dentro e ficava preso no mato seguindo o Imperyon na Torre)
@@ -3821,7 +3821,7 @@ function cliqueMundo(cx, cy) {
   const r = cvEl.getBoundingClientRect(); _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
   _ray.setFromCamera(_ndc, camera);
   if (!pontoNoChao(_ray.ray, _pt)) return;
-  P.caca = null; P.qGo = { x: _pt.x, z: _pt.z, name: 'o ponto marcado' }; ring(_pt.x, _pt.z, 0.8, 0xffcf40, 0.4);
+  P.caca = null; P.qGo = { x: _pt.x, z: _pt.z, name: 'o ponto marcado', clique: true }; ring(_pt.x, _pt.z, 0.8, 0xffcf40, 0.4);
   if (typeof autoStart === 'function') autoStart();
 }
 // o ponto do chão debaixo do mouse, seguindo o relevo (antes era um chão plano na altura do personagem: em morro ou
