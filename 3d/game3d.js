@@ -452,7 +452,7 @@ const inMem = (x, z) => z < -300 && x >= 1400;
 const MGATE_C = { x: 1312, z: -797 }, MGATE = { x: 1444, z: -760 }, MREF = MILHAS[0];   // a queda em O Fundo e a chegada na Margem
 let MEM_H = null, MEM_OUT = null, MEM_ZONA = null;
 // Praia de Cômodo: lugar tranquilo, criado para o jogo (não está no livro), a oeste (x < -250), sem monstros
-const PVILA = { x: -440, z: -760 }, PPIER = { z: -792 }, PFAROL = { x: -505, z: -858 }, PGATE = { x: -318, z: -760 }, RGATE_P = { x: -206, z: -40 };            // chegada na praia e passagem no Reino (oeste)
+const PVILA = { x: -440, z: -760 }, PPIER = { z: -792 }, PFAROL = { x: -505, z: -858 }, PGATE = { x: -318, z: -760 }, RGATE_P = { x: -162, z: -26 };   // (pedido do Rone: estava no meio da mata e atrás do muro de Solmira; agora fica logo na saída do portão oeste)            // chegada na praia e passagem no Reino (oeste)
 const inPraia = (x, z) => z < -300 && x < -250;
 let PRAIA_H = null, PRAIA_OUT = null, PRAIA_ZONA = null, VALE_H = null, VALE_OUT = null, VALE_ZONA = null, CID_H = null, CID_OUT = null, CID_ZONA = null;   // praia.js e vale.js preenchem                     // praia.js preenche (antes de construir o mapa)
 // em que mapa está um ponto (para setas de missão, mapa e passagens)

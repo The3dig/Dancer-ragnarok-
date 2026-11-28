@@ -305,7 +305,7 @@ const Praia = (() => {
   // ---------------------------------------------------------------- atravessar as passagens (Reino ↔ Praia)
   function blackout() { const f = document.getElementById('tfade'); if (!f) return; f.style.transition = 'none'; f.style.opacity = 1; void f.offsetWidth; f.style.transition = 'opacity .7s'; requestAnimationFrame(() => requestAnimationFrame(() => { f.style.opacity = 0; })); }
   function go(to) {
-    const t = to === 'praia' ? { x: PGATE.x - 15, z: PGATE.z, face: -Math.PI / 2 } : { x: RGATE_P.x + 12, z: RGATE_P.z, face: Math.PI / 2 };
+    const t = to === 'praia' ? { x: PGATE.x - 15, z: PGATE.z, face: -Math.PI / 2 } : { x: RGATE_P.x + 9, z: RGATE_P.z, face: Math.PI / 2 };
     P.x = t.x; P.z = t.z; P.y = groundY(P.x, P.z); P.vy = 0; P.face = t.face; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.yaw = P.face + Math.PI; camS.dist = Math.min(camS.dist, 12); camS.cur = 6;
     if (typeof AUTO !== 'undefined') { AUTO.cx = P.x; AUTO.cz = P.z; AUTO.chk = 0; AUTO.tgT = 0; }
     blackout(); Audio8.sfx('warp');
