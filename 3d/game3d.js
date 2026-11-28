@@ -3082,7 +3082,7 @@ const BigMap = (() => {
     const A = area(), listW = view ? Math.min(220, innerWidth * 0.3) : 0;
     const r = Math.min((innerWidth - 40 - listW) / A.w, (innerHeight - 100) / A.h);
     cv.width = Math.round(A.w * r * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * A.h / A.w);
-    cv.style.width = Math.round(A.w * r) + 'px'; cv.style.height = Math.round(A.h * r) + 'px';
+    cv.style.width = Math.round(A.w * r) + 'px'; cv.style.height = Math.round(A.h * r) + 'px'; cv.style.margin = view ? '' : '0 auto';   // mapa estreito (Valdora) no meio, não encostado no canto
     box.classList.remove('hidden'); open = true; draw();
   }
   function go(x, z, name, extra) {
@@ -3132,7 +3132,7 @@ const BigMap = (() => {
     return 'pedra';
   }
   function fundoIlustrado(B, A, M, W, H) {
-    const cel = Math.max(2, Math.round(W / 380)), gw = Math.ceil(W / cel), gh = Math.ceil(H / cel);
+    const cel = Math.max(1, Math.round(W / 760)), gw = Math.ceil(W / cel), gh = Math.ceil(H / cel);   // grade 2x mais fina (com 380 as beiras saíam em degraus)
     const src = document.createElement('canvas'); src.width = gw; src.height = gh; const sg = src.getContext('2d'); sg.imageSmoothingEnabled = true;
     sg.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, gw, gh);
     const sd = sg.getImageData(0, 0, gw, gh).data, cl = new Array(gw * gh);
@@ -3140,10 +3140,11 @@ const BigMap = (() => {
     const lin = B === base, cv8 = v => (lin ? 255 * Math.pow(v / 255, 1 / 2.2) : v);
     for (let q = 0; q < gw * gh; q++) cl[q] = classe(cv8(sd[q * 4]), cv8(sd[q * 4 + 1]), cv8(sd[q * 4 + 2]));
     // tira o "chuvisco": cada ponto fica com o tipo que mais aparece em volta
-    const lim = cl.slice();
-    for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) { const cont = {}; let best = cl[j * gw + i], bn = 0;
-      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const c = cl[(j + dj) * gw + i + di], n = (cont[c] = (cont[c] || 0) + 1); if (n > bn) { bn = n; best = c; } }
-      lim[j * gw + i] = bn >= 4 ? best : cl[j * gw + i]; }
+    let lim = cl.slice();
+    for (let pass = 0; pass < 3; pass++) { const fonteC = lim.slice();   // 3 passadas: beiras redondas, sem serrilhado (antes 1 passada numa grade grossa)
+      for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) { const cont = {}; let best = fonteC[j * gw + i], bn = 0;
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const c = fonteC[(j + dj) * gw + i + di], n = (cont[c] = (cont[c] || 0) + 1); if (n > bn) { bn = n; best = c; } }
+        lim[j * gw + i] = bn >= 4 ? best : fonteC[j * gw + i]; } }
     const img = sg.createImageData(gw, gh), d = img.data;
     for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
       const q = j * gw + i, c = lim[q], P0 = PAL_REG[c], som = (fbm(i / gw * 14, j / gh * 14) - 0.5) * 0.35, pap = (Math.random() - 0.5) * 10;
@@ -3202,8 +3203,8 @@ const BigMap = (() => {
       const f = Math.max(12, cv.width / 62), usados = [];
       for (const c of cities()) casinhas(X(c.c.x), Z(c.c.z), f * 1.3);
       g.font = `800 ${Math.round(f)}px Cinzel, Georgia, serif`;
-      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))); let ly = Math.min(cv.height - f * 0.5, Math.max(f * 1.2, Z(p.z) + f * 1.9));
-        for (let q = 0; q < 6 && usados.some(o => Math.abs(o.x - lx) < o.w + w && Math.abs(o.y - ly) < f * 1.25); q++) ly += f * 1.3;
+      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))); let ly = Math.min(cv.height - f * 0.5, Math.max(f * 1.2, Z(p.z) - f * 1.25))   /* nome ACIMA do lugar: embaixo ficava o "VOCÊ" e por cima a caveira tapava */;
+        for (let q = 0; q < 6 && usados.some(o => Math.abs(o.x - lx) < o.w + w && Math.abs(o.y - ly) < f * 1.25); q++) ly -= f * 1.3;
         usados.push({ x: lx, y: ly, w });
         g.lineJoin = 'round'; g.lineWidth = Math.max(3, f * 0.32); g.strokeStyle = 'rgba(246,232,196,.95)'; g.strokeText(n, lx, ly); g.fillStyle = '#3a2410'; g.fillText(n, lx, ly); }
     }
