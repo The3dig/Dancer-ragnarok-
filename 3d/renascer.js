@@ -88,6 +88,17 @@ const Renascer = (() => {
   }
   const lista = p => `${p.l.map(x => `${x.n >= KILLS ? '✅' : '▫️'} ${x.nome} <small>(Nv ${x.lv})</small> <b>${x.n}/${KILLS}</b>`).join('<br>')}<br>${p.mini >= MINI ? '✅' : '▫️'} Mini-chefes (qualquer um) <b>${p.mini}/${MINI}</b><br>${p.mvp >= MVP ? '✅' : '▫️'} MVPs de verdade (chefes do mapa e de campo) <b>${p.mvp}/${MVP}</b>`;
   // ---------------- conversa com o Vigia Morvan
+  // ⚠️ aviso sério (pedido do Rone: "o Ludi ia pegar e hoje não conseguiria fazer o Kravenox"): o que muda ao renascer
+  const AVISO = `<div class="ren-aviso"><b>⚠️ PENSE BEM ANTES. NÃO TEM VOLTA.</b><br>Ao renascer você:<br>
+    ❌ volta ao <b>nível 1</b> (de ${LV} para 1);<br>
+    ❌ perde todos os <b>atributos</b> e <b>habilidades</b> (recomeça só com a primeira);<br>
+    ❌ passa a ganhar só <b>40% do XP</b>: subir de novo leva <b>muito</b> mais tempo;<br>
+    ❌ fica <b>fraco por muito tempo</b>: sem <b>Kravenox</b>, <b>Verme</b>, Torre alta, masmorras difíceis e PvP forte até voltar a subir;<br>
+    ❌ o grupo e a guilda podem ficar sem você nos chefes grandes enquanto isso;<br>
+    ✅ guarda a classe, os itens, o equipamento, a casa e as coroas;<br>
+    ✅ ganha para sempre +15% de HP e SP, +10% de dano, +30 pontos, aura e título;<br>
+    ✅ no ${LV} de novo: a 4ª classe e 5 habilidades novas.<br>
+    <small>É para quem já fez tudo no nível ${LV} e quer começar de novo, mais forte no fim. Se você ainda quer caçar chefes com a turma agora, <b>não aceite</b>.</small></div>`;
   function talk(eu) {
     if (P.renasceu) {
       if (P.lv >= LV && (P.tier || 0) < 3) { dialog('💬 Vigia Morvan', `${eu}… você subiu de novo até o topo, mesmo com a Fonte cobrando o dobro de cada passo. Pouquíssimos conseguem.<br><br>Está na hora de despertar a <b>4ª classe: ${QUARTA[P.cls] || 'Renascido'}</b>.`, [{ label: `✨ Despertar: ${QUARTA[P.cls]}`, fn: () => quarta() }, { label: 'Agora não' }]); return true; }
@@ -97,13 +108,14 @@ const Renascer = (() => {
     if (P.lv < LV) { dialog('💬 Vigia Morvan', `${eu}, existe uma provação além da 3ª classe: <b>O Grande Ciclo</b>. Ela só se abre no <b>nível ${LV}</b>. Quem completa devolve tudo à Fonte e <b>renasce</b>, mais forte do que antes.`); return true; }
     if (!C()) {
       dialog('💬 Vigia Morvan', `${eu}, você chegou ao topo. A Fonte guarda a memória de todos… e pode devolver a sua, inteira, desde o primeiro passo.<br><br><b>🔥 O Grande Ciclo</b> é a provação mais longa do Reino:<br>${lista(prog() || { l: alvos().map(t => ({ nome: MOBDEF[t].name, lv: MOBDEF[t].lv, n: 0 })), mini: 0, mvp: 0 })}<br><br>Quando terminar, você <b>renasce no nível 1</b>: guarda a classe, os itens e as coroas; os atributos e as habilidades voltam do zero e o <b>XP passa a valer só 40%</b>. Em troca, para sempre: <b>+15% de HP e SP, +10% de dano, +${PTS} pontos de atributo</b>, nome dourado, aura e o título <b>« Renascido do Ciclo »</b>. E no nível ${LV} de novo: a <b>4ª classe</b>, com <b>5 habilidades novas</b>.`,
-        [{ label: '🔥 Aceito O Grande Ciclo', fn: () => { P.ciclo = { k: {}, mini: 0, mvp: 0 }; log('🔥 <b>O Grande Ciclo</b> começou. O progresso aparece no canto da tela (toque para ver tudo).', 'gold'); banner('🔥 O GRANDE CICLO'); try { save(); } catch (e) { } } }, { label: 'Agora não' }]);
+        [{ label: '⚠️ Quero saber o que acontece se eu renascer', fn: () => { dialog('⚠️ O Grande Ciclo', `Aceitar só começa a missão (ela é longa: 4.000 bichos, 20 mini-chefes e 10 MVPs). <b>Nada muda no seu personagem agora</b> e dá para desistir quando quiser. Só no fim, quando você pedir para renascer, vem isto:<br><br>${AVISO}`, [{ label: '🔥 Entendi. Aceito O Grande Ciclo', fn: () => { P.ciclo = { k: {}, mini: 0, mvp: 0 }; log('🔥 <b>O Grande Ciclo</b> começou. Nada mudou no seu personagem: só no fim, se você quiser, vem o renascimento.', 'gold'); banner('🔥 O GRANDE CICLO'); try { save(); } catch (e) { } } }, { label: 'Não, obrigado' }]); return true; } },
+         { label: '🔥 Aceito O Grande Ciclo', fn: () => { P.ciclo = { k: {}, mini: 0, mvp: 0 }; log('🔥 <b>O Grande Ciclo</b> começou. O progresso aparece no canto da tela (toque para ver tudo).', 'gold'); banner('🔥 O GRANDE CICLO'); try { save(); } catch (e) { } } }, { label: 'Agora não' }]);
       return true;
     }
     const p = prog();
-    if (!p.pronto) { dialog('💬 Vigia Morvan', `Ainda não, ${eu}. O Ciclo cobra tudo:<br><br>${lista(p)}`); return true; }
+    if (!p.pronto) { dialog('💬 Vigia Morvan', `Ainda não, ${eu}. O Ciclo cobra tudo:<br><br>${lista(p)}`, [{ label: 'Continuar a provação' }, { label: '🚫 Desistir do Grande Ciclo', fn: () => { dialog('🚫 Desistir', 'Se desistir, o progresso do Grande Ciclo é apagado (nada mais muda). Pode começar de novo depois.', [{ label: 'Sim, desistir', fn: () => { P.ciclo = null; log('🚫 Você desistiu do Grande Ciclo. Nada mudou no seu personagem.', 'sys'); try { save(); } catch (e) { } } }, { label: '← Voltar', fn: () => { talk(eu); return true; } }]); return true; } }]); return true; }
     dialog('💬 Vigia Morvan', `Você completou O Grande Ciclo, ${eu}. Agora vem a parte mais difícil: <b>soltar</b>.<br><br>Você volta ao <b>nível 1</b>, com os atributos e as habilidades do começo, e cada XP vale 40%. Fica com a classe, os itens, a casa e as coroas. Tem certeza?`,
-      [{ label: '🔥 Renascer', fn: () => { renascer(); } }, { label: 'Ainda não estou pronto' }]);
+      [{ label: '🔥 Quero renascer', fn: () => { dialog('⚠️ Última confirmação', `${AVISO}<br>O Grande Ciclo completo fica guardado: se não for agora, pode voltar outro dia.`, [{ label: 'Ainda não (guardar para depois)' }, { label: `🔥 SIM, renascer no nível 1 (não tem volta)`, fn: () => { renascer(); } }]); return true; } }, { label: 'Ainda não estou pronto' }]);
     return true;
   }
   // ---------------- o renascimento (com a cena: a câmera gira, a luz sobe, a tela apaga e volta)
